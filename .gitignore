@@ -5,6 +5,9 @@ host/*
 # Private Gist 取得用の認証情報
 scripts/.env
 
+# Claude Code プロジェクトローカル設定
+.claude/
+
 # macOS
 .DS_Store
 
