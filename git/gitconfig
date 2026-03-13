@@ -1,5 +1,5 @@
 # git/gitconfig
-# [user] と [credential] は ~/.gitconfig.local に記載してください。
+# [user] は ~/.gitconfig.local に記載してください。
 #
 # ~/.gitconfig.local の例:
 #   [user]
@@ -17,22 +17,19 @@
 [include]
 	path = ./gitconfig.d/aliases.gitconfig
 
-# 組織別設定（各 ~/.gitconfig-{name} に [user] 等を記載）
+# 組織別設定（各 ~/.gitconfig.d/{name} に [user] 等を記載）
 [includeIf "gitdir:~/src/github.com/y-marui/"]
-	path = ~/.gitconfig-public
+	path = ~/.gitconfig.d/public
 [includeIf "gitdir:~/src/github.com/y-xxxxxxxxxx/"]
-	path = ~/.gitconfig-private
+	path = ~/.gitconfig.d/private
 [includeIf "gitdir:~/src/git.overleaf.com/"]
-	path = ~/.gitconfig-overleaf
+	path = ~/.gitconfig.d/overleaf
 [includeIf "gitdir:~/src/github.com/"]
-	path = ~/.gitconfig-others
+	path = ~/.gitconfig.d/others
 
 # ローカル設定（[user] name/email/signingkey 等）
-[includeIf "gitdir:~/"]
-	path = ~/.gitconfig.local
-
-[credential]
-	helper = osxkeychain
+[include]
+	path = ~/.gitconfig.d/local
 
 [ghq]
 	root = ~/src
