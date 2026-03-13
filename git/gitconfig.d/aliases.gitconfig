@@ -1,0 +1,12 @@
+[alias]
+	# リポジトリのルートを表示
+	root = rev-parse --show-toplevel
+
+	# マージ済みブランチを一括削除
+	cleanup = "!git pull --prune && git branch --merged | grep -v \"^\\*\\|main\\|master\\|develop\" | xargs git branch -d; git branch -vv | grep \": gone]\" | awk \"{print \\$1}\" | xargs git branch -d"
+
+	# よく使うショートカット
+	st = status
+	co = checkout
+	br = branch
+	lg = log --oneline --graph --decorate --all

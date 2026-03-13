@@ -1,0 +1,51 @@
+# git/gitconfig
+# [user] と [credential] は ~/.gitconfig.local に記載してください。
+#
+# ~/.gitconfig.local の例:
+#   [user]
+#       name = Your Name
+#       email = your@email.com
+#       # signingkey = XXXXXXXX  # GPG使用時
+
+[core]
+	excludesfile = ~/.gitignore_global
+	editor = vim -c "set fenc=utf-8"
+	symlinks = true
+	quotepath = false
+
+# エイリアス
+[include]
+	path = ./gitconfig.d/aliases.gitconfig
+
+# 組織別設定（各 ~/.gitconfig-{name} に [user] 等を記載）
+[includeIf "gitdir:~/src/github.com/y-marui/"]
+	path = ~/.gitconfig-public
+[includeIf "gitdir:~/src/github.com/y-xxxxxxxxxx/"]
+	path = ~/.gitconfig-private
+[includeIf "gitdir:~/src/git.overleaf.com/"]
+	path = ~/.gitconfig-overleaf
+[includeIf "gitdir:~/src/github.com/"]
+	path = ~/.gitconfig-others
+
+# ローカル設定（[user] name/email/signingkey 等）
+[includeIf "gitdir:~/"]
+	path = ~/.gitconfig.local
+
+[merge]
+	ff = false
+
+[pull]
+	ff = only
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+[difftool "sourcetree"]
+	cmd = opendiff "$LOCAL" "$REMOTE"
+
+[mergetool "sourcetree"]
+	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh "$LOCAL" "$REMOTE" -ancestor "$BASE" -merge "$MERGED"
+	trustExitCode = true
