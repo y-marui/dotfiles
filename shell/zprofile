@@ -1,0 +1,55 @@
+#
+# shell/zprofile
+# zsh ログインシェルで必要な環境変数・PATH（zsh 固有構文 OK）。
+#
+
+# --------------------------------------------------------
+# Browser (macOS)
+# --------------------------------------------------------
+if [[ "$OSTYPE" == darwin* ]]; then
+  export BROWSER='open'
+fi
+
+# --------------------------------------------------------
+# PATH 重複排除（zsh 専用）
+# --------------------------------------------------------
+typeset -gU cdpath fpath mailpath path
+
+# --------------------------------------------------------
+# Homebrew
+# --------------------------------------------------------
+if [[ -d '/opt/homebrew' ]]; then
+  path=('/opt/homebrew/bin' '/opt/homebrew/sbin' $path)
+fi
+path=('/usr/local/bin' '/usr/local/sbin' $path)
+
+# Homebrew: openssl
+if [[ -d '/opt/homebrew/opt/openssl@3' ]]; then
+  path=('/opt/homebrew/opt/openssl@3/bin' $path)
+fi
+
+# --------------------------------------------------------
+# TeX
+# --------------------------------------------------------
+path=('/Library/TeX/texbin' $path)
+
+# --------------------------------------------------------
+# MANPATH (GNU tools via Homebrew)
+# --------------------------------------------------------
+export MANPATH="/usr/local/opt/make/libexec/gnuman:$MANPATH"
+export MANPATH="/usr/local/opt/coreutils/libexec/gnuman:$MANPATH"
+
+# --------------------------------------------------------
+# Homebrew: misc
+# --------------------------------------------------------
+export XML_CATALOG_FILES='/opt/homebrew/etc/xml/catalog'
+
+# --------------------------------------------------------
+# コンパイラ・ライブラリフラグ（brew install したライブラリに依存）
+# マシン固有のものは host/<hostname>.zsh へ記載してください
+# --------------------------------------------------------
+export CPPFLAGS="-I/usr/local/opt/sqlite/include $CPPFLAGS"
+export PKG_CONFIG_PATH="/usr/local/opt/sqlite/lib/pkgconfig:$PKG_CONFIG_PATH"
+
+# Java (itext5)
+export CLASSPATH="/usr/local/share/java/itext5:$CLASSPATH"

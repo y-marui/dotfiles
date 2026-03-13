@@ -1,0 +1,25 @@
+#
+# shell/zpreztorc
+# zprezto のモジュール・テーマ設定のみ。
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# Color output (auto set to 'no' on dumb terminals).
+zstyle ':prezto:*:*' color 'yes'
+
+# Prezto モジュール（順序が重要）
+zstyle ':prezto:load' pmodule \
+  'environment' \
+  'terminal' \
+  'editor' \
+  'history' \
+  'directory' \
+  'spectrum' \
+  'utility' \
+  'completion' \
+  'prompt'
+
+# プロンプトテーマ
+zstyle ':prezto:module:prompt' theme 'powerlevel10k'

@@ -1,0 +1,51 @@
+# ~/.profile / shell/profile
+# sh 互換構文のみ。全シェル（zsh/bash）共通の環境変数・PATH。
+
+# --------------------------------------------------------
+# Editors / Pager
+# --------------------------------------------------------
+export EDITOR='vim'
+export VISUAL='vim'
+export PAGER='less'
+
+# --------------------------------------------------------
+# Language
+# --------------------------------------------------------
+export LANG='ja_JP.UTF-8'
+
+# --------------------------------------------------------
+# Less
+# --------------------------------------------------------
+export LESS='-R'
+if [ -x "$(command -v src-hilite-lesspipe.sh)" ]; then
+  export LESSOPEN="| src-hilite-lesspipe.sh %s"
+fi
+
+# --------------------------------------------------------
+# Python (pyenv)
+# --------------------------------------------------------
+export PYENV_ROOT="$HOME/.pyenv"
+export PYENV_VIRTUALENV_DISABLE_PROMPT=1
+export PYTHONPYCACHEPREFIX="$HOME/.config/pycache"
+
+# --------------------------------------------------------
+# PATH
+# --------------------------------------------------------
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.bin:$PATH"
+export PATH="$PYENV_ROOT/bin:$PATH"
+export PATH="$HOME/.rbenv/shims:$PATH"
+export PATH="$HOME/.nodebrew/current/bin:$PATH"
+
+# --------------------------------------------------------
+# Cloud storage roots（$HOME 相対なのでポータブル）
+# --------------------------------------------------------
+export GOOGLEDRIVE_ROOT="$HOME/Public/GoogleDrive"
+export DROPBOX_ROOT="$HOME/Public/Dropbox"
+export ICLOUD_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+export ZOTERO_ROOT="$HOME/Library/Mobile Documents/3L68KQB4HG~com~readdle~CommonDocuments/Documents/Zotero Library"
+
+# --------------------------------------------------------
+# Misc
+# --------------------------------------------------------
+export DICTIONARY='en_US'

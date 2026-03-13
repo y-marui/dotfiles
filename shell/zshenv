@@ -1,0 +1,12 @@
+#
+# shell/zshenv
+# 全 zsh セッションで読み込まれる。最小限に保つ。
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# 非ログイン・非インタラクティブシェルにも環境変数を引き継ぐ（zprezto デフォルト）
+if [[ ( "$SHLVL" -eq 1 && ! -o LOGIN ) && -s "${ZDOTDIR:-$HOME}/.zprofile" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprofile"
+fi

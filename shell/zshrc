@@ -1,0 +1,157 @@
+# shell/zshrc
+# zsh 対話シェルの設定。
+
+# --------------------------------------------------------
+# 1. Powerlevel10k instant prompt（最上部に置くこと）
+# --------------------------------------------------------
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
+
+# --------------------------------------------------------
+# 2. zprezto
+# --------------------------------------------------------
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
+# --------------------------------------------------------
+# 3. zsh オプション
+# --------------------------------------------------------
+setopt IGNOREEOF        # Ctrl+D でのログアウトを防ぐ
+setopt COMPLETE_IN_WORD # 単語の途中でも補完する
+
+# --------------------------------------------------------
+# 4. 補完
+# --------------------------------------------------------
+autoload -Uz colors && colors
+autoload -U compinit
+fpath+=$(brew --prefix)/share/zsh/site-functions
+compinit
+autoload -U bashcompinit && bashcompinit
+
+# --------------------------------------------------------
+# 5. エイリアス
+# --------------------------------------------------------
+alias brew="env PATH=${PATH//${PYENV_ROOT}\/bin:/} brew"
+alias py='python'
+alias ipy='ipython'
+alias ls='/bin/ls -G'
+alias pbg='ghq list -p | sort -fV | fzf | pbcopy'
+alias sshy='ssh -Y'
+
+# --------------------------------------------------------
+# 6. カスタム関数
+# --------------------------------------------------------
+
+# ghq + fzf でリポジトリ移動
+compdef _g g
+function g() {
+  case "$1" in
+    root)
+      git config ghq.root;;
+    *)
+      local target
+      target="$(ghq list -p | sort -fV | fzf)"
+      echo "$target"
+      if [ -n "$target" ]; then
+        cd "$target"
+      fi;;
+  esac
+}
+function _g() { _values '' 'root' }
+
+# cd 後に自動で ls
+function cd() {
+  builtin cd "$@" && ls
+}
+
+# ディレクトリによって code / code-insiders を切り替え
+function code() {
+  local target
+  target="$(pwd)"
+  if [[ -n "$1" ]]; then
+    target="$(builtin cd "$1"; pwd)"
+  fi
+  if [[ "$target" =~ "$(ghq root)/github.com/y-muen/*" ]]; then
+    command code-insiders "$@"
+  else
+    command code "$@"
+  fi
+}
+
+# claude 終了時に未コミットの変更を確認
+function claude() {
+  command claude "$@"
+  if git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
+    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+      echo ""
+      git status --short
+      echo ""
+      read "answer?⚠️  未コミットの変更があります。コミットせずに終了しますか？ [Y/n]: "
+      if [[ "$answer" =~ ^[Nn]$ ]]; then
+        command claude
+      fi
+    fi
+  fi
+}
+
+# pip search を pip_search にリダイレクト
+function pip() {
+  if [[ $1 = "search" ]]; then
+    pip_search "$2"
+  else
+    command pip "$@"
+  fi
+}
+function _pip {
+  local words cword
+  read -Ac words
+  read -cn cword
+  reply=( $( COMP_WORDS="$words[*]" \
+             COMP_CWORD=$(( cword-1 )) \
+             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
+}
+compctl -K _pip pip
+
+# --------------------------------------------------------
+# 7. ツール初期化
+# --------------------------------------------------------
+
+# pyenv
+command -v pyenv >/dev/null && eval "$(pyenv init -)" && eval "$(pyenv init --path)"
+
+# rbenv
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+
+# plenv
+if which plenv > /dev/null; then eval "$(plenv init -)"; fi
+
+# nodebrew（PATH は profile で設定済み）
+
+# poetry-tools
+if command -v poetry-tools &>/dev/null; then
+  eval "$(_POETRY_TOOLS_COMPLETE=zsh_source poetry-tools)"
+fi
+
+# gh CLI 補完
+if command -v gh &>/dev/null; then
+  eval "$(gh completion -s zsh)"
+fi
+
+# --------------------------------------------------------
+# 8. Powerlevel10k テーマ
+# --------------------------------------------------------
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
+# --------------------------------------------------------
+# 9. ホスト固有設定（$HOME/dotfiles/host/<hostname>.zsh）
+# --------------------------------------------------------
+[[ -f "$HOME/dotfiles/host/$(hostname -s).zsh" ]] && \
+  source "$HOME/dotfiles/host/$(hostname -s).zsh"
+
+# --------------------------------------------------------
+# 10. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
+# --------------------------------------------------------
+[[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
