@@ -1,0 +1,211 @@
+# .gitleaks.toml
+#
+# gitleaks カスタムルール設定
+# 公式デフォルトルールに加えて、プロジェクト固有のルールを定義する
+# ドキュメント: https://github.com/gitleaks/gitleaks#configuration
+
+title = "dotfiles gitleaks config"
+
+# ============================================================
+# 拡張ルール — デフォルトに追加する検知パターン
+# ============================================================
+
+[[rules]]
+# ---------------------------------------------------------------
+# ローカル絶対パス (macOS / Linux)
+# 誤って /Users/username/ や /home/username/ を設定値に書いた場合を検知
+# ---------------------------------------------------------------
+id          = "local-absolute-path-unix"
+description = "ローカル絶対パス (macOS/Linux) が含まれています"
+regex       = '''(?i)(["'`\s=:/]|^)(/Users/[A-Za-z0-9._-]{2,}/|/home/[A-Za-z0-9._-]{2,}/)'''
+tags        = ["path", "local-env"]
+severity    = "warning"
+
+  [rules.allowlist]
+  # CI 環境のパス・テストフィクスチャ・ドキュメント例は除外
+  regexes = [
+    '''/Users/runner/''',          # GitHub Actions
+    '''/Users/github/''',          # GitHub Actions (older)
+    '''/home/runner/''',           # GitHub Actions (Linux)
+    '''/home/circleci/''',         # CircleCI
+    '''/home/travis/''',           # Travis CI
+    '''example\.com''',
+    '''your[-_]?name''',
+    '''<username>''',
+    '''\$\{?[A-Z_]+\}?''',        # 環境変数参照 (${HOME} 等)
+  ]
+  paths = [
+    '''.*\.md$''',
+    '''.*\.txt$''',
+    '''.*\.example$''',
+    '''.*\.sample$''',
+    '''docs/.*''',
+    '''README.*''',
+  ]
+
+[[rules]]
+# ---------------------------------------------------------------
+# ローカル絶対パス (Windows)
+# ---------------------------------------------------------------
+id          = "local-absolute-path-windows"
+description = "Windows ローカルパスが含まれています"
+regex       = '''(?i)[A-Za-z]:\\(Users|home)\\[A-Za-z0-9._\- ]{2,}\\'''
+tags        = ["path", "local-env", "windows"]
+severity    = "warning"
+
+  [rules.allowlist]
+  regexes = [
+    '''C:\\Users\\ContainerAdministrator''',  # Docker/CI
+    '''C:\\Users\\Public''',
+    '''\$\{?[A-Z_]+\}?''',
+  ]
+  paths = [
+    '''.*\.md$''',
+    '''.*\.example$''',
+    '''docs/.*''',
+  ]
+
+[[rules]]
+# ---------------------------------------------------------------
+# SSH 秘密鍵のインラインコンテンツ
+# ファイル名検知は pre-commit-hooks の detect-private-key が担当
+# こちらはファイル内容に埋め込まれた鍵を検知
+# ---------------------------------------------------------------
+id          = "ssh-private-key-inline"
+description = "SSH 秘密鍵がファイル内に直接記述されています"
+regex       = '''-----BEGIN (RSA|EC|DSA|OPENSSH|PGP) PRIVATE KEY( BLOCK)?-----'''
+tags        = ["key", "ssh", "crypto"]
+severity    = "critical"
+
+  [rules.allowlist]
+  # テスト用フィクスチャは明示的なディレクトリで管理する
+  paths = [
+    '''test(s)?/fixtures/.*''',
+    '''spec/fixtures/.*''',
+    '''testdata/.*''',
+  ]
+
+[[rules]]
+# ---------------------------------------------------------------
+# AWS アクセスキー ID
+# AKIA から始まる 20 文字の英数字
+# ---------------------------------------------------------------
+id          = "aws-access-key-id"
+description = "AWS アクセスキー ID が検出されました"
+regex       = '''(?i)(aws_?access_?key_?id|AKIA)[^A-Z0-9]?['\"]?(AKIA[0-9A-Z]{16})'''
+tags        = ["cloud", "aws", "secret"]
+severity    = "critical"
+
+  [rules.allowlist]
+  regexes = [
+    '''AKIAIOSFODNN7EXAMPLE''',  # AWS 公式ドキュメントのサンプル値
+    '''AKIAXXXXXXXXXXXXXXXX''',
+  ]
+
+[[rules]]
+# ---------------------------------------------------------------
+# AWS シークレットアクセスキー
+# ---------------------------------------------------------------
+id          = "aws-secret-access-key"
+description = "AWS シークレットアクセスキーが検出されました"
+regex       = '''(?i)(aws_?secret_?access_?key|aws_?secret)[^A-Za-z0-9]?['\"]?([A-Za-z0-9/+]{40})'''
+tags        = ["cloud", "aws", "secret"]
+severity    = "critical"
+
+  [rules.allowlist]
+  regexes = [
+    '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY''',  # AWS 公式ドキュメントのサンプル
+  ]
+
+[[rules]]
+# ---------------------------------------------------------------
+# GCP サービスアカウントキー (JSON)
+# ---------------------------------------------------------------
+id          = "gcp-service-account-key"
+description = "GCP サービスアカウントキーが検出されました"
+regex       = '''"type"\s*:\s*"service_account"'''
+tags        = ["cloud", "gcp", "secret"]
+severity    = "critical"
+
+[[rules]]
+# ---------------------------------------------------------------
+# Azure Storage アカウントキー
+# ---------------------------------------------------------------
+id          = "azure-storage-key"
+description = "Azure Storage アカウントキーが検出されました"
+# Base64 エンコードされた 88 文字のキー
+regex       = '''(?i)(DefaultEndpointsProtocol=https?;AccountName=[^;]+;AccountKey=)[A-Za-z0-9+/]{88}=='''
+tags        = ["cloud", "azure", "secret"]
+severity    = "critical"
+
+[[rules]]
+# ---------------------------------------------------------------
+# GitHub Personal Access Token (classic & fine-grained)
+# ---------------------------------------------------------------
+id          = "github-pat"
+description = "GitHub Personal Access Token が検出されました"
+regex       = '''(ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82})'''
+tags        = ["vcs", "github", "token"]
+severity    = "critical"
+
+[[rules]]
+# ---------------------------------------------------------------
+# 汎用パスワード / シークレット代入パターン
+# password = "xxx" のような直接代入を検知
+# ---------------------------------------------------------------
+id          = "generic-password-assignment"
+description = "パスワード・シークレットの直接代入が検出されました"
+regex       = '''(?i)(password|passwd|secret|token|api_?key|auth_?token)\s*[=:]\s*['"][^'"]{8,}['"]'''
+tags        = ["secret", "generic"]
+severity    = "warning"
+
+  [rules.allowlist]
+  # プレースホルダー・サンプル値は除外
+  regexes = [
+    '''(?i)(your[-_]?password|changeme|placeholder|example|sample|dummy|test|xxxx+|\*{4,}|\${[^}]+})''',
+    # 環境変数参照
+    '''\$\{?[A-Z_][A-Z0-9_]*\}?''',
+    # テンプレート変数
+    '''<%[^%]+%>''',
+    '''\{\{[^}]+\}\}''',
+  ]
+  paths = [
+    '''.*\.example$''',
+    '''.*\.sample$''',
+    '''.*\.template$''',
+    '''docs/.*''',
+    '''.*test.*''',
+    '''.*spec.*''',
+  ]
+
+# ============================================================
+# グローバル除外設定
+# ============================================================
+[allowlist]
+description = "グローバル除外 — テストデータ・ドキュメント・生成ファイル"
+
+# 除外するファイルパターン
+paths = [
+  # ロックファイル（ハッシュ値を大量に含む）
+  '''go\.sum''',
+  '''package-lock\.json''',
+  '''yarn\.lock''',
+  '''Gemfile\.lock''',
+  '''Cargo\.lock''',
+  '''poetry\.lock''',
+  # ビルド成果物
+  '''dist/.*''',
+  '''build/.*''',
+  '''\.(min\.js|min\.css)$''',
+  # テスト用フィクスチャ（明示的に許可したディレクトリのみ）
+  '''test(s)?/fixtures/.*''',
+  '''spec/fixtures/.*''',
+  # このファイル自体（ルール定義にパターンを含むため）
+  '''\.gitleaks\.toml''',
+  # pre-commit 設定ファイル（フック定義にパターンを含むため）
+  '''\.pre-commit-config\.yaml''',
+]
+
+# 除外するコミットハッシュ（既知の false positive が含まれるコミット）
+# 例: commits = ["abc123def456..."]
+commits = []
