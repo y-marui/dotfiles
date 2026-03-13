@@ -13,6 +13,7 @@ scripts/.env
 
 # macOS
 .DS_Store
+macos/Brewfile.local
 
 # バックアップファイル
 *.backup.*
