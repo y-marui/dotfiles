@@ -57,4 +57,11 @@ else
   gh gist clone "${GIST_ID}" "${PRIVATE_DIR}"
 fi
 
+# シンボリックリンクを作成
+echo "シンボリックリンクを作成しています..."
+mkdir -p "${HOME}/.gitconfig.d" "${HOME}/.ssh"
+ln -sf "${PRIVATE_DIR}/gitconfig.d-local"   "${HOME}/.gitconfig.d/local"
+ln -sf "${PRIVATE_DIR}/gitconfig.d-private" "${HOME}/.gitconfig.d/private"
+ln -sf "${PRIVATE_DIR}/ssh-config"          "${HOME}/.ssh/config"
+
 echo "完了: ${PRIVATE_DIR}"
