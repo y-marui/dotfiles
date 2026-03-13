@@ -8,6 +8,9 @@ scripts/.env
 # Claude Code プロジェクトローカル設定
 .claude/
 
+# グローバル gitignore の [Bb]in/ を上書き除外
+!bin/
+
 # macOS
 .DS_Store
 

@@ -26,4 +26,5 @@ LINKS=(
   "ai/claude/statusline-command.sh|${HOME}/.claude/statusline-command.sh"
   "ai/claude/hooks/ntfy_notify.sh|${HOME}/.claude/hooks/ntfy_notify.sh"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
+  "bin/build-quiet|${HOME}/.local/bin/build-quiet"
 )
