@@ -10,3 +10,6 @@
 if [[ ( "$SHLVL" -eq 1 && ! -o LOGIN ) && -s "${ZDOTDIR:-$HOME}/.zprofile" ]]; then
   source "${ZDOTDIR:-$HOME}/.zprofile"
 fi
+
+# dotfiles のルートパス（各自の環境に合わせて ~/.zshrc.local で上書き可能）
+export DOTFILES_DIR="${DOTFILES_DIR:-${HOME}/dotfiles}"

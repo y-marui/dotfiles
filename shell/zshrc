@@ -34,12 +34,10 @@ autoload -U bashcompinit && bashcompinit
 # --------------------------------------------------------
 # 5. エイリアス
 # --------------------------------------------------------
-alias brew="env PATH=${PATH//${PYENV_ROOT}\/bin:/} brew"
 alias py='python'
 alias ipy='ipython'
 alias ls='/bin/ls -G'
 alias pbg='ghq list -p | sort -fV | fzf | pbcopy'
-alias sshy='ssh -Y'
 
 # --------------------------------------------------------
 # 6. カスタム関数
@@ -78,22 +76,6 @@ function code() {
     command code-insiders "$@"
   else
     command code "$@"
-  fi
-}
-
-# claude 終了時に未コミットの変更を確認
-function claude() {
-  command claude "$@"
-  if git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
-    if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-      echo ""
-      git status --short
-      echo ""
-      read "answer?⚠️  未コミットの変更があります。コミットせずに終了しますか？ [Y/n]: "
-      if [[ "$answer" =~ ^[Nn]$ ]]; then
-        command claude
-      fi
-    fi
   fi
 }
 
@@ -146,12 +128,12 @@ fi
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # --------------------------------------------------------
-# 9. ホスト固有設定（$HOME/dotfiles/host/<hostname>.zsh）
-# --------------------------------------------------------
-[[ -f "$HOME/dotfiles/host/$(hostname -s).zsh" ]] && \
-  source "$HOME/dotfiles/host/$(hostname -s).zsh"
-
-# --------------------------------------------------------
 # 10. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
 # --------------------------------------------------------
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
+
+# --------------------------------------------------------
+# 9. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
+# --------------------------------------------------------
+[[ -f "$DOTFILES_DIR/host/$(hostname -s).zsh" ]] && \
+  source "$DOTFILES_DIR/host/$(hostname -s).zsh"

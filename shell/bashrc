@@ -11,15 +11,12 @@
 # --------------------------------------------------------
 alias py='python'
 alias ipy='ipython'
-alias jn='jupyter notebook'
 alias ls='/bin/ls -G'
 alias tree='tree -C'
 alias ffmpeg='/usr/local/bin/ffmpeg'
-alias youtube-mp4='youtube-dl -f mp4'
 alias blender='/Applications/blender.app/Contents/MacOS/blender'
 alias gcc='/usr/bin/gcc'
 alias g++='/usr/bin/g++'
-alias sshy='ssh -Y'
 
 # --------------------------------------------------------
 # ホスト固有設定（$HOME/dotfiles/host/<hostname>.bash）
