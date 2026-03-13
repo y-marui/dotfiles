@@ -160,9 +160,6 @@ cask "vnc-viewer"
 cask "windows-app"
 cask "wolfram-engine"
 
-# ── macOS アプリ（その他） ────────────────────────────────────────────────────
-cask "vesta"
-
 # ── Mac App Store ────────────────────────────────────────────────────────────
 mas "Bitwarden", id: 1352778147
 mas "Canary Mail", id: 1236045954
