@@ -23,4 +23,7 @@ LINKS=(
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
+  "ai/claude/statusline-command.sh|${HOME}/.claude/statusline-command.sh"
+  "ai/claude/hooks/ntfy_notify.sh|${HOME}/.claude/hooks/ntfy_notify.sh"
+  "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
 )
