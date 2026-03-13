@@ -43,13 +43,14 @@ echo "Gist (${GIST_ID}) のファイル一覧:"
 gh gist view "${GIST_ID}"
 echo ""
 
-read -r -p "${HOME}/.dotfiles-private/ に取得しますか？ [y/N]: " answer
+DOTFILES_DIR="$(cd "${SCRIPTS_DIR}/.." && pwd)"
+PRIVATE_DIR="${DOTFILES_DIR%-private}-private"
+
+read -r -p "${PRIVATE_DIR} に取得しますか？ [y/N]: " answer
 if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
   echo "キャンセルしました。"
   exit 0
 fi
-
-PRIVATE_DIR="${HOME}/.dotfiles-private"
 if [[ -d "${PRIVATE_DIR}" ]]; then
   echo "既存の ${PRIVATE_DIR} を更新します..."
   git -C "${PRIVATE_DIR}" pull
