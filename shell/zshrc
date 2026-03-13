@@ -38,6 +38,9 @@ alias py='python'
 alias ipy='ipython'
 alias ls='/bin/ls -G'
 alias pbg='ghq list -p | sort -fV | fzf | pbcopy'
+alias sshy='ssh -Y'
+# pyenv と brew の PATH 衝突回避
+alias brew="env PATH=${PATH//${PYENV_ROOT:-$HOME/.pyenv}/bin:/} brew"
 
 # --------------------------------------------------------
 # 6. カスタム関数

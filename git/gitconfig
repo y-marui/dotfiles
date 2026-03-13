@@ -31,6 +31,12 @@
 [includeIf "gitdir:~/"]
 	path = ~/.gitconfig.local
 
+[credential]
+	helper = osxkeychain
+
+[ghq]
+	root = ~/src
+
 [merge]
 	ff = false
 
