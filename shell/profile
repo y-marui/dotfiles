@@ -1,5 +1,11 @@
 # ~/.profile / shell/profile
 # sh 互換構文のみ。全シェル（zsh/bash）共通の環境変数・PATH。
+# shellcheck shell=sh
+
+# --------------------------------------------------------
+# DOTFILES_DIR（bash / zsh 共通）
+# --------------------------------------------------------
+export DOTFILES_DIR="${DOTFILES_DIR:-${HOME}/dotfiles}"
 
 # --------------------------------------------------------
 # Editors / Pager
@@ -49,3 +55,48 @@ export ZOTERO_ROOT="$HOME/Library/Mobile Documents/3L68KQB4HG~com~readdle~Common
 # Misc
 # --------------------------------------------------------
 export DICTIONARY='en_US'
+
+# --------------------------------------------------------
+# Browser (macOS)
+# --------------------------------------------------------
+if [ "$(uname)" = Darwin ]; then
+  export BROWSER='open'
+fi
+
+# --------------------------------------------------------
+# Homebrew
+# --------------------------------------------------------
+if [ -d '/opt/homebrew' ]; then
+  export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+fi
+export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+
+if [ -d '/opt/homebrew/opt/openssl@3' ]; then
+  export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+fi
+
+# --------------------------------------------------------
+# TeX
+# --------------------------------------------------------
+export PATH="/Library/TeX/texbin:$PATH"
+
+# --------------------------------------------------------
+# MANPATH (GNU tools via Homebrew)
+# --------------------------------------------------------
+export MANPATH="/usr/local/opt/make/libexec/gnuman:${MANPATH:-}"
+export MANPATH="/usr/local/opt/coreutils/libexec/gnuman:$MANPATH"
+
+# --------------------------------------------------------
+# Homebrew: misc
+# --------------------------------------------------------
+export XML_CATALOG_FILES='/opt/homebrew/etc/xml/catalog'
+
+# --------------------------------------------------------
+# コンパイラ・ライブラリフラグ（brew install したライブラリに依存）
+# マシン固有のものは host/<hostname>.sh へ記載してください
+# --------------------------------------------------------
+export CPPFLAGS="-I/usr/local/opt/sqlite/include${CPPFLAGS:+ $CPPFLAGS}"
+export PKG_CONFIG_PATH="/usr/local/opt/sqlite/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+
+# Java (itext5)
+export CLASSPATH="/usr/local/share/java/itext5${CLASSPATH:+:$CLASSPATH}"

@@ -1,10 +1,12 @@
 # shell/bashrc
 # bash 対話シェルの設定。
+# shellcheck shell=bash
 
 # --------------------------------------------------------
 # 共通設定の読み込み
 # --------------------------------------------------------
-[[ -f "$HOME/.profile" ]] && source "$HOME/.profile"
+# shellcheck source=shell/profile
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
 
 # --------------------------------------------------------
 # エイリアス（bash 互換のもの）
@@ -19,7 +21,32 @@ alias gcc='/usr/bin/gcc'
 alias g++='/usr/bin/g++'
 
 # --------------------------------------------------------
-# ホスト固有設定（$HOME/dotfiles/host/<hostname>.bash）
+# ツール初期化
 # --------------------------------------------------------
-[[ -f "$HOME/dotfiles/host/$(hostname -s).bash" ]] && \
-  source "$HOME/dotfiles/host/$(hostname -s).bash"
+
+# pyenv
+if command -v pyenv > /dev/null; then
+  eval "$(pyenv init -)"
+fi
+
+# rbenv
+if command -v rbenv > /dev/null; then
+  eval "$(rbenv init -)"
+fi
+
+# plenv
+if command -v plenv > /dev/null; then
+  eval "$(plenv init -)"
+fi
+
+# gh CLI 補完
+if command -v gh > /dev/null; then
+  eval "$(gh completion -s bash)"
+fi
+
+# --------------------------------------------------------
+# ホスト固有設定（$DOTFILES_DIR/host/<hostname>.bash）
+# --------------------------------------------------------
+# shellcheck disable=SC1090
+[ -f "$DOTFILES_DIR/host/$(hostname -s).bash" ] && \
+  . "$DOTFILES_DIR/host/$(hostname -s).bash"
