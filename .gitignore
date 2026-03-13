@@ -1,0 +1,12 @@
+# ホスト固有設定（ローカルのみ）
+host/*
+!host/.gitignore
+
+# Private Gist 取得用の認証情報
+scripts/.env
+
+# macOS
+.DS_Store
+
+# バックアップファイル
+*.backup.*
