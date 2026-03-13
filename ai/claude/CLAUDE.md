@@ -12,6 +12,10 @@
 - Swift: SwiftLint 準拠
 - Python: ruff / black 準拠
 
+## コミットのタイミング
+
+ユーザーから明示的に指示された時だけコミットする。作業完了後に自動でコミットしない。
+
 ## コミットメッセージ
 
 Conventional Commits 形式:

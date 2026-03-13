@@ -1,36 +1,26 @@
-#!/bin/bash
-
+#!/bin/sh
 input=$(cat)
 
-# コンテキスト使用率
 PERCENT=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+cwd=$(echo "$input" | jq -r '.cwd // .workspace.current_dir // ""')
 
-# Git情報
 GIT=""
-if git rev-parse --git-dir > /dev/null 2>&1; then
-    BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+if [ -n "$cwd" ] && git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  BRANCH=$(git --no-optional-locks -C "$cwd" symbolic-ref --short HEAD 2>/dev/null)
+  if [ -z "$BRANCH" ]; then
+    BRANCH=$(git --no-optional-locks -C "$cwd" rev-parse --short HEAD 2>/dev/null)
+  fi
 
-    # ブランチ名が取得できた場合のみ表示
-    if [ -n "$BRANCH" ]; then
-        # 変更されたファイル (modified + deleted)
-        MODIFIED=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+  MODIFIED=$(git --no-optional-locks -C "$cwd" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+  UNTRACKED=$(git --no-optional-locks -C "$cwd" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+  UNPUSHED=$(git --no-optional-locks -C "$cwd" rev-list '@{u}..HEAD' 2>/dev/null | wc -l | tr -d ' ')
+  UNPULLED=$(git --no-optional-locks -C "$cwd" rev-list 'HEAD..@{u}' 2>/dev/null | wc -l | tr -d ' ')
 
-        # 未追跡ファイル
-        UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-
-        # プッシュされていないコミット (ahead)
-        UNPUSHED=$(git rev-list '@{u}..HEAD' 2>/dev/null | wc -l | tr -d ' ')
-
-        # プルされていないコミット (behind)
-        UNPULLED=$(git rev-list 'HEAD..@{u}' 2>/dev/null | wc -l | tr -d ' ')
-
-        GIT=" | ${BRANCH}"
-        [ "$UNPULLED" != "0" ] && GIT="${GIT} ↓${UNPULLED}"
-        [ "$UNPUSHED" != "0" ] && GIT="${GIT} ↑${UNPUSHED}"
-        [ "$MODIFIED" != "0" ] && GIT="${GIT} !${MODIFIED}"
-        [ "$UNTRACKED" != "0" ] && GIT="${GIT} ?${UNTRACKED}"
-    fi
+  GIT=" | ${BRANCH}"
+  [ "$UNPULLED" != "0" ] && GIT="${GIT} ↓${UNPULLED}"
+  [ "$UNPUSHED" != "0" ] && GIT="${GIT} ↑${UNPUSHED}"
+  [ "$MODIFIED"  != "0" ] && GIT="${GIT} !${MODIFIED}"
+  [ "$UNTRACKED" != "0" ] && GIT="${GIT} ?${UNTRACKED}"
 fi
 
-# 出力
 echo "Ctx: ${PERCENT}%${GIT}"
