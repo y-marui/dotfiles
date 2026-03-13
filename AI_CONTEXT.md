@@ -22,7 +22,6 @@ dotfiles/
 ├── shell/          # zsh / bash / sh 設定ファイル
 ├── git/            # gitconfig、gitignore_global、エイリアス
 │   └── gitconfig.d/
-├── editor/         # vimrc
 ├── terminal/       # tmux.conf、p10k.zsh
 ├── ai/
 │   ├── claude/     # ~/.claude/ にリンクされる Claude Code 設定
@@ -52,8 +51,8 @@ dotfiles/
 
 - シークレットは絶対にコミットしない
 - ローカル専用設定は `~/.zshrc.local` または `host/<hostname>.zsh` に書く
-- Git の user 情報は `~/.gitconfig.local` に書く
-- Private Gist で管理するもの: gitconfig-private 等（`make private` で取得）
+- Git の user 情報等は Private Gist で管理（`~/.gitconfig.d/` にシンボリックリンク）
+- `make private` で Gist から取得・リンクを自動設定
 
 ## よく使うコマンド
 

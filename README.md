@@ -7,8 +7,8 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot。
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/y-marui/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/y-marui/dotfiles.git ~/src/github.com/y-marui/dotfiles
+cd ~/src/github.com/y-marui/dotfiles
 
 # 2. ホスト固有設定テンプレートを生成
 make init
@@ -16,12 +16,10 @@ make init
 # 3. テンプレートを編集（マシン固有の設定・パスを記入）
 vi ./host/$(hostname -s).zsh
 
-# 4. ~/.gitconfig.local を作成
-cat > ~/.gitconfig.local << 'EOF'
-[user]
-    name = Your Name
-    email = your@email.com
-EOF
+# 4. プライベート設定を取得（gitconfig.d/* / ssh/config）
+cp scripts/.env.example scripts/.env
+vi scripts/.env  # GIST_ID を記入
+make private
 
 # 5. dotfiles をインストール
 make install
@@ -55,7 +53,6 @@ make macos
 |-----|------|
 | `shell/` | zsh / bash 設定 |
 | `git/` | Git 設定（公開分のみ） |
-| `editor/` | Vim 設定 |
 | `terminal/` | tmux / p10k 設定 |
 | `ai/` | Claude Code / Copilot 設定 |
 | `macos/` | Brewfile / macOS デフォルト設定 |
@@ -81,7 +78,6 @@ make private
 
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
 - `~/.zshrc.local` — 自動的に読み込まれる追加設定
-- `~/.gitconfig.local` — Git の user 情報等
 
 ---
 
