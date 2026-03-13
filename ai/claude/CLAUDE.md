@@ -23,6 +23,7 @@ build-quiet make build
 build-quiet swift build
 build-quiet npm test
 build-quiet pre-commit run --all-files
+build-quiet git commit -m "..."
 ```
 
 warning やエラーの情報が不足していて原因を特定できない場合は、
