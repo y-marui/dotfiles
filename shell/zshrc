@@ -1,5 +1,6 @@
 # shell/zshrc
 # zsh 対話シェルの設定。
+# [共通] マークは bashrc と内容を共有していることを示す。
 
 # --------------------------------------------------------
 # 1. Powerlevel10k instant prompt（最上部に置くこと）
@@ -34,13 +35,12 @@ autoload -U bashcompinit && bashcompinit
 # --------------------------------------------------------
 # 5. エイリアス
 # --------------------------------------------------------
-alias py='python'
-alias ipy='ipython'
-alias ls='/bin/ls -G'
+alias py='python'       # [共通]
+alias ipy='ipython'     # [共通]
+alias ls='/bin/ls -G'   # [共通]
 alias pbg='ghq list -p | sort -fV | fzf | pbcopy'
-alias sshy='ssh -Y'
-# pyenv と brew の PATH 衝突回避
-alias brew="env PATH=${PATH//${PYENV_ROOT:-$HOME/.pyenv}/bin:/} brew"
+# pyenv と brew の PATH 衝突回避（実行時に $PYENV_ROOT を評価するためシングルクォート）
+alias brew='env PATH="${PATH//${PYENV_ROOT}/bin:/}" brew'
 
 # --------------------------------------------------------
 # 6. カスタム関数
@@ -104,21 +104,21 @@ compctl -K _pip pip
 # 7. ツール初期化
 # --------------------------------------------------------
 
-# pyenv
-command -v pyenv >/dev/null && eval "$(pyenv init -)" && eval "$(pyenv init --path)"
+# pyenv                                                   # [共通]
+if command -v pyenv > /dev/null; then                     # [共通]
+  eval "$(pyenv init -)"                                  # [共通]
+  eval "$(pyenv init --path)"                             # [共通]
+fi                                                        # [共通]
 
-# rbenv
-if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+# rbenv                                                   # [共通]
+if command -v rbenv > /dev/null; then                     # [共通]
+  eval "$(rbenv init -)"                                  # [共通]
+fi                                                        # [共通]
 
-# plenv
-if which plenv > /dev/null; then eval "$(plenv init -)"; fi
-
-# nodebrew（PATH は profile で設定済み）
-
-# poetry-tools
-if command -v poetry-tools &>/dev/null; then
-  eval "$(_POETRY_TOOLS_COMPLETE=zsh_source poetry-tools)"
-fi
+# plenv                                                   # [共通]
+if command -v plenv > /dev/null; then                     # [共通]
+  eval "$(plenv init -)"                                  # [共通]
+fi                                                        # [共通]
 
 # gh CLI 補完
 if command -v gh &>/dev/null; then
@@ -131,12 +131,12 @@ fi
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # --------------------------------------------------------
-# 10. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
+# 9. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
 # --------------------------------------------------------
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # --------------------------------------------------------
-# 9. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
+# 10. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
 # --------------------------------------------------------
 [[ -f "$DOTFILES_DIR/host/$(hostname -s).zsh" ]] && \
   source "$DOTFILES_DIR/host/$(hostname -s).zsh"

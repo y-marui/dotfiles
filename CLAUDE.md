@@ -23,7 +23,6 @@ dotfiles リポジトリ。詳細は AI_CONTEXT.md を参照。
 
 - 既存ファイルを変更する前に `make check` を実行する
 - 不明な設定はユーザーに確認してから進める
-- 各ステップ完了時に git commit する
 
 ## zprezto について
 

@@ -1,19 +1,20 @@
 # shell/bashrc
 # bash 対話シェルの設定。
+# [共通] マークは zshrc と内容を共有していることを示す。
 # shellcheck shell=bash
 
 # --------------------------------------------------------
 # 共通設定の読み込み
 # --------------------------------------------------------
-# shellcheck source=shell/profile
+# shellcheck source=shell/profile disable=SC1091
 [ -f "$HOME/.profile" ] && . "$HOME/.profile"
 
 # --------------------------------------------------------
-# エイリアス（bash 互換のもの）
+# エイリアス
 # --------------------------------------------------------
-alias py='python'
-alias ipy='ipython'
-alias ls='/bin/ls -G'
+alias py='python'       # [共通]
+alias ipy='ipython'     # [共通]
+alias ls='/bin/ls -G'   # [共通]
 alias tree='tree -C'
 alias ffmpeg='/usr/local/bin/ffmpeg'
 alias blender='/Applications/blender.app/Contents/MacOS/blender'
@@ -23,31 +24,38 @@ alias g++='/usr/bin/g++'
 # --------------------------------------------------------
 # bash-completion (Homebrew)
 # --------------------------------------------------------
+# shellcheck disable=SC1091
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 
 # --------------------------------------------------------
 # ツール初期化
 # --------------------------------------------------------
 
-# pyenv
-if command -v pyenv > /dev/null; then
-  eval "$(pyenv init -)"
-fi
+# pyenv                                                   # [共通]
+if command -v pyenv > /dev/null; then                     # [共通]
+  eval "$(pyenv init -)"                                  # [共通]
+fi                                                        # [共通]
 
-# rbenv
-if command -v rbenv > /dev/null; then
-  eval "$(rbenv init -)"
-fi
+# rbenv                                                   # [共通]
+if command -v rbenv > /dev/null; then                     # [共通]
+  eval "$(rbenv init -)"                                  # [共通]
+fi                                                        # [共通]
 
-# plenv
-if command -v plenv > /dev/null; then
-  eval "$(plenv init -)"
-fi
+# plenv                                                   # [共通]
+if command -v plenv > /dev/null; then                     # [共通]
+  eval "$(plenv init -)"                                  # [共通]
+fi                                                        # [共通]
 
 # gh CLI 補完
 if command -v gh > /dev/null; then
   eval "$(gh completion -s bash)"
 fi
+
+# --------------------------------------------------------
+# ローカル設定（シークレット等 → ~/.bashrc.local に記載）
+# --------------------------------------------------------
+# shellcheck disable=SC1091
+[ -f "$HOME/.bashrc.local" ] && . "$HOME/.bashrc.local"
 
 # --------------------------------------------------------
 # ホスト固有設定（$DOTFILES_DIR/host/<hostname>.bash）
