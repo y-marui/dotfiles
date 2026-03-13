@@ -1,11 +1,16 @@
 # git/gitconfig
-# [user] は ~/.gitconfig.local に記載してください。
+# 組織・アカウント別の [user] は ~/.gitconfig.d/{name} に記載してください。
 #
-# ~/.gitconfig.local の例:
+# ~/.gitconfig.d/public の例（y-marui/ 配下）:
 #   [user]
 #       name = Your Name
-#       email = your@email.com
+#       email = your-public@example.com
 #       # signingkey = XXXXXXXX  # GPG使用時
+#
+# ~/.gitconfig.d/local の例（フォールバック）:
+#   [user]
+#       name = Your Name
+#       email = your@example.com
 
 [core]
 	excludesfile = ~/.gitignore_global
@@ -24,9 +29,6 @@
 	path = ~/.gitconfig.d/private
 [includeIf "gitdir:~/src/git.overleaf.com/"]
 	path = ~/.gitconfig.d/overleaf
-[includeIf "gitdir:~/src/github.com/"]
-	path = ~/.gitconfig.d/others
-
 # ローカル設定（[user] name/email/signingkey 等）
 [include]
 	path = ~/.gitconfig.d/local
