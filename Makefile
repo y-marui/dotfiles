@@ -19,7 +19,8 @@ update: ## git pull --rebase して再インストール
 	@git pull --rebase origin main
 	@$(MAKE) install
 
-brew: ## Brewfile からパッケージをインストール
+brew: ## Brewfile からパッケージをインストール（Brewfile.local がなければ現在の状態をスナップショット）
+	@[[ -f macos/Brewfile.local ]] || brew bundle dump --file=macos/Brewfile.local
 	@brew bundle --file=macos/Brewfile
 
 macos: ## macOS のデフォルト設定を適用
