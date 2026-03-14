@@ -3,26 +3,7 @@
 # [共通] マークは bashrc と内容を共有していることを示す。
 
 # --------------------------------------------------------
-# 1. dotfiles の未コミット・未プッシュを確認（p10k instant prompt より前に出力）
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -d "$DOTFILES_DIR/.git" ]]; then
-  _df_msg=()
-  if ! git -C "$DOTFILES_DIR" diff --quiet 2>/dev/null || \
-     ! git -C "$DOTFILES_DIR" diff --cached --quiet 2>/dev/null; then
-    _df_msg+=("未コミットの変更あり")
-  fi
-  _df_unpushed=$(git -C "$DOTFILES_DIR" log '@{u}..' --oneline 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "${_df_unpushed}" -gt 0 ]]; then
-    _df_msg+=("${_df_unpushed} commits unpushed")
-  fi
-  if [[ ${#_df_msg[@]} -gt 0 ]]; then
-    print -P "%F{yellow}⚠ dotfiles: ${(j: / :)_df_msg}%f"
-  fi
-  unset _df_msg _df_unpushed
-fi
-
-# --------------------------------------------------------
-# 2. Powerlevel10k instant prompt（最上部に置くこと）
+# 1. Powerlevel10k instant prompt（最上部に置くこと）
 # --------------------------------------------------------
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
