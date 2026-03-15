@@ -47,14 +47,14 @@ brew "gnupg"
 brew "gpgme"
 
 # ── Language / Runtime ────────────────────────────────────────────────────────
-brew "nodebrew"
 brew "node"
-brew "pyenv"
-brew "pipx"
-brew "rbenv"
-brew "ruby-build"
+brew "nodebrew"
 brew "openjdk@11"
 brew "php"
+brew "pipx"
+brew "pyenv"
+brew "rbenv"
+brew "ruby-build"
 
 # ── 開発ツール ────────────────────────────────────────────────────────────────
 brew "cmake"
@@ -234,3 +234,6 @@ vscode "torn4dom4n.latex-support"
 vscode "vscode-icons-team.vscode-icons"
 vscode "ziyasal.vscode-open-in-github"
 vscode "znck.grammarly"
+
+# ── 未分類 ────────────────────────────────────────────────────────────────────
+cask "claude"
