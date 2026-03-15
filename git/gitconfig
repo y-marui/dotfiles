@@ -51,6 +51,15 @@
 [ghq]
 	root = ~/src
 
+[push]
+	autoSetupRemote = true
+
+[fetch]
+	prune = true
+
+[diff]
+	algorithm = histogram
+
 [merge]
 	ff = false
 

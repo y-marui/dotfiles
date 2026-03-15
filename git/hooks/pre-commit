@@ -1,11 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- identity チェック ---
 name="$(git config user.name)"
 email="$(git config user.email)"
 
 if [[ "${name}" == "anonymous" || "${email}" == "anonymous" ]]; then
   echo "エラー: user.name / user.email が anonymous のままです。" >&2
   echo "${HOME}/.gitconfig.d/local または該当の \${HOME}/.gitconfig.d/{org} に設定してください。" >&2
+  exit 1
+fi
+
+# --- .env ファイルのステージング検知 ---
+staged_env="$(git diff --cached --name-only | grep -E '(^|/)\.env(\.[^.]+)?$' | grep -vE '\.(example|sample|template)$' || true)"
+if [[ -n "${staged_env}" ]]; then
+  echo "エラー: .env ファイルがステージされています:" >&2
+  echo "${staged_env}" >&2
+  exit 1
+fi
+
+# --- SSH 秘密鍵ヘッダーの検知 ---
+if git diff --cached | grep -q '\-\-\-\-\-BEGIN.*PRIVATE KEY\-\-\-\-\-'; then
+  echo "エラー: SSH 秘密鍵らしき内容が含まれています。" >&2
   exit 1
 fi
