@@ -58,14 +58,22 @@ else
   gh gist clone "${GIST_ID}" "${PRIVATE_DIR}"
 fi
 
-# シンボリックリンクを作成
-echo "シンボリックリンクを作成しています..."
-mkdir -p "${HOME}/.gitconfig.d" "${HOME}/.ssh"
-ln -sf "${PRIVATE_DIR}/gitconfig.d-includes" "${HOME}/.gitconfig.d/includes"
-ln -sf "${PRIVATE_DIR}/gitconfig.d-local"    "${HOME}/.gitconfig.d/local"
-ln -sf "${PRIVATE_DIR}/gitconfig.d-private"  "${HOME}/.gitconfig.d/private"
-ln -sf "${PRIVATE_DIR}/gitconfig.d-public"   "${HOME}/.gitconfig.d/public"
-ln -sf "${PRIVATE_DIR}/gitconfig.d-overleaf" "${HOME}/.gitconfig.d/overleaf"
-ln -sf "${PRIVATE_DIR}/ssh-config"          "${HOME}/.ssh/config"
-
-echo "完了: ${PRIVATE_DIR}"
+# private gist の setup.sh を実行してシンボリックリンクを作成
+# setup.sh の例（private gist で管理）:
+#   #!/usr/bin/env bash
+#   set -euo pipefail
+#   PRIVATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+#   mkdir -p "${HOME}/.gitconfig.d" "${HOME}/.ssh"
+#   ln -sf "${PRIVATE_DIR}/gitconfig.d-includes" "${HOME}/.gitconfig.d/includes"
+#   ln -sf "${PRIVATE_DIR}/gitconfig.d-local"    "${HOME}/.gitconfig.d/local"
+#   ln -sf "${PRIVATE_DIR}/gitconfig.d-private"  "${HOME}/.gitconfig.d/private"
+#   ln -sf "${PRIVATE_DIR}/gitconfig.d-public"   "${HOME}/.gitconfig.d/public"
+#   ln -sf "${PRIVATE_DIR}/gitconfig.d-overleaf" "${HOME}/.gitconfig.d/overleaf"
+#   ln -sf "${PRIVATE_DIR}/ssh-config"           "${HOME}/.ssh/config"
+#   echo "完了: ${PRIVATE_DIR}"
+if [[ -f "${PRIVATE_DIR}/setup.sh" ]]; then
+  bash "${PRIVATE_DIR}/setup.sh"
+else
+  echo "警告: ${PRIVATE_DIR}/setup.sh が見つかりません。"
+  echo "シンボリックリンクは手動で作成してください。"
+fi
