@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+name="$(git config user.name)"
+email="$(git config user.email)"
+
+if [[ "${name}" == "anonymous" || "${email}" == "anonymous" ]]; then
+  echo "エラー: user.name / user.email が anonymous のままです。" >&2
+  echo "${HOME}/.gitconfig.d/local または該当の \${HOME}/.gitconfig.d/{org} に設定してください。" >&2
+  exit 1
+fi

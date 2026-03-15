@@ -18,6 +18,7 @@ LINKS=(
   "shell/bash_profile|${HOME}/.bash_profile"
   "git/gitconfig|${HOME}/.gitconfig"
   "git/gitignore_global|${HOME}/.gitignore_global"
+  "git/hooks|${HOME}/.config/git/hooks"
   "editor/vimrc|${HOME}/.vimrc"
   "terminal/tmux.conf|${HOME}/.tmux.conf"
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"

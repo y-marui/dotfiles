@@ -12,8 +12,13 @@
 #       name = Your Name
 #       email = your@example.com
 
+[user]
+	name = anonymous
+	email = anonymous
+
 [core]
 	excludesfile = ~/.gitignore_global
+	hooksPath = ~/.config/git/hooks
 	editor = vim -c "set fenc=utf-8"
 	symlinks = true
 	quotepath = false
