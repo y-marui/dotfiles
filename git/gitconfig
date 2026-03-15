@@ -22,6 +22,10 @@
 	editor = vim -c "set fenc=utf-8"
 	symlinks = true
 	quotepath = false
+	ignorecase = false
+
+[init]
+	defaultBranch = main
 
 # エイリアス
 [include]
@@ -40,6 +44,9 @@
 # ローカル設定（[user] name/email/signingkey 等）
 [include]
 	path = ~/.gitconfig.d/local
+
+[color]
+	ui = true
 
 [ghq]
 	root = ~/src
