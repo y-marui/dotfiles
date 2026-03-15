@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SKIP_MSG="他人管理のリポジトリの場合はスキップできます: git config hooks.skip-policy-check true"
+
+# --- 他人管理リポジトリのスキップ ---
+if [[ "$(git config --local hooks.skip-policy-check 2>/dev/null)" == "true" ]]; then
+  exit 0
+fi
+
 # --- identity チェック ---
 name="$(git config user.name)"
 email="$(git config user.email)"
@@ -22,5 +29,32 @@ fi
 # --- SSH 秘密鍵ヘッダーの検知 ---
 if git diff --cached | grep -q '\-\-\-\-\-BEGIN.*PRIVATE KEY\-\-\-\-\-'; then
   echo "エラー: SSH 秘密鍵らしき内容が含まれています。" >&2
+  exit 1
+fi
+
+# --- 開発ポリシー準拠チェック ---
+if [[ ! -f ".pre-commit-config.yaml" ]]; then
+  echo "エラー: .pre-commit-config.yaml がありません。開発ポリシーに準拠していません。" >&2
+  echo "${SKIP_MSG}" >&2
+  exit 1
+fi
+
+# セキュリティ必須項目のチェック
+missing=()
+grep -q 'gitleaks' .pre-commit-config.yaml              || missing+=("gitleaks")
+grep -q 'detect-private-key' .pre-commit-config.yaml    || missing+=("detect-private-key")
+grep -qE 'detect-dotenv|\.env' .pre-commit-config.yaml  || missing+=(".env チェック")
+
+if [[ ${#missing[@]} -gt 0 ]]; then
+  echo "エラー: .pre-commit-config.yaml にセキュリティ必須項目が不足しています: ${missing[*]}" >&2
+  echo "${SKIP_MSG}" >&2
+  exit 1
+fi
+
+# pre-commit install 済みチェック
+if [[ ! -f ".git/hooks/pre-commit" ]] || ! grep -q 'pre-commit' .git/hooks/pre-commit 2>/dev/null; then
+  echo "エラー: pre-commit がインストールされていません。" >&2
+  echo "  pre-commit install" >&2
+  echo "${SKIP_MSG}" >&2
   exit 1
 fi
