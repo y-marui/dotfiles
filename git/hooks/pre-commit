@@ -51,10 +51,12 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   exit 1
 fi
 
-# pre-commit install 済みチェック
-if [[ ! -f ".git/hooks/pre-commit" ]] || ! grep -q 'pre-commit' .git/hooks/pre-commit 2>/dev/null; then
-  echo "エラー: pre-commit がインストールされていません。" >&2
-  echo "  pre-commit install" >&2
+# pre-commit run（core.hooksPath 経由なので直接実行）
+if command -v pre-commit &>/dev/null; then
+  pre-commit run --hook-stage pre-commit
+else
+  echo "エラー: pre-commit コマンドが見つかりません。" >&2
+  echo "  pip install pre-commit  または  brew install pre-commit" >&2
   echo "${SKIP_MSG}" >&2
   exit 1
 fi
