@@ -3,15 +3,15 @@
 
 # ── tap ──────────────────────────────────────────────────────────────────────
 tap "buo/cask-upgrade"
-tap "homebrew/cask"
-tap "homebrew/core"
 
 # ── CLI tools ─────────────────────────────────────────────────────────────────
 brew "fzf"
+brew "gemini-cli"
 brew "gh"
 brew "ghq"
 brew "gibo"
 brew "git"
+brew "git-filter-repo"
 brew "jq"
 brew "mas"
 brew "nkf"
@@ -21,7 +21,6 @@ brew "shellcheck"
 brew "tmux"
 brew "tree"
 brew "wget"
-brew "yt-dlp"
 
 # ── メディア処理 ───────────────────────────────────────────────────────────────
 brew "ffmpeg"
@@ -34,6 +33,7 @@ brew "switchaudio-osx"
 
 # ── PDF / LaTeX ──────────────────────────────────────────────────────────────
 brew "diff-pdf"
+brew "ghostscript"
 brew "latex2rtf"
 brew "latexdiff"
 brew "latexindent"
@@ -42,7 +42,7 @@ brew "pdfcrack"
 brew "pdftk-java"
 
 # ── セキュリティ ──────────────────────────────────────────────────────────────
-brew "bitwarden-cli"
+brew "gitleaks"
 brew "gnupg"
 brew "gpgme"
 
@@ -50,11 +50,6 @@ brew "gpgme"
 brew "nodebrew"
 brew "node"
 brew "pyenv"
-brew "python@3.11"
-brew "python@3.12"
-brew "python@3.9"
-brew "python@3.10"
-brew "python-tk@3.11"
 brew "pipx"
 brew "rbenv"
 brew "ruby-build"
@@ -65,6 +60,7 @@ brew "php"
 brew "cmake"
 brew "flyctl"
 brew "postgresql@14"
+brew "pre-commit"
 brew "selenium-server"
 brew "swiftformat"
 brew "swiftlint"
@@ -84,6 +80,7 @@ brew "krb5"
 brew "libass"
 brew "libavif"
 brew "libheif"
+brew "libmicrohttpd"
 brew "librist"
 brew "librsvg"
 brew "maxima"
@@ -98,9 +95,9 @@ brew "unbound"
 brew "webp"
 brew "wimlib"
 brew "wxmaxima"
-brew "gemini-cli"
 
 # ── macOS アプリ（開発） ──────────────────────────────────────────────────────
+cask "claude-code"
 cask "db-browser-for-sqlite"
 cask "docker-desktop"
 cask "iterm2"
@@ -122,6 +119,7 @@ cask "monitorcontrol"
 cask "obsidian"
 
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────
+cask "chatgpt"
 cask "discord"
 cask "microsoft-teams"
 cask "slack"
@@ -149,6 +147,7 @@ cask "steam"
 # ── macOS アプリ（学術・LaTeX） ──────────────────────────────────────────────
 cask "mactex"
 cask "tex-live-utility"
+cask "vesta"
 cask "zotero"
 
 # ── macOS アプリ（エンジニアリング） ────────────────────────────────────────────
