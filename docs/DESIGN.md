@@ -88,11 +88,11 @@ host/
 `gitdir:` 条件でリポジトリのパスに応じて設定ファイルを切り替える。
 
 ```
-~/src/github.com/y-marui/   → ~/.gitconfig-public  （個人公開）
-~/src/github.com/y-xxxxxxxxxx/ → ~/.gitconfig-private （個人非公開）
-~/src/git.overleaf.com/     → ~/.gitconfig-overleaf （Overleaf）
-~/src/github.com/           → ~/.gitconfig-others  （その他）
+~/src/github.com/<public-org>/  → ~/.gitconfig.d/public  （個人公開）
+~/src/github.com/<private-org>/ → ~/.gitconfig.d/private （個人非公開）
+~/src/git.overleaf.com/         → ~/.gitconfig.d/overleaf （Overleaf）
 ```
 
-これらの `~/.gitconfig-*` はこのリポジトリに含めず、
-Private Gist または `~/.gitconfig.local` で管理する。
+`[includeIf]` の設定自体（組織名・ディレクトリ構造）は `~/.gitconfig.d/includes` に記載し、
+Private Gist で管理する（`setup-private.sh` がシンボリックリンクを作成）。
+各 `~/.gitconfig.d/*` の中身（[user] name/email/signingkey 等）も同様。
