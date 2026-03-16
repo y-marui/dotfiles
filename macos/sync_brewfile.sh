@@ -30,27 +30,18 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 export BREWFILE="$DOTFILES_DIR/macos/Brewfile"
-export BREWFILE_DUMP="$DOTFILES_DIR/macos/Brewfile.dump"
+export BREWFILE_CACHE="$DOTFILES_DIR/macos/Brewfile.cache"
 export BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
 
-# ── Brewfile.dump を最新状態に更新 ─────────────────────────────────────────────
-brew bundle dump --force --file="$BREWFILE_DUMP"
-# macOS の brew bundle dump は NFD で出力するため NFC に正規化する
-python3 -c "
-import unicodedata, sys
-path = sys.argv[1]
-with open(path, encoding='utf-8') as f:
-    content = f.read()
-with open(path, 'w', encoding='utf-8') as f:
-    f.write(unicodedata.normalize('NFC', content))
-" "$BREWFILE_DUMP"
+# ── Brewfile.cache を最新状態に更新 ────────────────────────────────────────────
+bash "$DOTFILES_DIR/macos/update_brewcache.sh"
 
-# ── Brewfile を Brewfile.dump と同期 ───────────────────────────────────────────
+# ── Brewfile を Brewfile.cache と同期 ──────────────────────────────────────────
 python3 << 'PYEOF'
 import re, os, sys
 
-BREWFILE      = os.environ['BREWFILE']
-BREWFILE_DUMP = os.environ['BREWFILE_DUMP']
+BREWFILE       = os.environ['BREWFILE']
+BREWFILE_CACHE = os.environ['BREWFILE_CACHE']
 
 ENTRY_PAT    = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 SECTION_PAT  = re.compile(r'^# ──')
@@ -61,15 +52,15 @@ def sort_key(line):
     m = ENTRY_PAT.match(line)
     return (TYPE_ORDER.get(m.group(1), 9), m.group(2).lower())
 
-# ── Brewfile.dump のエントリを収集 ───────────────────────────────────────────
+# ── Brewfile.cache のエントリを収集 ──────────────────────────────────────────
 dump_entries = {}  # key -> full line
-with open(BREWFILE_DUMP, encoding='utf-8') as f:
+with open(BREWFILE_CACHE, encoding='utf-8') as f:
     for line in f:
         m = ENTRY_PAT.match(line)
         if m:
             dump_entries[f'{m.group(1)}|{m.group(2)}'] = line
 
-# ── Brewfile を走査：既存エントリのうち dump にあるものだけ残す ──────────────
+# ── Brewfile を走査：既存エントリのうち cache にあるものだけ残す ─────────────
 with open(BREWFILE, encoding='utf-8') as f:
     lines = f.readlines()
 
@@ -176,9 +167,9 @@ if [[ -f "$BREWFILE_LOCAL" ]]; then
   python3 << 'PYEOF'
 import re, os
 
-BREWFILE       = os.environ['BREWFILE']
-BREWFILE_DUMP  = os.environ['BREWFILE_DUMP']
-BREWFILE_LOCAL = os.environ['BREWFILE_LOCAL']
+BREWFILE        = os.environ['BREWFILE']
+BREWFILE_CACHE  = os.environ['BREWFILE_CACHE']
+BREWFILE_LOCAL  = os.environ['BREWFILE_LOCAL']
 
 ENTRY_PAT = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 
@@ -194,7 +185,7 @@ def load_keys(path):
         pass
     return keys
 
-dump_keys = load_keys(BREWFILE_DUMP)
+dump_keys = load_keys(BREWFILE_CACHE)
 main_keys = load_keys(BREWFILE)
 
 with open(BREWFILE_LOCAL, encoding='utf-8') as f:

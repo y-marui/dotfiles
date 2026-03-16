@@ -38,12 +38,12 @@ alias py='python'       # [共通]
 alias ipy='ipython'     # [共通]
 alias ls='/bin/ls -G'   # [共通]
 alias pbg='ghq list -p | sort -fV | fzf | pbcopy'
-# pyenv と brew の PATH 衝突回避 + Brewfile 自動同期
+# pyenv と brew の PATH 衝突回避 + Brewfile.cache 自動更新
 function brew() {
   env PATH="${PATH//${PYENV_ROOT}/bin:/}" brew "$@"
   case "$1" in
     install|uninstall|tap|untap|upgrade)
-      bash "$DOTFILES_DIR/macos/sync_brewfile.sh"
+      bash "$DOTFILES_DIR/macos/update_brewcache.sh" 2>/dev/null || true
       ;;
   esac
 }

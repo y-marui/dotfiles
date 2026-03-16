@@ -14,7 +14,7 @@ scripts/.env
 # macOS
 .DS_Store
 macos/Brewfile.local
-macos/Brewfile.dump
+macos/Brewfile.cache
 
 # バックアップファイル
 *.backup.*

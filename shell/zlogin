@@ -66,3 +66,25 @@ if [[ -d "${_dfp_dir}/.git" ]]; then
   unset _dfp_msg _dfp_unpushed
 fi
 unset _dfp_dir
+
+# --------------------------------------------------------
+# 3. Brewfile.cache と Brewfile の乖離確認（ファイル比較のみ・brew 実行なし）
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile.cache" ]]; then
+  _brew_diff=$(bash "$DOTFILES_DIR/macos/diff_brewfile.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_brew_diff" ]]; then
+    print -P "%F{yellow}⚠ brew: $_brew_diff (make brew-diff で確認)%f"
+  fi
+  unset _brew_diff
+fi
+
+# --------------------------------------------------------
+# 4. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" ]]; then
+  _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dock.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_dock_diff" ]]; then
+    print -P "%F{yellow}⚠ dock: $_dock_diff (make dock-diff で確認)%f"
+  fi
+  unset _dock_diff
+fi

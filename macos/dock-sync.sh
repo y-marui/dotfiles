@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Usage:
-#   bash macos/dock-sync.sh             → 変更検知・dock.sh 自動更新・snapshot 更新
+#   bash macos/dock-sync.sh             → 変更検知・dock.sh 自動更新・dock.cache 更新
 #   bash macos/dock-sync.sh --check     → 変更検知のみ（変更あれば exit 1）
-#   bash macos/dock-sync.sh --snapshot-only → snapshot だけ更新
+#   bash macos/dock-sync.sh --snapshot-only → dock.cache だけ更新
 
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
 DOCK_SH="${PRIVATE_DIR}/macos/dock.sh"
-SNAPSHOT="${PRIVATE_DIR}/macos/dock-snapshot.txt"
+SNAPSHOT="${PRIVATE_DIR}/macos/dock.cache"
 
 if [[ ! -f "$DOCK_SH" ]]; then
   echo "Error: ${DOCK_SH} が見つかりません。make link を実行して dotfiles-private をセットアップしてください。" >&2

@@ -4,7 +4,7 @@ PRIVATE_DIR  := $(DOTFILES_DIR)-private
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall update brew brew-sync macos link dock dock-sync check init private
+.PHONY: help install uninstall update brew brew-sync brew-cache brew-diff macos link dock dock-sync dock-cache dock-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -30,6 +30,12 @@ brew: ## Brewfile を適用（適用前に ~/.dotfiles-backup へバックアッ
 brew-sync: ## 現在の Homebrew 状態を Brewfile に同期
 	@bash macos/sync_brewfile.sh
 
+brew-cache: ## 現在の Homebrew 状態を Brewfile.cache に記録
+	@bash macos/update_brewcache.sh
+
+brew-diff: ## Brewfile.cache と Brewfile の差分を表示
+	@bash macos/diff_brewfile.sh || true
+
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh
 
@@ -41,6 +47,12 @@ dock: ## Dock アプリ・Finder サイドバーを適用
 
 dock-sync: ## 現在の Dock・サイドバーを dock.sh に同期
 	@bash macos/dock-sync.sh
+
+dock-cache: ## 現在の Dock 状態を dock.cache に記録
+	@bash macos/dock-sync.sh --snapshot-only
+
+dock-diff: ## dock.cache と dock.sh の差分を表示
+	@bash macos/diff_dock.sh || true
 
 check: ## シンボリックリンクの整合性を確認
 	@bash scripts/check.sh
