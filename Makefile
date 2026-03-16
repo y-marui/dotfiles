@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos link dock dock-sync dock-cache dock-diff check init private
+.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -14,6 +14,11 @@ help: ## コマンド一覧を表示
 
 install: ## シンボリックリンクを展開してホームディレクトリに設定を反映
 	@bash scripts/install.sh
+	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
+	   bash $(PRIVATE_DIR)/setup.sh; \
+	 else \
+	   echo "  SKIP    dotfiles-private (make private でセットアップしてください)"; \
+	 fi
 
 install-macos: ## install + macos + brew + dock を一括適用（バックアップあり）
 	@$(MAKE) install
@@ -52,9 +57,6 @@ brew-diff: ## Brewfile.cache と Brewfile の差分を表示
 
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh
-
-link: ## dotfiles-private のシンボリックリンクを設定
-	@bash $(PRIVATE_DIR)/setup.sh
 
 dock: ## Dock アプリ・Finder サイドバーを適用（差分なしはスキップ、適用後に cache 更新）
 	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/diff_dock.sh; then \
