@@ -42,5 +42,5 @@ check: ## シンボリックリンクの整合性を確認
 init: ## このマシン用のホスト固有設定テンプレートを生成
 	@bash scripts/init-host.sh
 
-private: ## Private Gist からプライベート設定を取得
+private: ## dotfiles-private を GitHub からクローン・更新
 	@bash scripts/setup-private.sh

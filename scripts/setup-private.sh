@@ -9,7 +9,7 @@ ENV_EXAMPLE="${SCRIPTS_DIR}/.env.example"
 if [[ ! -f "${ENV_FILE}" ]]; then
   cp "${ENV_EXAMPLE}" "${ENV_FILE}"
   echo "scripts/.env を作成しました。"
-  echo "GIST_ID を設定してから再実行してください:"
+  echo "PRIVATE_REPO を設定してから再実行してください:"
   echo "  ${ENV_FILE}"
   exit 1
 fi
@@ -18,9 +18,9 @@ fi
 # shellcheck source=/dev/null
 source "${ENV_FILE}"
 
-# GIST_ID の確認
-if [[ -z "${GIST_ID:-}" || "${GIST_ID}" == "your_gist_id_here" ]]; then
-  echo "エラー: scripts/.env に有効な GIST_ID を設定してください。"
+# PRIVATE_REPO の確認
+if [[ -z "${PRIVATE_REPO:-}" || "${PRIVATE_REPO}" == "owner/repo" ]]; then
+  echo "エラー: scripts/.env に有効な PRIVATE_REPO を設定してください。"
   exit 1
 fi
 
@@ -38,11 +38,6 @@ if ! gh auth status &> /dev/null; then
   exit 1
 fi
 
-# Gist の内容を表示
-echo "Gist (${GIST_ID}) のファイル一覧:"
-gh gist view "${GIST_ID}"
-echo ""
-
 DOTFILES_DIR="$(cd "${SCRIPTS_DIR}/.." && pwd)"
 PRIVATE_DIR="${DOTFILES_DIR%-private}-private"
 
@@ -51,26 +46,15 @@ if [[ ! "${answer}" =~ ^[Yy]$ ]]; then
   echo "キャンセルしました。"
   exit 0
 fi
-if [[ -d "${PRIVATE_DIR}" ]]; then
+
+if [[ -d "${PRIVATE_DIR}/.git" ]]; then
   echo "既存の ${PRIVATE_DIR} を更新します..."
   git -C "${PRIVATE_DIR}" pull
 else
-  gh gist clone "${GIST_ID}" "${PRIVATE_DIR}"
+  gh repo clone "${PRIVATE_REPO}" "${PRIVATE_DIR}"
 fi
 
-# private gist の setup.sh を実行してシンボリックリンクを作成
-# setup.sh の例（private gist で管理）:
-#   #!/usr/bin/env bash
-#   set -euo pipefail
-#   PRIVATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-#   mkdir -p "${HOME}/.gitconfig.d" "${HOME}/.ssh"
-#   ln -sf "${PRIVATE_DIR}/gitconfig.d-includes" "${HOME}/.gitconfig.d/includes"
-#   ln -sf "${PRIVATE_DIR}/gitconfig.d-local"    "${HOME}/.gitconfig.d/local"
-#   ln -sf "${PRIVATE_DIR}/gitconfig.d-private"  "${HOME}/.gitconfig.d/private"
-#   ln -sf "${PRIVATE_DIR}/gitconfig.d-public"   "${HOME}/.gitconfig.d/public"
-#   ln -sf "${PRIVATE_DIR}/gitconfig.d-overleaf" "${HOME}/.gitconfig.d/overleaf"
-#   ln -sf "${PRIVATE_DIR}/ssh-config"           "${HOME}/.ssh/config"
-#   echo "完了: ${PRIVATE_DIR}"
+# setup.sh を実行してシンボリックリンクを作成
 if [[ -f "${PRIVATE_DIR}/setup.sh" ]]; then
   bash "${PRIVATE_DIR}/setup.sh"
 else
