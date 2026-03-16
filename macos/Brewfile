@@ -100,7 +100,6 @@ brew "wxmaxima"
 # ── macOS アプリ（開発） ──────────────────────────────────────────────────────
 cask "claude-code"
 cask "db-browser-for-sqlite"
-cask "docker-desktop"
 cask "iterm2"
 cask "pycharm"
 cask "sublime-text"
@@ -121,7 +120,6 @@ cask "obsidian"
 
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────
 cask "chatgpt"
-cask "discord"
 cask "microsoft-teams"
 cask "slack"
 cask "zoom"
@@ -143,7 +141,6 @@ cask "gimp"
 cask "inkscape"
 cask "shotcut"
 cask "spotify"
-cask "steam"
 
 # ── macOS アプリ（学術・LaTeX） ──────────────────────────────────────────────
 cask "mactex"
@@ -154,8 +151,6 @@ cask "zotero"
 # ── macOS アプリ（エンジニアリング） ────────────────────────────────────────────
 cask "autodesk-fusion"
 cask "ltspice"
-cask "raspberry-pi-imager"
-cask "utm"
 cask "vnc-viewer"
 cask "windows-app"
 cask "wolfram-engine"
@@ -163,8 +158,6 @@ cask "wolfram-engine"
 # ── Mac App Store ────────────────────────────────────────────────────────────
 mas "Bitwarden", id: 1352778147
 mas "Canary Mail", id: 1236045954
-mas "GarageBand", id: 682658836
-mas "iMovie", id: 408981434
 mas "Keynote", id: 409183694
 mas "LocalSend", id: 1661733229
 mas "Lockera Widgets", id: 6466819847
