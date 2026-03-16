@@ -51,3 +51,29 @@ if [[ $FORCE -eq 1 ]]; then
 else
   brew bundle cleanup --file="$COMBINED"
 fi
+
+# ── 4. mas アンインストール対象の警告 ────────────────────────────────────────────
+# brew bundle cleanup は mas を対象外にするため、手動対応が必要なものを表示する
+if command -v mas &>/dev/null; then
+  echo ""
+  echo "==> Checking for mas apps not in Brewfile..."
+  # Brewfile(s) に記載されている mas ID を収集
+  brewfile_ids=$(grep -h '^mas ' "$COMBINED" | grep -oE 'id: [0-9]+' | grep -oE '[0-9]+' || true)
+  # インストール済み mas アプリと照合
+  unmanaged=""
+  while IFS= read -r line; do
+    id=$(echo "$line" | awk '{print $1}')
+    name=$(echo "$line" | cut -d' ' -f2-)
+    if ! echo "$brewfile_ids" | grep -qx "$id"; then
+      unmanaged="${unmanaged}  $id  $name\n"
+    fi
+  done < <(mas list 2>/dev/null || true)
+  if [[ -n "$unmanaged" ]]; then
+    echo "WARNING: The following App Store apps are installed but not in Brewfile." >&2
+    echo "         brew bundle cleanup does not uninstall mas apps — remove them manually:" >&2
+    printf "%b" "$unmanaged" >&2
+    echo "         Run 'mas uninstall <id>' first, then 'make brew-cache' to update the cache." >&2
+  else
+    echo "All installed mas apps are listed in Brewfile."
+  fi
+fi
