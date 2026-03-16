@@ -142,8 +142,8 @@ for header, entries in sections:
     output.append(header)
     output.extend(sort_section(entries))
 
-# 末尾の余分な空行を1つに
-while len(output) > 1 and output[-1] == '\n' and output[-2] == '\n':
+# 末尾の余分な空行をすべて除去
+while output and output[-1] == '\n':
     output.pop()
 
 with open(BREWFILE, 'w', encoding='utf-8') as f:
