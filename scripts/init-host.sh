@@ -115,9 +115,34 @@ _append_if_missing "${BASHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
   "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
   ""
 
+# macos/Brewfile.local テンプレート（存在しない場合のみ）
+BREWFILE_LOCAL="${DOTFILES_DIR}/macos/Brewfile.local"
+if [[ ! -f "${BREWFILE_LOCAL}" ]]; then
+  cat > "${BREWFILE_LOCAL}" <<'EOF'
+# Brewfile.local — このマシン固有の Homebrew パッケージ
+# このファイルは git 管理外（.gitignore 済み）。
+#
+# 書き方: Brewfile と同じ形式で記述する。
+#
+# brew "パッケージ名"          # CLI ツール
+# cask "アプリ名"              # GUI アプリ（Cask）
+# tap "tap名/リポジトリ"       # Tap
+# mas "アプリ名", id: XXXXXXX  # Mac App Store
+# vscode "拡張機能ID"          # VS Code 拡張
+#
+# 自動整合（make brew-sync 実行時）:
+#   - システムからアンインストールされたパッケージは自動で除去される
+#   - メインの Brewfile に追記されたパッケージは自動で除去される（重複防止）
+EOF
+  echo "作成: ${BREWFILE_LOCAL}"
+else
+  echo "既存: ${BREWFILE_LOCAL} (スキップ)"
+fi
+
 echo ""
 echo "編集してください:"
 echo "  ${ZSH_FILE}"
 echo "  ${GIT_FILE}"
 echo "  ${ZSHRC_LOCAL}"
 echo "  ${BASHRC_LOCAL}"
+echo "  ${BREWFILE_LOCAL}"

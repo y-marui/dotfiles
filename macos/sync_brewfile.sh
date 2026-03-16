@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 # sync_brewfile.sh
-# Brewfile.local（実態）と Brewfile（dotfiles管理）を完全一致させる
+# Brewfile.dump（システム実態）と Brewfile（dotfiles管理）を完全一致させ、
+# Brewfile.local（マシン固有パッケージ）も整合させる
 #
 # 動作:
-#   1. brew bundle dump で Brewfile.local を最新化
-#   2. Brewfile.local にないエントリを Brewfile から削除
-#   3. Brewfile.local にあって Brewfile にないエントリを 未分類 セクションに追加
+#   1. brew bundle dump で Brewfile.dump を最新化（システム実態）
+#   2. Brewfile.dump にないエントリを Brewfile から削除
+#   3. Brewfile.dump にあって Brewfile にないエントリを 未分類 セクションに追加
 #   4. 全セクションのエントリをアルファベット順にソート
 #   5. 重複除去
+#   6. Brewfile.local を整合：
+#      - システムから削除されたエントリを除去（Brewfile.dump にない）
+#      - Brewfile に昇格したエントリを除去（重複防止）
 #
 # 使い方:
 #   DOTFILES_DIR=~/dotfiles bash sync_brewfile.sh
@@ -26,10 +30,11 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 export BREWFILE="$DOTFILES_DIR/macos/Brewfile"
-BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
+export BREWFILE_DUMP="$DOTFILES_DIR/macos/Brewfile.dump"
+export BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
 
-# ── Brewfile.local を最新状態に更新 ────────────────────────────────────────────
-brew bundle dump --force --file="$BREWFILE_LOCAL"
+# ── Brewfile.dump を最新状態に更新 ─────────────────────────────────────────────
+brew bundle dump --force --file="$BREWFILE_DUMP"
 # macOS の brew bundle dump は NFD で出力するため NFC に正規化する
 python3 -c "
 import unicodedata, sys
@@ -38,14 +43,14 @@ with open(path, encoding='utf-8') as f:
     content = f.read()
 with open(path, 'w', encoding='utf-8') as f:
     f.write(unicodedata.normalize('NFC', content))
-" "$BREWFILE_LOCAL"
+" "$BREWFILE_DUMP"
 
-# ── Brewfile を Brewfile.local と同期 ──────────────────────────────────────────
+# ── Brewfile を Brewfile.dump と同期 ───────────────────────────────────────────
 python3 << 'PYEOF'
 import re, os, sys
 
-BREWFILE       = os.environ['BREWFILE']
-BREWFILE_LOCAL = BREWFILE.replace('Brewfile', 'Brewfile.local')
+BREWFILE      = os.environ['BREWFILE']
+BREWFILE_DUMP = os.environ['BREWFILE_DUMP']
 
 ENTRY_PAT    = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 SECTION_PAT  = re.compile(r'^# ──')
@@ -56,15 +61,15 @@ def sort_key(line):
     m = ENTRY_PAT.match(line)
     return (TYPE_ORDER.get(m.group(1), 9), m.group(2).lower())
 
-# ── Brewfile.local のエントリを収集 ──────────────────────────────────────────
-local_entries = {}  # key -> full line
-with open(BREWFILE_LOCAL, encoding='utf-8') as f:
+# ── Brewfile.dump のエントリを収集 ───────────────────────────────────────────
+dump_entries = {}  # key -> full line
+with open(BREWFILE_DUMP, encoding='utf-8') as f:
     for line in f:
         m = ENTRY_PAT.match(line)
         if m:
-            local_entries[f'{m.group(1)}|{m.group(2)}'] = line
+            dump_entries[f'{m.group(1)}|{m.group(2)}'] = line
 
-# ── Brewfile を走査：既存エントリのうち local にあるものだけ残す ───────────────
+# ── Brewfile を走査：既存エントリのうち dump にあるものだけ残す ──────────────
 with open(BREWFILE, encoding='utf-8') as f:
     lines = f.readlines()
 
@@ -96,10 +101,10 @@ while i < len(lines):
         if key in seen_keys:
             # 重複: 削除
             pass
-        elif key in local_entries:
+        elif key in dump_entries:
             seen_keys.add(key)
-            # Brewfile.local の行（id つき等）で上書き
-            current_entries.append(local_entries[key])
+            # Brewfile.dump の行（id つき等）で上書き
+            current_entries.append(dump_entries[key])
         else:
             removed += 1
             print(f'[remove]    {line.rstrip()}')
@@ -112,8 +117,22 @@ while i < len(lines):
 
 flush_section()
 
+# ── Brewfile.local のキーを収集（存在する場合）────────────────────────────────
+# Brewfile.local のパッケージは Brewfile に自動昇格させない
+local_keys = set()
+try:
+    with open(os.environ['BREWFILE_LOCAL'], encoding='utf-8') as f:
+        for line in f:
+            m = ENTRY_PAT.match(line)
+            if m:
+                local_keys.add(f'{m.group(1)}|{m.group(2)}')
+except FileNotFoundError:
+    pass
+
 # ── Brewfile にないエントリを 未分類 セクションへ追加 ─────────────────────────
-new_entries = [line for key, line in local_entries.items() if key not in seen_keys]
+# ただし Brewfile.local にあるものは除外（そちらで管理するため）
+new_entries = [line for key, line in dump_entries.items()
+               if key not in seen_keys and key not in local_keys]
 if new_entries:
     # 未分類セクションを探す
     unc_idx = next((i for i, (h, _) in enumerate(sections)
@@ -151,3 +170,60 @@ with open(BREWFILE, 'w', encoding='utf-8') as f:
 
 print(f'\nBrewfile synced: +{added} added / -{removed} removed')
 PYEOF
+
+# ── Brewfile.local を整合（存在する場合のみ） ─────────────────────────────────
+if [[ -f "$BREWFILE_LOCAL" ]]; then
+  python3 << 'PYEOF'
+import re, os
+
+BREWFILE       = os.environ['BREWFILE']
+BREWFILE_DUMP  = os.environ['BREWFILE_DUMP']
+BREWFILE_LOCAL = os.environ['BREWFILE_LOCAL']
+
+ENTRY_PAT = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
+
+def load_keys(path):
+    keys = set()
+    try:
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                m = ENTRY_PAT.match(line)
+                if m:
+                    keys.add(f'{m.group(1)}|{m.group(2)}')
+    except FileNotFoundError:
+        pass
+    return keys
+
+dump_keys = load_keys(BREWFILE_DUMP)
+main_keys = load_keys(BREWFILE)
+
+with open(BREWFILE_LOCAL, encoding='utf-8') as f:
+    lines = f.readlines()
+
+new_lines = []
+removed = 0
+for line in lines:
+    m = ENTRY_PAT.match(line)
+    if not m:
+        new_lines.append(line)
+        continue
+    key = f'{m.group(1)}|{m.group(2)}'
+    if key not in dump_keys:
+        print(f'[local remove] {line.rstrip()} (システムから削除済)')
+        removed += 1
+    elif key in main_keys:
+        print(f'[local remove] {line.rstrip()} (Brewfile に昇格済)')
+        removed += 1
+    else:
+        new_lines.append(line)
+
+# 末尾の余分な空行をすべて除去
+while new_lines and new_lines[-1] == '\n':
+    new_lines.pop()
+
+with open(BREWFILE_LOCAL, 'w', encoding='utf-8') as f:
+    f.writelines(new_lines)
+
+print(f'Brewfile.local synced: -{removed} removed')
+PYEOF
+fi

@@ -90,6 +90,39 @@ make link
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
 - `~/.zshrc.local` — zsh: 自動的に読み込まれる追加設定
 - `~/.bashrc.local` — bash: 自動的に読み込まれる追加設定
+- `macos/Brewfile.local` — Homebrew: このマシン固有のパッケージ（`make init` で空ファイルを生成）
+
+### Brewfile.local — マシン固有 Homebrew パッケージ
+
+メインの `Brewfile` に含めたくない（他のマシンには入れたくない）パッケージを管理する。
+
+```bash
+# make init で凡例付き空ファイルが生成される
+make init
+
+# Brewfile.local を編集してパッケージを追加する
+vi macos/Brewfile.local
+```
+
+記法は `Brewfile` と同じ:
+
+```ruby
+brew "some-work-tool"        # CLI ツール
+cask "proprietary-app"       # GUI アプリ（Cask）
+tap "org/tap"                # Tap
+mas "App Name", id: 1234567  # Mac App Store
+vscode "publisher.extension" # VS Code 拡張
+```
+
+**自動整合（`make brew-sync` 実行時）:**
+
+| 状況 | 動作 |
+|------|------|
+| パッケージをシステムからアンインストールした | `Brewfile.local` からも自動除去 |
+| パッケージをメインの `Brewfile` に追記した | `Brewfile.local` からも自動除去（重複防止） |
+
+**インストール（`make brew` 実行時）:**
+`Brewfile` のインストール後に `Brewfile.local` のパッケージも自動でインストールされる。
 
 ### 設定が必要な環境変数
 
