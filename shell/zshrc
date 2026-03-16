@@ -123,6 +123,25 @@ function _pip {
 }
 compctl -K _pip pip
 
+# keep-up-to-date フラグが立っているリポジトリを一括更新
+function ghq-update() {
+  local f
+  for f in $(ghq list -p); do
+    (
+      builtin cd "$f" || continue
+      if [[ "$(git config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]]; then
+        echo ""
+        pwd
+        ls
+        git pull
+        if [[ -d .venv ]]; then
+          poetry update
+        fi
+      fi
+    )
+  done
+}
+
 # --------------------------------------------------------
 # 7. ツール初期化
 # --------------------------------------------------------
