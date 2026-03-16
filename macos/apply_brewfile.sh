@@ -37,10 +37,17 @@ if [[ -f "$BREWFILE_LOCAL" ]]; then
 fi
 
 # ── 3. 不要パッケージの削除 ─────────────────────────────────────────────────────
+# Brewfile と Brewfile.local を合わせて cleanup（local のパッケージを誤削除しない）
 echo ""
 echo "==> Checking for packages not in Brewfile or Brewfile.local..."
+COMBINED=$(mktemp)
+trap 'rm -f "$COMBINED"' EXIT
+cat "$BREWFILE" > "$COMBINED"
+if [[ -f "$BREWFILE_LOCAL" ]]; then
+  cat "$BREWFILE_LOCAL" >> "$COMBINED"
+fi
 if [[ $FORCE -eq 1 ]]; then
-  brew bundle cleanup --force --file="$BREWFILE"
+  brew bundle cleanup --force --file="$COMBINED"
 else
-  brew bundle cleanup --file="$BREWFILE"
+  brew bundle cleanup --file="$COMBINED"
 fi

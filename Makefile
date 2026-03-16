@@ -20,12 +20,12 @@ update: ## git pull --rebase して再インストール
 	@git pull --rebase origin main
 	@$(MAKE) install
 
-brew: ## Brewfile を適用（適用前に ~/.dotfiles-backup へバックアップ）
+brew: ## Brewfile を適用（インストール・不要パッケージ削除・適用前にバックアップ）
 	@BACKUP_DIR="$(HOME)/.dotfiles-backup/$$(date +%Y%m%d%H%M%S)"; \
 	 mkdir -p "$$BACKUP_DIR"; \
 	 brew bundle dump --force --file="$$BACKUP_DIR/Brewfile" 2>/dev/null && \
 	   echo "  BACKUP  $$BACKUP_DIR/Brewfile" || true; \
-	 brew bundle --file=macos/Brewfile
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/apply_brewfile.sh --force
 
 brew-sync: ## 現在の Homebrew 状態を Brewfile に同期
 	@bash macos/sync_brewfile.sh
