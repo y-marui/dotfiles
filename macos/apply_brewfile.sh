@@ -19,6 +19,8 @@ set -euo pipefail
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 BREWFILE="$DOTFILES_DIR/macos/Brewfile"
 FORCE=0
+YELLOW='\033[1;33m'
+RESET='\033[0m'
 
 for arg in "$@"; do
   [[ "$arg" == "--force" ]] && FORCE=1
@@ -69,10 +71,10 @@ if command -v mas &>/dev/null; then
     fi
   done < <(mas list 2>/dev/null || true)
   if [[ -n "$unmanaged" ]]; then
-    echo "WARNING: The following App Store apps are installed but not in Brewfile." >&2
-    echo "         brew bundle cleanup does not uninstall mas apps — remove them manually:" >&2
+    printf '%sWARNING: The following App Store apps are installed but not in Brewfile.%s\n' "$YELLOW" "$RESET" >&2
+    printf '%s         brew bundle cleanup does not uninstall mas apps — remove them manually:%s\n' "$YELLOW" "$RESET" >&2
     printf "%b" "$unmanaged" >&2
-    echo "         Run 'mas uninstall <id>' first, then 'make brew-cache' to update the cache." >&2
+    printf "%s         Run 'mas uninstall <id>' first, then 'make brew-cache' to update the cache.%s\n" "$YELLOW" "$RESET" >&2
   else
     echo "All installed mas apps are listed in Brewfile."
   fi
