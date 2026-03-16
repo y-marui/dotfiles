@@ -45,3 +45,24 @@ if [[ -n "${DOTFILES_DIR:-}" && -d "$DOTFILES_DIR/.git" ]]; then
   fi
   unset _df_msg _df_unpushed
 fi
+
+# --------------------------------------------------------
+# 2. dotfiles-private の未コミット・未プッシュを確認
+# --------------------------------------------------------
+_dfp_dir="${DOTFILES_DIR}-private"
+if [[ -d "${_dfp_dir}/.git" ]]; then
+  _dfp_msg=()
+  if ! git -C "$_dfp_dir" diff --quiet 2>/dev/null || \
+     ! git -C "$_dfp_dir" diff --cached --quiet 2>/dev/null; then
+    _dfp_msg+=("未コミットの変更あり")
+  fi
+  _dfp_unpushed=$(git -C "$_dfp_dir" log '@{u}..' --oneline 2>/dev/null | wc -l | tr -d ' ')
+  if [[ "${_dfp_unpushed}" -gt 0 ]]; then
+    _dfp_msg+=("${_dfp_unpushed} commits unpushed")
+  fi
+  if [[ ${#_dfp_msg[@]} -gt 0 ]]; then
+    print -P "%F{yellow}⚠ dotfiles-private: ${(j: / :)_dfp_msg}%f"
+  fi
+  unset _dfp_msg _dfp_unpushed
+fi
+unset _dfp_dir
