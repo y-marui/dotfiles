@@ -53,6 +53,7 @@ python3 - "$DOCK_FILE" "$dock_paths" "$sidebar_raw" <<'PYEOF'
 import sys
 from pathlib import Path
 from urllib.parse import unquote
+from collections import defaultdict
 
 dock_file      = Path(sys.argv[1])
 current_paths  = [l for l in sys.argv[2].split('\n') if l.strip()]
@@ -62,7 +63,7 @@ def sidebar_url_to_path(url):
     p = unquote(url).removeprefix('file://').rstrip('/')
     return p if p else None
 
-# ── 既存 dock ファイルを読み込み ───────────────────────────────────────────────
+# ── 既存 dockfile を読み込み ───────────────────────────────────────────────────
 old_dock_paths = []
 old_sidebar    = []  # [(name, url), ...]
 if dock_file.exists():
@@ -73,27 +74,58 @@ if dock_file.exists():
         elif parts[0] == 'sidebar' and len(parts) >= 3:
             old_sidebar.append((parts[1], parts[2]))
 
-# ── Dock アプリ: マージ ────────────────────────────────────────────────────────
-current_set = set(current_paths)
-extra_dock  = [p for p in old_dock_paths if p not in current_set and not Path(p).exists()]
-merged_dock = current_paths + extra_dock
+# ── Dock アプリ: 順序を保持しながらマージ ─────────────────────────────────────
+# 非ローカルエントリ（他マシン向け）を直前のローカルエントリ（アンカー）に紐付ける
+current_set    = set(current_paths)
+non_local_dock = {p for p in old_dock_paths if p not in current_set and not Path(p).exists()}
 
-# ── サイドバー: マージ ─────────────────────────────────────────────────────────
+anchor_to_dock = defaultdict(list)  # anchor_path -> [non-local paths after it]
+no_anchor_dock = []
+last_anchor    = None
+for p in old_dock_paths:
+    if p in non_local_dock:
+        if last_anchor is None:
+            no_anchor_dock.append(p)
+        else:
+            anchor_to_dock[last_anchor].append(p)
+    elif p in current_set:
+        last_anchor = p
+
+merged_dock = list(no_anchor_dock)
+for p in current_paths:
+    merged_dock.append(p)
+    merged_dock.extend(anchor_to_dock.get(p, []))
+
+# ── サイドバー: 順序を保持しながらマージ ──────────────────────────────────────
 current_sidebar = {}  # name -> url
 for line in sidebar_raw.splitlines():
     parts = line.split(' -> ', 1)
     if len(parts) == 2:
         current_sidebar[parts[0].strip()] = parts[1].strip()
 
-current_names   = set(current_sidebar.keys())
-extra_sidebar   = [
-    (name, url) for name, url in old_sidebar
-    if name not in current_names
-    and not Path(sidebar_url_to_path(url) or '').exists()
-]
-merged_sidebar  = list(current_sidebar.items()) + extra_sidebar
+current_names = set(current_sidebar.keys())
+non_local_sb  = {name for name, url in old_sidebar
+                 if name not in current_names
+                 and not Path(sidebar_url_to_path(url) or '').exists()}
 
-# ── dock ファイルに書き出し ────────────────────────────────────────────────────
+anchor_to_sb = defaultdict(list)  # anchor_name -> [(name, url)]
+no_anchor_sb = []
+last_sb_anchor = None
+for name, url in old_sidebar:
+    if name in non_local_sb:
+        if last_sb_anchor is None:
+            no_anchor_sb.append((name, url))
+        else:
+            anchor_to_sb[last_sb_anchor].append((name, url))
+    elif name in current_names:
+        last_sb_anchor = name
+
+merged_sidebar = list(no_anchor_sb)
+for name, url in current_sidebar.items():
+    merged_sidebar.append((name, url))
+    merged_sidebar.extend(anchor_to_sb.get(name, []))
+
+# ── dockfile に書き出し ────────────────────────────────────────────────────────
 lines = [f'dock\t{p}' for p in merged_dock]
 lines += [f'sidebar\t{n}\t{u}' for n, u in merged_sidebar]
 dock_file.write_text('\n'.join(lines) + '\n')
