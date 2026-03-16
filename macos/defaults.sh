@@ -23,7 +23,7 @@ defaults write com.apple.dock autohide -bool false
 # 最近使ったアプリを表示しない
 defaults write com.apple.dock show-recents -bool false
 # アイコンサイズはデフォルト
-defaults delete com.apple.dock tilesize
+# defaults write com.apple.dock tilesize -int 36
 
 # ── キーボード ────────────────────────────────────────────────────────────────
 # キーリピートを高速化
