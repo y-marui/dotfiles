@@ -79,6 +79,16 @@ make private
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
 - `~/.zshrc.local` — 自動的に読み込まれる追加設定
 
+### 設定が必要な環境変数
+
+以下の変数は `host/$(hostname -s).zsh` または `~/.zshrc.local` に設定する。
+
+| 変数 | タイミング | 説明 |
+|------|-----------|------|
+| `DOTFILES_DIR` | ghq 等で `~/dotfiles` 以外にクローンした場合は**必須** | dotfiles のクローン先パス（例: `/path/to/dotfiles`）。未設定時は `~/dotfiles` が使われる |
+| `NTFY_TOPIC` | ntfy.sh 通知を使いたい場合 | Claude Code タスク完了・承認待ち時の push 通知先トピック。未設定時は通知が無効になる |
+| `HOMEBREW_GITHUB_API_TOKEN` | `brew search` 等でレート制限に当たる場合 | GitHub API への認証トークン。現在の Homebrew では必須ではないが、API 制限が頻繁に発生する場合に設定する |
+
 ---
 
 ## セキュリティ: pre-commit フック
