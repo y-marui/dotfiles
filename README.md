@@ -9,6 +9,10 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot。
 # 1. リポジトリをクローン
 git clone https://github.com/y-marui/dotfiles.git ~/src/github.com/y-marui/dotfiles
 cd ~/src/github.com/y-marui/dotfiles
+# ★ ~/dotfiles 以外にクローンした場合は、この時点で ~/.zshrc.local に DOTFILES_DIR を設定すること。
+#    以降のすべてのコマンド（make install / brew / dock など）と
+#    ログイン時の乖離チェック（brew diff / dock diff）が DOTFILES_DIR に依存する。
+#    例: echo 'export DOTFILES_DIR="$HOME/src/github.com/y-marui/dotfiles"' >> ~/.zshrc.local
 
 # 2. ホスト固有設定テンプレートを生成
 make init
