@@ -69,6 +69,23 @@ function g() {
 }
 function _g() { _values '' 'root' }
 
+# ghq リポジトリの local.keep-up-to-date 状態を一覧表示
+function ghq-status() {
+  local root val rel repo
+  root="$(ghq root)"
+  while IFS= read -r repo; do
+    val="$(git -C "$repo" config --local local.keep-up-to-date 2>/dev/null || true)"
+    rel="${repo#"$root/"}"
+    if [[ "$val" == "true" ]]; then
+      printf "\e[32m[keep]\e[m  %s\n" "$rel"
+    elif [[ "$val" == "false" ]]; then
+      printf "\e[31m[skip]\e[m  %s\n" "$rel"
+    else
+      printf "[----]  %s\n" "$rel"
+    fi
+  done < <(ghq list -p | sort -fV)
+}
+
 # cd 後に自動で ls
 function cd() {
   builtin cd "$@" && ls
