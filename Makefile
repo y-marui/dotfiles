@@ -1,17 +1,25 @@
-SHELL := /bin/bash
+SHELL      := /bin/bash
 DOTFILES_DIR := $(CURDIR)
 PRIVATE_DIR  := $(DOTFILES_DIR)-private
+BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
+BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall update brew brew-sync brew-cache brew-diff macos link dock dock-sync dock-cache dock-diff check init private
+.PHONY: help install install-macos uninstall update brew brew-backup brew-sync brew-cache brew-diff macos link dock dock-backup dock-sync dock-cache dock-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
+	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
 install: ## シンボリックリンクを展開してホームディレクトリに設定を反映
 	@bash scripts/install.sh
+
+install-macos: ## install + macos + brew-backup + dock-backup を一括適用
+	@$(MAKE) install
+	@$(MAKE) macos
+	@$(MAKE) brew-backup BACKUP_DIR="$(BACKUP_DIR)"
+	@$(MAKE) dock-backup BACKUP_DIR="$(BACKUP_DIR)"
 
 uninstall: ## シンボリックリンクを削除
 	@bash scripts/uninstall.sh
@@ -20,12 +28,21 @@ update: ## git pull --rebase して再インストール
 	@git pull --rebase origin main
 	@$(MAKE) install
 
-brew: ## Brewfile を適用（インストール・不要パッケージ削除・適用前にバックアップ）
-	@BACKUP_DIR="$(HOME)/.dotfiles-backup/$$(date +%Y%m%d%H%M%S)"; \
-	 mkdir -p "$$BACKUP_DIR"; \
-	 brew bundle dump --force --file="$$BACKUP_DIR/Brewfile" 2>/dev/null && \
-	   echo "  BACKUP  $$BACKUP_DIR/Brewfile" || true; \
-	 DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/apply_brewfile.sh --force
+brew: ## Brewfile を適用（差分なしはスキップ、適用後に cache 更新）
+	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/diff_brewfile.sh; then \
+	   echo "差分なし: Brewfile はすでに適用済みです。"; \
+	   exit 0; \
+	 fi; \
+	 if [ "$(BACKUP)" = "1" ]; then \
+	   mkdir -p "$(BACKUP_DIR)"; \
+	   brew bundle dump --force --file="$(BACKUP_DIR)/Brewfile" 2>/dev/null && \
+	     echo "  BACKUP  $(BACKUP_DIR)/Brewfile" || true; \
+	 fi; \
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/apply_brewfile.sh --force; \
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/update_brewcache.sh
+
+brew-backup: BACKUP := 1
+brew-backup: brew ## Brewfile を適用（バックアップあり）
 
 brew-sync: ## 現在の Homebrew 状態を Brewfile に同期
 	@bash macos/sync_brewfile.sh
@@ -42,8 +59,23 @@ macos: ## macOS のデフォルト設定を適用
 link: ## dotfiles-private のシンボリックリンクを設定
 	@bash $(PRIVATE_DIR)/setup.sh
 
-dock: ## Dock アプリ・Finder サイドバーを適用
-	@bash $(PRIVATE_DIR)/macos/dock.sh
+dock: ## Dock アプリ・Finder サイドバーを適用（差分なしはスキップ、適用後に cache 更新）
+	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/diff_dock.sh; then \
+	   echo "差分なし: Dock はすでに適用済みです。"; \
+	   exit 0; \
+	 fi; \
+	 if [ "$(BACKUP)" = "1" ]; then \
+	   mkdir -p "$(BACKUP_DIR)"; \
+	   if [[ -f "$(PRIVATE_DIR)/macos/dock.cache" ]]; then \
+	     cp "$(PRIVATE_DIR)/macos/dock.cache" "$(BACKUP_DIR)/dock.cache" && \
+	       echo "  BACKUP  $(BACKUP_DIR)/dock.cache" || true; \
+	   fi; \
+	 fi; \
+	 bash $(PRIVATE_DIR)/macos/dock.sh; \
+	 bash macos/dock-sync.sh --snapshot-only
+
+dock-backup: BACKUP := 1
+dock-backup: dock ## Dock を適用（バックアップあり）
 
 dock-sync: ## 現在の Dock・サイドバーを dock.sh に同期
 	@bash macos/dock-sync.sh
