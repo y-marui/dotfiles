@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Usage:
-#   bash macos/dock-sync.sh             → 変更検知・dock ファイル自動更新・dock.cache 更新
+#   bash macos/dock-sync.sh             → dockfile 自動更新・dockfile.cache 更新
 #   bash macos/dock-sync.sh --check     → 変更検知のみ（変更あれば exit 1）
-#   bash macos/dock-sync.sh --snapshot-only → dock.cache だけ更新
+#   bash macos/dock-sync.sh --snapshot-only → dockfile.cache だけ更新
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
-DOCK_FILE="${PRIVATE_DIR}/macos/dock"
-SNAPSHOT="${PRIVATE_DIR}/macos/dock.cache"
+DOCK_FILE="${PRIVATE_DIR}/macos/dockfile"
+SNAPSHOT="${PRIVATE_DIR}/macos/dockfile.cache"
 
 MODE="${1:-}"
 
@@ -34,10 +34,10 @@ if [[ "$MODE" == "--snapshot-only" ]]; then
   exit 0
 fi
 
-# --check: 現在の Dock 状態と dock.cache を比較して差分検知のみ
+# --check: 現在の Dock 状態と dockfile.cache を比較して差分検知のみ
 if [[ "$MODE" == "--check" ]]; then
   if [[ ! -f "$SNAPSHOT" ]]; then
-    echo "No snapshot found. Run 'make dock' to create one."
+    echo "No dockfile.cache found. Run 'make dock' to create one."
     exit 1
   fi
   current=$(_capture)

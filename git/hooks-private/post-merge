@@ -12,7 +12,7 @@ bash "${DOTFILES_DIR}/macos/dock-sync.sh" --snapshot-only 2>/dev/null || true
 
 # dock diff チェック（警告のみ・ブロックしない）
 if ! bash "${DOTFILES_DIR}/macos/diff_dock.sh" 2>/dev/null; then
-  echo "⚠️  dock.sh と現在の Dock に差分があります。" >&2
+  echo "⚠️  dockfile と現在の Dock に差分があります。" >&2
   echo "    make dock-sync を実行することを検討してください。" >&2
 fi
 exit 0

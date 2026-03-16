@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # diff_dock.sh
-# dock.cache（現在の Dock 状態）と dock ファイル（管理ファイル）の差分を表示する
+# dockfile.cache（現在の Dock 状態）と dockfile（管理ファイル）の差分を表示する
 #
 # 動作:
-#   [+cache] /Applications/Foo.app  → Dock にあるが dock 未記載 → make dock-sync
-#   [-cache] /Applications/Bar.app  → dock にあるが Dock 未適用 → make dock
-#   ※ dock に記載されているが存在しないアプリは無視する（別マシン向け）
+#   [+cache] /Applications/Foo.app  → Dock にあるが dockfile 未記載 → make dock-sync
+#   [-cache] /Applications/Bar.app  → dockfile にあるが Dock 未適用 → make dock
+#   ※ dockfile に記載されているが存在しないアプリは無視する（別マシン向け）
 #
 # 使い方:
 #   bash macos/diff_dock.sh           # 差分を詳細表示
 #   bash macos/diff_dock.sh --summary # 1行サマリーのみ出力（zlogin 用）
 #
-# dock.cache または dock ファイルが見つからない場合は終了コード 1 で何も出力しない
+# dockfile.cache または dockfile が見つからない場合は終了コード 1 で何も出力しない
 
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
-DOCK_FILE="${PRIVATE_DIR}/macos/dock"
-DOCK_CACHE="${PRIVATE_DIR}/macos/dock.cache"
+DOCK_FILE="${PRIVATE_DIR}/macos/dockfile"
+DOCK_CACHE="${PRIVATE_DIR}/macos/dockfile.cache"
 SUMMARY_MODE=0
 [[ "${1:-}" == "--summary" ]] && SUMMARY_MODE=1
 
@@ -81,23 +81,23 @@ if SUMMARY_MODE:
     sys.exit(0)
 
 if not has_diff:
-    print('No diff: dock.cache と dock は一致しています。')
+    print('No diff: dockfile.cache と dockfile は一致しています。')
     sys.exit(0)
 
 if only_in_cache:
-    print('Dock にあるが dock 未記載 (make dock-sync が必要):')
+    print('Dock にあるが dockfile 未記載 (make dock-sync が必要):')
     for p in sorted(only_in_cache):
         print(f'  [+cache]  {p}')
 if only_in_dock:
-    print('dock にあるが Dock 未適用 (make dock が必要):')
+    print('dockfile にあるが Dock 未適用 (make dock が必要):')
     for p in sorted(only_in_dock):
         print(f'  [-cache]  {p}')
 if only_in_cache_sb:
-    print('Sidebar にあるが dock 未記載 (make dock-sync が必要):')
+    print('Sidebar にあるが dockfile 未記載 (make dock-sync が必要):')
     for n in sorted(only_in_cache_sb):
         print(f'  [+cache sidebar]  {n}')
 if only_in_dock_sb:
-    print('dock の Sidebar にあるが未適用 (make dock が必要):')
+    print('dockfile の Sidebar にあるが未適用 (make dock が必要):')
     for n in sorted(only_in_dock_sb):
         print(f'  [-cache sidebar]  {n}')
 

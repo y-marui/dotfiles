@@ -3,7 +3,7 @@
 # dock ファイルの内容を Dock・Finder サイドバーに適用する
 #
 # 動作:
-#   1. dotfiles-private/macos/dock ファイルを読み込む
+#   1. dotfiles-private/macos/dockfile を読み込む
 #   2. Dock・Finder サイドバーをリセットして再構築
 #   3. dock.cache を更新
 #
@@ -15,14 +15,14 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
-DOCK_FILE="$PRIVATE_DIR/macos/dock"
+DOCK_FILE="$PRIVATE_DIR/macos/dockfile"
 YELLOW='\033[1;33m'
 RESET='\033[0m'
 
 # ── dock ファイルのチェック ────────────────────────────────────────────────────
 if [[ ! -f "$DOCK_FILE" ]]; then
   printf '%sError: dock file not found: %s%s\n' "$YELLOW" "$DOCK_FILE" "$RESET" >&2
-  echo "  Run 'make dock-sync' to create it from current dock state." >&2
+  echo "  Run 'make dock-sync' to create dockfile from current dock state." >&2
   exit 1
 fi
 if [[ ! -s "$DOCK_FILE" ]]; then
@@ -83,4 +83,4 @@ killall Dock 2>/dev/null || true
 # ── cache を更新 ──────────────────────────────────────────────────────────────
 export DOTFILES_DIR
 bash "$DOTFILES_DIR/macos/dock-sync.sh" --snapshot-only
-echo "Done. dock.cache saved to $PRIVATE_DIR/macos/dock.cache"
+echo "Done. dockfile.cache saved to $PRIVATE_DIR/macos/dockfile.cache"
