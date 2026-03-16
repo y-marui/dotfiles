@@ -4,8 +4,8 @@ set -euo pipefail
 echo "Applying macOS defaults..."
 
 # ── Finder ──────────────────────────────────────────────────────────────────
-# 隠しファイルを表示
-defaults write com.apple.finder AppleShowAllFiles -bool true
+# 隠しファイルを非表示
+defaults write com.apple.finder AppleShowAllFiles -bool false
 # 拡張子を常に表示
 defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 # パスバーを表示
@@ -22,8 +22,8 @@ defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 defaults write com.apple.dock autohide -bool false
 # 最近使ったアプリを表示しない
 defaults write com.apple.dock show-recents -bool false
-# アイコンサイズを小さく
-defaults write com.apple.dock tilesize -int 36
+# アイコンサイズはデフォルト
+defaults delete com.apple.dock tilesize
 
 # ── キーボード ────────────────────────────────────────────────────────────────
 # キーリピートを高速化
