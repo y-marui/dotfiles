@@ -34,8 +34,12 @@ if [[ "$MODE" == "--snapshot-only" ]]; then
   exit 0
 fi
 
-# 差分チェック
-if [[ -f "$SNAPSHOT" ]]; then
+# --check: 現在の Dock 状態と dock.cache を比較して差分検知のみ
+if [[ "$MODE" == "--check" ]]; then
+  if [[ ! -f "$SNAPSHOT" ]]; then
+    echo "No snapshot found. Run 'make dock' to create one."
+    exit 1
+  fi
   current=$(_capture)
   last=$(cat "$SNAPSHOT")
   if [[ "$current" == "$last" ]]; then
@@ -44,13 +48,10 @@ if [[ -f "$SNAPSHOT" ]]; then
   fi
   echo "Changes detected:"
   diff <(echo "$last") <(echo "$current") || true
-  [[ "$MODE" == "--check" ]] && exit 1
-else
-  echo "No snapshot found. Run 'make dock' to create one."
-  [[ "$MODE" == "--check" ]] && exit 1
+  exit 1
 fi
 
-# dock ファイルをマージ更新
+# dock ファイルをマージ更新（常に実行）
 dock_paths=$(_current_dock)
 sidebar_raw=$(mysides list 2>/dev/null)
 
