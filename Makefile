@@ -4,7 +4,7 @@ PRIVATE_DIR  := $(DOTFILES_DIR)-private
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install uninstall update brew macos link dock dock-sync check init private
+.PHONY: help install uninstall update brew brew-sync macos link dock dock-sync check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -20,9 +20,16 @@ update: ## git pull --rebase して再インストール
 	@git pull --rebase origin main
 	@$(MAKE) install
 
-brew: ## Brewfile からパッケージをインストール（Brewfile.local がなければ現在の状態をスナップショット）
-	@[[ -f macos/Brewfile.local ]] || brew bundle dump --file=macos/Brewfile.local
-	@brew bundle --file=macos/Brewfile
+brew: ## Brewfile を適用（適用前に ~/.dotfiles-backup へバックアップ）
+	@BACKUP_DIR="$(HOME)/.dotfiles-backup/$$(date +%Y%m%d%H%M%S)"; \
+	 mkdir -p "$$BACKUP_DIR"; \
+	 brew bundle dump --force --file="$$BACKUP_DIR/Brewfile" 2>/dev/null && \
+	   echo "  BACKUP  $$BACKUP_DIR/Brewfile" || true; \
+	 brew bundle --file=macos/Brewfile
+
+brew-sync: ## 現在の Homebrew 状態を Brewfile に同期
+	@brew bundle dump --force --file=macos/Brewfile
+	@echo "Brewfile updated."
 
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh

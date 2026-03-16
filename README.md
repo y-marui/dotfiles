@@ -18,20 +18,26 @@ vi ./host/$(hostname -s).zsh
 
 # 4. プライベート設定を取得（gitconfig.d/* / ssh/config）
 cp scripts/.env.example scripts/.env
-vi scripts/.env  # GIST_ID を記入
+vi scripts/.env  # PRIVATE_REPO を記入（例: y-marui/dotfiles-private）
 make private
 
-# 5. dotfiles をインストール
+# 5. dotfiles-private のシンボリックリンクを設定
+make link
+
+# 6. dotfiles をインストール
 make install
 
-# 6. 整合性確認
+# 7. 整合性確認
 make check
 
-# 7. Homebrew パッケージをインストール
+# 8. Homebrew パッケージをインストール
 make brew
 
-# 8. macOS 設定を適用（内容を確認してから）
+# 9. macOS 設定を適用（内容を確認してから）
 make macos
+
+# 10. Dock・Finder サイドバーを適用
+make dock
 ```
 
 ## コマンド一覧
@@ -43,9 +49,13 @@ make macos
 | `make update` | git pull + 再インストール |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |
-| `make brew` | Homebrew パッケージをインストール |
+| `make private` | dotfiles-private を GitHub からクローン・更新 |
+| `make link` | dotfiles-private のシンボリックリンクを設定 |
+| `make brew` | Brewfile を適用（適用前にバックアップ） |
+| `make brew-sync` | 現在の Homebrew 状態を Brewfile に同期 |
 | `make macos` | macOS デフォルト設定を適用 |
-| `make private` | Private Gist からプライベート設定を取得 |
+| `make dock` | Dock アプリ・Finder サイドバーを適用 |
+| `make dock-sync` | 現在の Dock・サイドバーを dock.sh に同期 |
 
 ## ファイル構成
 
@@ -61,15 +71,16 @@ make macos
 
 ## プライベート設定の管理
 
-Git の user 情報やシークレットは Private Gist で管理する。
+Git の user 情報・SSH config・Dock 設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
 
 ```bash
-# Gist ID を設定
+# リポジトリを設定
 cp scripts/.env.example scripts/.env
-vi scripts/.env  # GIST_ID を記入
+vi scripts/.env  # PRIVATE_REPO を記入（例: y-marui/dotfiles-private）
 
-# Gist から取得
+# クローンしてシンボリックリンクを設定
 make private
+make link
 ```
 
 ## ローカル専用設定
