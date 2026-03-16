@@ -77,7 +77,8 @@ make private
 マシン固有の設定は以下のファイルに書く（git 管理外）：
 
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
-- `~/.zshrc.local` — 自動的に読み込まれる追加設定
+- `~/.zshrc.local` — zsh: 自動的に読み込まれる追加設定
+- `~/.bashrc.local` — bash: 自動的に読み込まれる追加設定
 
 ### 設定が必要な環境変数
 

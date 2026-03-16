@@ -58,6 +58,23 @@ else
   echo "既存: ${GIT_FILE} (スキップ)"
 fi
 
+# 変数が active / commented どちらの形でも存在しない場合のみ追記するヘルパー
+_append_if_missing() {
+  local target_file="$1"
+  local var_name="$2"
+  local description="$3"
+  local example_value="$4"
+  if grep -qE "^\s*#?\s*export\s+${var_name}=" "${target_file}" 2>/dev/null; then
+    return 0
+  fi
+  {
+    echo ""
+    echo "# ${description}"
+    echo "# export ${var_name}=\"${example_value}\""
+  } >> "${target_file}"
+  echo "追記: ${target_file} に ${var_name} を追加"
+}
+
 # ~/.zshrc.local — 変数が未設定の場合のみコメントアウトで追記
 ZSHRC_LOCAL="${HOME}/.zshrc.local"
 
@@ -66,31 +83,35 @@ if [[ ! -f "${ZSHRC_LOCAL}" ]]; then
   echo "作成: ${ZSHRC_LOCAL}"
 fi
 
-# 変数が active / commented どちらの形でも存在しない場合のみ追記するヘルパー
-_zshrc_append_if_missing() {
-  local var_name="$1"
-  local description="$2"
-  local example_value="$3"
-  if grep -qE "^\s*#?\s*export\s+${var_name}=" "${ZSHRC_LOCAL}" 2>/dev/null; then
-    return 0
-  fi
-  {
-    echo ""
-    echo "# ${description}"
-    echo "# export ${var_name}=\"${example_value}\""
-  } >> "${ZSHRC_LOCAL}"
-  echo "追記: ${ZSHRC_LOCAL} に ${var_name} を追加"
-}
-
-_zshrc_append_if_missing "DOTFILES_DIR" \
+_append_if_missing "${ZSHRC_LOCAL}" "DOTFILES_DIR" \
   "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
   "/path/to/dotfiles"
 
-_zshrc_append_if_missing "NTFY_TOPIC" \
+_append_if_missing "${ZSHRC_LOCAL}" "NTFY_TOPIC" \
   "Claude Code の完了通知に使う ntfy.sh トピック（任意）" \
   "your-topic"
 
-_zshrc_append_if_missing "HOMEBREW_GITHUB_API_TOKEN" \
+_append_if_missing "${ZSHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
+  "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
+  ""
+
+# ~/.bashrc.local — 変数が未設定の場合のみコメントアウトで追記
+BASHRC_LOCAL="${HOME}/.bashrc.local"
+
+if [[ ! -f "${BASHRC_LOCAL}" ]]; then
+  touch "${BASHRC_LOCAL}"
+  echo "作成: ${BASHRC_LOCAL}"
+fi
+
+_append_if_missing "${BASHRC_LOCAL}" "DOTFILES_DIR" \
+  "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
+  "/path/to/dotfiles"
+
+_append_if_missing "${BASHRC_LOCAL}" "NTFY_TOPIC" \
+  "Claude Code の完了通知に使う ntfy.sh トピック（任意）" \
+  "your-topic"
+
+_append_if_missing "${BASHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
   "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
   ""
 
@@ -99,3 +120,4 @@ echo "編集してください:"
 echo "  ${ZSH_FILE}"
 echo "  ${GIT_FILE}"
 echo "  ${ZSHRC_LOCAL}"
+echo "  ${BASHRC_LOCAL}"
