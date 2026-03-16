@@ -27,6 +27,7 @@ brew "ffmpeg"
 
 # ── macOS ユーティリティ ────────────────────────────────────────────────────────
 brew "cliclick"
+brew "dockutil"
 brew "duti"
 brew "lsusb"
 brew "switchaudio-osx"
@@ -241,4 +242,5 @@ brew "libpq"
 cask "claude"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
+cask "mysides"
 tap "mczachurski/wallpapper"

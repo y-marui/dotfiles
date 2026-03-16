@@ -18,8 +18,8 @@ defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
 defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
 # ── Dock ─────────────────────────────────────────────────────────────────────
-# 自動的に隠す
-defaults write com.apple.dock autohide -bool true
+# 自動的に隠す（手動変更時は dock.sh で管理）
+defaults write com.apple.dock autohide -bool false
 # 最近使ったアプリを表示しない
 defaults write com.apple.dock show-recents -bool false
 # アイコンサイズを小さく
