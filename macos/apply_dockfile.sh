@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# dock.sh
-# dock ファイルの内容を Dock・Finder サイドバーに適用する
+# apply_dockfile.sh
+# dockfile の内容を Dock・Finder サイドバーに適用する
 #
 # 動作:
 #   1. dotfiles-private/macos/dockfile を読み込む
 #   2. Dock・Finder サイドバーをリセットして再構築
-#   3. dock.cache を更新
+#   3. dockfile.cache を更新
 #
 # 使い方:
-#   DOTFILES_DIR=~/dotfiles bash macos/dock.sh
+#   DOTFILES_DIR=~/dotfiles bash macos/apply_dockfile.sh
 #   make dock
 
 set -euo pipefail
@@ -82,5 +82,5 @@ killall Dock 2>/dev/null || true
 
 # ── cache を更新 ──────────────────────────────────────────────────────────────
 export DOTFILES_DIR
-bash "$DOTFILES_DIR/macos/dock-sync.sh" --snapshot-only
+bash "$DOTFILES_DIR/macos/update_dockcache.sh"
 echo "Done. dockfile.cache saved to $PRIVATE_DIR/macos/dockfile.cache"

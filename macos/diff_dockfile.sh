@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# diff_dock.sh
+# diff_dockfile.sh
 # dockfile.cache（現在の Dock 状態）と dockfile（管理ファイル）の差分を表示する
 #
 # 動作:
@@ -8,8 +8,8 @@
 #   ※ dockfile に記載されているが存在しないアプリは無視する（別マシン向け）
 #
 # 使い方:
-#   bash macos/diff_dock.sh           # 差分を詳細表示
-#   bash macos/diff_dock.sh --summary # 1行サマリーのみ出力（zlogin 用）
+#   bash macos/diff_dockfile.sh           # 差分を詳細表示
+#   bash macos/diff_dockfile.sh --summary # 1行サマリーのみ出力（zlogin 用）
 #
 # dockfile.cache または dockfile が見つからない場合は終了コード 1 で何も出力しない
 

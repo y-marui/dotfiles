@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Usage:
-#   bash macos/dock-sync.sh             → dockfile 自動更新・dockfile.cache 更新
-#   bash macos/dock-sync.sh --check     → 変更検知のみ（変更あれば exit 1）
-#   bash macos/dock-sync.sh --snapshot-only → dockfile.cache だけ更新
+#   bash macos/sync_dockfile.sh          → dockfile 自動更新・dockfile.cache 更新
+#   bash macos/sync_dockfile.sh --check  → 変更検知のみ（変更あれば exit 1）
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
@@ -28,11 +27,6 @@ _capture() {
   _current_dock | awk '{print "dock\t" $0}'
   _current_sidebar
 }
-
-if [[ "$MODE" == "--snapshot-only" ]]; then
-  _capture > "$SNAPSHOT"
-  exit 0
-fi
 
 # --check: 現在の Dock 状態と dockfile.cache を比較して差分検知のみ
 if [[ "$MODE" == "--check" ]]; then
@@ -105,6 +99,7 @@ lines += [f'sidebar\t{n}\t{u}' for n, u in merged_sidebar]
 dock_file.write_text('\n'.join(lines) + '\n')
 PYEOF
 
-# snapshot を更新
-_capture > "$SNAPSHOT"
-echo "dock updated. Snapshot saved to $SNAPSHOT"
+# dockfile.cache を更新
+export DOTFILES_DIR
+bash "$DOTFILES_DIR/macos/update_dockcache.sh"
+echo "dockfile synced."

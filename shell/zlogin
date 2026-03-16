@@ -82,7 +82,7 @@ fi
 # 4. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" ]]; then
-  _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dock.sh" --summary 2>/dev/null || true)
+  _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dockfile.sh" --summary 2>/dev/null || true)
   if [[ -n "$_dock_diff" ]]; then
     print -P "%F{yellow}⚠ dock: $_dock_diff (make dock-diff で確認)%f"
   fi
