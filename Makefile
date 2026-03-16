@@ -28,8 +28,7 @@ brew: ## Brewfile を適用（適用前に ~/.dotfiles-backup へバックアッ
 	 brew bundle --file=macos/Brewfile
 
 brew-sync: ## 現在の Homebrew 状態を Brewfile に同期
-	@brew bundle dump --force --file=macos/Brewfile
-	@echo "Brewfile updated."
+	@bash macos/sync_brewfile.sh
 
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh
