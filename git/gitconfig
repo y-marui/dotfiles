@@ -51,6 +51,9 @@
 [ghq]
 	root = ~/src
 
+[local]
+	keep-up-to-date = false
+
 [push]
 	autoSetupRemote = true
 

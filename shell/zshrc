@@ -74,7 +74,7 @@ function ghq-status() {
   local root val rel repo
   root="$(ghq root)"
   while IFS= read -r repo; do
-    val="$(git -C "$repo" config --local local.keep-up-to-date 2>/dev/null || true)"
+    val="$(git -C "$repo" config local.keep-up-to-date 2>/dev/null || true)"
     rel="${repo#"$root/"}"
     if [[ "$val" == "true" ]]; then
       printf "\e[32m[keep]\e[m  %s\n" "$rel"
