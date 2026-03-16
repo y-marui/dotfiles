@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1. グローバルの pre-commit を実行（identity + security チェック）
+bash "$(dirname "$0")/../hooks/pre-commit"
+
+# 2. Brewfile.cache と Brewfile の差分チェック
+DOTFILES_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+DIFF="${DOTFILES_DIR}/macos/diff_brewfile.sh"
+CACHE="${DOTFILES_DIR}/macos/Brewfile.cache"
+[[ -f "$DIFF" && -f "$CACHE" ]] || exit 0
+
+if ! bash "$DIFF" 2>/dev/null; then
+  echo "⚠️  Brewfile.cache と Brewfile に差分があります。" >&2
+  echo "    make brew-sync または make brew を実行してからコミットしてください。" >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1. グローバルの pre-commit を実行（identity + security チェック）
+PRIVATE_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+DOTFILES_DIR="${PRIVATE_DIR%-private}"
+bash "${DOTFILES_DIR}/git/hooks/pre-commit"
+
+# 2. dock-cache を更新
+command -v dockutil &>/dev/null || exit 0
+bash "${DOTFILES_DIR}/macos/dock-sync.sh" --snapshot-only 2>/dev/null || true
+
+# 3. dock diff チェック
+if ! bash "${DOTFILES_DIR}/macos/diff_dock.sh" 2>/dev/null; then
+  echo "⚠️  dock.sh と現在の Dock に差分があります。" >&2
+  echo "    make dock-sync を実行してからコミットしてください。" >&2
+  exit 1
+fi
+exit 0

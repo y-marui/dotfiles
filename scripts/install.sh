@@ -56,3 +56,15 @@ echo "完了: リンク=${count_ok}  スキップ=${count_skip}  バックアッ
 if [[ "${count_backup}" -gt 0 ]]; then
   echo "バックアップ先: ${BACKUP_DIR}"
 fi
+
+# dotfiles リポジトリのフックパスを設定
+git -C "$DOTFILES_DIR" config core.hooksPath git/hooks-dotfiles
+chmod +x "$DOTFILES_DIR/git/hooks-dotfiles/"*
+echo "  HOOKS   git/hooks-dotfiles → dotfiles repo"
+
+# dotfiles-private のフックパスを設定（存在する場合）
+PRIVATE_DIR="${DOTFILES_DIR}-private"
+if [[ -d "${PRIVATE_DIR}/.git" ]]; then
+  git -C "$PRIVATE_DIR" config core.hooksPath "${DOTFILES_DIR}/git/hooks-private"
+  echo "  HOOKS   git/hooks-private → dotfiles-private repo"
+fi

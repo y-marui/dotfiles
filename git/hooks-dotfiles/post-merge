@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Brewfile.cache と Brewfile の差分チェック（警告のみ・ブロックしない）
+DOTFILES_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+DIFF="${DOTFILES_DIR}/macos/diff_brewfile.sh"
+CACHE="${DOTFILES_DIR}/macos/Brewfile.cache"
+[[ -f "$DIFF" && -f "$CACHE" ]] || exit 0
+
+if ! bash "$DIFF" 2>/dev/null; then
+  echo "⚠️  Brewfile.cache と Brewfile に差分があります。" >&2
+  echo "    make brew-sync または make brew を実行することを検討してください。" >&2
+fi
+exit 0
