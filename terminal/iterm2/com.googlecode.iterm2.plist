@@ -26,16 +26,6 @@
 	<string>https://api.openai.com/v1/responses</string>
 	<key>AllowClipboardAccess</key>
 	<true/>
-	<key>AppleAntiAliasingThreshold</key>
-	<integer>1</integer>
-	<key>ApplePressAndHoldEnabled</key>
-	<false/>
-	<key>AppleScrollAnimationEnabled</key>
-	<integer>0</integer>
-	<key>AppleSmoothFixedFontsSizeThreshold</key>
-	<integer>1</integer>
-	<key>AppleWindowTabbingMode</key>
-	<string>manual</string>
 	<key>AutoHideTmuxClientSession</key>
 	<false/>
 	<key>Command</key>
@@ -424,12 +414,16 @@
 			</dict>
 			<key>Ansi 0 Color (Dark)</key>
 			<dict>
+				<key>Alpha Component</key>
+				<real>1</real>
 				<key>Blue Component</key>
-				<string>0</string>
+				<real>0.011736371554434299</real>
+				<key>Color Space</key>
+				<string>P3</string>
 				<key>Green Component</key>
-				<string>0</string>
+				<real>0.011647753417491913</real>
 				<key>Red Component</key>
-				<string>0</string>
+				<real>0.0084551284089684486</real>
 			</dict>
 			<key>Ansi 0 Color (Light)</key>
 			<dict>
