@@ -53,6 +53,12 @@ defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 # スペル自動修正を無効化
 defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
+# ── iTerm2 ───────────────────────────────────────────────────────────────────
+# dotfiles の terminal/iterm2/ から設定を読み込む
+ITERM2_PREFS_DIR="$(cd "$(dirname "$0")/.." && pwd)/terminal/iterm2"
+defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$ITERM2_PREFS_DIR"
+defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
+
 # ── 反映 ─────────────────────────────────────────────────────────────────────
 echo "Restarting affected applications..."
 killall Finder 2>/dev/null || true
