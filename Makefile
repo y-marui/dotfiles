@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff check init private
+.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -54,6 +54,22 @@ brew-cache: ## 現在の Homebrew 状態を Brewfile.cache に記録
 
 brew-diff: ## Brewfile.cache と Brewfile の差分を表示
 	@bash macos/diff_brewfile.sh || true
+
+npm: ## npmfile を適用（差分なしはスキップ、適用後に cache 更新）
+	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/diff_npmfile.sh; then \
+	   echo "差分なし: npmfile はすでに適用済みです。"; \
+	   exit 0; \
+	 fi; \
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/apply_npmfile.sh
+
+npm-sync: ## 現在の npm グローバルパッケージ状態を npmfile に同期
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/sync_npmfile.sh
+
+npm-cache: ## 現在の npm グローバルパッケージ状態を npmfile.cache に記録
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/update_npmcache.sh
+
+npm-diff: ## npmfile.cache と npmfile の差分を表示
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/diff_npmfile.sh || true
 
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh

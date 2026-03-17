@@ -91,6 +91,18 @@ function brew() {
   esac
 }
 
+# npm グローバルパッケージ操作時に npmfile.cache 自動更新
+function npm() {
+  command npm "$@"
+  case "$1" in
+    install|uninstall|update)
+      if [[ "${2:-}" == "-g" || "${2:-}" == "--global" ]]; then
+        bash "$DOTFILES_DIR/npm/update_npmcache.sh" 2>/dev/null || true
+      fi
+      ;;
+  esac
+}
+
 # --------------------------------------------------------
 # 6. カスタム関数
 # --------------------------------------------------------
@@ -284,7 +296,18 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile.cache" ]]; then
 fi
 
 # --------------------------------------------------------
-# 4. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
+# 4. npmfile.cache と npmfile の乖離確認（ファイル比較のみ・npm 実行なし）
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/npm/npmfile.cache" ]]; then
+  _npm_diff=$(bash "$DOTFILES_DIR/npm/diff_npmfile.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_npm_diff" ]]; then
+    print -P "%F{yellow}⚠ npm: $_npm_diff (make npm-diff で確認)%f"
+  fi
+  unset _npm_diff
+fi
+
+# --------------------------------------------------------
+# 5. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" ]]; then
   _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dockfile.sh" --summary 2>/dev/null || true)

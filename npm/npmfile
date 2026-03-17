@@ -1,0 +1,5 @@
+# npmfile
+# npm install -g で管理するグローバルパッケージ一覧
+# make npm で適用、make npm-sync で現在の状態を同期
+
+@google/clasp
