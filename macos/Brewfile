@@ -62,6 +62,8 @@ brew "postgresql@14"
 brew "pre-commit"
 brew "swiftformat"
 brew "swiftlint"
+brew "pyright"
+brew "typescript-language-server"
 
 # ── ライブラリ（依存関係） ────────────────────────────────────────────────────────
 brew "aom"
