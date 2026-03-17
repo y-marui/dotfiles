@@ -19,7 +19,7 @@ LINKS=(
   "git/gitconfig|${HOME}/.gitconfig"
   "git/gitignore_global|${HOME}/.gitignore_global"
   "git/hooks|${HOME}/.config/git/hooks"
-  "terminal/tmux.conf|${HOME}/.tmux.conf"
+  "terminal/zellij/config.kdl|${HOME}/.config/zellij/config.kdl"
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
