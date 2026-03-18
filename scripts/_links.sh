@@ -25,5 +25,5 @@ LINKS=(
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/ntfy_notify.sh|${HOME}/.claude/hooks/ntfy_notify.sh"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
-  "bin/build-quiet|${HOME}/.local/bin/build-quiet"
+  "bin/run-quiet|${HOME}/.local/bin/run-quiet"
 )

@@ -1,9 +1,9 @@
 #!/bin/sh
-# build-quiet: エラーがなければ1行サマリーを出力するラッパー
-# 使い方: build-quiet <command> [args...]
+# run-quiet: エラーがなければ1行サマリーを出力するラッパー
+# 使い方: run-quiet <command> [args...]
 
 if [ $# -eq 0 ]; then
-  echo "usage: build-quiet <command> [args...]" >&2
+  echo "usage: run-quiet <command> [args...]" >&2
   exit 1
 fi
 
