@@ -451,3 +451,6 @@ build/
 
 # Claude Code
 .claude/settings.local.json
+
+# Pycharm
+.idea
