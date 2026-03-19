@@ -316,3 +316,12 @@ if [[ -n "${DOTFILES_DIR:-}" ]]; then
   fi
   unset _dock_diff
 fi
+
+# iTerm2 Shell Integration を読み込む（iTerm2 で zsh を使う場合は必須）
+if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+  if [[ ! -f ~/.iterm2_shell_integration.zsh || ! -f ~/.iterm2_shell_integration.zsh ]]; then
+	  echo "Install Shell Integration on iTerm2."
+  else
+    test -e ~/.iterm2_shell_integration.zsh1 && source ~/.iterm2_shell_integration.zsh || true
+  fi
+fi
