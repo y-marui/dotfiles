@@ -1531,6 +1531,8 @@
 	<false/>
 	<key>OpenNoWindowsAtStartup</key>
 	<false/>
+	<key>PassOnControlClick</key>
+	<false/>
 	<key>PerPaneBackgroundImage</key>
 	<true/>
 	<key>PointerActions</key>
