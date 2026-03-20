@@ -219,6 +219,7 @@ vscode "znck.grammarly"
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "curl"
 brew "libpq"
+brew "uv"
 brew "zellij"
 cask "claude"
 cask "jordanbaird-ice"

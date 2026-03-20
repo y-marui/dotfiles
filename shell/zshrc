@@ -5,36 +5,8 @@
 if command -v zellij >/dev/null 2>&1; then
   function auto_zellij() {
     if [[ "$TERM_PROGRAM" == "iTerm.app" && -z "$ZELLIJ" ]]; then
-      function rand_zellij_name() {
-        local adjectives nouns
-
-        adjectives=(
-          arcadian gregarious adamant diligent radiant nimble silent vivid
-          curious brisk noble tranquil cosmic eager lucid stellar amber
-          clever swift bold calm gentle keen proud rapid steady bright
-        )
-
-        nouns=(
-          accordion clarinet cymbal violin trumpet falcon donkey otter
-          river meadow forest harbor comet lantern mountain canyon
-          harbor glacier valley desert island breeze thunder
-        )
-
-        echo "${adjectives[$RANDOM % ${#adjectives[@]}]}-${nouns[$RANDOM % ${#nouns[@]}]}"
-      }
-
-      all=$(zellij list-sessions --short | sort)
-      use=$(ps -o command | grep '^zellij attach' | awk '{print $4}' | sort)
-      notuse=$(comm -23 <(echo "$all") <(echo "$use"))
-
-      if [[ -n "$notuse" ]]; then
-        name=$(echo "$notuse" | head -n1)
-      else
-        name=$(rand_zellij_name)
-      fi
-
+      local name="${HOST%%.*}"
       zellij attach -c "$name"
-
       exit
     fi
   }
