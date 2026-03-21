@@ -1,3 +1,8 @@
+plugins {
+    status-bar location="zellij:status-bar"
+    tab-bar location="zellij:tab-bar"
+}
+
 mouse_mode true
 session_serialization false
 show_startup_tips false

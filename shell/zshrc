@@ -2,20 +2,32 @@
 # zsh 対話シェルの設定。
 # [共通] マークは bashrc と内容を共有していることを示す。
 
-if command -v zellij >/dev/null 2>&1; then
-  function auto_zellij() {
-    if [[ "$TERM_PROGRAM" == "iTerm.app" && -z "$ZELLIJ" ]]; then
-      local name="${HOST%%.*}"
-      zellij attach -c "$name"
-      exit
-    fi
-  }
+if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+  # Zellij セッションに自動アタッチ（セッション名はホスト名）
+  if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; then
+    zellij attach -c "${HOST%%.*}"
+    exit
+  fi
 
-  auto_zellij
-else
-  print -P "%F{yellow}Zellij is not installed, so running in a normal zsh shell.%f"
+  # Zellij 内でそのままsshを実行するとzellijが2重になってします。
+  # そこで zellijを使わない "No Zellij" プロファイルの新規タブでsshを開く。
+  # しかし、NO_ZELLIJは接続先にも設定されるので、NO_ZELLIJ='' を設定することで接続先では Zellij を自動起動させる。
+  if [[ -n "$ZELLIJ" ]]; then
+    function ssh() {
+      local cmd="env NO_ZELLIJ='' command ssh $(printf '%q ' "$@"); exit"
+      osascript <<EOF
+tell application "iTerm"
+  tell current window
+    create tab with profile "No Zellij"
+    tell current session
+      write text "$cmd"
+    end tell
+  end tell
+end tell
+EOF
+    }
+  fi
 fi
-
 
 # --------------------------------------------------------
 # 1. Powerlevel10k instant prompt（最上部に置くこと）
