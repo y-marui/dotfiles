@@ -2,30 +2,16 @@
 # zsh 対話シェルの設定。
 # [共通] マークは bashrc と内容を共有していることを示す。
 
-if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
-  # Zellij セッションに自動アタッチ（セッション名はホスト名）
-  if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; then
+# --------------------------------------------------------
+# 0. Zellijの自動アタッチ
+# --------------------------------------------------------
+
+# Zellij セッションに自動アタッチ（セッション名はホスト名）
+# iTerm.app または SSH 接続の場合に起動
+if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; then
+  if [[ "$TERM_PROGRAM" == "iTerm.app" || -n "$SSH_CONNECTION" ]]; then
     zellij attach -c "${HOST%%.*}"
     exit
-  fi
-
-  # Zellij 内でそのままsshを実行するとzellijが2重になってします。
-  # そこで zellijを使わない "No Zellij" プロファイルの新規タブでsshを開く。
-  # しかし、NO_ZELLIJは接続先にも設定されるので、NO_ZELLIJ='' を設定することで接続先では Zellij を自動起動させる。
-  if [[ -n "$ZELLIJ" ]]; then
-    function ssh() {
-      local cmd="env NO_ZELLIJ='' command ssh $(printf '%q ' "$@"); exit"
-      osascript <<EOF
-tell application "iTerm"
-  tell current window
-    create tab with profile "No Zellij"
-    tell current session
-      write text "$cmd"
-    end tell
-  end tell
-end tell
-EOF
-    }
   fi
 fi
 
@@ -59,7 +45,78 @@ compinit
 autoload -U bashcompinit && bashcompinit
 
 # --------------------------------------------------------
-# 5. エイリアス
+# 5. SSH ラッパー（iTerm2 + Zellij 内のみ有効）
+# --------------------------------------------------------
+# Zellij 内でそのままsshを実行するとzellijが2重になってします。
+# デフォルト: 現在のタブを縦分割して右ペインでsshを開く（接続先でzellij自動起動）。
+# --new: "No Zellij" プロファイルの新規タブで開く（接続先でzellij自動起動）。
+# --no-zellij: 接続先で zellij を自動起動しない（--new と併用可）。
+# NO_ZELLIJは接続先にも設定されるので、NO_ZELLIJ='' を設定することで接続先では Zellij を自動起動させる。
+if [[ "$TERM_PROGRAM" == "iTerm.app" && -n "$ZELLIJ" ]]; then
+  function ssh() {
+    local new_tab=false
+    local no_zellij=false
+    local args=()
+    for arg in "$@"; do
+      case "$arg" in
+        --new)       new_tab=true ;;
+        --no-zellij) no_zellij=true ;;
+        *)           args+=("$arg") ;;
+      esac
+    done
+    local no_zellij_env="NO_ZELLIJ=''"
+    $no_zellij && no_zellij_env="NO_ZELLIJ=1"
+    local cmd="env $no_zellij_env command ssh$(printf ' %q' "${args[@]}"); exit"
+
+    if $new_tab; then
+      osascript <<EOF
+tell application "iTerm2"
+  tell current window
+    create tab with profile "No Zellij"
+    tell current session
+      write text "$cmd"
+    end tell
+  end tell
+end tell
+EOF
+    else
+      osascript <<EOF
+tell application "iTerm2"
+  tell current session of current window
+    set newSession to (split vertically with profile "No Zellij")
+  end tell
+  tell newSession
+    write text "$cmd"
+  end tell
+end tell
+EOF
+    fi
+  }
+
+  # ssh wrapper のカスタムオプション補完（既存の _ssh 補完に追加）
+  function _ssh_iterm_wrapper() {
+    # カスタムフラグを補完候補に追加
+    local -a wrapper_opts
+    wrapper_opts=(
+      '--new:現在のタブを分割せず、新規タブで接続する'
+      '--no-zellij:接続先でZellijを自動起動しない'
+    )
+    _describe -t ssh-wrapper-opts 'wrapper options' wrapper_opts
+
+    # _ssh にカスタムフラグを見せないよう words から除外して委譲
+    local -a filtered_words
+    for w in "${words[@]}"; do
+      [[ "$w" == --new || "$w" == --no-zellij ]] || filtered_words+=("$w")
+    done
+    words=("${filtered_words[@]}")
+    (( CURRENT = ${#words[@]} ))
+    _ssh
+  }
+  compdef _ssh_iterm_wrapper ssh
+fi
+
+# --------------------------------------------------------
+# 7. エイリアス
 # --------------------------------------------------------
 alias py='python'       # [共通]
 alias ipy='ipython'     # [共通]
@@ -88,7 +145,7 @@ function npm() {
 }
 
 # --------------------------------------------------------
-# 6. カスタム関数
+# 8. カスタム関数
 # --------------------------------------------------------
 
 # ghq + fzf でリポジトリ移動
@@ -186,7 +243,7 @@ function ghq-update() {
 }
 
 # --------------------------------------------------------
-# 7. ツール初期化
+# 9. ツール初期化
 # --------------------------------------------------------
 
 # pyenv                                                   # [共通]
@@ -211,17 +268,17 @@ if command -v gh &>/dev/null; then
 fi
 
 # --------------------------------------------------------
-# 8. Powerlevel10k テーマ
+# 10. Powerlevel10k テーマ
 # --------------------------------------------------------
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # --------------------------------------------------------
-# 9. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
+# 11. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
 # --------------------------------------------------------
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # --------------------------------------------------------
-# 10. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
+# 12. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
 # --------------------------------------------------------
 [[ -f "$DOTFILES_DIR/host/$(hostname -s).zsh" ]] && \
   source "$DOTFILES_DIR/host/$(hostname -s).zsh"

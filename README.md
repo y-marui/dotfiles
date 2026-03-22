@@ -62,6 +62,33 @@ make check
 | `host/` | ホスト固有設定（git 管理外） |
 | `scripts/` | install / check 等のスクリプト |
 
+## Zellij 自動アタッチ・SSH ラッパー
+
+### Zellij 自動アタッチ
+
+以下の条件で起動時に自動的にZellijセッション（セッション名: ホスト名）にアタッチする。
+
+- iTerm2から起動した場合
+- SSHでリモートログインした場合（`$SSH_CONNECTION` が設定されている場合）
+
+`NO_ZELLIJ=1` を設定するか、`ZELLIJ` が設定済みの場合はスキップされる。
+
+### ssh コマンドのラッパー（iTerm2 + Zellij内のみ有効）
+
+Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の別ペイン/タブで開くラッパーを提供している。
+接続先でもZellijが自動起動する。
+
+| コマンド | 動作 | 接続先の Zellij |
+|---------|------|----------------|
+| `ssh user@host` | 現在のタブを縦分割して右ペインで接続 | 自動起動 |
+| `ssh --new user@host` | "No Zellij" プロファイルの新規タブで接続 | 自動起動 |
+| `ssh --no-zellij user@host` | 縦分割ペインで接続 | 起動しない |
+| `ssh --new --no-zellij user@host` | 新規タブで接続 | 起動しない |
+
+> `--new` と `--no-zellij` は独立したフラグなので併用できる。
+
+---
+
 ## プライベート設定の管理
 
 Git の user 情報・SSH config・Dock 設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
