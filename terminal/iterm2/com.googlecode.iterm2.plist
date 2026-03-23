@@ -992,13 +992,13 @@
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>1</real>
+				<real>0.99999994039535522</real>
 				<key>Color Space</key>
-				<string>sRGB</string>
+				<string>P3</string>
 				<key>Green Component</key>
-				<real>1</real>
+				<real>0.99999994039535522</real>
 				<key>Red Component</key>
-				<real>0.99999600648880005</real>
+				<real>0.99999672174453735</real>
 			</dict>
 			<key>Background Image Mode</key>
 			<integer>0</integer>
@@ -1064,12 +1064,16 @@
 			</dict>
 			<key>Bold Color (Dark)</key>
 			<dict>
+				<key>Alpha Component</key>
+				<real>1</real>
 				<key>Blue Component</key>
-				<string>1</string>
+				<real>1</real>
+				<key>Color Space</key>
+				<string>P3</string>
 				<key>Green Component</key>
-				<string>1</string>
+				<real>1</real>
 				<key>Red Component</key>
-				<string>1</string>
+				<real>0.99999994039535522</real>
 			</dict>
 			<key>Bold Color (Light)</key>
 			<dict>
@@ -1117,25 +1121,29 @@
 			</dict>
 			<key>Cursor Color (Dark)</key>
 			<dict>
+				<key>Alpha Component</key>
+				<real>1</real>
 				<key>Blue Component</key>
-				<string>1</string>
+				<real>0.71372549019607845</real>
+				<key>Color Space</key>
+				<string>P3</string>
 				<key>Green Component</key>
-				<string>1</string>
+				<real>0.69411764705882351</real>
 				<key>Red Component</key>
-				<string>1</string>
+				<real>0.72941176470588232</real>
 			</dict>
 			<key>Cursor Color (Light)</key>
 			<dict>
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.37480181455612183</real>
+				<real>0.29019609093666077</real>
 				<key>Color Space</key>
-				<string>sRGB</string>
+				<string>P3</string>
 				<key>Green Component</key>
-				<real>0.35058873891830444</real>
+				<real>0.27058824896812439</real>
 				<key>Red Component</key>
-				<real>0.36679756641387939</real>
+				<real>0.30588236451148987</real>
 			</dict>
 			<key>Cursor Guide Color</key>
 			<dict>
@@ -1191,25 +1199,29 @@
 			</dict>
 			<key>Cursor Text Color (Dark)</key>
 			<dict>
+				<key>Alpha Component</key>
+				<real>1</real>
 				<key>Blue Component</key>
-				<string>0</string>
+				<real>0.36105197668075562</real>
+				<key>Color Space</key>
+				<string>P3</string>
 				<key>Green Component</key>
-				<string>0</string>
+				<real>0.34364214539527893</real>
 				<key>Red Component</key>
-				<string>0</string>
+				<real>0.37352403998374939</real>
 			</dict>
 			<key>Cursor Text Color (Light)</key>
 			<dict>
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>1</real>
+				<real>0.71372549019607845</real>
 				<key>Color Space</key>
-				<string>sRGB</string>
+				<string>P3</string>
 				<key>Green Component</key>
-				<real>1</real>
+				<real>0.69411764705882351</real>
 				<key>Red Component</key>
-				<real>0.99999600648880005</real>
+				<real>0.72941176470588232</real>
 			</dict>
 			<key>Custom Command</key>
 			<string>No</string>
@@ -1242,25 +1254,29 @@
 			</dict>
 			<key>Foreground Color (Dark)</key>
 			<dict>
+				<key>Alpha Component</key>
+				<real>1</real>
 				<key>Blue Component</key>
-				<string>1</string>
+				<real>0.71372549019607845</real>
+				<key>Color Space</key>
+				<string>P3</string>
 				<key>Green Component</key>
-				<string>1</string>
+				<real>0.69411764705882351</real>
 				<key>Red Component</key>
-				<string>1</string>
+				<real>0.72941176470588232</real>
 			</dict>
 			<key>Foreground Color (Light)</key>
 			<dict>
 				<key>Alpha Component</key>
 				<real>1</real>
 				<key>Blue Component</key>
-				<real>0.37480181455612183</real>
+				<real>0.29019607843137252</real>
 				<key>Color Space</key>
-				<string>sRGB</string>
+				<string>P3</string>
 				<key>Green Component</key>
-				<real>0.35058873891830444</real>
+				<real>0.27058823529411763</real>
 				<key>Red Component</key>
-				<real>0.36679756641387939</real>
+				<real>0.30588235294117649</real>
 			</dict>
 			<key>Guid</key>
 			<string>E3D55807-8839-4767-B8C9-648A65C6FDDC</string>
@@ -1486,9 +1502,9 @@
 			<key>Use Bright Bold</key>
 			<true/>
 			<key>Use Bright Bold (Dark)</key>
-			<true/>
+			<false/>
 			<key>Use Bright Bold (Light)</key>
-			<true/>
+			<false/>
 			<key>Use Cursor Guide (Dark)</key>
 			<false/>
 			<key>Use Cursor Guide (Light)</key>
