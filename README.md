@@ -64,16 +64,18 @@ make check
 
 ## AI 設定
 
-共通のリポジトリコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
+グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートしている。
+リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
 
 ### Claude Code
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
+| [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.ai/AI_CONTEXT.md` | 全エージェント共通グローバル指示 |
 | [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
-| [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示 |
+| [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
 | [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
-| [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示 |
+| [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -81,7 +83,7 @@ make check
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
-| [`ai/copilot/instructions.md`](ai/copilot/instructions.md) | `~/.copilot/copilot-instructions.md` | グローバル指示 |
+| [`ai/copilot/instructions.md`](ai/copilot/instructions.md) | `~/.copilot/copilot-instructions.md` | グローバル指示（`~/.ai/AI_CONTEXT.md` への参照のみ） |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | — | リポジトリ固有指示 |
 
 参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
@@ -90,8 +92,8 @@ make check
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
-| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示 |
-| [`GEMINI.md`](GEMINI.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` でコンテキストをインポート） |
+| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
+| [`GEMINI.md`](GEMINI.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
 
 参照: [GEMINI.md ドキュメント](https://geminicli.com/docs/cli/gemini-md/)
 
