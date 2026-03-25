@@ -199,6 +199,7 @@ vscode "znck.grammarly"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "curl"
+brew "displayplacer"
 brew "libpq"
 brew "uv"
 brew "zellij"
@@ -207,6 +208,7 @@ cask "jordanbaird-ice"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
 cask "mysides"
+cask "nomachine"
 tap "mczachurski/wallpapper"
 mas "Dropover", id: 1355679052
 vscode "charliermarsh.ruff"
