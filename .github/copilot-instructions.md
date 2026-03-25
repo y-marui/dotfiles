@@ -1,12 +1,26 @@
-# GitHub Copilot Instructions
+# GitHub Copilot Instructions — dotfiles
 
 ## このリポジトリ
 
-dotfiles リポジトリ。シェル設定・開発環境の管理。
+macOS の開発環境設定（シェル・Git・エディタ・ターミナル・AI ツール）を
+シンボリックリンクで複数 Mac に展開する dotfiles リポジトリ。
+詳細は `AI_CONTEXT.md` を参照。
 
-## 補完時の注意
+## よく使うコマンド
 
-- zsh を優先しつつ bash 互換を維持する
-- シークレット・APIキー・パスワードを補完しない
-- シェルスクリプトは ShellCheck に準拠する
-- ハードコードされたパスを避ける（`$HOME` を使う）
+- `make install` — シンボリックリンクを展開
+- `make check` — リンク整合性を確認
+- `make update` — git pull + 再インストール
+- `shellcheck scripts/*.sh` — シェルスクリプトの静的解析
+
+## 必須ルール
+
+- `host/` 配下・`scripts/.env` はコミットしない
+- `shell/profile` と `shell/bashrc` に zsh 固有構文（`[[` 等）を書かない
+- 既存ファイルを変更する前に `make check` を実行する
+- `~/.gitconfig.local` の内容をリポジトリ内ファイルにコピーしない
+
+## zprezto
+
+`~/.zprezto` 本体はこのリポジトリで管理しない。
+`shell/zpreztorc` のみリンク対象。

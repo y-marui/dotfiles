@@ -1,12 +1,19 @@
-# GitHub Copilot Instructions
+# GitHub Copilot CLI — Global Instructions
 
-## このリポジトリ
+## コーディングスタイル
 
-dotfiles リポジトリ。シェル設定・開発環境の管理。
-
-## 補完時の注意
-
-- zsh を優先しつつ bash 互換を維持する
-- シークレット・APIキー・パスワードを補完しない
-- シェルスクリプトは ShellCheck に準拠する
+- シェルスクリプト: ShellCheck 準拠、`set -euo pipefail` を先頭に書く
+- Python: ruff / black 準拠
+- Swift: SwiftLint 準拠
 - ハードコードされたパスを避ける（`$HOME` を使う）
+- zshを優先しつつbash互換を維持する
+
+## セキュリティ
+
+- APIキー・パスワード・トークンをコードに書かない
+- シークレットをコミットしない
+
+## コミット
+
+- ユーザーから明示的に指示された時だけコミットする
+- Conventional Commits形式: `feat:` / `fix:` / `chore:` / `docs:` / `refactor:`
