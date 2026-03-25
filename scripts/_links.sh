@@ -22,6 +22,7 @@ LINKS=(
   "terminal/zellij/config.kdl|${HOME}/.config/zellij/config.kdl"
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
   "ai/AI_CONTEXT.md|${HOME}/.ai/AI_CONTEXT.md"
+  "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/ntfy_notify.sh|${HOME}/.claude/hooks/ntfy_notify.sh"
