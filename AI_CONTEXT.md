@@ -64,9 +64,18 @@ dotfiles/
 - `make brew`     : Homebrew パッケージインストール
 - `make macos`    : macOS デフォルト設定を適用
 
+## zprezto について
+
+`~/.zprezto` 本体はこのリポジトリで管理しない。
+`shell/zpreztorc` のみリンク対象。
+
 ## 変更時の注意
 
 - シェルスクリプトは ShellCheck を通す（`shellcheck scripts/*.sh`）
+- シェルスクリプトの先頭に `set -euo pipefail` を書く
+- 既存ファイルを変更する前に `make check` を実行する
+- 不明な設定はユーザーに確認してから進める
 - `host/` 配下はコミットしない（`.gitignore` 対象）
 - `scripts/.env` はコミットしない
 - `shell/profile` は sh 互換構文のみ（`[[` 不可）
+- `~/.gitconfig.local` の内容をリポジトリ内ファイルにコピーしない

@@ -1,7 +1,7 @@
 # dotfiles
 
 macOS 向け個人開発環境設定。
-zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot。
+zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot + Gemini CLI。
 
 ## セットアップ（新規マシン）
 
@@ -57,10 +57,45 @@ make check
 | `shell/` | zsh / bash 設定 |
 | `git/` | Git 設定（公開分のみ） |
 | `terminal/` | tmux / p10k 設定 |
-| `ai/` | Claude Code / Copilot 設定 |
+| `ai/` | Claude Code / Copilot / Gemini CLI 設定 |
 | `macos/` | Brewfile / macOS デフォルト設定 |
 | `host/` | ホスト固有設定（git 管理外） |
 | `scripts/` | install / check 等のスクリプト |
+
+## AI 設定
+
+共通のリポジトリコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
+
+### Claude Code
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
+| [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示 |
+| [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
+| [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示 |
+
+参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
+
+### GitHub Copilot CLI
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/copilot/instructions.md`](ai/copilot/instructions.md) | `~/.copilot/copilot-instructions.md` | グローバル指示 |
+| [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | — | リポジトリ固有指示 |
+
+参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
+
+### Gemini CLI
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示 |
+| [`GEMINI.md`](GEMINI.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` でコンテキストをインポート） |
+
+参照: [GEMINI.md ドキュメント](https://geminicli.com/docs/cli/gemini-md/)
+
+---
 
 ## Zellij 自動アタッチ・SSH ラッパー
 
