@@ -211,4 +211,6 @@ cask "mysides"
 cask "nomachine"
 tap "mczachurski/wallpapper"
 mas "Dropover", id: 1355679052
+mas "Remote Mouse", id: 403195710
+mas "Tailscale", id: 1475387142
 vscode "charliermarsh.ruff"

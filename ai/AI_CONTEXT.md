@@ -55,6 +55,11 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 - ハードコードされたパスを避ける（`$HOME` を使う）
 - zsh を優先しつつ bash 互換を維持する
 
+## GitHub
+
+PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
+テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
+
 ## Commit Messages
 
 Conventional Commits 形式:
