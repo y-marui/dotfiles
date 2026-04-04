@@ -21,6 +21,8 @@ LINKS=(
   "git/hooks|${HOME}/.config/git/hooks"
   "terminal/zellij/config.kdl|${HOME}/.config/zellij/config.kdl"
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
+  "terminal/ohmyposh/p10k-lean.json|${HOME}/.config/oh-my-posh/p10k-lean.json"
+  "terminal/powershell/profile.ps1|${HOME}/.config/powershell/Microsoft.PowerShell_profile.ps1"
   "ai/AI_CONTEXT.md|${HOME}/.ai/AI_CONTEXT.md"
   "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
