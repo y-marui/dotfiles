@@ -2,18 +2,51 @@
 
 ## このリポジトリの目的
 
-macOS 上の開発環境設定（シェル・Git・エディタ・ターミナル）を一元管理し、
-複数台の Mac 間でシンボリックリンクを通じて設定を共有するための dotfiles リポジトリ。
+macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エディタ・ターミナル）を一元管理し、
+シンボリックリンクを通じて設定を共有するための dotfiles リポジトリ。
 
 ## 環境
 
-- OS: macOS（メイン）
-- Shell: zsh（zprezto + Powerlevel10k）
-- bash: ローカルでもたまに使用
+- OS: macOS（メイン）、Raspberry Pi OS（Linux / サブ）、Windows（サブ）
+- Shell: zsh（zprezto + Powerlevel10k）— macOS / Raspberry Pi
+- Shell: bash — macOS / Raspberry Pi（副）
+- Shell: PowerShell（Oh My Posh）— **Windows のみ**（Windows で zsh は使わない）
+- Terminal: iTerm2（macOS）、Windows Terminal（Windows）
+- Terminal multiplexer: Zellij（全プラットフォーム共通）
 - Mac: 複数台（ホスト名で差分管理）
 - Version managers: pyenv, rbenv, nodebrew
 - Editor: Vim, VSCode
 - AI: Claude Code（メイン）、GitHub Copilot、Gemini CLI
+
+## プラットフォーム別セットアップ
+
+| プラットフォーム | インストール方法 |
+|---|---|
+| macOS / Linux | `make install`（bash スクリプト） |
+| Windows | `pwsh scripts/install.ps1` |
+
+## Zellij 自動アタッチ条件
+
+| プラットフォーム | シェル | 起動条件 |
+|---|---|---|
+| macOS | zsh / bash | `$TERM_PROGRAM == "iTerm.app"` または `$SSH_CONNECTION` |
+| Raspberry Pi | zsh / bash | `$SSH_CONNECTION`（SSH 経由のみで使用） |
+| Windows | pwsh | `$env:WT_SESSION`（Windows Terminal）または `$env:SSH_CONNECTION` |
+
+- `NO_ZELLIJ=1` でどの環境でもスキップ可
+- `$ZELLIJ` が設定済みの場合は既にセッション内なのでスキップ
+- エディタ等のサブプロセスでシェルが起動した場合は上記条件に合わないためスキップ
+
+## SSH ラッパー（zsh / bash / pwsh 共通）
+
+Zellij セッション内で `ssh` を実行すると、新しいペインを作成して SSH を起動する。
+接続先ではデフォルトで zellij auto-attach（`NO_ZELLIJ=''` を渡す）。
+
+| フラグ | 動作 |
+|---|---|
+| （なし） | 現在のタブに縦分割ペインで SSH |
+| `--new` | 新規タブで SSH |
+| `--no-zellij` | 接続先の zellij auto-attach を無効化（`NO_ZELLIJ=1` を渡す） |
 
 ## ディレクトリ構成と責務
 
