@@ -10,6 +10,17 @@
 [ -f "$HOME/.profile" ] && . "$HOME/.profile"
 
 # --------------------------------------------------------
+# 0. Zellij 自動アタッチ
+# --------------------------------------------------------
+# iTerm.app / Windows Terminal（WSL）/ SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
+if command -v zellij >/dev/null 2>&1 && [ -z "$ZELLIJ" ] && [ -z "$NO_ZELLIJ" ]; then
+  if [ "$TERM_PROGRAM" = "iTerm.app" ] || [ -n "$WT_SESSION" ] || [ -n "$SSH_CONNECTION" ]; then
+    zellij attach -c "$(hostname -s)"
+    exit
+  fi
+fi
+
+# --------------------------------------------------------
 # エイリアス
 # --------------------------------------------------------
 alias py='python'       # [共通]
@@ -49,6 +60,41 @@ fi                                                        # [共通]
 # gh CLI 補完
 if command -v gh > /dev/null; then
   eval "$(gh completion -s bash)"
+fi
+
+# --------------------------------------------------------
+# SSH ラッパー（Zellij 内のみ有効）
+# --------------------------------------------------------
+# Zellij 内で ssh を実行すると新しいペイン/タブを作成して SSH を起動する。
+# 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
+# --new: 新規タブで開く（デフォルトは縦分割ペイン）。
+# --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
+if [ -n "$ZELLIJ" ]; then
+  ssh() {
+    local new_tab=false
+    local no_zellij=false
+    local args=()
+    for arg in "$@"; do
+      case "$arg" in
+        --new)       new_tab=true ;;
+        --no-zellij) no_zellij=true ;;
+        *)           args+=("$arg") ;;
+      esac
+    done
+
+    local no_zellij_env="NO_ZELLIJ=''"
+    $no_zellij && no_zellij_env="NO_ZELLIJ=1"
+
+    # shellcheck disable=SC2046
+    local cmd="env $no_zellij_env command ssh $(printf '%q ' "${args[@]}")"
+    local host="${args[-1]}"
+
+    if $new_tab; then
+      zellij action new-pane --new-tab --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+    else
+      zellij run --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+    fi
+  }
 fi
 
 # --------------------------------------------------------

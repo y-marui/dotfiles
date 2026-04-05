@@ -7,9 +7,9 @@
 # --------------------------------------------------------
 
 # Zellij セッションに自動アタッチ（セッション名はホスト名）
-# iTerm.app または SSH 接続の場合に起動
+# iTerm.app / Windows Terminal（WSL）/ SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
 if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; then
-  if [[ "$TERM_PROGRAM" == "iTerm.app" || -n "$SSH_CONNECTION" ]]; then
+  if [[ "$TERM_PROGRAM" == "iTerm.app" || -n "$WT_SESSION" || -n "$SSH_CONNECTION" ]]; then
     zellij attach -c "${HOST%%.*}"
     exit
   fi
@@ -45,14 +45,13 @@ compinit
 autoload -U bashcompinit && bashcompinit
 
 # --------------------------------------------------------
-# 5. SSH ラッパー（iTerm2 + Zellij 内のみ有効）
+# 5. SSH ラッパー（Zellij 内のみ有効）
 # --------------------------------------------------------
-# Zellij 内でそのままsshを実行するとzellijが2重になってします。
-# デフォルト: 現在のタブを縦分割して右ペインでsshを開く（接続先でzellij自動起動）。
-# --new: "No Zellij" プロファイルの新規タブで開く（接続先でzellij自動起動）。
-# --no-zellij: 接続先で zellij を自動起動しない（--new と併用可）。
-# NO_ZELLIJは接続先にも設定されるので、NO_ZELLIJ='' を設定することで接続先では Zellij を自動起動させる。
-if [[ "$TERM_PROGRAM" == "iTerm.app" && -n "$ZELLIJ" ]]; then
+# Zellij 内で ssh を実行すると新しいペイン/タブを作成して SSH を起動する。
+# 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
+# --new: 新規タブで開く（デフォルトは縦分割ペイン）。
+# --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
+if [[ -n "$ZELLIJ" ]]; then
   function ssh() {
     local new_tab=false
     local no_zellij=false
@@ -64,38 +63,22 @@ if [[ "$TERM_PROGRAM" == "iTerm.app" && -n "$ZELLIJ" ]]; then
         *)           args+=("$arg") ;;
       esac
     done
+
     local no_zellij_env="NO_ZELLIJ=''"
     $no_zellij && no_zellij_env="NO_ZELLIJ=1"
-    local cmd="env $no_zellij_env command ssh$(printf ' %q' "${args[@]}"); exit"
+
+    local cmd="env $no_zellij_env command ssh$(printf ' %q' "${args[@]}")"
+    local host="${args[-1]}"
 
     if $new_tab; then
-      osascript <<EOF
-tell application "iTerm2"
-  tell current window
-    create tab with profile "No Zellij"
-    tell current session
-      write text "$cmd"
-    end tell
-  end tell
-end tell
-EOF
+      zellij action new-pane --new-tab --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
     else
-      osascript <<EOF
-tell application "iTerm2"
-  tell current session of current window
-    set newSession to (split vertically with profile "No Zellij")
-  end tell
-  tell newSession
-    write text "$cmd"
-  end tell
-end tell
-EOF
+      zellij run --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
     fi
   }
 
   # ssh wrapper のカスタムオプション補完（既存の _ssh 補完に追加）
-  function _ssh_iterm_wrapper() {
-    # カスタムフラグを補完候補に追加
+  function _ssh_zellij_wrapper() {
     local -a wrapper_opts
     wrapper_opts=(
       '--new:現在のタブを分割せず、新規タブで接続する'
@@ -112,7 +95,7 @@ EOF
     (( CURRENT = ${#words[@]} ))
     _ssh
   }
-  compdef _ssh_iterm_wrapper ssh
+  compdef _ssh_zellij_wrapper ssh
 fi
 
 # --------------------------------------------------------
