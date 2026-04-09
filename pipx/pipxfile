@@ -1,0 +1,3 @@
+# pipxfile
+# pipx install で管理するパッケージ一覧
+# make pipx で適用、make pipx-sync で現在の状態を同期
