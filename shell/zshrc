@@ -225,6 +225,44 @@ function ghq-update() {
   done
 }
 
+# claude-rc: リモートで claude remote-control を起動
+# デスクトップの ghq リポジトリを fzf で選択し、
+# リモートの zellij 新タブで claude remote-control を起動する。
+#
+# 使い方: claude-rc <hostname> [-w|-s|--session]
+#   (なし)          same-dir モード（デフォルト）
+#   -w, --worktree  worktree モード
+#   -s, --session   session モード（1セッションのみ）
+function claude-rc() {
+  local host="${1:?Usage: claude-rc <hostname> [-w|--worktree] [-s|--session]}"
+  local spawn="same-dir"
+
+  case "${2:-}" in
+    -w|--worktree) spawn="worktree" ;;
+    -s|--session)  spawn="session"  ;;
+  esac
+
+  local target session
+  target="$(ssh "$host" "ghq list --full-path" 2>/dev/null | sort -fV | fzf --prompt="claude-rc [$host]> ")"
+  [[ -z "$target" ]] && return
+
+  session="$(ssh "$host" "hostname -s")"
+  local name="claude:$(basename "$target")"
+  [[ "$spawn" != "same-dir" ]] && name="$name[$spawn]"
+
+  ssh "$host" "zellij --session '$session' action new-tab \
+    --name '$name' \
+    --cwd '$target' \
+    -- claude remote-control --spawn='$spawn'"
+}
+
+function _claude-rc() {
+  _arguments \
+    '1:hostname:_ssh_hosts' \
+    '2:spawn mode:((-w\:worktree\ mode -s\:session\ mode --worktree\:worktree\ mode --session\:session\ mode))'
+}
+compdef _claude-rc claude-rc
+
 # --------------------------------------------------------
 # 9. ツール初期化
 # --------------------------------------------------------
