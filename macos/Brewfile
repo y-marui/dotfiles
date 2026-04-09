@@ -101,7 +101,6 @@ cask "visual-studio-code@insiders"
 # ── macOS アプリ（生産性） ─────────────────────────────────────────────────────
 cask "alfred"
 cask "appcleaner"
-cask "bettertouchtool"
 cask "betterzip"
 cask "copilot-cli"
 cask "dash"
