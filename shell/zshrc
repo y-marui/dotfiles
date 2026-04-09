@@ -369,7 +369,18 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/npm/npmfile.cache" ]]; then
 fi
 
 # --------------------------------------------------------
-# 5. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
+# 5. pipxfile.cache と pipxfile の乖離確認（ファイル比較のみ・pipx 実行なし）
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/pipx/pipxfile.cache" ]]; then
+  _pipx_diff=$(bash "$DOTFILES_DIR/pipx/diff_pipxfile.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_pipx_diff" ]]; then
+    print -P "%F{yellow}⚠ pipx: $_pipx_diff (make pipx-diff で確認)%f"
+  fi
+  unset _pipx_diff
+fi
+
+# --------------------------------------------------------
+# 6. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" ]]; then
   _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dockfile.sh" --summary 2>/dev/null || true)

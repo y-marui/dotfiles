@@ -16,6 +16,7 @@ scripts/.env
 macos/Brewfile.local
 macos/Brewfile.cache
 npm/npmfile.cache
+pipx/pipxfile.cache
 
 # バックアップファイル
 *.backup.*

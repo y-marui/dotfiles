@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff check init private
+.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -70,6 +70,22 @@ npm-cache: ## 現在の npm グローバルパッケージ状態を npmfile.cach
 
 npm-diff: ## npmfile.cache と npmfile の差分を表示
 	@DOTFILES_DIR="$(DOTFILES_DIR)" bash npm/diff_npmfile.sh || true
+
+pipx: ## pipxfile を適用（差分なしはスキップ、適用後に cache 更新）
+	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash pipx/diff_pipxfile.sh; then \
+	   echo "差分なし: pipxfile はすでに適用済みです。"; \
+	   exit 0; \
+	 fi; \
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash pipx/apply_pipxfile.sh
+
+pipx-sync: ## 現在の pipx パッケージ状態を pipxfile に同期
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash pipx/sync_pipxfile.sh
+
+pipx-cache: ## 現在の pipx パッケージ状態を pipxfile.cache に記録
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash pipx/update_pipxcache.sh
+
+pipx-diff: ## pipxfile.cache と pipxfile の差分を表示
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash pipx/diff_pipxfile.sh || true
 
 macos: ## macOS のデフォルト設定を適用
 	@bash macos/defaults.sh
