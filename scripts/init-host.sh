@@ -30,9 +30,6 @@ if [[ ! -f "${ZSH_FILE}" ]]; then
 #   # ghq 等で ~/dotfiles 以外にクローンした場合は設定する
 #   export DOTFILES_DIR="/path/to/dotfiles"
 #
-#   # Claude Code の完了通知に使う ntfy.sh トピック（任意）
-#   export NTFY_TOPIC="your-topic"
-#
 #   # brew search 等で GitHub API レート制限に当たる場合に設定（任意）
 #   export HOMEBREW_GITHUB_API_TOKEN=""
 EOF
@@ -87,9 +84,6 @@ _append_if_missing "${ZSHRC_LOCAL}" "DOTFILES_DIR" \
   "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
   "/path/to/dotfiles"
 
-_append_if_missing "${ZSHRC_LOCAL}" "NTFY_TOPIC" \
-  "Claude Code の完了通知に使う ntfy.sh トピック（任意）" \
-  "your-topic"
 
 _append_if_missing "${ZSHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
   "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
@@ -107,9 +101,6 @@ _append_if_missing "${BASHRC_LOCAL}" "DOTFILES_DIR" \
   "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
   "/path/to/dotfiles"
 
-_append_if_missing "${BASHRC_LOCAL}" "NTFY_TOPIC" \
-  "Claude Code の完了通知に使う ntfy.sh トピック（任意）" \
-  "your-topic"
 
 _append_if_missing "${BASHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
   "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
