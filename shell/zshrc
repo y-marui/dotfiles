@@ -51,6 +51,7 @@ autoload -U bashcompinit && bashcompinit
 # 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
 # --new: 新規タブで開く（デフォルトは縦分割ペイン）。
 # --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
+# iTerm2 の場合は osascript でタブ/ペインを開く。それ以外は Zellij コマンドを使う。
 if [[ -n "$ZELLIJ" ]]; then
   function ssh() {
     local new_tab=false
@@ -70,10 +71,36 @@ if [[ -n "$ZELLIJ" ]]; then
     local cmd="env $no_zellij_env command ssh$(printf ' %q' "${args[@]}")"
     local host="${args[-1]}"
 
-    if $new_tab; then
-      zellij action new-pane --new-tab --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+    if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+      if $new_tab; then
+        osascript <<EOF
+tell application "iTerm2"
+  tell current window
+    create tab with profile "No Zellij"
+    tell current session
+      write text "$cmd; exit"
+    end tell
+  end tell
+end tell
+EOF
+      else
+        osascript <<EOF
+tell application "iTerm2"
+  tell current session of current window
+    set newSession to (split vertically with profile "No Zellij")
+  end tell
+  tell newSession
+    write text "$cmd; exit"
+  end tell
+end tell
+EOF
+      fi
     else
-      zellij run --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+      if $new_tab; then
+        zellij action new-tab --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+      else
+        zellij run --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
+      fi
     fi
   }
 
