@@ -433,7 +433,7 @@ function claude-rc() {
   esac
 
   local target session
-  target="$(ssh "$host" "ghq list --full-path" 2>/dev/null | sort -fV | fzf --prompt="claude-rc [$host]> ")"
+  target="$(ssh "$host" "zsh -lc 'ghq list --full-path'" 2>/dev/null | sort -fV | fzf --prompt="claude-rc [$host]> ")"
   [[ -z "$target" ]] && return
 
   session="$(ssh "$host" "hostname -s")"

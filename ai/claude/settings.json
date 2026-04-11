@@ -1,10 +1,10 @@
 {
-  "defaultMode": "plan",
   "permissions": {
     "allow": [
       "Bash(git *)"
     ]
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -29,5 +29,5 @@
     "commit-commands@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true
   },
-  "model": "sonnet"
+  "defaultMode": "plan"
 }
