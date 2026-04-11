@@ -81,6 +81,13 @@ dotfiles/
 | `shell/bashrc` | bash 対話設定、`source ~/.profile` | zsh 固有構文 |
 | `shell/bash_profile` | `source ~/.bashrc` のみ | それ以外 |
 
+## アカウント情報
+
+GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
+
+プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
+`make private` を実行済みであればファイルが存在する。
+
 ## シークレット管理ルール
 
 - シークレットは絶対にコミットしない
