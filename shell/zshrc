@@ -78,8 +78,36 @@ if [[ -n "$ZELLIJ" ]]; then
     local no_zellij_env="NO_ZELLIJ=''"
     $no_zellij && no_zellij_env="NO_ZELLIJ=1"
 
+    # ホスト名を探し、リモートコマンドの有無を判定する
+    # 値を取る SSH オプション: -b -c -D -E -e -F -I -i -J -L -l -m -o -p -Q -R -S -W -w
+    local skip_next=false
+    local host=""
+    local has_remote_cmd=false
+    for arg in "${args[@]}"; do
+      if $skip_next; then
+        skip_next=false
+        continue
+      fi
+      if [[ "$arg" == -[bcDEeFIiJLlmopQRSWw] ]]; then
+        skip_next=true
+        continue
+      fi
+      [[ "$arg" == -* ]] && continue
+      if [[ -z "$host" ]]; then
+        host="$arg"
+      else
+        has_remote_cmd=true
+        break
+      fi
+    done
+
+    # リモートコマンドあり → インタラクティブではないので直接実行
+    if $has_remote_cmd; then
+      command ssh "${args[@]}"
+      return
+    fi
+
     local cmd="env $no_zellij_env command ssh$(printf ' %q' "${args[@]}")"
-    local host="${args[-1]}"
 
     if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
       if $new_tab; then
