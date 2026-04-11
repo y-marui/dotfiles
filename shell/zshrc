@@ -368,7 +368,7 @@ function _pip {
 compctl -K _pip pip
 
 # keep-up-to-date フラグが立っているリポジトリを一括更新
-# --pull: git pull のみ実行（poetry update をスキップ）
+# --pull: git pull のみ実行（uv sync --upgrade をスキップ）
 function ghq-update() {
   local pull_only=false
   [[ "${1:-}" == "--pull" ]] && pull_only=true
@@ -383,7 +383,7 @@ function ghq-update() {
         ls
         git pull
         if [[ "$pull_only" == "false" ]] && [[ -d .venv ]]; then
-          poetry update
+          uv sync --upgrade
         fi
       fi
     )
