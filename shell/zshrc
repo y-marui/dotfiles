@@ -282,7 +282,7 @@ function ghq-table() {
   # グループごとにテーブルを表示
   # ループ内で local を再宣言するとデバッグ出力が起きるため、全変数をループ外で一度だけ宣言する
   local -a g_names g_branches g_statuses g_charters
-  local w_repo w_branch w_status w_charter w_repo_expanded
+  local w_repo w_repo_max w_branch w_status w_charter w_repo_expanded
   local r1 r2 r3 r4 g
 
   for g in "${seen_groups[@]}"; do
@@ -301,11 +301,11 @@ function ghq-table() {
       (( ${(m)#all_charters[$i]}   > w_charter )) && w_charter=${(m)#all_charters[$i]}
     done
 
-    # REPO列幅: min(最大repo名長, 20) を基準に、余白があれば terminal幅まで拡張
+    # REPO列幅: min(最大repo名長, 20) を基準に、余白があれば min(terminal幅,最大repo名長)まで拡張
+    w_repo_max=$w_repo
     (( w_repo > 20 )) && w_repo=20
     w_repo_expanded=$(( term_width - 13 - w_branch - w_status - w_charter ))
-    (( w_repo_expanded > w_repo )) && w_repo=$w_repo_expanded
-
+    (( w_repo_expanded > w_repo )) && w_repo=$(( w_repo_expanded < w_repo_max ? w_repo_expanded : w_repo_max ))
     r1="$(_ghq_table_rule $(( w_repo    + 2 )) '─')"
     r2="$(_ghq_table_rule $(( w_branch  + 2 )) '─')"
     r3="$(_ghq_table_rule $(( w_status  + 2 )) '─')"
