@@ -202,6 +202,134 @@ function ghq-status() {
   done < <(ghq list -p | sort -fV)
 }
 
+# ghq リポジトリの git 状態と dev-charter バージョンをテーブル表示
+function ghq-table() {
+  setopt local_options no_xtrace no_verbose
+  local root
+  root="$(ghq root)"
+
+  # 文字列を表示幅 w にパディングして出力（Unicode 対応）
+  # 列幅を超える場合は … で切り詰める
+  _ghq_table_pad() {
+    local str="$1" w="$2"
+    (( ${(m)#str} > w )) && str="${str[1,$(( w - 1 ))]}…"
+    printf '%s%*s' "$str" $(( w - ${(m)#str} )) ''
+  }
+
+  # 水平罫線を n 文字分出力
+  _ghq_table_rule() { printf '%*s' "$1" '' | tr ' ' "$2" }
+
+  # 罫線付き1行を出力: │ c1 │ c2 │ c3 │ c4 │
+  _ghq_table_row() {
+    printf '│ '; _ghq_table_pad "$1" "$w_repo"
+    printf ' │ '; _ghq_table_pad "$2" "$w_branch"
+    printf ' │ '; _ghq_table_pad "$3" "$w_status"
+    printf ' │ '; _ghq_table_pad "$4" "$w_charter"
+    printf ' │\n'
+  }
+
+  # ボールドのヘッダー行を出力
+  _ghq_table_header() {
+    printf '│ \033[1m'; _ghq_table_pad "$1" "$w_repo"
+    printf '\033[0m │ \033[1m'; _ghq_table_pad "$2" "$w_branch"
+    printf '\033[0m │ \033[1m'; _ghq_table_pad "$3" "$w_status"
+    printf '\033[0m │ \033[1m'; _ghq_table_pad "$4" "$w_charter"
+    printf '\033[0m │\n'
+  }
+
+  # 全データを収集（group = 最後のコンポーネント以外、repo_name = 最後のコンポーネント）
+  local -a all_groups all_repo_names all_branches all_statuses all_charters
+
+  while IFS= read -r repo; do
+    local rel branch staged unstaged untracked ahead behind status_str charter_ver
+    rel="${repo#"$root/"}"
+
+    branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+    staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
+    unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+    untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
+    behind=$(git -C "$repo" rev-list --count HEAD..@{u} 2>/dev/null || echo 0)
+
+    status_str=""
+    (( staged    > 0 )) && status_str+=" +${staged}"
+    (( unstaged  > 0 )) && status_str+=" !${unstaged}"
+    (( untracked > 0 )) && status_str+=" ?${untracked}"
+    (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
+    (( behind    > 0 )) && status_str+=" ⇣${behind}"
+    status_str="${status_str# }"
+    [[ -z "$status_str" ]] && status_str="✓"
+
+    charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
+    [[ -z "$charter_ver" ]] && charter_ver="-"
+
+    all_groups+=("${rel%/*}")
+    all_repo_names+=("${rel##*/}")
+    all_branches+=("$branch")
+    all_statuses+=("$status_str")
+    all_charters+=("$charter_ver")
+  done < <(ghq list -p | sort -fV) > /dev/null
+
+  local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
+
+  # グループ一覧を出現順に収集（重複排除）
+  local -a seen_groups
+  local i
+  for (( i = 1; i <= ${#all_groups}; i++ )); do
+    (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
+  done
+
+  # グループごとにテーブルを表示
+  # ループ内で local を再宣言するとデバッグ出力が起きるため、全変数をループ外で一度だけ宣言する
+  local -a g_names g_branches g_statuses g_charters
+  local w_repo w_branch w_status w_charter w_repo_expanded
+  local r1 r2 r3 r4 g
+
+  for g in "${seen_groups[@]}"; do
+    g_names=(); g_branches=(); g_statuses=(); g_charters=()
+    w_repo=4; w_branch=6; w_status=10; w_charter=11
+
+    for (( i = 1; i <= ${#all_groups}; i++ )); do
+      [[ "${all_groups[$i]}" != "$g" ]] && continue
+      g_names+=("${all_repo_names[$i]}")
+      g_branches+=("${all_branches[$i]}")
+      g_statuses+=("${all_statuses[$i]}")
+      g_charters+=("${all_charters[$i]}")
+      (( ${(m)#all_repo_names[$i]} > w_repo    )) && w_repo=${(m)#all_repo_names[$i]}
+      (( ${(m)#all_branches[$i]}   > w_branch  )) && w_branch=${(m)#all_branches[$i]}
+      (( ${(m)#all_statuses[$i]}   > w_status  )) && w_status=${(m)#all_statuses[$i]}
+      (( ${(m)#all_charters[$i]}   > w_charter )) && w_charter=${(m)#all_charters[$i]}
+    done
+
+    # REPO列幅: min(最大repo名長, 20) を基準に、余白があれば terminal幅まで拡張
+    (( w_repo > 20 )) && w_repo=20
+    w_repo_expanded=$(( term_width - 13 - w_branch - w_status - w_charter ))
+    (( w_repo_expanded > w_repo )) && w_repo=$w_repo_expanded
+
+    r1="$(_ghq_table_rule $(( w_repo    + 2 )) '─')"
+    r2="$(_ghq_table_rule $(( w_branch  + 2 )) '─')"
+    r3="$(_ghq_table_rule $(( w_status  + 2 )) '─')"
+    r4="$(_ghq_table_rule $(( w_charter + 2 )) '─')"
+
+    printf '%s\n' "${g//\// / }"
+    printf '┌%s┬%s┬%s┬%s┐\n' "$r1" "$r2" "$r3" "$r4"
+    _ghq_table_header 'REPO' 'BRANCH' 'GIT STATUS' 'DEV-CHARTER'
+    printf '├%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4"
+
+    for (( j = 1; j <= ${#g_names}; j++ )); do
+      _ghq_table_row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_charters[$j]}"
+      if (( j < ${#g_names} )); then
+        printf '├%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4"
+      fi
+    done
+
+    printf '└%s┴%s┴%s┴%s┘\n' "$r1" "$r2" "$r3" "$r4"
+    printf '\n'
+  done
+
+  unfunction _ghq_table_pad _ghq_table_rule _ghq_table_row _ghq_table_header
+}
+
 # cd 後に自動で ls
 function cd() {
   builtin cd "$@" && ls
