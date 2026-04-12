@@ -19,7 +19,7 @@
 [core]
 	excludesfile = ~/.gitignore_global
 	hooksPath = ~/.config/git/hooks
-	editor = vim -c "set fenc=utf-8"
+	editor = vim -c 'set fenc=utf-8'
 	symlinks = true
 	quotepath = false
 	ignorecase = false
