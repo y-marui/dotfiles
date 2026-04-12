@@ -60,6 +60,13 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
 テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
 
+## アカウント情報
+
+GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
+
+プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
+`make private` を実行済みであればファイルが存在する。
+
 ## Commit Messages
 
 Conventional Commits 形式:
