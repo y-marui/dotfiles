@@ -1,0 +1,138 @@
+#!/usr/bin/env zsh
+# shellcheck shell=bash
+# ghq-status: ghq 管理リポジトリの git 状態・dev-charter・keep-up-to-date をテーブル表示
+
+# shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
+
+_pad() {
+  local str="$1" w="$2"
+  (( ${(m)#str} > w )) && str="${str[1,$(( w - 1 ))]}…"
+  printf '%s%*s' "$str" $(( w - ${(m)#str} )) ''
+}
+
+_rule() { printf '%*s' "$1" '' | tr ' ' "$2"; }
+
+_row() {
+  printf '│ '; _pad "$1" "$w_repo"
+  printf ' │ '; _pad "$2" "$w_branch"
+  printf ' │ '; _pad "$3" "$w_status"
+  printf ' │ '; _pad "$4" "$w_charter"
+  local _kc=''
+  case "$5" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
+  printf ' │ %s' "$_kc"; _pad "$5" "$w_keep"; printf '\033[0m │\n'
+}
+
+_header() {
+  printf '│ \033[1m'; _pad "$1" "$w_repo"
+  printf '\033[0m │ \033[1m'; _pad "$2" "$w_branch"
+  printf '\033[0m │ \033[1m'; _pad "$3" "$w_status"
+  printf '\033[0m │ \033[1m'; _pad "$4" "$w_charter"
+  printf '\033[0m │ \033[1m'; _pad "$5" "$w_keep"
+  printf '\033[0m │\n'
+}
+
+main() {
+  local root
+  root="$(ghq root)"
+
+  typeset -a all_groups all_repo_names all_branches all_statuses all_charters all_keeps
+
+  while IFS= read -r repo; do
+    local rel branch staged unstaged untracked ahead behind status_str charter_ver keep_val
+    rel="${repo#"$root/"}"
+
+    branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+    staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
+    unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+    untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    # shellcheck disable=SC1083
+    ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
+    # shellcheck disable=SC1083
+    behind=$(git -C "$repo" rev-list --count HEAD..@{u} 2>/dev/null || echo 0)
+
+    status_str=""
+    (( staged    > 0 )) && status_str+=" +${staged}"
+    (( unstaged  > 0 )) && status_str+=" !${unstaged}"
+    (( untracked > 0 )) && status_str+=" ?${untracked}"
+    (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
+    (( behind    > 0 )) && status_str+=" ⇣${behind}"
+    status_str="${status_str# }"
+    [[ -z "$status_str" ]] && status_str="✓"
+
+    charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
+    [[ -z "$charter_ver" ]] && charter_ver="-"
+
+    keep_val="$(git -C "$repo" config local.keep-up-to-date 2>/dev/null || true)"
+    case "$keep_val" in
+      true)  keep_val="keep" ;;
+      false) keep_val="skip" ;;
+      *)     keep_val="-" ;;
+    esac
+
+    all_groups+=("${rel%/*}")
+    all_repo_names+=("${rel##*/}")
+    all_branches+=("$branch")
+    all_statuses+=("$status_str")
+    all_charters+=("$charter_ver")
+    all_keeps+=("$keep_val")
+  done < <(ghq list -p | sort -fV) > /dev/null
+
+  local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
+
+  typeset -a seen_groups
+  local i
+  for (( i = 1; i <= ${#all_groups}; i++ )); do
+    (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
+  done
+
+  typeset -a g_names g_branches g_statuses g_charters g_keeps
+  local w_repo w_repo_max w_branch w_status w_charter w_keep w_repo_expanded
+  local r1 r2 r3 r4 r5 g
+
+  for g in "${seen_groups[@]}"; do
+    g_names=(); g_branches=(); g_statuses=(); g_charters=(); g_keeps=()
+    w_repo=4; w_branch=6; w_status=10; w_charter=11; w_keep=4
+
+    for (( i = 1; i <= ${#all_groups}; i++ )); do
+      [[ "${all_groups[$i]}" != "$g" ]] && continue
+      g_names+=("${all_repo_names[$i]}")
+      g_branches+=("${all_branches[$i]}")
+      g_statuses+=("${all_statuses[$i]}")
+      g_charters+=("${all_charters[$i]}")
+      g_keeps+=("${all_keeps[$i]}")
+      (( ${(m)#all_repo_names[$i]} > w_repo    )) && w_repo=${(m)#all_repo_names[$i]}
+      (( ${(m)#all_branches[$i]}   > w_branch  )) && w_branch=${(m)#all_branches[$i]}
+      (( ${(m)#all_statuses[$i]}   > w_status  )) && w_status=${(m)#all_statuses[$i]}
+      (( ${(m)#all_charters[$i]}   > w_charter )) && w_charter=${(m)#all_charters[$i]}
+      (( ${(m)#all_keeps[$i]}      > w_keep    )) && w_keep=${(m)#all_keeps[$i]}
+    done
+
+    w_repo_max=$w_repo
+    (( w_repo > 20 )) && w_repo=20
+    w_repo_expanded=$(( term_width - 16 - w_branch - w_status - w_charter - w_keep ))
+    (( w_repo_expanded > w_repo )) && w_repo=$(( w_repo_expanded < w_repo_max ? w_repo_expanded : w_repo_max ))
+    r1="$(_rule $(( w_repo    + 2 )) '─')"
+    r2="$(_rule $(( w_branch  + 2 )) '─')"
+    r3="$(_rule $(( w_status  + 2 )) '─')"
+    r4="$(_rule $(( w_charter + 2 )) '─')"
+    r5="$(_rule $(( w_keep    + 2 )) '─')"
+
+    printf '%s\n' "${g//\// / }"
+    printf '┌%s┬%s┬%s┬%s┬%s┐\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+    _header 'REPO' 'BRANCH' 'GIT STATUS' 'DEV-CHARTER' 'KEEP'
+    printf '├%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+
+    local j
+    for (( j = 1; j <= ${#g_names}; j++ )); do
+      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}"
+      if (( j < ${#g_names} )); then
+        printf '├%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+      fi
+    done
+
+    printf '└%s┴%s┴%s┴%s┴%s┘\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+    printf '\n'
+  done
+}
+
+main

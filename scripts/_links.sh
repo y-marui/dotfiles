@@ -32,4 +32,5 @@ LINKS=(
   "ai/gemini/GEMINI.md|${HOME}/.gemini/GEMINI.md"
   "bin/run-quiet|${HOME}/.local/bin/run-quiet"
   "bin/ghq-check|${HOME}/.local/bin/ghq-check"
+  "bin/ghq-status|${HOME}/.local/bin/ghq-status"
 )
