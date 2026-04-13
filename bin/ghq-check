@@ -1,0 +1,232 @@
+#!/usr/bin/env zsh
+# shellcheck shell=bash
+# ghq-check: GitHub の全リポジトリの取得状況を確認し、必要に応じて ghq get で取得する
+#
+# 使い方:
+#   ghq-check [options]
+#
+# オプション:
+#   --sync              未取得リポジトリを ghq get で取得する
+#   --dry-run           --sync の実行対象を表示するだけで ghq get は実行しない
+#   --all               アーカイブ済みリポジトリも含めて表示する
+#   --no-forks          フォークリポジトリを除外
+#   --exclude PATTERN   名前（owner/repo）に一致するパターンを除外（複数指定可）
+#   -h, --help          ヘルプを表示
+
+set -euo pipefail
+
+# ---------- 引数解析 ----------
+SYNC=false
+DRY_RUN=false
+ALL=false
+NO_FORKS=false
+typeset -a EXCLUDE_PATTERNS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --sync)    SYNC=true;    shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --all)     ALL=true;     shift ;;
+    --no-forks) NO_FORKS=true; shift ;;
+    --exclude)
+      (( $# < 2 )) && { print -u2 "error: --exclude requires an argument"; exit 1; }
+      EXCLUDE_PATTERNS+=("$2"); shift 2 ;;
+    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) print -u2 "error: unknown option: $1"; exit 1 ;;
+  esac
+done
+
+# ---------- 依存確認 ----------
+for cmd in gh ghq jq; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    print -u2 "error: '$cmd' が見つかりません。インストールしてください。"
+    exit 1
+  fi
+done
+
+# ---------- テーブル描画（ghq-table 互換スタイル）----------
+# shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
+_tbl_pad() {
+  local str="$1" w="$2"
+  (( ${(m)#str} > w )) && str="${str[1,$(( w - 1 ))]}…"
+  printf '%s%*s' "$str" $(( w - ${(m)#str} )) ''
+}
+
+_tbl_rule() { printf '%*s' "$1" '' | tr ' ' "$2"; }
+
+# _render_section <term_width> <is_archived>
+# RESULT_NAMES / RESULT_STATUSES / RESULT_ARCHIVED のうち is_archived に一致する行を描画
+_render_section() {
+  local term_width="$1" is_archived="$2"
+  local dim=''
+  [[ "$is_archived" == true ]] && dim='\033[2;3m'
+
+  typeset -A g_repos g_statuses
+  typeset -a owners=()
+
+  local i owner repo st
+  for (( i=1; i<=${#RESULT_NAMES}; i++ )); do
+    [[ "${RESULT_ARCHIVED[$i]}" != "$is_archived" ]] && continue
+    owner="${RESULT_NAMES[$i]%%/*}"
+    repo="${RESULT_NAMES[$i]#*/}"
+    st="${RESULT_STATUSES[$i]}"
+    if (( ! ${+g_repos[$owner]} )); then
+      owners+=("$owner")
+      g_repos[$owner]="$repo"
+      g_statuses[$owner]="$st"
+    else
+      g_repos[$owner]+=$'\n'"$repo"
+      g_statuses[$owner]+=$'\n'"$st"
+    fi
+  done
+
+  typeset -a rs ss
+  local w_repo w_st r1 r2 j color
+
+  for owner in "${owners[@]}"; do
+    # shellcheck disable=SC2296
+    rs=("${(f)g_repos[$owner]}")
+    # shellcheck disable=SC2296
+    ss=("${(f)g_statuses[$owner]}")
+
+    w_repo=4; w_st=6
+    # shellcheck disable=SC2296
+    for repo in "${rs[@]}"; do (( ${(m)#repo} > w_repo )) && w_repo=${(m)#repo}; done
+    # shellcheck disable=SC2296
+    for st in "${ss[@]}"; do (( ${(m)#st} > w_st )) && w_st=${(m)#st}; done
+
+    local w_exp=$(( term_width - 13 - w_st ))
+    (( w_exp > w_repo )) && w_repo=$w_exp
+
+    r1=$(_tbl_rule $(( w_repo + 2 )) '─')
+    r2=$(_tbl_rule $(( w_st   + 2 )) '─')
+
+    printf '%s\n' "${owner//\// / }"
+    printf '┌%s┬%s┐\n' "$r1" "$r2"
+    printf '│ \033[1m'; _tbl_pad 'REPO'   "$w_repo"
+    printf '\033[0m │ \033[1m'; _tbl_pad 'STATUS' "$w_st"; printf '\033[0m │\n'
+    printf '├%s┼%s┤\n' "$r1" "$r2"
+
+    for (( j=1; j<=${#rs}; j++ )); do
+      case "${ss[$j]}" in
+        fetched) color='\033[31m' ;;  # 赤
+        missing) color='\033[32m' ;;  # 緑
+        *)       color='' ;;
+      esac
+      printf '%b│ ' "$dim"; _tbl_pad "${rs[$j]}" "$w_repo"
+      printf ' │ %b%b' "$dim" "$color"; _tbl_pad "${ss[$j]}" "$w_st"; printf '\033[0m%b │\033[0m\n' "$dim"
+      (( j < ${#rs} )) && printf '├%s┼%s┤\n' "$r1" "$r2"
+    done
+
+    printf '└%s┴%s┘\n\n' "$r1" "$r2"
+  done
+}
+
+# _render_table: アクティブ表 → アーカイブ表 の順で描画
+_render_table() {
+  local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
+
+  _render_section "$term_width" false
+
+  local i
+  for (( i=1; i<=${#RESULT_ARCHIVED}; i++ )); do
+    if [[ "${RESULT_ARCHIVED[$i]}" == true ]]; then
+      printf '\033[2;3mArchived\033[0m\n'
+      _render_section "$term_width" true
+      break
+    fi
+  done
+}
+
+# ---------- リポジトリ一覧取得 ----------
+print -u2 "GitHub からリポジトリ一覧を取得中..."
+
+# shellcheck disable=SC2016  # $endCursor は GraphQL 変数であり、シェル変数ではない
+GQL_QUERY='query($endCursor: String) {
+  viewer {
+    repositories(first: 100, after: $endCursor, ownerAffiliations: OWNER) {
+      pageInfo { hasNextPage endCursor }
+      nodes { nameWithOwner isArchived isFork }
+    }
+  }
+}'
+
+repos_json=$(gh api graphql --paginate -f query="$GQL_QUERY" 2>/dev/null \
+  | jq -s '[.[].data.viewer.repositories.nodes[]]')
+
+# ---------- フィルタリング ----------
+filter_expr='.'
+[[ "$ALL" == false ]] && filter_expr+=' | map(select(.isArchived == false))'
+[[ "$NO_FORKS"    == true ]] && filter_expr+=' | map(select(.isFork == false))'
+for pattern in "${EXCLUDE_PATTERNS[@]}"; do
+  escaped=$(printf '%s' "$pattern" | jq -Rs '.')
+  filter_expr+=" | map(select(.nameWithOwner | test(${escaped}; \"i\") | not))"
+done
+
+repos=$(print "$repos_json" | jq -r "${filter_expr} | .[] | [.nameWithOwner, (.isArchived | tostring)] | @tsv" | sort -f)
+
+if [[ -z "$repos" ]]; then
+  print -u2 "対象リポジトリが見つかりませんでした。"
+  exit 0
+fi
+
+total=$(print "$repos" | wc -l | tr -d ' ')
+print -u2 "対象: ${total} リポジトリ"
+
+ghq_root=$(ghq root 2>/dev/null || print "$HOME/ghq")
+
+_is_fetched() { [[ -d "${ghq_root}/github.com/$1" ]]; }
+
+# ---------- 表示・実行 ----------
+typeset -a RESULT_NAMES=()
+typeset -a RESULT_STATUSES=()
+typeset -a RESULT_ARCHIVED=()
+
+# デフォルト: 取得状況の一覧表示
+if [[ "$SYNC" == false && "$DRY_RUN" == false ]]; then
+  while IFS=$'\t' read -r repo is_archived; do
+    RESULT_NAMES+=("$repo")
+    RESULT_ARCHIVED+=("$is_archived")
+    _is_fetched "$repo" && RESULT_STATUSES+=("fetched") || RESULT_STATUSES+=("missing")
+  done <<< "$repos"
+  _render_table
+  exit 0
+fi
+
+if [[ "$DRY_RUN" == true ]]; then
+  while IFS=$'\t' read -r repo is_archived; do
+    RESULT_NAMES+=("$repo")
+    RESULT_ARCHIVED+=("$is_archived")
+    _is_fetched "$repo" && RESULT_STATUSES+=("skip") || RESULT_STATUSES+=("get")
+  done <<< "$repos"
+  _render_table
+  exit 0
+fi
+
+# --sync: ghq get 実行 ----------
+fetched=0; skipped=0; failed=0
+
+while IFS=$'\t' read -r repo is_archived; do
+  RESULT_NAMES+=("$repo")
+  RESULT_ARCHIVED+=("$is_archived")
+  if _is_fetched "$repo"; then
+    printf '  skip  %s\n' "$repo" >&2
+    RESULT_STATUSES+=("skip")
+    (( skipped++ )) || true
+  else
+    printf '  get   %s ... ' "$repo" >&2
+    if ghq get --silent "github.com/${repo}" 2>/dev/null; then
+      print -u2 "done"
+      RESULT_STATUSES+=("fetched")
+      (( fetched++ )) || true
+    else
+      print -u2 "FAILED"
+      RESULT_STATUSES+=("FAILED")
+      (( failed++ )) || true
+    fi
+  fi
+done <<< "$repos"
+
+print -u2 ""
+_render_table
+printf '完了: 取得 %d / スキップ %d / 失敗 %d\n' "$fetched" "$skipped" "$failed"
