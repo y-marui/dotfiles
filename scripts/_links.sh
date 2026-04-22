@@ -33,4 +33,5 @@ LINKS=(
   "bin/run-quiet|${HOME}/.local/bin/run-quiet"
   "bin/ghq-check|${HOME}/.local/bin/ghq-check"
   "bin/ghq-status|${HOME}/.local/bin/ghq-status"
+  "bin/git-clean|${HOME}/.local/bin/git-clean"
 )
