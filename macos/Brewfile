@@ -200,9 +200,11 @@ vscode "znck.grammarly"
 brew "curl"
 brew "displayplacer"
 brew "libpq"
+brew "ollama", restart_service: :changed
 brew "uv"
 brew "zellij"
 cask "claude"
+cask "firefox"
 cask "jordanbaird-ice"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
@@ -213,3 +215,4 @@ mas "Dropover", id: 1355679052
 mas "Remote Mouse", id: 403195710
 mas "Tailscale", id: 1475387142
 vscode "charliermarsh.ruff"
+vscode "ms-python.mypy-type-checker"
