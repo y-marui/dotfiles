@@ -50,6 +50,17 @@ make check
 | `make dock` | Dock アプリ・Finder サイドバーを適用 |
 | `make dock-sync` | 現在の Dock・サイドバーを dock.sh に同期 |
 
+### カスタムコマンド（`~/.local/bin/`）
+
+`make install` で `~/.local/bin/` にシンボリックリンクが作成される。
+
+| コマンド | 説明 |
+|---------|------|
+| `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
+| `ghq-check` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
+| `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
+| `git-clean [--all] [main-branch]` | マージ済みブランチを整理（fast-forward・squash・rebase merge 対応） |
+
 ## ファイル構成
 
 | パス | 説明 |
