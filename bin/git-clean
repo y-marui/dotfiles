@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# git-clean: マージ済みブランチを整理する
+#
+# 使い方:
+#   git-clean [--all] [main-branch]
+#
+# オプション:
+#   --all   現在のブランチに加え、他のマージ済みブランチも削除する
+#
+# 動作:
+#   1. fetch --prune でリモートの削除済みブランチを反映
+#   2. 現在のブランチがマージ済みなら main に切り替えて pull、ブランチ削除
+#   3. --all の場合、他のマージ済みブランチも削除
+#   4. main 以外の残存ブランチを表示
+#
+# マージ済みの判定:
+#   - git branch --merged（fast-forward / merge commit）
+#   - リモートブランチが gone（squash merge / rebase merge 後に PR がクローズ済み）
+
+set -euo pipefail
+
+ALL=false
+MAIN="main"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --all) ALL=true; shift ;;
+    -*) echo "error: unknown option: $1" >&2; exit 1 ;;
+    *)  MAIN="$1"; shift ;;
+  esac
+done
+
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+  echo "error: not a git repository" >&2
+  exit 1
+fi
+
+git fetch --prune --quiet
+
+# ブランチがマージ済みか判定
+_is_merged() {
+  local b="$1"
+  git branch --merged "$MAIN" 2>/dev/null | grep -qE "^\*? +${b}$" && return 0
+  git branch -vv | grep -qE "^\*? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
+  return 1
+}
+
+current=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ "$current" == "$MAIN" ]]; then
+  git pull --rebase --quiet
+  echo "Updated $MAIN."
+elif _is_merged "$current"; then
+  echo "Branch '$current' is merged. Switching to $MAIN..."
+  git checkout "$MAIN"
+  git pull --rebase --quiet
+  git branch -d "$current"
+  echo "Deleted: $current"
+else
+  echo "Branch '$current' is not yet merged into $MAIN."
+fi
+
+# --all: 他のマージ済みブランチも削除
+if [[ "$ALL" == true ]]; then
+  while IFS= read -r b; do
+    [[ "$b" == "$MAIN" ]] && continue
+    if _is_merged "$b"; then
+      git branch -d "$b"
+      echo "Deleted: $b"
+    fi
+  done < <(git branch | sed 's/^[* ]*//')
+fi
+
+# main 以外の残存ブランチを表示
+others=""
+while IFS= read -r b; do
+  b="${b#"${b%%[! ]*}"}"  # trim leading spaces/asterisk
+  [[ "$b" == "$MAIN" ]] && continue
+  others="${others:+$others$'\n'}$b"
+done < <(git branch | sed 's/^[* ]*//')
+
+if [[ -n "$others" ]]; then
+  echo ""
+  echo "Remaining branches:"
+  while IFS= read -r b; do
+    echo "  $b"
+  done <<< "$others"
+fi

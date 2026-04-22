@@ -12,7 +12,11 @@ run-quiet make build
 run-quiet swift build
 run-quiet npm test
 run-quiet pre-commit run --all-files
+run-quiet git add <files>
+run-quiet git checkout <branch>
 run-quiet git commit -m "..."
+# チェーンする場合は各コマンドを個別にラップする
+run-quiet git add <files> && run-quiet git commit -m "..."
 ```
 
 warning やエラーの情報が不足していて原因を特定できない場合は、
