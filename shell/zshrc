@@ -250,54 +250,6 @@ function _pip {
 }
 compctl -K _pip pip
 
-# keep-up-to-date フラグが立っているリポジトリを一括更新
-# --pull: git pull のみ実行（uv sync --upgrade をスキップ）
-function ghq-update() {
-  local pull_only=false
-  [[ "${1:-}" == "--pull" ]] && pull_only=true
-
-  local f
-  for f in $(ghq list -p); do
-    (
-      builtin cd "$f" || continue
-      if [[ "$(git config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]]; then
-        echo ""
-        pwd
-        ls
-        git pull
-        if [[ "$pull_only" == "false" ]] && [[ -d .venv ]]; then
-          uv sync --upgrade
-        fi
-      fi
-    )
-  done
-}
-
-# ghq 配下の全リポジトリを fetch し、可能なものは pull する
-# --fetch-only: fetch のみ実行（pull をスキップ）
-function ghq-fetch() {
-  local fetch_only=false
-  [[ "${1:-}" == "--fetch-only" ]] && fetch_only=true
-
-  local f
-  while IFS= read -r f; do
-    echo ""
-    echo "==> $f"
-    git -C "$f" fetch --prune || true
-    if [[ "$fetch_only" == "false" ]]; then
-      # detached HEAD・upstream 未設定・ワーキングツリーが汚い場合はスキップ
-      local branch
-      branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || { echo "  [skip] detached HEAD"; continue }
-      git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue }
-      if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
-        echo "  [skip] dirty working tree"
-        continue
-      fi
-      git -C "$f" pull --ff-only || true
-    fi
-  done < <(ghq list -p | sort -fV)
-}
-
 # claude-rc: リモートで claude remote-control を起動
 # デスクトップの ghq リポジトリを fzf で選択し、
 # リモートの zellij 新タブで claude remote-control を起動する。

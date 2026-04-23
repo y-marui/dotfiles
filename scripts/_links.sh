@@ -34,4 +34,7 @@ LINKS=(
   "bin/ghq-check|${HOME}/.local/bin/ghq-check"
   "bin/ghq-status|${HOME}/.local/bin/ghq-status"
   "bin/git-clean|${HOME}/.local/bin/git-clean"
+  "bin/ghq-clean|${HOME}/.local/bin/ghq-clean"
+  "bin/ghq-fetch|${HOME}/.local/bin/ghq-fetch"
+  "bin/ghq-update|${HOME}/.local/bin/ghq-update"
 )

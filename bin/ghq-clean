@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# ghq-clean: ghq 管理リポジトリのマージ済みブランチを一括整理する
+#
+# 使い方:
+#   ghq-clean [options]
+#
+# オプション:
+#   -h, --help   ヘルプを表示
+#
+# 動作:
+#   ghq list -p のリポジトリに対して git-clean --all を実行する。
+#   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
+
+set -euo pipefail
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)         echo "error: unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if ! command -v git-clean >/dev/null 2>&1; then
+  echo "error: 'git-clean' が見つかりません。" >&2
+  exit 1
+fi
+
+if ! command -v ghq >/dev/null 2>&1; then
+  echo "error: 'ghq' が見つかりません。" >&2
+  exit 1
+fi
+
+ok=0; skipped=0; failed=0
+
+while IFS= read -r repo; do
+  echo ""
+  echo "==> $repo"
+  git -C "$repo" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; (( skipped++ )) || true; continue; }
+  if [[ -n "$(git -C "$repo" status --porcelain 2>/dev/null)" ]]; then
+    echo "  [skip] dirty working tree"
+    (( skipped++ )) || true
+    continue
+  fi
+  if (cd "$repo" && git-clean --all); then
+    (( ok++ )) || true
+  else
+    echo "  [failed]" >&2
+    (( failed++ )) || true
+  fi
+done < <(ghq list -p | sort -fV)
+
+echo ""
+printf '完了: 成功 %d / スキップ %d / 失敗 %d\n' "$ok" "$skipped" "$failed"

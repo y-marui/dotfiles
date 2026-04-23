@@ -35,13 +35,13 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
   exit 1
 fi
 
-git fetch --prune --quiet
+git fetch --all --prune --quiet
 
 # ブランチがマージ済みか判定
 _is_merged() {
   local b="$1"
-  git branch --merged "$MAIN" 2>/dev/null | grep -qE "^\*? +${b}$" && return 0
-  git branch -vv | grep -qE "^\*? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
+  git branch --merged "$MAIN" 2>/dev/null | grep -qE "^[*]? +${b}$" && return 0
+  git branch -vv | grep -qE "^[*]? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
   return 1
 }
 

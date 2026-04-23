@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# ghq-fetch: ghq 管理リポジトリの全リポジトリを fetch し、可能なものは pull する
+#
+# 使い方:
+#   ghq-fetch [options]
+#
+# オプション:
+#   --fetch-only   fetch のみ実行（pull をスキップ）
+#   -h, --help     ヘルプを表示
+#
+# 動作:
+#   - git fetch --all --prune を実行する（dev-charter 等の追加リモートも含む）
+#   - detached HEAD・upstream 未設定・ワーキングツリーが汚い場合は pull をスキップ
+#   - それ以外は git pull --ff-only を実行する
+
+set -euo pipefail
+
+FETCH_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --fetch-only) FETCH_ONLY=true; shift ;;
+    -h|--help)    sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)            echo "error: unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if ! command -v ghq >/dev/null 2>&1; then
+  echo "error: 'ghq' が見つかりません。" >&2
+  exit 1
+fi
+
+while IFS= read -r f; do
+  echo ""
+  echo "==> $f"
+  git -C "$f" fetch --all --prune || true
+  if [[ "$FETCH_ONLY" == false ]]; then
+    git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; continue; }
+    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
+    if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
+      echo "  [skip] dirty working tree"
+      continue
+    fi
+    git -C "$f" pull --ff-only || true
+  fi
+done < <(ghq list -p | sort -fV)
