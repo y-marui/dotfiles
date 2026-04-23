@@ -1,27 +1,35 @@
 #!/usr/bin/env bash
-# ghq-update: keep-up-to-date フラグが立っているリポジトリを一括更新する
+# ghq-update: ghq 管理リポジトリを更新する
 #
 # 使い方:
 #   ghq-update [options]
 #
 # オプション:
-#   --pull       git pull のみ実行（uv sync --upgrade をスキップ）
+#   --all        全リポジトリを fetch + pull し、uv sync は keep-up-to-date=true のみ
+#                （省略時は keep-up-to-date=true のリポジトリのみ pull + uv sync）
+#   --pull-only  uv sync --upgrade をスキップ
 #   -h, --help   ヘルプを表示
 #
 # 動作:
-#   - git config local.keep-up-to-date が true のリポジトリのみ対象
-#   - git pull を実行する
-#   - .venv が存在する場合は uv sync --upgrade も実行する（--pull で省略可）
+#   デフォルト:
+#     - keep-up-to-date=true のリポジトリのみ git pull --ff-only
+#     - .venv があれば uv sync --upgrade
+#   --all:
+#     - 全リポジトリを git fetch origin --prune + git pull --ff-only
+#     - detached HEAD・upstream 未設定・ワーキングツリーが汚い場合は pull をスキップ
+#     - .venv があり keep-up-to-date=true のリポジトリのみ uv sync --upgrade
 
 set -euo pipefail
 
+ALL=false
 PULL_ONLY=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --pull)    PULL_ONLY=true; shift ;;
-    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *)         echo "error: unknown option: $1" >&2; exit 1 ;;
+    --all)      ALL=true; shift ;;
+    --pull-only) PULL_ONLY=true; shift ;;
+    -h|--help)  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)          echo "error: unknown option: $1" >&2; exit 1 ;;
   esac
 done
 
@@ -31,17 +39,36 @@ if ! command -v ghq >/dev/null 2>&1; then
 fi
 
 while IFS= read -r f; do
-  (
-    cd "$f" || exit
-    if [[ "$(git config --bool local.keep-up-to-date 2>/dev/null)" != "true" ]]; then
-      exit 0
+  echo ""
+  echo "==> $f"
+
+  if [[ "$ALL" == true ]]; then
+    git -C "$f" fetch origin --prune || true
+    git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; continue; }
+    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
+    if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
+      echo "  [skip pull] dirty working tree"
+      continue
     fi
-    echo ""
-    pwd
-    ls
-    git pull
-    if [[ "$PULL_ONLY" == false ]] && [[ -d .venv ]]; then
-      uv sync --upgrade
+    git -C "$f" pull --ff-only || true
+    if [[ "$PULL_ONLY" == false ]] && \
+       [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]] && \
+       [[ -d "$f/.venv" ]]; then
+      (cd "$f" && uv sync --upgrade)
     fi
-  )
+  else
+    if [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" != "true" ]]; then
+      continue
+    fi
+    git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; continue; }
+    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
+    if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
+      echo "  [skip pull] dirty working tree"
+      continue
+    fi
+    git -C "$f" pull --ff-only || true
+    if [[ "$PULL_ONLY" == false ]] && [[ -d "$f/.venv" ]]; then
+      (cd "$f" && uv sync --upgrade)
+    fi
+  fi
 done < <(ghq list -p | sort -fV)
