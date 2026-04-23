@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# ghq-fetch: ghq 管理リポジトリの全リポジトリを fetch し、可能なものは pull する
+# ghq-pull: ghq 管理リポジトリの全リポジトリを fetch + pull する
 #
 # 使い方:
-#   ghq-fetch [options]
+#   ghq-pull [options]
 #
 # オプション:
 #   --fetch-only   fetch のみ実行（pull をスキップ）
