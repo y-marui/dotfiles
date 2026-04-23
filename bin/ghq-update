@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# ghq-update: keep-up-to-date フラグが立っているリポジトリを一括更新する
+#
+# 使い方:
+#   ghq-update [options]
+#
+# オプション:
+#   --pull       git pull のみ実行（uv sync --upgrade をスキップ）
+#   -h, --help   ヘルプを表示
+#
+# 動作:
+#   - git config local.keep-up-to-date が true のリポジトリのみ対象
+#   - git pull を実行する
+#   - .venv が存在する場合は uv sync --upgrade も実行する（--pull で省略可）
+
+set -euo pipefail
+
+PULL_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pull)    PULL_ONLY=true; shift ;;
+    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)         echo "error: unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if ! command -v ghq >/dev/null 2>&1; then
+  echo "error: 'ghq' が見つかりません。" >&2
+  exit 1
+fi
+
+while IFS= read -r f; do
+  (
+    cd "$f" || exit
+    if [[ "$(git config --bool local.keep-up-to-date 2>/dev/null)" != "true" ]]; then
+      exit 0
+    fi
+    echo ""
+    pwd
+    ls
+    git pull
+    if [[ "$PULL_ONLY" == false ]] && [[ -d .venv ]]; then
+      uv sync --upgrade
+    fi
+  )
+done < <(ghq list -p | sort -fV)

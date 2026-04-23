@@ -16,18 +16,22 @@ _row() {
   printf '│ '; _pad "$1" "$w_repo"
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
-  printf ' │ '; _pad "$4" "$w_charter"
+  local _bc=''
+  [[ ! "$4" =~ ^1/1([+]1)?$ ]] && _bc=$'\033[31m'
+  printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
+  printf ' │ '; _pad "$5" "$w_charter"
   local _kc=''
-  case "$5" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
-  printf ' │ %s' "$_kc"; _pad "$5" "$w_keep"; printf '\033[0m │\n'
+  case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
+  printf ' │ %s' "$_kc"; _pad "$6" "$w_keep"; printf '\033[0m │\n'
 }
 
 _header() {
   printf '│ \033[1m'; _pad "$1" "$w_repo"
   printf '\033[0m │ \033[1m'; _pad "$2" "$w_branch"
   printf '\033[0m │ \033[1m'; _pad "$3" "$w_status"
-  printf '\033[0m │ \033[1m'; _pad "$4" "$w_charter"
-  printf '\033[0m │ \033[1m'; _pad "$5" "$w_keep"
+  printf '\033[0m │ \033[1m'; _pad "$4" "$w_br"
+  printf '\033[0m │ \033[1m'; _pad "$5" "$w_charter"
+  printf '\033[0m │ \033[1m'; _pad "$6" "$w_keep"
   printf '\033[0m │\n'
 }
 
@@ -35,10 +39,10 @@ main() {
   local root
   root="$(ghq root)"
 
-  typeset -a all_groups all_repo_names all_branches all_statuses all_charters all_keeps
+  typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
 
   while IFS= read -r repo; do
-    local rel branch staged unstaged untracked ahead behind status_str charter_ver keep_val
+    local rel branch staged unstaged untracked ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
     rel="${repo#"$root/"}"
 
     branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
@@ -59,6 +63,15 @@ main() {
     status_str="${status_str# }"
     [[ -z "$status_str" ]] && status_str="✓"
 
+    local_br=$(git -C "$repo" branch 2>/dev/null | wc -l | tr -d ' ')
+    origin_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /' | wc -l | tr -d ' ')
+    dev_charter_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  dev-charter\// && !/ -> /' | wc -l | tr -d ' ')
+    if (( dev_charter_br > 0 )); then
+      br_str="${local_br}/${origin_br}+${dev_charter_br}"
+    else
+      br_str="${local_br}/${origin_br}"
+    fi
+
     charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
     [[ -z "$charter_ver" ]] && charter_ver="-"
 
@@ -73,6 +86,7 @@ main() {
     all_repo_names+=("${rel##*/}")
     all_branches+=("$branch")
     all_statuses+=("$status_str")
+    all_brs+=("$br_str")
     all_charters+=("$charter_ver")
     all_keeps+=("$keep_val")
   done < <(ghq list -p | sort -fV) > /dev/null
@@ -85,52 +99,55 @@ main() {
     (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
   done
 
-  typeset -a g_names g_branches g_statuses g_charters g_keeps
-  local w_repo w_repo_max w_branch w_status w_charter w_keep w_repo_expanded
-  local r1 r2 r3 r4 r5 g
+  typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps
+  local w_repo w_repo_max w_branch w_status w_br w_charter w_keep w_repo_expanded
+  local r1 r2 r3 r4 r5 r6 g
 
   for g in "${seen_groups[@]}"; do
-    g_names=(); g_branches=(); g_statuses=(); g_charters=(); g_keeps=()
-    w_repo=4; w_branch=6; w_status=10; w_charter=11; w_keep=4
+    g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=()
+    w_repo=4; w_branch=6; w_status=10; w_br=8; w_charter=11; w_keep=4
 
     for (( i = 1; i <= ${#all_groups}; i++ )); do
       [[ "${all_groups[$i]}" != "$g" ]] && continue
       g_names+=("${all_repo_names[$i]}")
       g_branches+=("${all_branches[$i]}")
       g_statuses+=("${all_statuses[$i]}")
+      g_brs+=("${all_brs[$i]}")
       g_charters+=("${all_charters[$i]}")
       g_keeps+=("${all_keeps[$i]}")
       (( ${(m)#all_repo_names[$i]} > w_repo    )) && w_repo=${(m)#all_repo_names[$i]}
       (( ${(m)#all_branches[$i]}   > w_branch  )) && w_branch=${(m)#all_branches[$i]}
       (( ${(m)#all_statuses[$i]}   > w_status  )) && w_status=${(m)#all_statuses[$i]}
+      (( ${(m)#all_brs[$i]}        > w_br      )) && w_br=${(m)#all_brs[$i]}
       (( ${(m)#all_charters[$i]}   > w_charter )) && w_charter=${(m)#all_charters[$i]}
       (( ${(m)#all_keeps[$i]}      > w_keep    )) && w_keep=${(m)#all_keeps[$i]}
     done
 
     w_repo_max=$w_repo
     (( w_repo > 20 )) && w_repo=20
-    w_repo_expanded=$(( term_width - 16 - w_branch - w_status - w_charter - w_keep ))
+    w_repo_expanded=$(( term_width - 19 - w_branch - w_status - w_br - w_charter - w_keep ))
     (( w_repo_expanded > w_repo )) && w_repo=$(( w_repo_expanded < w_repo_max ? w_repo_expanded : w_repo_max ))
     r1="$(_rule $(( w_repo    + 2 )) '─')"
     r2="$(_rule $(( w_branch  + 2 )) '─')"
     r3="$(_rule $(( w_status  + 2 )) '─')"
-    r4="$(_rule $(( w_charter + 2 )) '─')"
-    r5="$(_rule $(( w_keep    + 2 )) '─')"
+    r4="$(_rule $(( w_br      + 2 )) '─')"
+    r5="$(_rule $(( w_charter + 2 )) '─')"
+    r6="$(_rule $(( w_keep    + 2 )) '─')"
 
     printf '%s\n' "${g//\// / }"
-    printf '┌%s┬%s┬%s┬%s┬%s┐\n' "$r1" "$r2" "$r3" "$r4" "$r5"
-    _header 'REPO' 'BRANCH' 'GIT STATUS' 'DEV-CHARTER' 'KEEP'
-    printf '├%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+    printf '┌%s┬%s┬%s┬%s┬%s┬%s┐\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
+    _header 'REPO' 'BRANCH' 'GIT STATUS' 'BRANCHES' 'DEV-CHARTER' 'KEEP'
+    printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
 
     local j
     for (( j = 1; j <= ${#g_names}; j++ )); do
-      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}"
+      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}"
       if (( j < ${#g_names} )); then
-        printf '├%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+        printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
       fi
     done
 
-    printf '└%s┴%s┴%s┴%s┴%s┘\n' "$r1" "$r2" "$r3" "$r4" "$r5"
+    printf '└%s┴%s┴%s┴%s┴%s┴%s┘\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
     printf '\n'
   done
 }
