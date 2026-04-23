@@ -9,7 +9,7 @@
 #   -h, --help     ヘルプを表示
 #
 # 動作:
-#   - git fetch --all --prune を実行する（dev-charter 等の追加リモートも含む）
+#   - git fetch origin --prune を実行する
 #   - detached HEAD・upstream 未設定・ワーキングツリーが汚い場合は pull をスキップ
 #   - それ以外は git pull --ff-only を実行する
 
@@ -33,7 +33,7 @@ fi
 while IFS= read -r f; do
   echo ""
   echo "==> $f"
-  git -C "$f" fetch --all --prune || true
+  git -C "$f" fetch origin --prune || true
   if [[ "$FETCH_ONLY" == false ]]; then
     git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; continue; }
     git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
