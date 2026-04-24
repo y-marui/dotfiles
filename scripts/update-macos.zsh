@@ -8,8 +8,6 @@ brew update
 brew upgrade
 brew cleanup
 
-pip-review --auto
-pip cache purge
 pipx upgrade-all
 
 npm update -g
