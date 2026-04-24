@@ -101,7 +101,7 @@ main() {
 
   typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps
   local w_repo w_repo_max w_branch w_status w_br w_charter w_keep w_repo_expanded
-  local r1 r2 r3 r4 r5 r6 g
+  local r1 r2 r3 r4 r5 r6 g j
 
   for g in "${seen_groups[@]}"; do
     g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=()
@@ -139,7 +139,6 @@ main() {
     _header 'REPO' 'BRANCH' 'GIT STATUS' 'BRANCHES' 'DEV-CHARTER' 'KEEP'
     printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
 
-    local j
     for (( j = 1; j <= ${#g_names}; j++ )); do
       _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}"
       if (( j < ${#g_names} )); then
