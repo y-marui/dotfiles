@@ -6,25 +6,37 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
+.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-install: ## シンボリックリンクを展開してホームディレクトリに設定を反映
+install: ## OS を検出して対応する install-* を実行
+	@OS="$$(uname -s)"; \
+	 case "$$OS" in \
+	   Darwin)          $(MAKE) install-macos ;; \
+	   Linux)           $(MAKE) install-rpi ;; \
+	   MINGW*|MSYS*|CYGWIN*) $(MAKE) install-windows ;; \
+	   *)               echo "Unsupported OS: $$OS" >&2; exit 1 ;; \
+	 esac
+
+install-macos: ## macOS 向けフルセットアップ（シンボリックリンク + macos + brew + dock）
 	@bash scripts/install.sh
 	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
 	   bash $(PRIVATE_DIR)/setup.sh; \
 	 else \
 	   echo "  SKIP    dotfiles-private (make private でセットアップしてください)"; \
 	 fi
-
-install-macos: ## install + macos + brew + dock を一括適用（バックアップあり）
-	@$(MAKE) install
 	@$(MAKE) macos
 	@$(MAKE) brew BACKUP=1 BACKUP_DIR="$(BACKUP_DIR)"
 	@$(MAKE) dock BACKUP=1 BACKUP_DIR="$(BACKUP_DIR)"
+
+install-rpi: ## Raspberry Pi 向けセットアップ（未実装）
+	@echo "TODO: install-rpi は未実装です。"
+
+install-windows: ## Windows 向けセットアップ（未実装）
+	@echo "TODO: install-windows は未実装です。"
 
 uninstall: ## シンボリックリンクを削除
 	@bash scripts/uninstall.sh
