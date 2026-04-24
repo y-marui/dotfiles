@@ -41,9 +41,15 @@ install-windows: ## Windows 向けセットアップ（未実装）
 uninstall: ## シンボリックリンクを削除
 	@bash scripts/uninstall.sh
 
-update: ## git pull --rebase して再インストール
-	@git pull --rebase origin main
-	@$(MAKE) install
+# TODO: RPi 用途が増えたら RPI_TARGET 変数等でスクリプト（update-rpi-*.sh）を分岐する
+update: ## OS を検出して対応する update スクリプトを実行
+	@OS="$$(uname -s)"; \
+	 case "$$OS" in \
+	   Darwin)               zsh scripts/update-macos.zsh ;; \
+	   Linux)                bash scripts/update-rpi-homebridge.sh ;; \
+	   MINGW*|MSYS*|CYGWIN*) pwsh -NoLogo -NonInteractive -File scripts/update-windows.ps1 ;; \
+	   *)                    echo "Unsupported OS: $$OS" >&2; exit 1 ;; \
+	 esac
 
 brew: ## Brewfile を適用（差分なしはスキップ、適用後に cache 更新）
 	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/diff_brewfile.sh; then \
