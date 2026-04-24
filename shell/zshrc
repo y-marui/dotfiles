@@ -232,23 +232,11 @@ function code() {
   fi
 }
 
-# pip search を pip_search にリダイレクト
+# pip は禁止: pipx（コマンド）または uv（開発）を使う
 function pip() {
-  if [[ $1 = "search" ]]; then
-    pip_search "$2"
-  else
-    command pip "$@"
-  fi
+  echo "pip は使用禁止です。pipx または uv を使ってください。" >&2
+  return 1
 }
-function _pip {
-  local words cword
-  read -Ac words
-  read -cn cword
-  reply=( $( COMP_WORDS="$words[*]" \
-             COMP_CWORD=$(( cword-1 )) \
-             PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
-}
-compctl -K _pip pip
 
 # claude-rc: リモートで claude remote-control を起動
 # デスクトップの ghq リポジトリを fzf で選択し、
