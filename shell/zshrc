@@ -59,17 +59,19 @@ autoload -U bashcompinit && bashcompinit
 # --------------------------------------------------------
 # Zellij 内で ssh を実行すると新しいペイン/タブを作成して SSH を起動する。
 # 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
-# --new: 新規タブで開く（デフォルトは縦分割ペイン）。
+# デフォルトは新規タブで開く。
+# --same: 現在のタブに縦分割ペインで開く。
 # --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
 # iTerm2 の場合は osascript でタブ/ペインを開く。それ以外は Zellij コマンドを使う。
 if [[ -n "$ZELLIJ" ]]; then
   function ssh() {
-    local new_tab=false
+    local new_tab=true
     local no_zellij=false
     local args=()
     for arg in "$@"; do
       case "$arg" in
         --new)       new_tab=true ;;
+        --same)      new_tab=false ;;
         --no-zellij) no_zellij=true ;;
         *)           args+=("$arg") ;;
       esac
@@ -146,15 +148,23 @@ EOF
   function _ssh_zellij_wrapper() {
     local -a wrapper_opts
     wrapper_opts=(
-      '--new:現在のタブを分割せず、新規タブで接続する'
+      '--new:新規タブで接続する（デフォルト）'
+      '--same:現在のタブに縦分割ペインで接続する'
       '--no-zellij:接続先でZellijを自動起動しない'
     )
+
+    # 現在のワードが -- で始まる場合はラッパーオプションのみ補完して終了
+    if [[ "${words[CURRENT]}" == --* ]]; then
+      _describe -t ssh-wrapper-opts 'wrapper options' wrapper_opts
+      return
+    fi
+
     _describe -t ssh-wrapper-opts 'wrapper options' wrapper_opts
 
     # _ssh にカスタムフラグを見せないよう words から除外して委譲
     local -a filtered_words
     for w in "${words[@]}"; do
-      [[ "$w" == --new || "$w" == --no-zellij ]] || filtered_words+=("$w")
+      [[ "$w" == --new || "$w" == --same || "$w" == --no-zellij ]] || filtered_words+=("$w")
     done
     words=("${filtered_words[@]}")
     (( CURRENT = ${#words[@]} ))
