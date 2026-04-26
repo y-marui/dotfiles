@@ -67,16 +67,18 @@ fi
 # --------------------------------------------------------
 # Zellij 内で ssh を実行すると新しいペイン/タブを作成して SSH を起動する。
 # 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
-# --new: 新規タブで開く（デフォルトは縦分割ペイン）。
+# デフォルトは新規タブで開く。
+# --same: 現在のタブに縦分割ペインで開く。
 # --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
 if [ -n "$ZELLIJ" ]; then
   ssh() {
-    local new_tab=false
+    local new_tab=true
     local no_zellij=false
     local args=()
     for arg in "$@"; do
       case "$arg" in
         --new)       new_tab=true ;;
+        --same)      new_tab=false ;;
         --no-zellij) no_zellij=true ;;
         *)           args+=("$arg") ;;
       esac
