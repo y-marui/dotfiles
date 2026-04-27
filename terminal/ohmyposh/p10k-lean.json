@@ -32,7 +32,7 @@
           "foreground_templates": [
             "{{ if or (.Working.Changed) (.Staging.Changed) }}#d7af00{{ end }}"
           ],
-          "template": " \uF126 {{ .HEAD }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }}⇡{{ .Ahead }}{{ end }}{{ if gt .StashCount 0 }} *{{ .StashCount }}{{ end }}{{ if .Staging.Changed }} +{{ end }}{{ if gt .Working.Modified 0 }} !{{ .Working.Modified }}{{ end }}{{ if gt .Working.Untracked 0 }} ?{{ .Working.Untracked }}{{ end }}",
+          "template": "  {{ .HEAD }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }}⇡{{ .Ahead }}{{ end }}{{ if gt .StashCount 0 }} *{{ .StashCount }}{{ end }}{{ if .Staging.Changed }} +{{ end }}{{ if gt .Working.Modified 0 }} !{{ .Working.Modified }}{{ end }}{{ if gt .Working.Untracked 0 }} ?{{ .Working.Untracked }}{{ end }}",
           "properties": {
             "fetch_status": true,
             "fetch_stash_count": true,
@@ -63,6 +63,26 @@
           "properties": {
             "threshold": 3000,
             "style": "round"
+          }
+        },
+        {
+          "type": "python",
+          "style": "plain",
+          "foreground": "#d7af00",
+          "template": "   {{ if .Venv }}({{ .Venv }}) {{ end }}{{ .Full }}",
+          "properties": {
+            "display_mode": "context",
+            "cache_duration": "10s"
+          }
+        },
+        {
+          "type": "node",
+          "style": "plain",
+          "foreground": "#5fd700",
+          "template": "   {{ .Full }}",
+          "properties": {
+            "display_mode": "context",
+            "cache_duration": "10s"
           }
         },
         {

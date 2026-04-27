@@ -1,3 +1,5 @@
+$ErrorActionPreference = 'Stop'
+
 Write-Host "=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Update started ==="
 
 winget upgrade --all --silent --accept-source-agreements --include-unknown
