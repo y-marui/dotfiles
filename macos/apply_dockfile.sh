@@ -58,7 +58,11 @@ while IFS=$'\t' read -r type arg1 arg2; do
   case "$type" in
     dock)
       if [[ -e "$arg1" ]]; then
-        dockutil --no-restart --add "$arg1"
+        if [[ -d "$arg1" && "$arg1" != *.app ]]; then
+          dockutil --no-restart --add "$arg1" --display stack
+        else
+          dockutil --no-restart --add "$arg1"
+        fi
       else
         printf '%sWarning: skipping (not found): %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
       fi
