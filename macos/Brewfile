@@ -96,6 +96,9 @@ brew "webp"
 brew "wimlib"
 brew "wxmaxima"
 
+# ── フォント ──────────────────────────────────────────────────────────────────
+cask "font-meslo-lg-nerd-font"  # MesloLGS NF — iTerm2 / Powerlevel10k 用
+
 # ── macOS アプリ（開発） ──────────────────────────────────────────────────────
 cask "claude-code"
 cask "codex"
@@ -118,7 +121,7 @@ cask "logi-options+"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
 cask "monitorcontrol"
-cask "mysides"
+# cask "mysides"  # Deprecated upstream (2025-10-13), x86_64 only — no Rosetta alternative yet
 cask "obsidian"
 
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────
@@ -164,13 +167,15 @@ cask "wolfram-engine"
 mas "Bitwarden", id: 1352778147
 mas "Canary Mail", id: 1236045954
 mas "Dropover", id: 1355679052
-mas "Keynote", id: 409183694
+mas "GarageBand", id: 682658836
+mas "iMovie", id: 408981434
+mas "Keynote", id: 361285480
 mas "LocalSend", id: 1661733229
 mas "Lockera Widgets", id: 6466819847
 mas "MARKETSPEED", id: 946680495
 mas "Notability", id: 360593530
-mas "Numbers", id: 409203825
-mas "Pages", id: 409201541
+mas "Numbers", id: 361304891
+mas "Pages", id: 361309726
 mas "PDF Expert", id: 1055273043
 mas "Remote Mouse", id: 403195710
 mas "RunCat", id: 1429033973
@@ -188,6 +193,7 @@ vscode "charliermarsh.ruff"
 vscode "christian-kohler.path-intellisense"
 vscode "dotjoshjohnson.xml"
 vscode "eamodio.gitlens"
+vscode "github.copilot-chat"
 vscode "github.github-vscode-theme"
 vscode "github.vscode-pull-request-github"
 vscode "ics.japanese-proofreading"
@@ -212,4 +218,3 @@ vscode "redhat.vscode-yaml"
 vscode "shuworks.vscode-table-formatter"
 vscode "tomoki1207.vscode-input-sequence"
 vscode "ziyasal.vscode-open-in-github"
-vscode "znck.grammarly"

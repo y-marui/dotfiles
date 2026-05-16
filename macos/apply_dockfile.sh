@@ -39,18 +39,26 @@ if command -v dockutil &>/dev/null; then
   mysides list 2>/dev/null > "$BACKUP_DIR/dock-sidebar.txt" || true
   echo "  BACKUP  $BACKUP_DIR/dock-apps.txt"
 
-  dockutil --no-restart --remove all
+  if ! dockutil --no-restart --remove all; then
+    printf '%sError: dockutil --remove all failed. Aborting to prevent inconsistent Dock state.%s\n' "$YELLOW" "$RESET" >&2
+    exit 1
+  fi
 else
   printf '%sWarning: dockutil not found. Run: brew install dockutil%s\n' "$YELLOW" "$RESET" >&2
 fi
 
 # ── Finder サイドバーをリセット ───────────────────────────────────────────────
 if command -v mysides &>/dev/null; then
-  mysides list | awk '{print $1}' | while IFS= read -r name; do
-    [ -n "$name" ] && mysides remove "$name" 2>/dev/null || true
-  done
+  if mysides_items=$(mysides list 2>/dev/null); then
+    while IFS= read -r name; do
+      [[ -z "$name" ]] && continue
+      mysides remove "$name" 2>/dev/null || true
+    done < <(awk '{print $1}' <<< "$mysides_items")
+  else
+    printf '%sWarning: mysides failed to run (Bad CPU type?). Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
+  fi
 else
-  printf '%sWarning: mysides not found. Run: brew install mysides%s\n' "$YELLOW" "$RESET" >&2
+  printf '%sWarning: mysides not found. Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
 fi
 
 # ── dock ファイルを1行ずつ適用 ────────────────────────────────────────────────
@@ -59,22 +67,28 @@ while IFS=$'\t' read -r type arg1 arg2; do
     dock)
       if [[ -e "$arg1" ]]; then
         if [[ -d "$arg1" && "$arg1" != *.app ]]; then
-          dockutil --no-restart --add "$arg1" --display stack
+          dockutil --no-restart --add "$arg1" --display stack \
+            || printf '%sWarning: dockutil add failed: %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
         else
-          dockutil --no-restart --add "$arg1"
+          dockutil --no-restart --add "$arg1" \
+            || printf '%sWarning: dockutil add failed: %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
         fi
       else
         printf '%sWarning: skipping (not found): %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
       fi
       ;;
     sidebar)
-      path=$(python3 -c "
+      if ! path=$(python3 -c "
 import sys
 from urllib.parse import unquote
 print(unquote(sys.argv[1]).removeprefix('file://').rstrip('/'))
-" "$arg2")
+" "$arg2" 2>/dev/null); then
+        printf '%sWarning: skipping sidebar entry (python3 failed to decode URL): %s%s\n' "$YELLOW" "$arg2" "$RESET" >&2
+        continue
+      fi
       if [[ -e "$path" ]]; then
-        mysides add "$arg1" "$arg2"
+        mysides add "$arg1" "$arg2" 2>/dev/null || \
+          printf '%sWarning: mysides add failed (Bad CPU type?): %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
       else
         printf '%sWarning: skipping (not found): %s (%s)%s\n' "$YELLOW" "$arg1" "$path" "$RESET" >&2
       fi

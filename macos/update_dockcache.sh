@@ -14,18 +14,30 @@ set -euo pipefail
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
 SNAPSHOT="${PRIVATE_DIR}/macos/dockfile.cache"
+YELLOW='\033[1;33m'
+RESET='\033[0m'
 
 _current_dock() {
-  dockutil --list 2>/dev/null | awk -F'\t' '{
-    path = $2
-    gsub("^file://", "", path)
-    gsub(/%20/, " ", path)
-    sub("/$", "", path)
-    print path
-  }'
+  local output
+  if output=$(dockutil --list 2>/dev/null); then
+    awk -F'\t' '{
+      path = $2
+      gsub("^file://", "", path)
+      gsub(/%20/, " ", path)
+      sub("/$", "", path)
+      print path
+    }' <<< "$output"
+  else
+    printf '%sWarning: dockutil failed to run. Dock entries omitted from cache.%s\n' "$YELLOW" "$RESET" >&2
+  fi
 }
 _current_sidebar() {
-  mysides list 2>/dev/null | awk -F' -> ' '{print "sidebar\t" $1 "\t" $2}'
+  local output
+  if output=$(mysides list 2>/dev/null); then
+    awk -F' -> ' '{print "sidebar\t" $1 "\t" $2}' <<< "$output"
+  else
+    printf '%sWarning: mysides failed to run. Sidebar entries omitted from cache.%s\n' "$YELLOW" "$RESET" >&2
+  fi
 }
 _capture() {
   _current_dock | awk '{print "dock\t" $0}'
