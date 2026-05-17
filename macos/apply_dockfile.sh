@@ -19,6 +19,17 @@ DOCK_FILE="$PRIVATE_DIR/macos/dockfile"
 YELLOW='\033[1;33m'
 RESET='\033[0m'
 
+_mysides() {
+  if command -v mysides &>/dev/null; then
+    mysides "$@"
+  elif command -v uv &>/dev/null; then
+    uv run --with pyobjc python3 "$DOTFILES_DIR/macos/mysides.py" "$@"
+  else
+    printf '%sError: sidebar tool unavailable — install uv: brew install uv%s\n' "$YELLOW" "$RESET" >&2
+    return 1
+  fi
+}
+
 # ── dock ファイルのチェック ────────────────────────────────────────────────────
 if [[ ! -f "$DOCK_FILE" ]]; then
   printf '%sError: dock file not found: %s%s\n' "$YELLOW" "$DOCK_FILE" "$RESET" >&2
@@ -36,7 +47,8 @@ if command -v dockutil &>/dev/null; then
   BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)"
   mkdir -p "$BACKUP_DIR"
   dockutil --list 2>/dev/null > "$BACKUP_DIR/dock-apps.txt" || true
-  mysides list 2>/dev/null > "$BACKUP_DIR/dock-sidebar.txt" || true
+  _mysides list > "$BACKUP_DIR/dock-sidebar.txt" 2>&1 || \
+    printf '%sWarning: sidebar backup failed — continuing without sidebar backup%s\n' "$YELLOW" "$RESET" >&2
   echo "  BACKUP  $BACKUP_DIR/dock-apps.txt"
 
   if ! dockutil --no-restart --remove all; then
@@ -48,17 +60,14 @@ else
 fi
 
 # ── Finder サイドバーをリセット ───────────────────────────────────────────────
-if command -v mysides &>/dev/null; then
-  if mysides_items=$(mysides list 2>/dev/null); then
-    while IFS= read -r name; do
-      [[ -z "$name" ]] && continue
-      mysides remove "$name" 2>/dev/null || true
-    done < <(awk '{print $1}' <<< "$mysides_items")
-  else
-    printf '%sWarning: mysides failed to run (Bad CPU type?). Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
-  fi
+if mysides_items=$(_mysides list 2>/dev/null); then
+  while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    _mysides remove "$name" 2>/dev/null || \
+      printf '%sWarning: sidebar: failed to remove: %s%s\n' "$YELLOW" "$name" "$RESET" >&2
+  done < <(awk -F' -> ' '{print $1}' <<< "$mysides_items")
 else
-  printf '%sWarning: mysides not found. Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
+  printf '%sWarning: sidebar tool not available. Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
 fi
 
 # ── dock ファイルを1行ずつ適用 ────────────────────────────────────────────────
@@ -87,8 +96,8 @@ print(unquote(sys.argv[1]).removeprefix('file://').rstrip('/'))
         continue
       fi
       if [[ -e "$path" ]]; then
-        mysides add "$arg1" "$arg2" 2>/dev/null || \
-          printf '%sWarning: mysides add failed (Bad CPU type?): %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
+        _mysides add "$arg1" "$arg2" || \
+          printf '%sWarning: sidebar: failed to add: %s%s\n' "$YELLOW" "$arg1" "$RESET" >&2
       else
         printf '%sWarning: skipping (not found): %s (%s)%s\n' "$YELLOW" "$arg1" "$path" "$RESET" >&2
       fi

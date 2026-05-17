@@ -121,7 +121,7 @@ cask "logi-options+"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
 cask "monitorcontrol"
-# cask "mysides"  # Deprecated upstream (2025-10-13), x86_64 only — no Rosetta alternative yet
+# mysides: Deprecated upstream (2025-10-13). Replaced by macos/mysides.py (pyobjc via uv)
 cask "obsidian"
 
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────

@@ -11,6 +11,17 @@ SNAPSHOT="${PRIVATE_DIR}/macos/dockfile.cache"
 
 MODE="${1:-}"
 
+_mysides() {
+  if command -v mysides &>/dev/null; then
+    mysides "$@"
+  elif command -v uv &>/dev/null; then
+    uv run --with pyobjc python3 "$DOTFILES_DIR/macos/mysides.py" "$@"
+  else
+    echo "Error: sidebar tool unavailable — install uv: brew install uv" >&2
+    return 1
+  fi
+}
+
 _current_dock() {
   dockutil --list 2>/dev/null | awk -F'\t' '{
     path = $2
@@ -21,7 +32,10 @@ _current_dock() {
   }'
 }
 _current_sidebar() {
-  mysides list 2>/dev/null | awk -F' -> ' '{print "sidebar\t" $1 "\t" $2}'
+  local output
+  if output=$(_mysides list 2>/dev/null); then
+    awk -F' -> ' '{print "sidebar\t" $1 "\t" $2}' <<< "$output"
+  fi
 }
 _capture() {
   _current_dock | awk '{print "dock\t" $0}'
@@ -47,7 +61,10 @@ fi
 
 # dock ファイルをマージ更新（常に実行）
 dock_paths=$(_current_dock)
-sidebar_raw=$(mysides list 2>/dev/null)
+if ! sidebar_raw=$(_mysides list 2>/dev/null); then
+  echo "Warning: sidebar tool not available. Sidebar entries will be omitted from dockfile." >&2
+  sidebar_raw=""
+fi
 
 python3 - "$DOCK_FILE" "$dock_paths" "$sidebar_raw" <<'PYEOF'
 import sys
