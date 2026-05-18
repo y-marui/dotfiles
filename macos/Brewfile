@@ -134,7 +134,6 @@ cask "zoom"
 # ── macOS アプリ（クラウドストレージ） ──────────────────────────────────────────
 cask "dropbox"
 cask "google-drive"
-cask "onedrive"
 
 # ── macOS アプリ（ブラウザ） ──────────────────────────────────────────────────
 cask "brave-browser"
@@ -213,3 +212,6 @@ vscode "redhat.vscode-yaml"
 vscode "shuworks.vscode-table-formatter"
 vscode "tomoki1207.vscode-input-sequence"
 vscode "ziyasal.vscode-open-in-github"
+
+# ── 未分類 ────────────────────────────────────────────────────────────────────
+cask "microsoft-office"
