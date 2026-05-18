@@ -4,10 +4,10 @@ set -euo pipefail
 # shellcheck source=scripts/_links.sh
 source "$(dirname "${BASH_SOURCE[0]}")/_links.sh"
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-RESET='\033[0m'
+GREEN=$'\033[0;32m'
+RED=$'\033[0;31m'
+YELLOW=$'\033[0;33m'
+RESET=$'\033[0m'
 
 count_ok=0
 count_broken=0

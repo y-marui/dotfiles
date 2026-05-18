@@ -134,6 +134,79 @@ make check
 
 iTerm2 メニュー → **iTerm2 > Install Shell Integration** を実行する。
 
+## 9. iTerm2 設定を dotfiles 内に保存・読み込む
+
+iTerm2 の設定ファイル（plist）を dotfiles 内で管理し、複数 Mac 間で共有する。
+
+**初回（設定を保存する側）:**
+
+1. iTerm2 の設定を希望の状態にする
+2. **iTerm2 > Settings > General > Preferences** を開く
+3. "Load preferences from a custom folder or URL" を有効にする
+4. フォルダを dotfiles 内のパスに設定する:
+
+```
+~/src/github.com/y-marui/dotfiles/terminal/iterm2
+```
+
+5. "Save changes to folder when iTerm2 quits" を有効にする
+
+**他の Mac で読み込む場合:**
+
+同様に "Load preferences from a custom folder or URL" を有効にして、上記のパスを指定するだけでよい（dotfiles 取得後に実施）。
+
+## 10. クラウドストレージのセットアップ
+
+Brewfile でインストール済みの場合はサインインのみ行う。手動でインストールする場合は以下:
+
+```bash
+brew install --cask dropbox
+brew install --cask onedrive
+brew install --cask google-drive
+```
+
+各アプリを起動してアカウント認証・同期設定を行う。
+
+> Dropbox は Alfred の設定同期に使用するため、他のサービスより先にセットアップしておく。
+
+## 11. Alfred 設定を Dropbox に同期
+
+Alfred の設定を Dropbox 経由で複数 Mac に同期する。
+
+1. Dropbox の同期が完了していることを確認する
+2. **Alfred Preferences > Advanced > Syncing** を開く
+3. "Set preferences folder..." をクリックし、Dropbox 内のフォルダを指定する:
+
+```
+~/Dropbox/Alfred
+```
+
+別の Mac で同じ Dropbox フォルダを指定すると設定が共有される。
+
+## 12. Tailscale をセットアップ
+
+VPN メッシュネットワークで複数デバイスを接続する。
+
+```bash
+brew install --cask tailscale
+```
+
+または Mac App Store からインストールする。
+
+起動後、メニューバーの Tailscale アイコンから **Log in** を選択してアカウント認証する。
+
+## 13. macOS 共有設定（任意）
+
+必要に応じて **システム設定 > 一般 > 共有** を開き、以下を有効にする:
+
+| 項目 | 用途 |
+|------|------|
+| 画面共有 | 別の Mac や VNC クライアントから画面を操作 |
+| リモートログイン | SSH でこの Mac に接続（`ssh user@hostname.local`） |
+| ファイル共有 | SMB / AFP でファイルを共有 |
+
+Tailscale 経由でアクセスする場合は、ファイアウォールの例外設定が不要なことが多い。
+
 ## 参考: make install-macos が行うこと
 
 | ステップ | 内容 |

@@ -16,8 +16,8 @@ set -euo pipefail
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_DIR}-private"
 DOCK_FILE="$PRIVATE_DIR/macos/dockfile"
-YELLOW='\033[1;33m'
-RESET='\033[0m'
+YELLOW=$'\033[1;33m'
+RESET=$'\033[0m'
 
 _mysides() {
   if command -v mysides &>/dev/null; then

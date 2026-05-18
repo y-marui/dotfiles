@@ -19,8 +19,8 @@ set -euo pipefail
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 BREWFILE="$DOTFILES_DIR/macos/Brewfile"
 FORCE=0
-YELLOW='\033[1;33m'
-RESET='\033[0m'
+YELLOW=$'\033[1;33m'
+RESET=$'\033[0m'
 
 for arg in "$@"; do
   [[ "$arg" == "--force" ]] && FORCE=1
