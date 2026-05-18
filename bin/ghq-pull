@@ -9,8 +9,8 @@
 #   -h, --help     ヘルプを表示
 #
 # 動作:
-#   - git fetch origin --prune を実行する
-#   - detached HEAD・upstream 未設定・ワーキングツリーが汚い場合は pull をスキップ
+#   - git fetch origin --prune を実行する（dirty でも実行）
+#   - fetch 失敗・detached HEAD・upstream 未設定・dirty な場合は pull をスキップ
 #   - それ以外は git pull --ff-only を実行する
 
 set -euo pipefail
@@ -33,12 +33,15 @@ fi
 while IFS= read -r f; do
   echo ""
   echo "==> $f"
-  git -C "$f" fetch origin --prune || true
+  if ! git -C "$f" fetch origin --prune; then
+    echo "  [skip pull] fetch failed"
+    continue
+  fi
   if [[ "$FETCH_ONLY" == false ]]; then
-    git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; continue; }
-    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
+    git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip pull] detached HEAD"; continue; }
+    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
     if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
-      echo "  [skip] dirty working tree"
+      echo "  [skip pull] dirty working tree"
       continue
     fi
     git -C "$f" pull --ff-only || true
