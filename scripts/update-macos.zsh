@@ -14,9 +14,11 @@ npm update -g
 
 sudo tlmgr update --self --all
 
-gem update --system
-gem update
-gem cleanup
+if command -v rbenv &>/dev/null && [[ "$(rbenv version-name 2>/dev/null)" != "system" ]]; then
+  gem update --system
+  gem update
+  gem cleanup
+fi
 
 command -v zprezto-update &>/dev/null && zprezto-update
 
