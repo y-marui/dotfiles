@@ -97,7 +97,7 @@ brew "wimlib"
 brew "wxmaxima"
 
 # ── フォント ──────────────────────────────────────────────────────────────────
-cask "font-meslo-lg-nerd-font"  # MesloLGS NF — iTerm2 / Powerlevel10k 用
+cask "font-meslo-lg-nerd-font"
 
 # ── macOS アプリ（開発） ──────────────────────────────────────────────────────
 cask "claude-code"
@@ -121,8 +121,8 @@ cask "logi-options+"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
 cask "monitorcontrol"
-# mysides: Deprecated upstream (2025-10-13). Replaced by macos/mysides.py (pyobjc via uv)
 cask "obsidian"
+# mysides: Deprecated upstream (2025-10-13). Replaced by macos/mysides.py (pyobjc via uv)
 
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────
 cask "chatgpt"
@@ -167,15 +167,10 @@ cask "wolfram-engine"
 mas "Bitwarden", id: 1352778147
 mas "Canary Mail", id: 1236045954
 mas "Dropover", id: 1355679052
-mas "GarageBand", id: 682658836
-mas "iMovie", id: 408981434
-mas "Keynote", id: 361285480
 mas "LocalSend", id: 1661733229
 mas "Lockera Widgets", id: 6466819847
 mas "MARKETSPEED", id: 946680495
 mas "Notability", id: 360593530
-mas "Numbers", id: 361304891
-mas "Pages", id: 361309726
 mas "PDF Expert", id: 1055273043
 mas "Remote Mouse", id: 403195710
 mas "RunCat", id: 1429033973
