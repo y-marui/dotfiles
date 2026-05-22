@@ -403,7 +403,7 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/pipx/pipxfile.cache" ]]; then
 fi
 
 # --------------------------------------------------------
-# 6. dock の乖離確認（dock.cache と dock.sh のファイル比較のみ・dockutil 実行なし）
+# 6. dock / menubar の乖離確認（cache とファイルのテキスト比較のみ）
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" ]]; then
   _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dockfile.sh" --summary 2>/dev/null || true)
@@ -411,6 +411,12 @@ if [[ -n "${DOTFILES_DIR:-}" ]]; then
     print -P "%F{yellow}⚠ dock: $_dock_diff (make dock-diff で確認)%f"
   fi
   unset _dock_diff
+
+  _menubar_diff=$(bash "$DOTFILES_DIR/macos/diff_menubarfile.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_menubar_diff" ]]; then
+    print -P "%F{yellow}⚠ menubar: $_menubar_diff (make menubar-diff で確認)%f"
+  fi
+  unset _menubar_diff
 fi
 
 # iTerm2 Shell Integration を読み込む（iTerm2 で zsh を使う場合は必須）

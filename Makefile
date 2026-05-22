@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
+.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff menubar menubar-sync menubar-cache menubar-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -130,6 +130,22 @@ dock-cache: ## 現在の Dock 状態を dockfile.cache に記録
 
 dock-diff: ## dockfile.cache と dockfile の差分を表示
 	@bash macos/diff_dockfile.sh || true
+
+menubar: ## メニューバー設定を適用（差分なしはスキップ、適用後に cache 更新）
+	@if DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/diff_menubarfile.sh; then \
+	   echo "差分なし: menubar はすでに適用済みです。"; \
+	   exit 0; \
+	 fi; \
+	 DOTFILES_DIR="$(DOTFILES_DIR)" bash macos/apply_menubarfile.sh
+
+menubar-sync: ## 現在のメニューバー状態を menubarfile に同期
+	@bash macos/sync_menubarfile.sh
+
+menubar-cache: ## 現在のメニューバー状態を menubarfile.cache に記録
+	@bash macos/update_menubarcache.sh
+
+menubar-diff: ## menubarfile.cache と menubarfile の差分を表示
+	@bash macos/diff_menubarfile.sh || true
 
 check: ## シンボリックリンクの整合性を確認
 	@bash scripts/check.sh
