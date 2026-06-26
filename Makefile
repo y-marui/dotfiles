@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
+.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff iterm-save npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -131,6 +131,9 @@ dock-cache: ## 現在の Dock 状態を dockfile.cache に記録
 dock-diff: ## dockfile.cache と dockfile の差分を表示
 	@bash macos/diff_dockfile.sh || true
 
+iterm-save: ## iTerm2 の現在の設定を dotfiles に保存（意図した変更後に実行）
+	@defaults export com.googlecode.iterm2 "$(DOTFILES_DIR)/terminal/iterm2/com.googlecode.iterm2.plist"
+	@echo "Saved iTerm2 settings to terminal/iterm2/com.googlecode.iterm2.plist"
 
 check: ## シンボリックリンクの整合性を確認
 	@bash scripts/check.sh
