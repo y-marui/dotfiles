@@ -30,5 +30,6 @@
     "pr-review-toolkit@claude-plugins-official": true
   },
   "theme": "light",
-  "defaultMode": "plan"
+  "defaultMode": "plan",
+  "tui": "fullscreen"
 }
