@@ -30,6 +30,7 @@ LINKS=(
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
   "ai/copilot/instructions.md|${HOME}/.copilot/copilot-instructions.md"
   "ai/gemini/GEMINI.md|${HOME}/.gemini/GEMINI.md"
+  "bin/install-my-apps|${HOME}/.local/bin/install-my-apps"
   "bin/run-quiet|${HOME}/.local/bin/run-quiet"
   "bin/ghq-check|${HOME}/.local/bin/ghq-check"
   "bin/ghq-status|${HOME}/.local/bin/ghq-status"

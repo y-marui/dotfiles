@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# 自作アプリを一括インストールするスクリプト
+# 1. 起動中のアプリを終了
+# 2. 既存の .app を削除
+# 3. DMG からインストール
+# 4. ウィジェット編集画面を開く
+# 5. アプリを再起動
+set -euo pipefail
+
+readonly BUILD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
+readonly APPS_DIR="/Applications"
+
+installed_apps=()
+
+quit_app() {
+    local name="$1"
+    local app_path="$APPS_DIR/${name}.app"
+
+    # AppleScript で終了要求
+    if osascript -e "tell application \"$name\" to running" 2>/dev/null | grep -q true; then
+        echo "  終了中: $name"
+        osascript -e "tell application \"$name\" to quit" 2>/dev/null || true
+        # 最大 5 秒待機
+        local i=0
+        while (( i < 10 )); do
+            osascript -e "tell application \"$name\" to running" 2>/dev/null | grep -q true || break
+            sleep 0.5
+            i=$(( i + 1 ))
+        done
+    fi
+
+    # 残留プロセスを強制終了
+    pkill -f "$app_path" 2>/dev/null || true
+    sleep 0.3
+}
+
+install_dmg() {
+    local dmg="$1"
+    local app_name
+    app_name=$(basename "$dmg" .dmg)
+    local app_path="$APPS_DIR/${app_name}.app"
+
+    echo ""
+    echo "==> $app_name"
+
+    quit_app "$app_name"
+
+    if [[ -d "$app_path" ]]; then
+        echo "  削除: $app_path"
+        rm -rf "$app_path"
+    fi
+
+    echo "  マウント中..."
+    # タブ区切りの最終フィールド（スペース含むボリューム名に対応）
+    local mount_point
+    mount_point=$(hdiutil attach "$dmg" -nobrowse -readonly -noverify 2>/dev/null \
+        | grep '/Volumes/' | sed 's/.*\t//')
+
+    if [[ -z "$mount_point" ]]; then
+        echo "  エラー: マウントに失敗しました ($dmg)" >&2
+        return 1
+    fi
+
+    local app_in_dmg
+    app_in_dmg=$(find "$mount_point" -maxdepth 2 -name "*.app" | head -1)
+
+    if [[ -n "$app_in_dmg" ]]; then
+        echo "  インストール: $(basename "$app_in_dmg")"
+        cp -R "$app_in_dmg" "$APPS_DIR/"
+        installed_apps+=("$app_name")
+    else
+        echo "  警告: .app が見つかりませんでした" >&2
+    fi
+
+    hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+}
+
+_try_open_widget_with_python() {
+    python3 - <<'PYEOF'
+import subprocess, time, sys
+
+try:
+    import Quartz
+except ImportError:
+    sys.exit(1)
+
+subprocess.run(['osascript', '-e', 'tell application "Finder" to activate'], check=False)
+time.sleep(0.6)
+
+display = Quartz.CGMainDisplayID()
+x = Quartz.CGDisplayPixelsWide(display) // 2
+y = Quartz.CGDisplayPixelsHigh(display) // 2
+
+for etype in (Quartz.kCGEventRightMouseDown, Quartz.kCGEventRightMouseUp):
+    e = Quartz.CGEventCreateMouseEvent(None, etype, (x, y), Quartz.kCGMouseButtonRight)
+    Quartz.CGEventPost(Quartz.kCGHIDEventTap, e)
+    time.sleep(0.05)
+
+time.sleep(0.8)
+
+for item in ['ウィジェットを編集…', 'Edit Widgets…',
+             'ウィジェットを編集...', 'Edit Widgets...']:
+    r = subprocess.run(
+        ['osascript', '-e',
+         f'tell application "System Events" to tell process "Finder" to click menu item "{item}" of menu 1'],
+        capture_output=True
+    )
+    if r.returncode == 0:
+        break
+PYEOF
+}
+
+open_widget_editor() {
+    echo ""
+    echo "==> ウィジェットキャッシュをクリア..."
+    killall NotificationCenter 2>/dev/null || true
+    killall widgetextensionhost 2>/dev/null || true
+    sleep 2
+
+    echo "==> ウィジェット編集画面を開きます..."
+
+    if ! _try_open_widget_with_python 2>/dev/null; then
+        osascript -e 'tell application "Finder" to activate' 2>/dev/null || true
+        echo "  (デスクトップを右クリック →「ウィジェットを編集...」を選択してください)"
+    fi
+}
+
+relaunch_apps() {
+    if (( ${#installed_apps[@]} == 0 )); then
+        return
+    fi
+
+    # ウィジェット編集を確認する時間
+    sleep 4
+
+    echo ""
+    echo "==> アプリを再起動します..."
+    for app_name in "${installed_apps[@]}"; do
+        echo "  起動: $app_name"
+        open -a "$app_name" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
+    done
+}
+
+# ── メイン処理 ──────────────────────────────────────
+
+echo "Build フォルダ: $BUILD_DIR"
+
+for dmg in "$BUILD_DIR"/*.dmg; do
+    [[ -f "$dmg" ]] || continue
+    install_dmg "$dmg"
+done
+
+if (( ${#installed_apps[@]} == 0 )); then
+    echo ""
+    echo "インストールできたアプリがありませんでした。"
+    exit 1
+fi
+
+open_widget_editor
+relaunch_apps
+
+echo ""
+joined=$(IFS=', '; echo "${installed_apps[*]}")
+echo "完了! インストール済み: $joined"
