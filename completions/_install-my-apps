@@ -1,0 +1,10 @@
+#compdef install-my-apps
+
+local build_dir="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
+local -a apps
+
+for dmg in "$build_dir"/*.dmg(N); do
+    apps+=("${${dmg##*/}%.dmg}")
+done
+
+_arguments '*:app:(${apps[@]})'

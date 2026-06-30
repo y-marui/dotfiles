@@ -153,10 +153,21 @@ open_widget_editor() {
 echo "Build フォルダ: $BUILD_DIR"
 
 dmg_files=()
-for dmg in "$BUILD_DIR"/*.dmg; do
-    [[ -f "$dmg" ]] || continue
-    dmg_files+=("$dmg")
-done
+if (( $# > 0 )); then
+    for app_name in "$@"; do
+        dmg="$BUILD_DIR/${app_name}.dmg"
+        if [[ -f "$dmg" ]]; then
+            dmg_files+=("$dmg")
+        else
+            echo "警告: ${app_name}.dmg が見つかりません" >&2
+        fi
+    done
+else
+    for dmg in "$BUILD_DIR"/*.dmg; do
+        [[ -f "$dmg" ]] || continue
+        dmg_files+=("$dmg")
+    done
+fi
 
 if (( ${#dmg_files[@]} == 0 )); then
     echo ""
