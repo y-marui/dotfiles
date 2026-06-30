@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 自作アプリを一括インストールするスクリプト
-# 1. 起動中のアプリを終了
-# 2. 既存の .app を削除
+# 1. 起動中のアプリを終了・既存の .app を削除
+# 2. ウィジェットキャッシュをクリア
 # 3. DMG からインストール
-# 4. ウィジェット編集画面を開く
-# 5. アプリを再起動
+# 4. アプリを起動してウィジェット拡張を登録
+# 5. ウィジェット編集画面を開く
 set -euo pipefail
 
 readonly BUILD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
@@ -34,22 +34,39 @@ quit_app() {
     sleep 0.3
 }
 
-install_dmg() {
+remove_app() {
     local dmg="$1"
     local app_name
     app_name=$(basename "$dmg" .dmg)
     local app_path="$APPS_DIR/${app_name}.app"
 
     echo ""
-    echo "==> $app_name"
-
+    echo "==> $app_name を削除"
     quit_app "$app_name"
 
     if [[ -d "$app_path" ]]; then
         echo "  削除: $app_path"
         rm -rf "$app_path"
+    else
+        echo "  スキップ: $app_path が見つかりません"
     fi
+}
 
+clear_widget_cache() {
+    echo ""
+    echo "==> ウィジェットキャッシュをクリア..."
+    killall NotificationCenter 2>/dev/null || true
+    killall widgetextensionhost 2>/dev/null || true
+    sleep 1
+}
+
+install_dmg() {
+    local dmg="$1"
+    local app_name
+    app_name=$(basename "$dmg" .dmg)
+
+    echo ""
+    echo "==> $app_name をインストール"
     echo "  マウント中..."
     # タブ区切りの最終フィールド（スペース含むボリューム名に対応）
     local mount_point
@@ -73,6 +90,17 @@ install_dmg() {
     fi
 
     hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+}
+
+relaunch_apps() {
+    echo ""
+    echo "==> アプリを起動してウィジェット拡張を登録..."
+    for app_name in "${installed_apps[@]}"; do
+        echo "  起動: $app_name"
+        open -a "$app_name" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
+    done
+    # ウィジェット拡張が登録されるまで待機
+    sleep 3
 }
 
 _try_open_widget_with_python() {
@@ -112,11 +140,6 @@ PYEOF
 
 open_widget_editor() {
     echo ""
-    echo "==> ウィジェットキャッシュをクリア..."
-    killall NotificationCenter 2>/dev/null || true
-    killall widgetextensionhost 2>/dev/null || true
-    sleep 2
-
     echo "==> ウィジェット編集画面を開きます..."
 
     if ! _try_open_widget_with_python 2>/dev/null; then
@@ -125,28 +148,32 @@ open_widget_editor() {
     fi
 }
 
-relaunch_apps() {
-    if (( ${#installed_apps[@]} == 0 )); then
-        return
-    fi
-
-    # ウィジェット編集を確認する時間
-    sleep 4
-
-    echo ""
-    echo "==> アプリを再起動します..."
-    for app_name in "${installed_apps[@]}"; do
-        echo "  起動: $app_name"
-        open -a "$app_name" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
-    done
-}
-
 # ── メイン処理 ──────────────────────────────────────
 
 echo "Build フォルダ: $BUILD_DIR"
 
+dmg_files=()
 for dmg in "$BUILD_DIR"/*.dmg; do
     [[ -f "$dmg" ]] || continue
+    dmg_files+=("$dmg")
+done
+
+if (( ${#dmg_files[@]} == 0 )); then
+    echo ""
+    echo "DMG ファイルが見つかりませんでした。"
+    exit 1
+fi
+
+# フェーズ 1: 全アプリを終了・削除
+for dmg in "${dmg_files[@]}"; do
+    remove_app "$dmg"
+done
+
+# フェーズ 2: ウィジェットキャッシュをクリア
+clear_widget_cache
+
+# フェーズ 3: 全アプリをインストール
+for dmg in "${dmg_files[@]}"; do
     install_dmg "$dmg"
 done
 
@@ -156,8 +183,11 @@ if (( ${#installed_apps[@]} == 0 )); then
     exit 1
 fi
 
-open_widget_editor
+# フェーズ 4: アプリを起動してウィジェット拡張を登録
 relaunch_apps
+
+# フェーズ 5: ウィジェット編集画面を開く
+open_widget_editor
 
 echo ""
 joined=$(IFS=', '; echo "${installed_apps[*]}")
