@@ -167,7 +167,6 @@ mas "Bitwarden", id: 1352778147
 mas "Canary Mail", id: 1236045954
 mas "Dropover", id: 1355679052
 mas "LocalSend", id: 1661733229
-mas "Lockera Widgets", id: 6466819847
 mas "MARKETSPEED", id: 946680495
 mas "Notability", id: 360593530
 mas "PDF Expert", id: 1055273043
@@ -214,4 +213,3 @@ vscode "ziyasal.vscode-open-in-github"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 cask "microsoft-office"
-mas "Prime Video", id: 545519333

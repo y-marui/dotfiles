@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # 自作アプリを一括インストールするスクリプト
-# 1. 起動中のアプリを終了・既存の .app を削除
-# 2. ウィジェットキャッシュをクリア
-# 3. DMG からインストール
-# 4. アプリを起動してウィジェット拡張を登録
-# 5. ウィジェット編集画面を開く
+# デフォルト（上書きモード）:
+#   1. 起動中のアプリを終了
+#   2. DMG からインストール（既存 .app を上書き）
+#   3. アプリを起動してウィジェット拡張を登録
+#   4. ウィジェット編集画面を開く
+# --reinstall / -r フラグ（再インストールモード）:
+#   1. 起動中のアプリを終了・既存の .app を削除
+#   2. ウィジェットキャッシュをクリア
+#   3. DMG からインストール
+#   4. アプリを起動してウィジェット拡張を登録
+#   5. ウィジェット編集画面を開く
 set -euo pipefail
 
 readonly BUILD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
@@ -150,11 +156,28 @@ open_widget_editor() {
 
 # ── メイン処理 ──────────────────────────────────────
 
+reinstall=false
+
+# オプション解析
+args=()
+for arg in "$@"; do
+    case "$arg" in
+        --reinstall|-r) reinstall=true ;;
+        -*) echo "不明なオプション: $arg" >&2; exit 1 ;;
+        *) args+=("$arg") ;;
+    esac
+done
+
 echo "Build フォルダ: $BUILD_DIR"
+if $reinstall; then
+    echo "モード: 再インストール（削除してからインストール）"
+else
+    echo "モード: 上書きインストール"
+fi
 
 dmg_files=()
-if (( $# > 0 )); then
-    for app_name in "$@"; do
+if (( ${#args[@]} > 0 )); then
+    for app_name in "${args[@]}"; do
         dmg="$BUILD_DIR/${app_name}.dmg"
         if [[ -f "$dmg" ]]; then
             dmg_files+=("$dmg")
@@ -175,13 +198,23 @@ if (( ${#dmg_files[@]} == 0 )); then
     exit 1
 fi
 
-# フェーズ 1: 全アプリを終了・削除
-for dmg in "${dmg_files[@]}"; do
-    remove_app "$dmg"
-done
+if $reinstall; then
+    # フェーズ 1: 全アプリを終了・削除
+    for dmg in "${dmg_files[@]}"; do
+        remove_app "$dmg"
+    done
 
-# フェーズ 2: ウィジェットキャッシュをクリア
-clear_widget_cache
+    # フェーズ 2: ウィジェットキャッシュをクリア
+    clear_widget_cache
+else
+    # 上書きモード: アプリを終了のみ（削除しない）
+    for dmg in "${dmg_files[@]}"; do
+        app_name=$(basename "$dmg" .dmg)
+        echo ""
+        echo "==> $app_name を終了"
+        quit_app "$app_name"
+    done
+fi
 
 # フェーズ 3: 全アプリをインストール
 for dmg in "${dmg_files[@]}"; do

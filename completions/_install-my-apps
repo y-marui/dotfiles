@@ -7,4 +7,6 @@ for dmg in "$build_dir"/*.dmg(N); do
     apps+=("${${dmg##*/}%.dmg}")
 done
 
-_arguments '*:app:(${apps[@]})'
+_arguments \
+    '(--reinstall -r)'{--reinstall,-r}'[削除してからインストール（再インストールモード）]' \
+    '*:app:(${apps[@]})'
