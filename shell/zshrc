@@ -51,7 +51,7 @@ setopt COMPLETE_IN_WORD # 単語の途中でも補完する
 autoload -Uz colors && colors
 autoload -U compinit
 fpath+=$(brew --prefix)/share/zsh/site-functions
-[[ -n "${DOTFILES_DIR:-}" ]] && fpath+="$DOTFILES_DIR/completions"
+fpath+="${HOME}/.zsh_completions"
 compinit
 autoload -U bashcompinit && bashcompinit
 
