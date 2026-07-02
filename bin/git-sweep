@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# git-clean: マージ済みブランチを整理する
+# git-sweep: マージ済みブランチを整理する
 #
 # 使い方:
-#   git-clean [--all] [main-branch]
+#   git-sweep [--all] [main-branch]
 #
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する

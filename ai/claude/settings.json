@@ -6,6 +6,17 @@
   },
   "model": "sonnet",
   "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'git rev-parse --git-dir >/dev/null 2>&1 && git-sweep || :'",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
