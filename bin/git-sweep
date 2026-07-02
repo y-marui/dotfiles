@@ -45,16 +45,24 @@ _is_merged() {
   return 1
 }
 
+_pull_main() {
+  if git pull --rebase --autostash --quiet; then
+    echo "Updated $MAIN."
+  else
+    git rebase --abort 2>/dev/null || true
+    echo "warning: could not pull $MAIN (conflict). Run 'git pull --rebase' manually." >&2
+  fi
+}
+
 current=$(git rev-parse --abbrev-ref HEAD)
 
 if [[ "$current" == "$MAIN" ]]; then
-  git pull --rebase --quiet
-  echo "Updated $MAIN."
+  _pull_main
 elif _is_merged "$current"; then
   echo "Branch '$current' is merged. Switching to $MAIN..."
   git checkout "$MAIN"
-  git pull --rebase --quiet
-  git branch -d "$current"
+  _pull_main
+  git branch -d "$current" 2>/dev/null || git branch -D "$current"
   echo "Deleted: $current"
 else
   echo "Branch '$current' is not yet merged into $MAIN."
@@ -65,7 +73,7 @@ if [[ "$ALL" == true ]]; then
   while IFS= read -r b; do
     [[ "$b" == "$MAIN" ]] && continue
     if _is_merged "$b"; then
-      git branch -d "$b"
+      git branch -d "$b" 2>/dev/null || git branch -D "$b"
       echo "Deleted: $b"
     fi
   done < <(git branch | sed 's/^[* ]*//')
