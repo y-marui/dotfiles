@@ -11,7 +11,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'git rev-parse --git-dir >/dev/null 2>&1 && git-sweep || :'",
+            "command": "bash -c 'git rev-parse --git-dir >/dev/null 2>&1 && git-sweep 2>&1 | tee -a /tmp/git-sweep-debug.log || :'",
             "timeout": 30
           }
         ]

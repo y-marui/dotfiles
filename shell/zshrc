@@ -284,6 +284,10 @@ function _claude-rc() {
 }
 compdef _claude-rc claude-rc
 
+function claude() {
+  command claude "$@"; git rev-parse --git-dir > /dev/null 2>&1 && git-sweep
+}
+
 # --------------------------------------------------------
 # 9. ツール初期化
 # --------------------------------------------------------
