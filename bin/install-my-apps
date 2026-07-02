@@ -88,9 +88,11 @@ install_dmg() {
     app_in_dmg=$(find "$mount_point" -maxdepth 2 -name "*.app" | head -1)
 
     if [[ -n "$app_in_dmg" ]]; then
-        echo "  インストール: $(basename "$app_in_dmg")"
+        local installed_name
+        installed_name=$(basename "$app_in_dmg" .app)
+        echo "  インストール: ${installed_name}.app"
         cp -R "$app_in_dmg" "$APPS_DIR/"
-        installed_apps+=("$app_name")
+        installed_apps+=("$installed_name")
     else
         echo "  警告: .app が見つかりませんでした" >&2
     fi
@@ -103,7 +105,7 @@ relaunch_apps() {
     echo "==> アプリを起動してウィジェット拡張を登録..."
     for app_name in "${installed_apps[@]}"; do
         echo "  起動: $app_name"
-        open -a "$app_name" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
+        open "$APPS_DIR/${app_name}.app" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
     done
     # ウィジェット拡張が登録されるまで待機
     sleep 3
