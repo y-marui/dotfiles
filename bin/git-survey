@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# git-survey: main 以外のブランチを表示（ローカル + リモート）
+#
+# 使い方:
+#   git-survey [main-branch]
+#
+# デフォルトの main ブランチ名: main
+
+set -euo pipefail
+
+MAIN="${1:-main}"
+
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+  exit 0
+fi
+
+git fetch --all --prune --quiet 2>/dev/null || true
+
+locals=$(git branch --format='%(refname:short)' | grep -v "^${MAIN}$" || true)
+remotes=$(git branch -r | grep -v ' -> ' | grep -v "/${MAIN}$" | sed 's|^[[:space:]]*||' | sed 's|.*/||' | sort -u || true)
+all=$(printf '%s\n%s\n' "$locals" "$remotes" | sort -u | grep -v '^$' || true)
+
+[[ -z "$all" ]] && exit 0
+
+echo "Branches (non-${MAIN}):"
+while IFS= read -r b; do
+  [[ -z "$b" ]] && continue
+  in_local=$(printf '%s\n' "$locals" | grep -c "^${b}$" || true)
+  in_remote=$(printf '%s\n' "$remotes" | grep -c "^${b}$" || true)
+  if [[ "$in_local" -gt 0 && "$in_remote" -gt 0 ]]; then
+    printf '  %s\n' "$b"
+  elif [[ "$in_local" -gt 0 ]]; then
+    printf '  %s  (local)\n' "$b"
+  else
+    printf '  %s  (remote)\n' "$b"
+  fi
+done <<< "$all"

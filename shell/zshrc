@@ -216,6 +216,7 @@ function g() {
       echo "$target"
       if [ -n "$target" ]; then
         cd "$target"
+        git-survey 2>/dev/null || true
       fi;;
   esac
 }
@@ -286,6 +287,7 @@ compdef _claude-rc claude-rc
 
 function claude() {
   git rev-parse --git-dir > /dev/null 2>&1 && git pull
+  git-survey 2>/dev/null || true
   command claude "$@"
   git rev-parse --git-dir > /dev/null 2>&1 && git-sweep
 }

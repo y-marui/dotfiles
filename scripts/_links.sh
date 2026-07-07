@@ -36,6 +36,7 @@ LINKS=(
   "bin/ghq-check|${HOME}/.local/bin/ghq-check"
   "bin/ghq-status|${HOME}/.local/bin/ghq-status"
   "bin/git-sweep|${HOME}/.local/bin/git-sweep"
+  "bin/git-survey|${HOME}/.local/bin/git-survey"
   "bin/ghq-clean|${HOME}/.local/bin/ghq-clean"
   "bin/ghq-pull|${HOME}/.local/bin/ghq-pull"
   "bin/ghq-update|${HOME}/.local/bin/ghq-update"
