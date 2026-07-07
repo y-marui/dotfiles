@@ -17,7 +17,7 @@ fi
 git fetch --all --prune --quiet 2>/dev/null || true
 
 locals=$(git branch --format='%(refname:short)' | grep -v "^${MAIN}$" || true)
-remotes=$(git branch -r | grep -v ' -> ' | grep -v "/${MAIN}$" | sed 's|^[[:space:]]*||' | sed 's|.*/||' | sort -u || true)
+remotes=$(git branch -r | grep -v ' -> ' | grep -v "/${MAIN}$" | sed 's|^[[:space:]]*||' | sed 's|^[^/]*/||' | sort -u || true)
 all=$(printf '%s\n%s\n' "$locals" "$remotes" | sort -u | grep -v '^$' || true)
 
 [[ -z "$all" ]] && exit 0

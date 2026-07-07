@@ -216,7 +216,9 @@ function g() {
       echo "$target"
       if [ -n "$target" ]; then
         cd "$target"
-        git-survey 2>/dev/null || true
+        local _survey
+        _survey=$(git-survey 2>/dev/null) || true
+        [[ -n "$_survey" ]] && printf '\n%s\n' "$_survey"
       fi;;
   esac
 }
