@@ -218,7 +218,10 @@ function g() {
         cd "$target"
         local _survey
         _survey=$(git-survey 2>/dev/null) || true
-        [[ -n "$_survey" ]] && printf '\n%s\n' "$_survey"
+        if [[ -n "$_survey" ]]; then
+          echo
+          echo "$_survey"
+        fi
       fi;;
   esac
 }
