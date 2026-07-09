@@ -63,15 +63,15 @@ if command -v gh > /dev/null; then
 fi
 
 # --------------------------------------------------------
-# SSH ラッパー（Zellij 内のみ有効）
+# sshz コマンド（Zellij 統合 SSH、Zellij 内のみ有効）
 # --------------------------------------------------------
-# Zellij 内で ssh を実行すると新しいペイン/タブを作成して SSH を起動する。
+# Zellij 内で sshz を実行すると新しいペイン/タブを作成して SSH を起動する。
 # 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
 # デフォルトは新規タブで開く。
 # --same: 現在のタブに縦分割ペインで開く。
 # --no-zellij: 接続先の zellij auto-attach を無効化（NO_ZELLIJ=1 を渡す）。
 if [ -n "$ZELLIJ" ]; then
-  ssh() {
+  sshz() {
     local new_tab=true
     local no_zellij=false
     local args=()
@@ -87,8 +87,9 @@ if [ -n "$ZELLIJ" ]; then
     local no_zellij_env="NO_ZELLIJ=''"
     $no_zellij && no_zellij_env="NO_ZELLIJ=1"
 
+    local cmd
     # shellcheck disable=SC2046
-    local cmd="env $no_zellij_env command ssh $(printf '%q ' "${args[@]}")"
+    cmd="env $no_zellij_env command ssh $(printf '%q ' "${args[@]}")"
     local host="${args[-1]}"
 
     if $new_tab; then
@@ -97,6 +98,30 @@ if [ -n "$ZELLIJ" ]; then
       zellij run --name "ssh:${host}" --close-on-exit -- sh -c "$cmd"
     fi
   }
+
+  # sshz 補完: ssh のホスト補完を流用し、ラッパー独自オプションを追加
+  _sshz_completion() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local wrapper_opts="--new --same --no-zellij"
+
+    if [[ "$cur" == --* ]]; then
+      # shellcheck disable=SC2207
+      COMPREPLY=($(compgen -W "$wrapper_opts" -- "$cur"))
+      return
+    fi
+
+    # ssh のホスト補完関数が利用可能なら委譲
+    if declare -f _ssh > /dev/null 2>&1; then
+      _ssh
+      # ラッパーオプションも候補に追加
+      # shellcheck disable=SC2207
+      COMPREPLY+=($(compgen -W "$wrapper_opts" -- "$cur"))
+    else
+      # shellcheck disable=SC2207
+      COMPREPLY=($(compgen -W "$wrapper_opts" -- "$cur"))
+    fi
+  }
+  complete -F _sshz_completion sshz
 fi
 
 # --------------------------------------------------------
