@@ -154,22 +154,24 @@ EOF
       '--no-zellij:接続先でZellijを自動起動しない'
     )
 
-    # 現在のワードが -- で始まる場合はラッパーオプションのみ補完して終了
-    if [[ "${words[CURRENT]}" == --* ]]; then
-      _describe -t sshz-opts 'sshz options' wrapper_opts
-      return
-    fi
-
+    # ラッパーオプション自体の補完
     _describe -t sshz-opts 'sshz options' wrapper_opts
 
-    # _ssh にカスタムフラグを見せないよう words から除外して委譲
-    local -a filtered_words
-    for w in "${words[@]}"; do
-      [[ "$w" == --new || "$w" == --same || "$w" == --no-zellij ]] || filtered_words+=("$w")
+    # 現在のワードがオプションなら _ssh への委譲はしない
+    [[ "${words[CURRENT]}" == --* ]] && return
+
+    # _ssh にカスタムフラグを見せないよう除外し、words[1] を ssh に置き換えて委譲
+    local -a filtered_words=('ssh')
+    local i new_current=1
+    for (( i=2; i<=${#words[@]}; i++ )); do
+      if [[ "${words[$i]}" != --new && "${words[$i]}" != --same && "${words[$i]}" != --no-zellij ]]; then
+        filtered_words+=("${words[$i]}")
+        [[ $i -le $CURRENT ]] && (( new_current++ ))
+      fi
     done
     words=("${filtered_words[@]}")
-    (( CURRENT = ${#words[@]} ))
-    _ssh
+    CURRENT=$new_current
+    service=ssh _ssh
   }
   compdef _sshz sshz
 fi
