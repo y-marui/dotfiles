@@ -50,7 +50,9 @@ setopt COMPLETE_IN_WORD # 単語の途中でも補完する
 # --------------------------------------------------------
 autoload -Uz colors && colors
 autoload -U compinit
-fpath+=$(brew --prefix)/share/zsh/site-functions
+if command -v brew &>/dev/null; then
+  fpath+=$(brew --prefix)/share/zsh/site-functions
+fi
 fpath+="${HOME}/.zsh_completions"
 compinit
 autoload -U bashcompinit && bashcompinit
@@ -179,7 +181,11 @@ fi
 # --------------------------------------------------------
 # 7. エイリアス
 # --------------------------------------------------------
-alias ls='/bin/ls -G'   # [共通]
+if [[ "$OSTYPE" == darwin* ]]; then
+  alias ls='/bin/ls -G'    # macOS: 色つき表示
+else
+  alias ls='ls --color=auto'  # Linux（GNU coreutils）: 色つき表示（-G は意味が違うため使わない）
+fi
 # pyenv と brew の PATH 衝突回避 + Brewfile.cache 自動更新
 function brew() {
   env PATH="${PATH//${PYENV_ROOT}/bin:/}" brew "$@"

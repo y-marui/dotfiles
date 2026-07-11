@@ -1,0 +1,20 @@
+# packages.txt
+# make rpi-packages / rpi/apply_packages.sh で apt install -y する固定パッケージ一覧
+# 1行1パッケージ。# 始まりの行と空行は無視される。
+
+# シェル
+zsh
+
+# Git
+git
+
+# 基本ツール
+curl
+wget
+gnupg
+jq
+tree
+fzf
+
+# pipx（Git フック等の Python ツールは pipx 経由で導入する）
+pipx

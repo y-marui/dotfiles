@@ -6,7 +6,7 @@ BACKUP       := 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff iterm-save npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff check init private
+.PHONY: help install install-macos install-rpi install-windows uninstall update brew brew-sync brew-cache brew-diff macos dock dock-sync dock-cache dock-diff iterm-save npm npm-sync npm-cache npm-diff pipx pipx-sync pipx-cache pipx-diff rpi-packages check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -35,8 +35,20 @@ install-macos: ## macOS 向けフルセットアップ（シンボリックリ�
 	@$(MAKE) brew BACKUP=1 BACKUP_DIR="$(BACKUP_DIR)"
 	@$(MAKE) dock BACKUP=1 BACKUP_DIR="$(BACKUP_DIR)"
 
-install-rpi: ## Raspberry Pi 向けセットアップ（未実装）
-	@echo "TODO: install-rpi は未実装です。"
+install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリンク + apt パッケージ + claude-code/homebridge/tailscale + zsh化）
+	@bash scripts/install.sh
+	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
+	   bash $(PRIVATE_DIR)/setup.sh; \
+	 else \
+	   echo "  SKIP    dotfiles-private (make private でセットアップしてください)"; \
+	 fi
+	@$(MAKE) rpi-packages
+	@$(MAKE) pipx
+	@bash rpi/repos/setup_claude-code.sh
+	@bash rpi/repos/setup_homebridge.sh
+	@bash rpi/repos/setup_tailscale.sh
+	@bash rpi/setup_zellij.sh
+	@bash rpi/setup_zsh.sh
 
 install-windows: ## Windows 向けセットアップ（シンボリックリンク作成）
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
@@ -149,3 +161,6 @@ init: ## このマシン用のホスト固有設定テンプレートを生成
 
 private: ## dotfiles-private を GitHub からクローン・更新
 	@bash scripts/setup-private.sh
+
+rpi-packages: ## rpi/packages.txt のパッケージを apt でインストール
+	@DOTFILES_DIR="$(DOTFILES_DIR)" bash rpi/apply_packages.sh
