@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# ghq-clean: ghq 管理リポジトリのマージ済みブランチを一括整理する
+# ghq-sweep: ghq 管理リポジトリのマージ済みブランチを一括整理する
 #
 # 使い方:
-#   ghq-clean [options]
+#   ghq-sweep [options]
 #
 # オプション:
 #   -h, --help   ヘルプを表示
