@@ -11,6 +11,7 @@
 #   --all               アーカイブ済みリポジトリも含めて表示する
 #   --no-forks          フォークリポジトリを除外
 #   --exclude PATTERN   名前（owner/repo）に一致するパターンを除外（複数指定可）
+#   -f, --filter PATTERN  名前（owner/repo）が正規表現 PATTERN にマッチするものだけを対象にする
 #   -h, --help          ヘルプを表示
 
 set -euo pipefail
@@ -21,6 +22,7 @@ DRY_RUN=false
 ALL=false
 NO_FORKS=false
 typeset -a EXCLUDE_PATTERNS=()
+FILTER=''
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +33,9 @@ while [[ $# -gt 0 ]]; do
     --exclude)
       (( $# < 2 )) && { print -u2 "error: --exclude requires an argument"; exit 1; }
       EXCLUDE_PATTERNS+=("$2"); shift 2 ;;
+    -f|--filter)
+      (( $# < 2 )) && { print -u2 "error: --filter requires an argument"; exit 1; }
+      FILTER="$2"; shift 2 ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) print -u2 "error: unknown option: $1"; exit 1 ;;
   esac
@@ -162,6 +167,10 @@ for pattern in "${EXCLUDE_PATTERNS[@]}"; do
   escaped=$(printf '%s' "$pattern" | jq -Rs '.')
   filter_expr+=" | map(select(.nameWithOwner | test(${escaped}; \"i\") | not))"
 done
+if [[ -n "$FILTER" ]]; then
+  escaped=$(printf '%s' "$FILTER" | jq -Rs '.')
+  filter_expr+=" | map(select(.nameWithOwner | test(${escaped}; \"i\")))"
+fi
 
 repos=$(print "$repos_json" | jq -r "${filter_expr} | .[] | [.nameWithOwner, (.isArchived | tostring)] | @tsv" | sort -f)
 
