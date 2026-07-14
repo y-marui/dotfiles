@@ -176,7 +176,6 @@ mas "Tailscale", id: 1475387142
 mas "ToDo", id: 1498581975
 mas "UpNote", id: 1398373917
 mas "Xcode", id: 497799835
-mas "スティッキーズ Pro", id: 1482080766
 
 # ── VSCode 拡張機能 ───────────────────────────────────────────────────────────
 vscode "3w36zj6.textlint"
@@ -212,4 +211,5 @@ vscode "tomoki1207.vscode-input-sequence"
 vscode "ziyasal.vscode-open-in-github"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
+brew "colormake"
 cask "microsoft-office"
