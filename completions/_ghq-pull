@@ -1,0 +1,10 @@
+#compdef ghq-pull
+
+_ghq-pull() {
+  _arguments \
+    '--fetch-only[fetch のみ実行し pull をスキップ]' \
+    '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]'
+}
+
+_ghq-pull "$@"

@@ -1,0 +1,13 @@
+#compdef git-survey
+
+_git-survey_branches() {
+  local -a branches
+  branches=(${(f)"$(git branch --format='%(refname:short)' 2>/dev/null)"})
+  _describe 'branch' branches
+}
+
+_git-survey() {
+  _arguments '1:main branch name:_git-survey_branches'
+}
+
+_git-survey "$@"

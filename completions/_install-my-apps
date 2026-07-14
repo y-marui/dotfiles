@@ -1,12 +1,18 @@
 #compdef install-my-apps
 
-local build_dir="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
-local -a apps
-
-for dmg in "$build_dir"/*.dmg(N); do
+_install-my-apps_apps() {
+  local build_dir="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
+  local -a apps
+  for dmg in "$build_dir"/*.dmg(N); do
     apps+=("${${dmg##*/}%.dmg}")
-done
+  done
+  _describe 'app' apps
+}
 
-_arguments \
-    '(--reinstall -r)'{--reinstall,-r}'[削除してからインストール（再インストールモード）]' \
-    '*:app:(${apps[@]})'
+_install-my-apps() {
+  _arguments \
+    '(-r --reinstall)'{-r,--reinstall}'[削除してからインストール（再インストールモード）]' \
+    '*:app:_install-my-apps_apps'
+}
+
+_install-my-apps "$@"

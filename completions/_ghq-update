@@ -1,0 +1,11 @@
+#compdef ghq-update
+
+_ghq-update() {
+  _arguments \
+    '--all[全リポジトリを対象にする（デフォルトは keep-up-to-date=true のみ）]' \
+    '--pull-only[uv sync --upgrade をスキップ]' \
+    '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]'
+}
+
+_ghq-update "$@"

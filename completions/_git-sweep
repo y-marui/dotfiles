@@ -1,0 +1,15 @@
+#compdef git-sweep
+
+_git-sweep_branches() {
+  local -a branches
+  branches=(${(f)"$(git branch --format='%(refname:short)' 2>/dev/null)"})
+  _describe 'branch' branches
+}
+
+_git-sweep() {
+  _arguments \
+    '--all[現在以外のマージ済みブランチも削除する]' \
+    '1:main branch name:_git-sweep_branches'
+}
+
+_git-sweep "$@"

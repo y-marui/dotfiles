@@ -1,0 +1,13 @@
+#compdef run-quiet
+
+_run-quiet() {
+  if (( CURRENT == 2 )); then
+    _command_names -e
+  else
+    words=("${words[2,-1]}")
+    (( CURRENT-- ))
+    _normal
+  fi
+}
+
+_run-quiet "$@"

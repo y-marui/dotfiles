@@ -1,0 +1,16 @@
+#compdef ghq-check
+
+_ghq-check() {
+  _arguments \
+    '--sync[未取得リポジトリを ghq get で取得する]' \
+    '--dry-run[--sync の実行対象を表示するだけで ghq get は実行しない]' \
+    '--all[アーカイブ済みリポジトリも含めて表示する]' \
+    '--no-forks[フォークリポジトリを除外]' \
+    '*--exclude[除外するリポジトリパターン（複数指定可）]:pattern:' \
+    '(-f --filter)'{-f,--filter}'[表示対象を正規表現で絞り込む]:pattern:' \
+    '(--missing)--existing[ローカルに取得済みのリポジトリのみ表示する]' \
+    '(--existing)--missing[ローカルに未取得のリポジトリのみ表示する]' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]'
+}
+
+_ghq-check "$@"
