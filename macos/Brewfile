@@ -171,10 +171,8 @@ mas "MARKETSPEED", id: 946680495
 mas "Notability", id: 360593530
 mas "PDF Expert", id: 1055273043
 mas "Remote Mouse", id: 403195710
-mas "RunCat", id: 1429033973
 mas "Tailscale", id: 1475387142
 mas "ToDo", id: 1498581975
-mas "UpNote", id: 1398373917
 mas "Xcode", id: 497799835
 
 # ── VSCode 拡張機能 ───────────────────────────────────────────────────────────
@@ -213,3 +211,4 @@ vscode "ziyasal.vscode-open-in-github"
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "colormake"
 cask "microsoft-office"
+mas "RunCatNeo", id: 6757801838
