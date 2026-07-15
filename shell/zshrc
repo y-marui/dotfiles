@@ -230,6 +230,15 @@ function g() {
           echo
           echo "$_survey"
         fi
+        local _missing=()
+        while IFS= read -r _f; do
+          [[ -e "${_f%.example}" ]] || _missing+=("${_f%.example}")
+        done < <(git ls-files | grep '^[^/]*\.example$' 2>/dev/null)
+        if [[ ${#_missing[@]} -gt 0 ]]; then
+          echo
+          echo "Missing (*.example exists but * does not):"
+          printf '  %s\n' "${_missing[@]}"
+        fi
       fi;;
   esac
 }
