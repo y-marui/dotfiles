@@ -352,7 +352,7 @@ if $reinstall; then
             to_reinstall+=("$dmg")
         fi
     done
-    dmg_files=("${to_reinstall[@]}")
+    dmg_files=("${to_reinstall[@]+"${to_reinstall[@]}"}")
 
     if (( ${#dmg_files[@]} > 0 )); then
         # フェーズ 1: 対象アプリを終了・削除
@@ -366,9 +366,11 @@ if $reinstall; then
 fi
 
 # フェーズ 3: 全アプリをインストール（quit は install_dmg 内で実行）
-for dmg in "${dmg_files[@]}"; do
-    install_dmg "$dmg"
-done
+if (( ${#dmg_files[@]} > 0 )); then
+    for dmg in "${dmg_files[@]}"; do
+        install_dmg "$dmg"
+    done
+fi
 
 if (( ${#installed_apps[@]} == 0 )); then
     echo ""
