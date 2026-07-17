@@ -9,6 +9,7 @@
 # --force / -f フラグ（強制インストールモード）:
 #   バージョンチェックをスキップして常にインストール
 # --reinstall / -r フラグ（再インストールモード）:
+#   同バージョン（DMG のタイムスタンプが同じ）はスキップ
 #   1. 起動中のアプリを終了・既存の .app を削除
 #   2. ウィジェットキャッシュをクリア
 #   3. DMG からインストール
@@ -73,6 +74,35 @@ quit_app() {
     # 残留プロセスを強制終了
     pkill -f "$app_path" 2>/dev/null || true
     sleep 0.3
+}
+
+# DMG 内のアプリと Applications 内のアプリのタイムスタンプが同じか判定
+is_dmg_same_version() {
+    local dmg="$1"
+    local mount_point
+    mount_point=$(hdiutil attach "$dmg" -nobrowse -readonly -noverify 2>/dev/null \
+        | grep '/Volumes/' | sed 's/.*\t//')
+    [[ -z "$mount_point" ]] && return 1
+
+    local app_in_dmg
+    app_in_dmg=$(find "$mount_point" -maxdepth 2 -name "*.app" | head -1)
+    if [[ -z "$app_in_dmg" ]]; then
+        hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+        return 1
+    fi
+
+    local installed_app
+    installed_app="$APPS_DIR/$(basename "$app_in_dmg")"
+    local same=1
+    if [[ -d "$installed_app" ]]; then
+        local dmg_mtime installed_mtime
+        dmg_mtime=$(stat -f %m "$app_in_dmg")
+        installed_mtime=$(stat -f %m "$installed_app")
+        [[ "$dmg_mtime" == "$installed_mtime" ]] && same=0
+    fi
+
+    hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+    return $same
 }
 
 remove_app() {
@@ -312,13 +342,27 @@ if (( ${#dmg_files[@]} == 0 )); then
 fi
 
 if $reinstall; then
-    # フェーズ 1: 全アプリを終了・削除
+    # 同バージョンの DMG は削除前に除外
+    to_reinstall=()
     for dmg in "${dmg_files[@]}"; do
-        remove_app "$dmg"
+        if ! $force && is_dmg_same_version "$dmg"; then
+            echo ""
+            echo "==> $(basename "$dmg" .dmg) — スキップ（インストール済みと同じバージョン）"
+        else
+            to_reinstall+=("$dmg")
+        fi
     done
+    dmg_files=("${to_reinstall[@]}")
 
-    # フェーズ 2: ウィジェットキャッシュをクリア
-    clear_widget_cache
+    if (( ${#dmg_files[@]} > 0 )); then
+        # フェーズ 1: 対象アプリを終了・削除
+        for dmg in "${dmg_files[@]}"; do
+            remove_app "$dmg"
+        done
+
+        # フェーズ 2: ウィジェットキャッシュをクリア
+        clear_widget_cache
+    fi
 fi
 
 # フェーズ 3: 全アプリをインストール（quit は install_dmg 内で実行）
