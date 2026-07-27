@@ -210,6 +210,7 @@ vscode "ziyasal.vscode-open-in-github"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "colormake"
+brew "libtiff"
 brew "xcodegen"
 cask "microsoft-office"
 mas "RunCatNeo", id: 6757801838
