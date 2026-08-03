@@ -36,6 +36,11 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 - `NO_ZELLIJ=1` でどの環境でもスキップ可
 - `$ZELLIJ` が設定済みの場合は既にセッション内なのでスキップ
 - エディタ等のサブプロセスでシェルが起動した場合は上記条件に合わないためスキップ
+- Windowsは対話的なWindows Terminal/SSH接続でホスト名セッションを作成し、切断後はZellijサーバーを維持する
+- Windowsでは入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成を使わない
+- WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`へ設定し、Zellijの新規ペインもPowerShellにする
+- Windows専用Zellij設定は`terminal/zellij/windows/config.kdl`を使用し、`default_shell "pwsh.exe"`を明示する
+- ZellijはmacOS/Raspberry Piで`0.43.1`、ネイティブWindowsで`0.44.3`を固定する
 
 ## SSH ラッパー（zsh / bash / pwsh 共通）
 

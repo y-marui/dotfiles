@@ -1,0 +1,12 @@
+{
+  "profiles": [
+    {
+      "name": "PowerShell (No Zellij)",
+      "commandline": "pwsh.exe",
+      "startingDirectory": "%USERPROFILE%",
+      "environment": {
+        "NO_ZELLIJ": "1"
+      }
+    }
+  ]
+}

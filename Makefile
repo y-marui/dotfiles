@@ -53,7 +53,9 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	@bash scripts/setup-zellij.sh
 	@bash rpi/setup_zsh.sh
 
-install-windows: ## Windows 向けセットアップ（シンボリックリンク作成）
+install-windows: ## Windows 向けセットアップ（gsudo + シンボリックリンク + Zellij自動attach）
+	pwsh -NoLogo -NoProfile -File scripts/setup-gsudo.ps1
+	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
 
 uninstall: ## シンボリックリンクを削除
@@ -62,6 +64,7 @@ uninstall: ## シンボリックリンクを削除
 # TODO: RPi 用途が増えたら RPI_TARGET 変数等でスクリプト（update-rpi-*.sh）を分岐する
 update: ## dotfiles を更新・再リンク後、OS 別の更新を実行
 ifeq ($(OS),Windows_NT)
+	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/update-windows.ps1
 else
 	@bash scripts/update-dotfiles.sh

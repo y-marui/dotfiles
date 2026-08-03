@@ -14,6 +14,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $DOTFILES_DIR = Split-Path -Parent $PSScriptRoot
+$userBin = Join-Path $HOME '.local\bin'
+if ((Test-Path -LiteralPath $userBin) -and
+    -not (@($env:PATH -split ';') | Where-Object { $_.TrimEnd('\') -ieq $userBin.TrimEnd('\') })) {
+    $env:PATH = "$userBin;$env:PATH"
+}
 
 $backupDir = Join-Path $HOME ".dotfiles-backup" (Get-Date -Format 'yyyyMMddHHmmss')
 
@@ -21,14 +26,20 @@ $backupDir = Join-Path $HOME ".dotfiles-backup" (Get-Date -Format 'yyyyMMddHHmms
 $links = @(
     [pscustomobject]@{
         Src  = "terminal\powershell\profile.ps1"
-        Dest = Join-Path $HOME ".config\powershell\Microsoft.PowerShell_profile.ps1"
+        # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
+        Dest = $PROFILE.CurrentUserCurrentHost
+    }
+    [pscustomobject]@{
+        Src  = "terminal\windows-terminal\dotfiles.json"
+        # 自動attachを迂回できる「PowerShell (No Zellij)」プロファイル。
+        Dest = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\dotfiles\profiles.json"
     }
     [pscustomobject]@{
         Src  = "terminal\ohmyposh\p10k-lean.json"
         Dest = Join-Path $HOME ".config\oh-my-posh\p10k-lean.json"
     }
     [pscustomobject]@{
-        Src  = "terminal\zellij\config.kdl"
+        Src  = "terminal\zellij\windows\config.kdl"
         Dest = Join-Path $HOME ".config\zellij\config.kdl"
     }
     [pscustomobject]@{

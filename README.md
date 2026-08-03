@@ -5,7 +5,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 
 ## セットアップ（新規マシン）
 
-詳細な手順は **[docs/setup-mac.md](docs/setup-mac.md)** を参照。
+詳細な手順は **[macOS](docs/setup-mac.md)** / **[Windows](docs/setup-windows.md)** を参照。
 
 概要:
 
@@ -34,8 +34,9 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `make dock` | Dock アプリ・Finder サイドバーを適用 |
 | `make dock-sync` | 現在の Dock・サイドバーを管理ファイルに同期 |
 
-ZellijはHomebrewの最新版追従から外し、`scripts/setup-zellij.sh`で互換性を確認した
-`0.43.1`を`~/.local/bin/zellij`へインストールする。
+ZellijはOS別に互換性を確認したバージョンを固定する。macOS/Raspberry Piは
+`scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
+ネイティブWindows対応の`0.44.3`をユーザーローカルへインストールする。
 
 ### カスタムコマンド（`~/.local/bin/`）
 
@@ -132,6 +133,11 @@ vendor しない。
 - SSHでリモートログインした場合（`$SSH_CONNECTION` が設定されている場合）
 
 `NO_ZELLIJ=1` を設定するか、`ZELLIJ` が設定済みの場合はスキップされる。
+
+WindowsではWindows TerminalまたはSSHからの最初の接続でホスト名セッションを作成し、
+切断後もZellijサーバーを維持するため、同じセッションへ再接続できる。
+詳細は [Windowsセットアップ](docs/setup-windows.md) を参照。
+Zellijなしで作業する場合は、Windows Terminalの `PowerShell (No Zellij)` を選ぶ。
 
 ### ssh コマンドのラッパー（iTerm2 + Zellij内のみ有効）
 

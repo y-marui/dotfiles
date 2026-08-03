@@ -2,6 +2,26 @@
 # zsh + Powerlevel10k lean スタイルに合わせた設定
 # 対象環境: Windows（Windows Terminal）
 
+# ─── ユーザーローカルコマンド ───────────────────────────────────────────────
+$_dotfiles_user_bin = Join-Path $HOME '.local\bin'
+if ((Test-Path -LiteralPath $_dotfiles_user_bin) -and
+    -not (@($env:PATH -split ';') | Where-Object {
+        $_.TrimEnd('\') -ieq $_dotfiles_user_bin.TrimEnd('\')
+    })) {
+    $env:PATH = "$_dotfiles_user_bin;$env:PATH"
+}
+
+$_dotfiles_zellij_config = Join-Path $HOME '.config\zellij'
+if (Test-Path -LiteralPath $_dotfiles_zellij_config -PathType Container) {
+    $env:ZELLIJ_CONFIG_DIR = $_dotfiles_zellij_config
+}
+
+$_dotfiles_pwsh = Get-Command pwsh -CommandType Application -ErrorAction SilentlyContinue
+if ($_dotfiles_pwsh) {
+    # Windows版Zellijの新規ペインがcmd.exeへフォールバックしないよう明示する。
+    $env:SHELL = $_dotfiles_pwsh.Source
+}
+
 # ─── Zellij 自動アタッチ ─────────────────────────────────────────────────────
 # Windows Terminal または SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
 if ((Get-Command zellij -ErrorAction SilentlyContinue) -and
@@ -9,6 +29,28 @@ if ((Get-Command zellij -ErrorAction SilentlyContinue) -and
     -not $env:NO_ZELLIJ -and
     ($env:WT_SESSION -or $env:SSH_CONNECTION)) {
     $sessionName = ($env:COMPUTERNAME -split '\.')[0].ToLower()
+
+    # Windows TerminalはTERMを設定しないため、Windows版0.44のVT入力経路を明示する。
+    if ($env:WT_SESSION -and -not $env:TERM) {
+        $env:TERM = 'xterm-256color'
+    }
+
+    # 同名の終了済みレコードがあると対話的な復元へ入るため、新規作成前に削除する。
+    $hasActiveSession = $false
+    $hasExitedSession = $false
+    foreach ($line in @(zellij list-sessions --no-formatting 2>$null)) {
+        if ($line -match '^(?<name>\S+)\s+\[' -and $Matches.name -ieq $sessionName) {
+            if ($line -match '\(EXITED\b') {
+                $hasExitedSession = $true
+            } else {
+                $hasActiveSession = $true
+            }
+        }
+    }
+    if (-not $hasActiveSession -and $hasExitedSession) {
+        zellij delete-session --force $sessionName *> $null
+    }
+
     zellij attach -c $sessionName
     exit
 }
@@ -31,7 +73,10 @@ if (Get-Module -ListAvailable -Name Terminal-Icons) {
 # zsh の Emacs キーバインド・履歴検索・構文ハイライトに合わせた設定
 if (Get-Module -ListAvailable -Name PSReadLine) {
     Set-PSReadLineOption -EditMode Emacs
-    Set-PSReadLineOption -PredictionSource History
+    # リダイレクトされた非対話処理では予測表示を有効化できない。
+    if ($Host.UI.SupportsVirtualTerminal -and -not [Console]::IsOutputRedirected) {
+        Set-PSReadLineOption -PredictionSource History
+    }
     Set-PSReadLineOption -HistorySearchCursorMovesToEnd
     Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
     Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
