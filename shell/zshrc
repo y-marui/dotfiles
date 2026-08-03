@@ -26,39 +26,43 @@ if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; t
 fi
 
 # --------------------------------------------------------
-# 1. Powerlevel10k instant prompt（最上部に置くこと）
+# 2. Powerlevel10k instant prompt（最上部に置くこと）
 # --------------------------------------------------------
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 # --------------------------------------------------------
-# 2. zprezto
+# 3. 補完パス（Prezto の completion 初期化より前に設定）
+# --------------------------------------------------------
+if command -v brew &>/dev/null; then
+  fpath+=$(brew --prefix)/share/zsh/site-functions
+fi
+fpath+="${HOME}/.zsh_completions"
+
+# --------------------------------------------------------
+# 4. zprezto
 # --------------------------------------------------------
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
 fi
 
 # --------------------------------------------------------
-# 3. zsh オプション
+# 5. zsh オプション
 # --------------------------------------------------------
 setopt IGNOREEOF        # Ctrl+D でのログアウトを防ぐ
 setopt COMPLETE_IN_WORD # 単語の途中でも補完する
 
 # --------------------------------------------------------
-# 4. 補完
+# 6. bash 形式の補完を有効化
 # --------------------------------------------------------
 autoload -Uz colors && colors
-autoload -U compinit
-if command -v brew &>/dev/null; then
-  fpath+=$(brew --prefix)/share/zsh/site-functions
+if (( $+functions[compdef] )); then
+  autoload -U bashcompinit && bashcompinit
 fi
-fpath+="${HOME}/.zsh_completions"
-compinit
-autoload -U bashcompinit && bashcompinit
 
 # --------------------------------------------------------
-# 5. sshz コマンド（Zellij 統合 SSH、Zellij 内のみ有効）
+# 7. sshz コマンド（Zellij 統合 SSH、Zellij 内のみ有効）
 # --------------------------------------------------------
 # Zellij 内で sshz を実行すると新しいペイン/タブを作成して SSH を起動する。
 # 接続先ではデフォルトで zellij auto-attach（NO_ZELLIJ='' を渡す）。
@@ -179,7 +183,7 @@ EOF
 fi
 
 # --------------------------------------------------------
-# 7. エイリアス
+# 8. エイリアス
 # --------------------------------------------------------
 if [[ "$OSTYPE" == darwin* ]]; then
   alias ls='/bin/ls -G'    # macOS: 色つき表示
@@ -209,7 +213,7 @@ function npm() {
 }
 
 # --------------------------------------------------------
-# 8. カスタム関数
+# 9. カスタム関数
 # --------------------------------------------------------
 
 # ghq + fzf でリポジトリ移動
@@ -314,13 +318,12 @@ function claude() {
 }
 
 # --------------------------------------------------------
-# 9. ツール初期化
+# 10. ツール初期化
 # --------------------------------------------------------
 
 # pyenv                                                   # [共通]
 if command -v pyenv > /dev/null; then                     # [共通]
-  eval "$(pyenv init -)"                                  # [共通]
-  eval "$(pyenv init --path)"                             # [共通]
+  eval "$(pyenv init - zsh)"                              # [共通]
 fi                                                        # [共通]
 
 # rbenv                                                   # [共通]
@@ -339,17 +342,17 @@ if command -v gh &>/dev/null; then
 fi
 
 # --------------------------------------------------------
-# 10. Powerlevel10k テーマ
+# 11. Powerlevel10k テーマ
 # --------------------------------------------------------
 [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
 # --------------------------------------------------------
-# 11. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
+# 12. ローカル設定（シークレット等 → ~/.zshrc.local に記載）
 # --------------------------------------------------------
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 
 # --------------------------------------------------------
-# 12. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
+# 13. ホスト固有設定（$DOTFILES_DIR/host/<hostname>.zsh）（.zshrc.local で DOTFILES_DIR が確定した後）
 # --------------------------------------------------------
 [[ -f "$DOTFILES_DIR/host/$(hostname -s).zsh" ]] && \
   source "$DOTFILES_DIR/host/$(hostname -s).zsh"
@@ -446,8 +449,10 @@ if [[ -n "${DOTFILES_DIR:-}" ]]; then
   unset _menubar_diff
 fi
 
-# iTerm2 Shell Integration を読み込む（iTerm2 で zsh を使う場合は必須）
-if [[ "$TERM_PROGRAM" == "iTerm.app" ]]; then
+# iTerm2 Shell Integration は iTerm2 直下のシェルだけで読み込む。
+# Zellij 内では Zellij と Powerlevel10k が端末描画を管理するため、iTerm2 の
+# prompt hook / OSC 制御シーケンスを重ねるとプロンプトが重複描画される。
+if [[ "$TERM_PROGRAM" == "iTerm.app" && -z "$ZELLIJ" ]]; then
   if [[ -f ~/.iterm2_shell_integration.zsh ]]; then
     source ~/.iterm2_shell_integration.zsh
   else

@@ -6,16 +6,19 @@
 #   Sorin Ionescu <sorin.ionescu@gmail.com>
 #
 
-# zcompdump をバックグラウンドでコンパイル（起動速度向上）
-{
-  zcompdump="${XDG_CACHE_HOME:-$HOME/.cache}/prezto/zcompdump"
-  if [[ -s "$zcompdump" && (! -s "${zcompdump}.zwc" || "$zcompdump" -nt "${zcompdump}.zwc") ]]; then
+# zcompdump が更新された場合だけバックグラウンドでコンパイルする。
+# 条件判定もバックグラウンドにすると、処理不要な場合でも zsh の BG_NICE が
+# setpriority を呼び、sandbox 等で警告を出すため、判定は親シェルで行う。
+zcompdump="${XDG_CACHE_HOME:-$HOME/.cache}/prezto/zcompdump"
+if [[ -s "$zcompdump" && (! -s "${zcompdump}.zwc" || "$zcompdump" -nt "${zcompdump}.zwc") ]]; then
+  {
     if command mkdir "${zcompdump}.zwc.lock" 2>/dev/null; then
       zcompile "$zcompdump"
       command rmdir "${zcompdump}.zwc.lock" 2>/dev/null
     fi
-  fi
-} &!
+  } &!
+fi
+unset zcompdump
 
 # インタラクティブログイン時に fortune を表示
 if [[ -o INTERACTIVE && -t 2 ]]; then
