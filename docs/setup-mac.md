@@ -212,6 +212,7 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 | ステップ | 内容 |
 |---------|------|
 | `make install` | シンボリックリンクをホームへ展開 |
+| Zellij setup | 互換性を確認した固定版を `~/.local/bin/zellij` へインストール |
 | private setup | `dotfiles-private/setup.sh` を適用（`make private` 済みの場合） |
 | `make macos` | macOS システム設定（Dock・Finder・キーボード等） |
 | `make brew` | Brewfile のパッケージをインストール |

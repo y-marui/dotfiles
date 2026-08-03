@@ -26,6 +26,7 @@ endif
 
 install-macos: ## macOS 向けフルセットアップ（シンボリックリンク + macos + brew + dock）
 	@bash scripts/install.sh
+	@bash scripts/setup-zellij.sh
 	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
 	   bash $(PRIVATE_DIR)/setup.sh; \
 	 else \
@@ -47,7 +48,7 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	@bash rpi/repos/setup_claude-code.sh
 	@bash rpi/repos/setup_homebridge.sh
 	@bash rpi/repos/setup_tailscale.sh
-	@bash rpi/setup_zellij.sh
+	@bash scripts/setup-zellij.sh
 	@bash rpi/setup_zsh.sh
 
 install-windows: ## Windows 向けセットアップ（シンボリックリンク作成）

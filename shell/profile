@@ -38,7 +38,6 @@ export PIP_REQUIRE_VIRTUALENV=true
 # --------------------------------------------------------
 # PATH
 # --------------------------------------------------------
-export PATH="$HOME/.local/bin:$HOME/.local/bin/dotfiles:$PATH"
 export PATH="$HOME/.rbenv/shims:$PATH"
 export PATH="$HOME/.nodebrew/current/bin:$PATH"
 
@@ -78,6 +77,10 @@ fi
 # TeX
 # --------------------------------------------------------
 export PATH="/Library/TeX/texbin:$PATH"
+
+# dotfiles-managed commands (including the pinned Zellij) take precedence over
+# Homebrew and manually installed system binaries.
+export PATH="$HOME/.local/bin:$HOME/.local/bin/dotfiles:$PATH"
 
 # --------------------------------------------------------
 # Homebrew: misc

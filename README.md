@@ -22,7 +22,7 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 
 | コマンド | 説明 |
 |---------|------|
-| `make install` | シンボリックリンクをホームへ展開 |
+| `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
 | `make uninstall` | シンボリックリンクを削除 |
 | `make update` | git pull + 再インストール |
 | `make check` | リンク整合性確認 |
@@ -33,6 +33,9 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 | `make macos` | macOS デフォルト設定を適用 |
 | `make dock` | Dock アプリ・Finder サイドバーを適用 |
 | `make dock-sync` | 現在の Dock・サイドバーを dock.sh に同期 |
+
+ZellijはHomebrewの最新版追従から外し、`scripts/setup-zellij.sh`で互換性を確認した
+`0.44.1`を`~/.local/bin/zellij`へインストールする。
 
 ### カスタムコマンド（`~/.local/bin/`）
 

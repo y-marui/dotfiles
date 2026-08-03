@@ -8,6 +8,10 @@ brew update
 brew upgrade
 brew cleanup
 
+# Zellij is intentionally managed outside Homebrew while the iTerm2 rendering
+# compatibility issue is open. Re-assert the approved version on every update.
+bash "${0:A:h}/setup-zellij.sh"
+
 pipx upgrade-all
 
 npm update -g

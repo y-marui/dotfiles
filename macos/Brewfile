@@ -21,7 +21,6 @@ brew "pandoc"
 brew "shellcheck"
 brew "tree"
 brew "wget"
-brew "zellij"
 
 # ── メディア処理 ───────────────────────────────────────────────────────────────
 brew "ffmpeg"
