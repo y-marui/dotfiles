@@ -1376,11 +1376,11 @@
 				<real>0.9969714283943176</real>
 			</dict>
 			<key>Minimum Contrast</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Minimum Contrast (Dark)</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Minimum Contrast (Light)</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Mouse Reporting</key>
 			<true/>
 			<key>Name</key>
@@ -2508,11 +2508,11 @@
 				<real>0.9969714283943176</real>
 			</dict>
 			<key>Minimum Contrast</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Minimum Contrast (Dark)</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Minimum Contrast (Light)</key>
-			<real>0.4976251775568182</real>
+			<real>0.0</real>
 			<key>Mouse Reporting</key>
 			<true/>
 			<key>Name</key>

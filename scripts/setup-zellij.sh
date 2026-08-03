@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-readonly ZELLIJ_VERSION="0.44.1"
+readonly ZELLIJ_VERSION="0.43.1"
 readonly INSTALL_DIR="${HOME}/.local/bin"
 readonly INSTALL_PATH="${INSTALL_DIR}/zellij"
 

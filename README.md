@@ -35,7 +35,7 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 | `make dock-sync` | 現在の Dock・サイドバーを dock.sh に同期 |
 
 ZellijはHomebrewの最新版追従から外し、`scripts/setup-zellij.sh`で互換性を確認した
-`0.44.1`を`~/.local/bin/zellij`へインストールする。
+`0.43.1`を`~/.local/bin/zellij`へインストールする。
 
 ### カスタムコマンド（`~/.local/bin/`）
 
