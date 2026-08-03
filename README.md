@@ -1,7 +1,7 @@
 # dotfiles
 
 macOS 向け個人開発環境設定。
-zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot + Gemini CLI。
+zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilot + Gemini CLI。
 
 ## セットアップ（新規マシン）
 
@@ -52,14 +52,14 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot + Gemi
 | `shell/` | zsh / bash 設定 |
 | `git/` | Git 設定（公開分のみ） |
 | `terminal/` | tmux / p10k 設定 |
-| `ai/` | Claude Code / Copilot / Gemini CLI 設定 |
+| `ai/` | Codex / Claude Code / Copilot / Gemini CLI 設定 |
 | `macos/` | Brewfile / macOS デフォルト設定 |
 | `host/` | ホスト固有設定（git 管理外） |
 | `scripts/` | install / check 等のスクリプト |
 
 ## AI 設定
 
-グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートしている。
+グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートまたは直接リンクしている。
 リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
 
 ### Claude Code
@@ -73,6 +73,31 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Claude Code + GitHub Copilot + Gemi
 | [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
+
+### Codex
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.codex/AGENTS.md` | 全リポジトリで使うグローバル指示 |
+| [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`AGENTS.md`](AGENTS.md) | — | リポジトリ固有指示（`AI_CONTEXT.md` を参照） |
+
+Codex の個人 skill は現行標準の `~/.agents/skills` で管理する。旧配置の
+`~/.codex/skills` に同名の自作 skill がある場合、`make install` は二重読み込みを
+避けるため `~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避してからリンクする。
+`.system` と公式 curated skills は Codex 側で更新されるため、このリポジトリには
+vendor しない。
+
+`~/.codex` の次の内容も管理対象外とする。
+
+- `auth.json`、履歴、DB、ログ、キャッシュ、端末・セッション状態
+- `rules/default.rules`（端末固有パスや過去の承認を蓄積したローカル状態）
+- `config.toml`（プロジェクト信頼状態、プラグイン状態、アプリ固有の絶対パスを含み、Codex が更新する）
+
+将来、シークレットを含む Codex 設定を再現する必要が出た場合は、公開 repo ではなく
+`dotfiles-private/ai/codex/` に置き、`dotfiles-private/setup.sh` から個別リンクする。
+
+参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex config](https://learn.chatgpt.com/docs/config-file/config-basic)
 
 ### GitHub Copilot CLI
 

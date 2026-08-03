@@ -23,11 +23,29 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 | 層 | 場所 | 内容 |
 |----|------|------|
 | 公開 | このリポジトリ | ツール設定、エイリアス、スクリプト |
-| 半公開 | Private Gist | `gitconfig-private`（個人用メールアドレス等） |
+| 非公開 | `dotfiles-private` | 個人用メールアドレス、SSH、非公開の AI 設定等 |
 | ローカル | `~/.zshrc.local` / `host/<hostname>.zsh` | APIキー、マシン固有パス等のシークレット |
 
 シークレットは絶対にこのリポジトリにコミットしない。
-`make private` で Private Gist から取得する運用とする。
+`make private` で GitHub の private repository から取得する運用とする。
+
+---
+
+## Codex 設定の管理境界
+
+Codex の自作 skill は `ai/codex/skills/<skill-name>/` を正本とし、公式の個人 skill
+配置である `~/.agents/skills/<skill-name>/` へディレクトリ単位でリンクする。
+`~/.agents/skills` 全体をリンクしないのは、Codex やプラグインが管理する skill と
+自作 skill の所有範囲を分離するため。
+
+旧配置 `~/.codex/skills` の同名 skill は、インストール時に削除せず
+`~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避する。`.system` と公式 curated
+skills は Codex 側の更新に追従するため vendor しない。
+
+`~/.codex/config.toml` は手動設定だけでなく、プロジェクトの trust、プラグイン、
+デスクトップアプリ固有パスなども含む可変ファイルなので、全体をシンボリックリンク
+しない。公開可能で安定した共通設定は公開 repo、個人情報やシークレットを含む設定は
+`dotfiles-private/ai/codex/`、端末・セッション状態はローカル専用とする。
 
 ---
 

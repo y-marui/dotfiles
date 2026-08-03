@@ -25,6 +25,9 @@ LINKS=(
   "terminal/powershell/profile.ps1|${HOME}/.config/powershell/Microsoft.PowerShell_profile.ps1"
   "ai/AI_CONTEXT.md|${HOME}/.ai/AI_CONTEXT.md"
   "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
+  "ai/AI_CONTEXT.md|${HOME}/.codex/AGENTS.md"
+  "ai/codex/skills/add-glance-task-museum-event|${HOME}/.agents/skills/add-glance-task-museum-event"
+  "ai/codex/skills/format-glance-task-museum-events|${HOME}/.agents/skills/format-glance-task-museum-events"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
@@ -32,4 +35,11 @@ LINKS=(
   "ai/gemini/GEMINI.md|${HOME}/.gemini/GEMINI.md"
   "completions|${HOME}/.zsh_completions"
   "bin|${HOME}/.local/bin/dotfiles"
+)
+
+# ~/.codex/skills は旧配置。Codex の現行標準である ~/.agents/skills へ
+# 移行するときに、同名 skill の二重読み込みを避けるためバックアップする。
+CODEX_LEGACY_SKILLS=(
+  "add-glance-task-museum-event"
+  "format-glance-task-museum-events"
 )

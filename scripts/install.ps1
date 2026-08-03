@@ -47,6 +47,10 @@ $links = @(
         Src  = "ai\claude\settings.json"
         Dest = Join-Path $HOME ".claude\settings.json"
     }
+    [pscustomobject]@{
+        Src  = "ai\AI_CONTEXT.md"
+        Dest = Join-Path $HOME ".codex\AGENTS.md"
+    }
 )
 
 $countOk     = 0

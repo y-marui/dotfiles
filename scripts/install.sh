@@ -10,6 +10,23 @@ count_ok=0
 count_skip=0
 count_backup=0
 
+# Codex の旧配置にある自作 skill を、削除せずバックアップへ退避する。
+# ~/.codex/skills/.system や curated skills は対象にしない。
+for skill_name in "${CODEX_LEGACY_SKILLS[@]}"; do
+  src="${DOTFILES_DIR}/ai/codex/skills/${skill_name}"
+  legacy_dest="${HOME}/.codex/skills/${skill_name}"
+
+  if [[ ! -e "${src}" || ( ! -e "${legacy_dest}" && ! -L "${legacy_dest}" ) ]]; then
+    continue
+  fi
+
+  legacy_backup_dir="${BACKUP_DIR}/codex-skills"
+  mkdir -p "${legacy_backup_dir}"
+  mv "${legacy_dest}" "${legacy_backup_dir}/${skill_name}"
+  echo "  MIGRATE ${legacy_dest} -> ${legacy_backup_dir}/${skill_name}"
+  (( count_backup++ )) || true
+done
+
 for entry in "${LINKS[@]}"; do
   src="${DOTFILES_DIR}/${entry%%|*}"
   dest="${entry##*|}"

@@ -16,7 +16,7 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 - Mac: 複数台（ホスト名で差分管理）
 - Version managers: pyenv, rbenv, nodebrew
 - Editor: Vim, VSCode
-- AI: Claude Code（メイン）、GitHub Copilot、Gemini CLI
+- AI: Codex、Claude Code、GitHub Copilot、Gemini CLI
 
 ## プラットフォーム別セットアップ
 
@@ -57,6 +57,7 @@ dotfiles/
 │   └── gitconfig.d/
 ├── terminal/       # tmux.conf、p10k.zsh
 ├── ai/
+│   ├── codex/      # ~/.agents/skills/ にリンクされる自作 Codex skill
 │   ├── claude/     # ~/.claude/ にリンクされる Claude Code 設定
 │   ├── copilot/    # GitHub Copilot 設定ドキュメント
 │   └── gemini/     # ~/.gemini/ にリンクされる Gemini CLI 設定
