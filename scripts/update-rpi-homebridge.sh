@@ -10,6 +10,9 @@ sudo apt dist-upgrade -y
 sudo apt autoremove -y
 sudo apt autoclean
 
+# Prezto と、その配下で管理される Powerlevel10k を更新
+bash "$(dirname "${BASH_SOURCE[0]}")/update-prezto.sh"
+
 # Node.js の更新
 sudo hb-service update-node
 

@@ -24,7 +24,8 @@ else
 	 esac
 endif
 
-install-macos: ## macOS 向けフルセットアップ（シンボリックリンク + macos + brew + dock）
+install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリックリンク + macos + brew + dock）
+	@bash scripts/setup-prezto.sh
 	@bash scripts/install.sh
 	@bash scripts/setup-zellij.sh
 	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
@@ -44,6 +45,7 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	   echo "  SKIP    dotfiles-private (make private でセットアップしてください)"; \
 	 fi
 	@$(MAKE) rpi-packages
+	@bash scripts/setup-prezto.sh
 	@$(MAKE) pipx
 	@bash rpi/repos/setup_claude-code.sh
 	@bash rpi/repos/setup_homebridge.sh
@@ -58,10 +60,11 @@ uninstall: ## シンボリックリンクを削除
 	@bash scripts/uninstall.sh
 
 # TODO: RPi 用途が増えたら RPI_TARGET 変数等でスクリプト（update-rpi-*.sh）を分岐する
-update: ## OS を検出して対応する update スクリプトを実行
+update: ## dotfiles を更新・再リンク後、OS 別の更新を実行
 ifeq ($(OS),Windows_NT)
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/update-windows.ps1
 else
+	@bash scripts/update-dotfiles.sh
 	@OS="$$(uname -s)"; \
 	 case "$$OS" in \
 	   Darwin)  zsh scripts/update-macos.zsh ;; \

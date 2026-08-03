@@ -1,5 +1,4 @@
 #!/usr/bin/env zsh
-source ~/.zshrc || true
 set -euo pipefail
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') Update started ==="
@@ -24,7 +23,7 @@ if command -v rbenv &>/dev/null && [[ "$(rbenv version-name 2>/dev/null)" != "sy
   gem cleanup
 fi
 
-command -v zprezto-update &>/dev/null && zprezto-update
+bash "${0:A:h}/update-prezto.sh"
 
 mas upgrade
 softwareupdate -i -a

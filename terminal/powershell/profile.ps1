@@ -1,6 +1,6 @@
 # PowerShell Profile
 # zsh + Powerlevel10k lean スタイルに合わせた設定
-# 対象環境: Windows（Windows Terminal）、macOS/Linux（pwsh）
+# 対象環境: Windows（Windows Terminal）
 
 # ─── Zellij 自動アタッチ ─────────────────────────────────────────────────────
 # Windows Terminal または SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
@@ -15,7 +15,6 @@ if ((Get-Command zellij -ErrorAction SilentlyContinue) -and
 
 # ─── Oh My Posh ──────────────────────────────────────────────────────────────
 # インストール: winget install JanDeDobbeleer.OhMyPosh (Windows)
-#              brew install oh-my-posh (macOS)
 $_omp_config = "$HOME/.config/oh-my-posh/p10k-lean.json"
 if (Get-Command oh-my-posh -ErrorAction SilentlyContinue) {
     oh-my-posh init pwsh --config $_omp_config | Invoke-Expression

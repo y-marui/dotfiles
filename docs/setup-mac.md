@@ -65,12 +65,15 @@ cd ~/src/github.com/y-marui/dotfiles
 
 ## 4. zprezto をインストール
 
-zsh テーマ・補完等は zprezto に依存している。`make install` で `.zshrc` がリンクされる前にクローンしておく。
+zsh テーマ・補完等は zprezto に依存している。共通セットアップスクリプトで
+Prezto 本体とサブモジュールの Powerlevel10k を導入する。
 
 ```bash
-git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"
-# ZDOTDIR を設定していない標準環境では ~/.zprezto にクローンされる
+bash scripts/setup-prezto.sh
 ```
+
+`make install-macos` でも同じスクリプトを実行するため、この手順は再実行しても安全。
+ZDOTDIR を設定していない標準環境では `~/.zprezto` にクローンされる。
 
 ## 5. ホスト固有設定を生成・編集
 
@@ -211,7 +214,8 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 
 | ステップ | 内容 |
 |---------|------|
-| `make install` | シンボリックリンクをホームへ展開 |
+| Prezto setup | 未導入なら `~/.zprezto` へ clone、既存環境ではサブモジュールを整合 |
+| `make install` | Unix向けシンボリックリンクをホームへ展開 |
 | Zellij setup | 互換性を確認した固定版を `~/.local/bin/zellij` へインストール |
 | private setup | `dotfiles-private/setup.sh` を適用（`make private` 済みの場合） |
 | `make macos` | macOS システム設定（Dock・Finder・キーボード等） |

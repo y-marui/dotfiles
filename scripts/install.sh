@@ -27,6 +27,40 @@ for skill_name in "${CODEX_LEGACY_SKILLS[@]}"; do
   (( count_backup++ )) || true
 done
 
+# 現行設定では使わない旧 zsh キャッシュを、削除せずバックアップへ退避する。
+# Prezto の補完キャッシュは ~/.cache/prezto/zcompdump を使用する。
+for legacy_cache in "${HOME}/.zcompdump" "${HOME}/.zcompdump.zwc"; do
+  if [[ ! -e "${legacy_cache}" && ! -L "${legacy_cache}" ]]; then
+    continue
+  fi
+
+  legacy_backup_dir="${BACKUP_DIR}/obsolete-shell"
+  mkdir -p "${legacy_backup_dir}"
+  mv "${legacy_cache}" "${legacy_backup_dir}/$(basename "${legacy_cache}")"
+  echo "  MIGRATE ${legacy_cache} -> ${legacy_backup_dir}/$(basename "${legacy_cache}")"
+  (( count_backup++ )) || true
+done
+
+# PowerShell / Oh My Posh は Windows 専用。過去の Unix インストーラーが作成した
+# dotfiles 直結のリンクだけを退避し、ユーザーが独自に作成した設定には触れない。
+legacy_windows_links=(
+  "terminal/ohmyposh/p10k-lean.json|${HOME}/.config/oh-my-posh/p10k-lean.json"
+  "terminal/powershell/profile.ps1|${HOME}/.config/powershell/Microsoft.PowerShell_profile.ps1"
+)
+for entry in "${legacy_windows_links[@]}"; do
+  src="${DOTFILES_DIR}/${entry%%|*}"
+  dest="${entry##*|}"
+  if [[ ! -L "${dest}" || "$(readlink "${dest}")" != "${src}" ]]; then
+    continue
+  fi
+
+  legacy_backup_dir="${BACKUP_DIR}/obsolete-shell"
+  mkdir -p "${legacy_backup_dir}"
+  mv "${dest}" "${legacy_backup_dir}/$(basename "${dest}")"
+  echo "  MIGRATE ${dest} -> ${legacy_backup_dir}/$(basename "${dest}")"
+  (( count_backup++ )) || true
+done
+
 for entry in "${LINKS[@]}"; do
   src="${DOTFILES_DIR}/${entry%%|*}"
   dest="${entry##*|}"

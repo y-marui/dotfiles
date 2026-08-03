@@ -1,7 +1,7 @@
 # dotfiles
 
-macOS 向け個人開発環境設定。
-zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilot + Gemini CLI。
+macOS を中心に、Raspberry Pi・Windowsでも共有する個人開発環境設定。
+zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copilot + Gemini CLI。
 
 ## セットアップ（新規マシン）
 
@@ -12,7 +12,7 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 1. Homebrew をインストール（Apple Silicon は PATH の追加設定が必要）
 2. SSH キーを生成して GitHub に登録
 3. `brew install ghq` → `ghq get https://github.com/y-marui/dotfiles.git`
-4. zprezto を `git clone --recursive` でインストール
+4. `scripts/setup-prezto.sh` で zprezto をインストール（`make install-macos` でも自動実行）
 5. `make init` → ホスト固有設定を編集（`DOTFILES_DIR` の設定が必要）
 6. `brew install gh && gh auth login` → `make private` でプライベート設定を取得
 7. `make install-macos` → dotfiles 一括適用
@@ -24,7 +24,7 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
 | `make uninstall` | シンボリックリンクを削除 |
-| `make update` | git pull + 再インストール |
+| `make update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |
 | `make private` | dotfiles-private を GitHub からクローン・更新 |
@@ -32,7 +32,7 @@ zsh (zprezto + Powerlevel10k) / Vim / tmux / Codex + Claude Code + GitHub Copilo
 | `make brew-sync` | 現在の Homebrew 状態を Brewfile に同期 |
 | `make macos` | macOS デフォルト設定を適用 |
 | `make dock` | Dock アプリ・Finder サイドバーを適用 |
-| `make dock-sync` | 現在の Dock・サイドバーを dock.sh に同期 |
+| `make dock-sync` | 現在の Dock・サイドバーを管理ファイルに同期 |
 
 ZellijはHomebrewの最新版追従から外し、`scripts/setup-zellij.sh`で互換性を確認した
 `0.43.1`を`~/.local/bin/zellij`へインストールする。
@@ -54,7 +54,7 @@ ZellijはHomebrewの最新版追従から外し、`scripts/setup-zellij.sh`で�
 |-----|------|
 | `shell/` | zsh / bash 設定 |
 | `git/` | Git 設定（公開分のみ） |
-| `terminal/` | tmux / p10k 設定 |
+| `terminal/` | Zellij / p10k / PowerShell 設定 |
 | `ai/` | Codex / Claude Code / Copilot / Gemini CLI 設定 |
 | `macos/` | Brewfile / macOS デフォルト設定 |
 | `host/` | ホスト固有設定（git 管理外） |

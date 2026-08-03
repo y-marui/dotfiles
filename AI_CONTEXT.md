@@ -55,7 +55,7 @@ dotfiles/
 ├── shell/          # zsh / bash / sh 設定ファイル
 ├── git/            # gitconfig、gitignore_global、エイリアス
 │   └── gitconfig.d/
-├── terminal/       # tmux.conf、p10k.zsh
+├── terminal/       # Zellij、p10k、PowerShell 設定
 ├── ai/
 │   ├── codex/      # ~/.agents/skills/ にリンクされる自作 Codex skill
 │   ├── claude/     # ~/.claude/ にリンクされる Claude Code 設定
@@ -94,14 +94,16 @@ dotfiles/
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
 - `make check`    : リンク整合性確認
 - `make init`     : ホスト固有設定テンプレートを生成
-- `make update`   : git pull + 再インストール
+- `make update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
 - `make brew`     : Homebrew パッケージインストール
 - `make macos`    : macOS デフォルト設定を適用
 
 ## zprezto について
 
-`~/.zprezto` 本体はこのリポジトリで管理しない。
-`shell/zpreztorc` のみリンク対象。
+`~/.zprezto` 本体はこのリポジトリに含めず、外部 Git リポジトリとして管理する。
+`scripts/setup-prezto.sh` が初回 clone、`scripts/update-prezto.sh` が fast-forward 更新と
+サブモジュール同期を担当する。Powerlevel10k は Prezto のサブモジュールを使用し、
+単独ではインストール・更新しない。設定ファイルは `shell/zpreztorc` のみリンク対象。
 
 ## 変更時の注意
 

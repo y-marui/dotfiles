@@ -75,10 +75,13 @@ bash から `source ~/.profile` した際に構文エラーになるため。
 `~/.zprezto` 本体はこのリポジトリで管理しない。理由：
 
 - zprezto はサブモジュール込みで大きく、dotfiles に含めると管理が複雑になる
-- `git clone --recursive` を強制したくない
+- Prezto と配下の Powerlevel10k を upstream の履歴に沿って更新する
 
 管理対象は `shell/zpreztorc`（モジュール選択・テーマ設定）のみ。
-zprezto 本体は新規マシンで別途 `git clone` する。
+Prezto 本体は外部 Git リポジトリのまま、`scripts/setup-prezto.sh` で初回 clone、
+`scripts/update-prezto.sh` で fast-forward 更新とサブモジュール同期を行う。
+Powerlevel10k は Prezto が固定するサブモジュールを使い、単独 clone や Homebrew 版と
+二重管理しない。
 
 ---
 
