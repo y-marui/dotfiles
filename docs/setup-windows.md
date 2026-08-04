@@ -82,3 +82,24 @@ Get-Process -Name zellij -ErrorAction SilentlyContinue
 ```powershell
 ($env:COMPUTERNAME -split '\.')[0].ToLower()
 ```
+
+## 更新
+
+```powershell
+make update
+```
+
+Windows版の更新は次の順に実行する。
+
+1. ローカル変更がなければdotfilesを`git pull --ff-only`で更新
+2. シンボリックリンクを再適用
+3. Zellijを更新
+4. WinGetパッケージとWindows Updateを適用
+5. 利用可能な場合はnpm、pipx、ghq管理下のリポジトリを更新
+
+`make update`自身がWinLibsの`mingw32-make.exe`から実行されるため、WinLibsは
+WinGetの一括更新から除外される。`make update`完了後、必要に応じて別途更新する。
+
+```powershell
+winget upgrade --id BrechtSanders.WinLibs.POSIX.UCRT --exact
+```

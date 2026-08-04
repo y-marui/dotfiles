@@ -2,6 +2,13 @@
   "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
   "version": 2,
   "console_title_template": "{{ .Folder }}",
+  "transient_prompt": {
+    "foreground": "#5fd700",
+    "foreground_templates": [
+      "{{ if gt .Code 0 }}#ff0000{{ end }}"
+    ],
+    "template": "❯ "
+  },
   "blocks": [
     {
       "type": "prompt",
@@ -32,7 +39,7 @@
           "foreground_templates": [
             "{{ if or (.Working.Changed) (.Staging.Changed) }}#d7af00{{ end }}"
           ],
-          "template": "  {{ .HEAD }}{{ if gt .Behind 0 }} ⇣{{ .Behind }}{{ end }}{{ if gt .Ahead 0 }}⇡{{ .Ahead }}{{ end }}{{ if gt .StashCount 0 }} *{{ .StashCount }}{{ end }}{{ if .Staging.Changed }} +{{ end }}{{ if gt .Working.Modified 0 }} !{{ .Working.Modified }}{{ end }}{{ if gt .Working.Untracked 0 }} ?{{ .Working.Untracked }}{{ end }}",
+          "template": " on <#5fd700>{{ .HEAD }}</>{{ if gt .Behind 0 }} <#5fd700>⇣{{ .Behind }}</>{{ end }}{{ if gt .Ahead 0 }}<#5fd700>⇡{{ .Ahead }}</>{{ end }}{{ if gt .PushBehind 0 }} <#5fd700>⇠{{ .PushBehind }}</>{{ end }}{{ if gt .PushAhead 0 }}<#5fd700>⇢{{ .PushAhead }}</>{{ end }}{{ if gt .StashCount 0 }} <#5fd700>*{{ .StashCount }}</>{{ end }}{{ if gt .Staging.Unmerged 0 }} <#ff0000>~{{ .Staging.Unmerged }}</>{{ end }}{{ if gt .Working.Unmerged 0 }} <#ff0000>~{{ .Working.Unmerged }}</>{{ end }}{{ if .Staging.Changed }} <#d7af00>+{{ add .Staging.Added .Staging.Modified .Staging.Deleted .Staging.Unmerged }}</>{{ end }}{{ if or (gt .Working.Added 0) (gt .Working.Modified 0) (gt .Working.Deleted 0) }} <#d7af00>!{{ add .Working.Added .Working.Modified .Working.Deleted }}</>{{ end }}{{ if gt .Working.Untracked 0 }} <#0087af>?{{ .Working.Untracked }}</>{{ end }}",
           "properties": {
             "fetch_status": true,
             "fetch_stash_count": true,
