@@ -211,6 +211,8 @@ vscode "ziyasal.vscode-open-in-github"
 brew "colormake"
 brew "libtiff"
 brew "xcodegen"
+cask "github-copilot-app"
 cask "gitx"
+cask "google-gemini"
 cask "microsoft-office"
 mas "RunCatNeo", id: 6757801838
