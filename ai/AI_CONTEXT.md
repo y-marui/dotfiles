@@ -60,6 +60,10 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
 テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
 
+- PR の作成・更新・マージには `gh` CLI を使用し、Web UI から PR を作成しない
+- `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
+- ブランチまたは PR をマージした直後は、対象リポジトリで `git-sweep` を実行する
+
 ## アカウント情報
 
 GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
