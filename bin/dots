@@ -28,7 +28,8 @@ _usage() {
 Usage:
   dots status [--no-fetch]
   dots update
-  dots brew {apply|diff|sync|cache} [--backup-dir DIR]
+  dots brew apply [--full] [--backup-dir DIR]
+  dots brew {diff|sync|cache}
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
@@ -171,14 +172,32 @@ _backup_dir_arg() {
 }
 
 _brew() {
-  local action="${1:-}" backup_dir
+  local action="${1:-}" backup_dir full=false
   [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|cache}"
   shift
 
   case "${action}" in
     apply)
-      backup_dir="$(_backup_dir_arg "$@")"
-      if bash "${DOTFILES_DIR}/macos/diff_brewfile.sh"; then
+      backup_dir=""
+      while (( $# > 0 )); do
+        case "$1" in
+          --full)
+            full=true
+            shift
+            ;;
+          --backup-dir)
+            (( $# >= 2 )) || _error "--backup-dir requires a directory"
+            backup_dir="$2"
+            shift 2
+            ;;
+          *) _error "unknown brew apply option: $1" ;;
+        esac
+      done
+
+      if [[ "${full}" == false && ! -f "${DOTFILES_DIR}/macos/Brewfile.cache" ]]; then
+        bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      fi
+      if [[ "${full}" == false ]] && bash "${DOTFILES_DIR}/macos/diff_brewfile.sh"; then
         printf '差分なし: Brewfile はすでに適用済みです。\n'
         return 0
       fi
@@ -187,7 +206,11 @@ _brew() {
         brew bundle dump --force --file="${backup_dir}/Brewfile" 2>/dev/null && \
           printf '  BACKUP  %s\n' "${backup_dir}/Brewfile" || true
       fi
-      bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --force
+      if [[ "${full}" == true ]]; then
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --force
+      else
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --diff-only --force
+      fi
       bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
       ;;
     diff)

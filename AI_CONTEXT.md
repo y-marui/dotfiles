@@ -101,7 +101,7 @@ dotfiles/
 - `make init`     : ホスト固有設定テンプレートを生成
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
 - `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
-- `dots brew apply`: Homebrew パッケージを適用
+- `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用）
 
 ## zprezto について
 

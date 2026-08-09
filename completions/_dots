@@ -32,8 +32,16 @@ _dots() {
       if (( CURRENT == 3 )); then
         _describe 'action' actions
       elif [[ "${words[3]}" == apply ]] && (( CURRENT == 4 )); then
+        if [[ "${words[2]}" == brew ]]; then
+          _wanted options expl 'option' compadd -- --full --backup-dir
+        else
+          _wanted options expl 'option' compadd -- --backup-dir
+        fi
+      elif [[ "${words[3]}" == apply && "${words[4]}" == --full ]] && (( CURRENT == 5 )); then
         _wanted options expl 'option' compadd -- --backup-dir
       elif [[ "${words[3]}" == apply && "${words[4]}" == --backup-dir ]] && (( CURRENT == 5 )); then
+        _directories
+      elif [[ "${words[3]}" == apply && "${words[5]}" == --backup-dir ]] && (( CURRENT == 6 )); then
         _directories
       fi
       ;;

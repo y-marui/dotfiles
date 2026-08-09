@@ -219,5 +219,5 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 | Zellij setup | 互換性を確認した固定版を `~/.local/bin/zellij` へインストール |
 | private setup | `dotfiles-private/setup.sh` を適用（`make private` 済みの場合） |
 | `macos/defaults.sh` | macOS システム設定（Dock・Finder・キーボード等） |
-| `dots brew apply` | Brewfile のパッケージをインストール |
+| `dots brew apply` | Brewfileとの差分パッケージをインストール |
 | `dots dock apply` | Dock アプリ・Finder サイドバーを設定 |

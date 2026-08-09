@@ -34,7 +34,8 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 |---------|------|
 | `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
 | `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
-| `dots brew apply` | Brewfile を適用 |
+| `dots brew apply` | Brewfileと現在のHomebrew状態の差分だけを適用 |
+| `dots brew apply --full` | Brewfile / Brewfile.localを従来どおり全件適用 |
 | `dots brew diff` | Brewfileの差分を表示 |
 | `dots brew sync` | 現在のHomebrew状態をBrewfileに同期 |
 | `dots dock apply` | Dock・Finderサイドバーを適用 |
@@ -234,7 +235,12 @@ vscode "publisher.extension" # VS Code 拡張
 | パッケージをメインの `Brewfile` に追記した | `Brewfile.local` からも自動除去（重複防止） |
 
 **インストール（`dots brew apply` 実行時）:**
-`Brewfile` のインストール後に `Brewfile.local` のパッケージも自動でインストールされる。
+`Brewfile.cache`との差分から、`Brewfile` / `Brewfile.local`にのみ存在するエントリを
+一時Brewfileへ抽出して適用する。管理ファイルにないエントリがある場合だけcleanupするため、
+差分と無関係な既存パッケージは処理しない。
+
+`dots brew apply --full`は従来のapplyと同じく、`Brewfile`と`Brewfile.local`を
+それぞれ`brew bundle install`へ渡して全件適用した後、cleanupを実行する。
 
 ### 設定が必要な環境変数
 
