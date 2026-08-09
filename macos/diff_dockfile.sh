@@ -3,8 +3,8 @@
 # dockfile.cache（現在の Dock 状態）と dockfile（管理ファイル）の差分を表示する
 #
 # 動作:
-#   [+cache] /Applications/Foo.app  → Dock にあるが dockfile 未記載 → make dock-sync
-#   [-cache] /Applications/Bar.app  → dockfile にあるが Dock 未適用 → make dock
+#   [+cache] /Applications/Foo.app  → Dock にあるが dockfile 未記載 → dots dock sync
+#   [-cache] /Applications/Bar.app  → dockfile にあるが Dock 未適用 → dots dock apply
 #   ※ dockfile に記載されているが存在しないアプリは無視する（別マシン向け）
 #
 # 使い方:
@@ -85,19 +85,19 @@ if not has_diff:
     sys.exit(0)
 
 if only_in_cache:
-    print('Dock にあるが dockfile 未記載 (make dock-sync が必要):')
+    print('Dock にあるが dockfile 未記載 (dots dock sync が必要):')
     for p in sorted(only_in_cache):
         print(f'  [+cache]  {p}')
 if only_in_dock:
-    print('dockfile にあるが Dock 未適用 (make dock が必要):')
+    print('dockfile にあるが Dock 未適用 (dots dock apply が必要):')
     for p in sorted(only_in_dock):
         print(f'  [-cache]  {p}')
 if only_in_cache_sb:
-    print('Sidebar にあるが dockfile 未記載 (make dock-sync が必要):')
+    print('Sidebar にあるが dockfile 未記載 (dots dock sync が必要):')
     for n in sorted(only_in_cache_sb):
         print(f'  [+cache sidebar]  {n}')
 if only_in_dock_sb:
-    print('dockfile の Sidebar にあるが未適用 (make dock が必要):')
+    print('dockfile の Sidebar にあるが未適用 (dots dock apply が必要):')
     for n in sorted(only_in_dock_sb):
         print(f'  [-cache sidebar]  {n}')
 

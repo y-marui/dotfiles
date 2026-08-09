@@ -25,6 +25,14 @@ $backupDir = Join-Path $HOME ".dotfiles-backup" (Get-Date -Format 'yyyyMMddHHmms
 # Windows で使う設定のリンク定義
 $links = @(
     [pscustomobject]@{
+        Src  = "bin\dots.ps1"
+        Dest = Join-Path $HOME ".local\bin\dots.ps1"
+    }
+    [pscustomobject]@{
+        Src  = "bin\dots.cmd"
+        Dest = Join-Path $HOME ".local\bin\dots.cmd"
+    }
+    [pscustomobject]@{
         Src  = "terminal\powershell\profile.ps1"
         # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
         Dest = $PROFILE.CurrentUserCurrentHost

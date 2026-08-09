@@ -1,0 +1,48 @@
+#compdef dots
+
+_dots() {
+  local -a commands actions expl
+  commands=(
+    'status:dotfiles・dotfiles-privateのGit状態を確認'
+    'update:dotfilesとOS別パッケージを更新'
+    'brew:Homebrewパッケージ設定を操作'
+    'dock:Dock・Finderサイドバー設定を操作'
+    'npm:npmグローバルパッケージ設定を操作'
+    'pipx:pipxパッケージ設定を操作'
+    'help:ヘルプを表示'
+  )
+  actions=(
+    'apply:設定を適用'
+    'diff:差分を表示'
+    'sync:現在の状態を管理ファイルへ同期'
+    'cache:現在の状態をキャッシュ'
+  )
+  if (( CURRENT == 2 )); then
+    _describe 'command' commands
+    return
+  fi
+
+  case "${words[2]}" in
+    status)
+      if (( CURRENT == 3 )); then
+        _wanted options expl 'option' compadd -- --no-fetch --help -h
+      fi
+      ;;
+    brew|dock)
+      if (( CURRENT == 3 )); then
+        _describe 'action' actions
+      elif [[ "${words[3]}" == apply ]] && (( CURRENT == 4 )); then
+        _wanted options expl 'option' compadd -- --backup-dir
+      elif [[ "${words[3]}" == apply && "${words[4]}" == --backup-dir ]] && (( CURRENT == 5 )); then
+        _directories
+      fi
+      ;;
+    npm|pipx)
+      if (( CURRENT == 3 )); then
+        _describe 'action' actions
+      fi
+      ;;
+  esac
+}
+
+_dots "$@"

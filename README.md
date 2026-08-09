@@ -24,15 +24,28 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
 | `make uninstall` | シンボリックリンクを削除 |
-| `make update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |
 | `make private` | dotfiles-private を GitHub からクローン・更新 |
-| `make brew` | Brewfile を適用 |
-| `make brew-sync` | 現在の Homebrew 状態を Brewfile に同期 |
-| `make macos` | macOS デフォルト設定を適用 |
-| `make dock` | Dock アプリ・Finder サイドバーを適用 |
-| `make dock-sync` | 現在の Dock・サイドバーを管理ファイルに同期 |
+
+初回セットアップ後の日常操作は、カレントディレクトリに依存しない `dots` を使用する。
+
+| コマンド | 説明 |
+|---------|------|
+| `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
+| `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
+| `dots brew apply` | Brewfile を適用 |
+| `dots brew diff` | Brewfileの差分を表示 |
+| `dots brew sync` | 現在のHomebrew状態をBrewfileに同期 |
+| `dots dock apply` | Dock・Finderサイドバーを適用 |
+| `dots dock diff` | Dock・Finderサイドバーの差分を表示 |
+| `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
+| `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
+| `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
+
+`dots status` は両リポジトリを `git fetch --prune` してから確認し、要対応の状態が
+1つでもあれば終了コード1を返す。ネットワークへ接続せず、既存のremote-tracking refだけで
+確認する場合は `dots status --no-fetch` を使用する。
 
 ZellijはOS別に互換性を確認したバージョンを固定する。macOS/Raspberry Piは
 `scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
@@ -44,6 +57,7 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 
 | コマンド | 説明 |
 |---------|------|
+| `dots` | dotfilesとマシン環境を管理 |
 | `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
 | `ghq-check` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
@@ -212,14 +226,14 @@ mas "App Name", id: 1234567  # Mac App Store
 vscode "publisher.extension" # VS Code 拡張
 ```
 
-**自動整合（`make brew-sync` 実行時）:**
+**自動整合（`dots brew sync` 実行時）:**
 
 | 状況 | 動作 |
 |------|------|
 | パッケージをシステムからアンインストールした | `Brewfile.local` からも自動除去 |
 | パッケージをメインの `Brewfile` に追記した | `Brewfile.local` からも自動除去（重複防止） |
 
-**インストール（`make brew` 実行時）:**
+**インストール（`dots brew apply` 実行時）:**
 `Brewfile` のインストール後に `Brewfile.local` のパッケージも自動でインストールされる。
 
 ### 設定が必要な環境変数

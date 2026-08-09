@@ -12,7 +12,7 @@ CACHE="${DOTFILES_DIR}/macos/Brewfile.cache"
 
 if ! bash "$DIFF" 2>/dev/null; then
   echo "⚠️  Brewfile.cache と Brewfile に差分があります。" >&2
-  echo "    make brew-sync または make brew を実行してからコミットしてください。" >&2
+  echo "    dots brew sync または dots brew apply を実行してからコミットしてください。" >&2
   exit 1
 fi
 exit 0

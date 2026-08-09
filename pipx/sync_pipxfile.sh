@@ -10,7 +10,7 @@
 #
 # 使い方:
 #   bash pipx/sync_pipxfile.sh
-#   make pipx-sync
+#   dots pipx sync
 
 set -euo pipefail
 

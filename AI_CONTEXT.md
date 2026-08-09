@@ -99,9 +99,9 @@ dotfiles/
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
 - `make check`    : リンク整合性確認
 - `make init`     : ホスト固有設定テンプレートを生成
-- `make update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
-- `make brew`     : Homebrew パッケージインストール
-- `make macos`    : macOS デフォルト設定を適用
+- `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
+- `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
+- `dots brew apply`: Homebrew パッケージを適用
 
 ## zprezto について
 

@@ -8,7 +8,7 @@
 #
 # 使い方:
 #   bash pipx/update_pipxcache.sh
-#   make pipx-cache
+#   dots pipx cache
 
 set -euo pipefail
 

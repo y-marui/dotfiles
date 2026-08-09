@@ -1,5 +1,5 @@
 # packages.txt
-# make rpi-packages / rpi/apply_packages.sh で apt install -y する固定パッケージ一覧
+# make install-rpi / rpi/apply_packages.sh で apt install -y する固定パッケージ一覧
 # 1行1パッケージ。# 始まりの行と空行は無視される。
 
 # シェル

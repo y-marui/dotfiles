@@ -45,7 +45,7 @@ _capture() {
 # --check: 現在の Dock 状態と dockfile.cache を比較して差分検知のみ
 if [[ "$MODE" == "--check" ]]; then
   if [[ ! -f "$SNAPSHOT" ]]; then
-    echo "No dockfile.cache found. Run 'make dock' to create one."
+    echo "No dockfile.cache found. Run 'dots dock apply' to create one."
     exit 1
   fi
   current=$(_capture)

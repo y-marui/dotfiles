@@ -74,7 +74,7 @@ if command -v mas &>/dev/null; then
     printf '%sWARNING: The following App Store apps are installed but not in Brewfile.%s\n' "$YELLOW" "$RESET" >&2
     printf '%s         brew bundle cleanup does not uninstall mas apps — remove them manually:%s\n' "$YELLOW" "$RESET" >&2
     printf "%b" "$unmanaged" >&2
-    printf "%s         Run 'mas uninstall <id>' first, then 'make brew-cache' to update the cache.%s\n" "$YELLOW" "$RESET" >&2
+    printf "%s         Run 'mas uninstall <id>' first, then 'dots brew cache' to update the cache.%s\n" "$YELLOW" "$RESET" >&2
   else
     echo "All installed mas apps are listed in Brewfile."
   fi

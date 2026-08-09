@@ -7,7 +7,7 @@
 #
 # 使い方:
 #   bash macos/update_dockcache.sh
-#   make dock-cache
+#   dots dock cache
 
 set -euo pipefail
 
