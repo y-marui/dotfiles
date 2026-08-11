@@ -89,7 +89,14 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 | [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
 | [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
 | [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
+| [`ai/claude/skills/`](ai/claude/skills/) | `~/.claude/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`ai/claude/mcp/`](ai/claude/mcp/) | Claude Code user scope | MCP の宣言と実態との差分・追加 |
+| [`ai/claude/plugin/`](ai/claude/plugin/) | Claude Code user scope | marketplace / plugin の宣言と実態との差分・追加 |
 | [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
+
+`dots claude {diff|apply}` は MCP・plugin・skill をまとめて処理する。
+`--mcp-only`、`--plugin-only`、`--skill-only` で対象を1種類に限定できる。
+未宣言の追加物は削除せず、`diff` で `+actual` として検知する。
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -99,6 +106,8 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 |---------|---------|------|
 | [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.codex/AGENTS.md` | 全リポジトリで使うグローバル指示 |
 | [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`ai/codex/mcp/`](ai/codex/mcp/) | `~/.codex/config.toml` 内の MCP 設定 | 公式 MCP の宣言と実態との差分・追加 |
+| [`ai/codex/plugin/`](ai/codex/plugin/) | Codex の plugin 状態 | plugin の宣言と実態との差分・追加 |
 | [`AGENTS.md`](AGENTS.md) | — | リポジトリ固有指示（`AI_CONTEXT.md` を参照） |
 
 Codex の個人 skill は現行標準の `~/.agents/skills` で管理する。旧配置の
@@ -107,16 +116,37 @@ Codex の個人 skill は現行標準の `~/.agents/skills` で管理する。�
 `.system` と公式 curated skills は Codex 側で更新されるため、このリポジトリには
 vendor しない。
 
+`dots codex {diff|apply}` は MCP・plugin・skill をまとめて処理する。
+Claude Code と同じく `--mcp-only`、`--plugin-only`、`--skill-only` を指定できる。
+Codex CLI が返す統合済みの実態を使うため、Codex アプリまたは CLI から追加された
+local / remote MCP と plugin を検知する。skill は実際の個人 skill ディレクトリを検査する。
+
+追加する MCP は、公式サーバーが確認できる次の接続だけに限定する。
+
+- Claude Code → Codex の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
+- Codex → Claude Code の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
+
+GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
+Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
+ヘッダーへ保存する。これにより別の環境変数なしでアプリと CLI の両方から利用できる。
+トークンが更新された場合は `apply --mcp-only` を再実行する。
+
+Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
+server は採用していない。独自 MCP bridge も作成しない。
+
 `~/.codex` の次の内容も管理対象外とする。
 
 - `auth.json`、履歴、DB、ログ、キャッシュ、端末・セッション状態
 - `rules/default.rules`（端末固有パスや過去の承認を蓄積したローカル状態）
-- `config.toml`（プロジェクト信頼状態、プラグイン状態、アプリ固有の絶対パスを含み、Codex が更新する）
+- `config.toml` 全体（プロジェクト信頼状態、アプリ固有の絶対パス等を含み、Codex が更新する）
+
+MCP と plugin の管理ファイルは公開可能な宣言だけを保持し、`config.toml` 自体はリンクせず
+Codex CLI 経由で不足分だけを追加する。トークン値は管理対象外とする。
 
 将来、シークレットを含む Codex 設定を再現する必要が出た場合は、公開 repo ではなく
 `dotfiles-private/ai/codex/` に置き、`dotfiles-private/setup.sh` から個別リンクする。
 
-参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex config](https://learn.chatgpt.com/docs/config-file/config-basic)
+参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex MCP](https://learn.chatgpt.com/docs/extend/mcp)、[Codex plugins](https://learn.chatgpt.com/docs/build-plugins)
 
 ### GitHub Copilot CLI
 

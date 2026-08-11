@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # diff.sh
-# ~/.claude.json の mcpServers（システム実態）と servers.json（管理ファイル）の差分を表示する
+# ~/.claude.json と既知 project の .mcp.json にある MCP 実態を検査する。
 #
 # ~/.claude.json を直接読むだけの軽量な処理（0.2秒程度）なので cache は持たない。
 # claude CLI 経由か Claude.app（GUI）経由かを問わず、実際に登録されているものを検知できる。
 #
 # 動作:
-#   [+actual] name  → システムに登録済みだが servers.json 未記載（IDE等が動的に追加した分を含む）
+#   [+actual] name  → user scope に登録済みだが servers.json 未記載
+#   [+local] name   → local scope に登録済み（~/.claude.json の projects 配下）
+#   [+project] name → project scope に登録済み（.mcp.json）
 #   [-files]  name  → servers.json にあるがシステム未登録（dots claude apply --mcp-only で追加できる）
 #
 # 使い方:
@@ -37,29 +39,58 @@ with open(servers_path, encoding="utf-8") as f:
     declared = {entry["name"] for entry in json.load(f)}
 
 with open(claude_json_path, encoding="utf-8") as f:
-    actual = set(json.load(f).get("mcpServers", {}).keys())
+    claude_config = json.load(f)
+
+actual = set(claude_config.get("mcpServers", {}).keys())
+
+
+def transport_name(config):
+    if config.get("type") in {"http", "sse", "ws"} or "url" in config:
+        return config.get("type", "http")
+    return "stdio"
+
+
+scoped_actual = []
+for project_path, project_config in claude_config.get("projects", {}).items():
+    for name, config in project_config.get("mcpServers", {}).items():
+        scoped_actual.append(("local", project_path, name, transport_name(config)))
+
+    project_mcp_path = f"{project_path}/.mcp.json"
+    try:
+        with open(project_mcp_path, encoding="utf-8") as f:
+            project_mcp = json.load(f)
+    except (FileNotFoundError, NotADirectoryError, PermissionError, json.JSONDecodeError):
+        continue
+    for name, config in project_mcp.get("mcpServers", {}).items():
+        scoped_actual.append(("project", project_path, name, transport_name(config)))
 
 only_in_actual = sorted(actual - declared)
 only_in_files = sorted(declared - actual)
 
 if summary_mode:
     parts = []
-    if only_in_actual:
-        parts.append(f"+{len(only_in_actual)} actual のみ")
+    actual_count = len(only_in_actual) + len(scoped_actual)
+    if actual_count:
+        parts.append(f"+{actual_count} actual のみ")
     if only_in_files:
         parts.append(f"-{len(only_in_files)} files のみ")
     if parts:
         print(" / ".join(parts))
     sys.exit(0)
 
-if not only_in_actual and not only_in_files:
+if not only_in_actual and not only_in_files and not scoped_actual:
     print("No diff: 実際の登録状態と servers.json は一致しています。")
     sys.exit(0)
 
 if only_in_actual:
-    print("登録済みだが servers.json 未記載 (+actual のみ。IDE・Claude.app等による動的登録の可能性あり):")
+    print("user scope に登録済みだが servers.json 未記載 (+actual のみ):")
     for name in only_in_actual:
         print(f"  [+actual]  {name}")
+    print()
+if scoped_actual:
+    print("local / project scope にある追加登録 (+actual のみ):")
+    for scope, project_path, name, transport in sorted(scoped_actual):
+        print(f"  [+{scope}]  {name} ({transport}) @ {project_path}")
     print()
 if only_in_files:
     print("servers.json にあるがシステム未登録 (-files のみ):")

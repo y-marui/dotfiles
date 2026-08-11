@@ -1,7 +1,7 @@
 #compdef dots
 
 _dots() {
-  local -a commands actions expl
+  local -a commands actions ai_actions expl
   commands=(
     'status:dotfiles・dotfiles-privateのGit状態を確認'
     'update:dotfilesとOS別パッケージを更新'
@@ -9,6 +9,8 @@ _dots() {
     'dock:Dock・Finderサイドバー設定を操作'
     'npm:npmグローバルパッケージ設定を操作'
     'pipx:pipxパッケージ設定を操作'
+    'claude:Claude CodeのMCP・plugin・skillを操作'
+    'codex:CodexのMCP・plugin・skillを操作'
     'help:ヘルプを表示'
   )
   actions=(
@@ -16,6 +18,10 @@ _dots() {
     'diff:差分を表示'
     'sync:現在の状態を管理ファイルへ同期'
     'cache:現在の状態をキャッシュ'
+  )
+  ai_actions=(
+    'apply:不足しているMCP・plugin・skillを追加'
+    'diff:実際の状態と管理ファイルの差分を表示'
   )
   if (( CURRENT == 2 )); then
     _describe 'command' commands
@@ -48,6 +54,13 @@ _dots() {
     npm|pipx)
       if (( CURRENT == 3 )); then
         _describe 'action' actions
+      fi
+      ;;
+    claude|codex)
+      if (( CURRENT == 3 )); then
+        _describe 'action' ai_actions
+      elif (( CURRENT == 4 )); then
+        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
       fi
       ;;
   esac

@@ -1,11 +1,5 @@
 [
   {
-    "name": "codex",
-    "type": "stdio",
-    "command": "codex",
-    "args": ["mcp-server"]
-  },
-  {
     "name": "github",
     "type": "http",
     "url": "https://api.githubcopilot.com/mcp/",
@@ -26,5 +20,11 @@
         "prefix": "Bearer "
       }
     }
+  },
+  {
+    "name": "claude-code",
+    "type": "stdio",
+    "command": "claude",
+    "args": ["mcp", "serve"]
   }
 ]

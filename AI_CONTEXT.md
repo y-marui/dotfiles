@@ -62,8 +62,8 @@ dotfiles/
 │   └── gitconfig.d/
 ├── terminal/       # Zellij、p10k、PowerShell 設定
 ├── ai/
-│   ├── codex/      # ~/.agents/skills/ にリンクされる自作 Codex skill
-│   ├── claude/     # ~/.claude/ にリンクされる Claude Code 設定
+│   ├── codex/      # Codex の skill / plugin / MCP 宣言
+│   ├── claude/     # Claude Code の設定と skill / plugin / MCP 宣言
 │   ├── copilot/    # GitHub Copilot 設定ドキュメント
 │   └── gemini/     # ~/.gemini/ にリンクされる Gemini CLI 設定
 ├── macos/          # Brewfile、macOS defaults スクリプト

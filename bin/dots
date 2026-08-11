@@ -33,7 +33,7 @@ Usage:
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
-  dots claude {apply|diff} [--mcp-only|--plugin-only]
+  dots {claude|codex} {apply|diff} [--mcp-only|--plugin-only|--skill-only]
   dots help
 
 Commands:
@@ -43,7 +43,8 @@ Commands:
   dock    Dock・Finderサイドバー設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
-  claude  Claude Code の MCP サーバー登録・プラグイン導入状態を操作（実体を直接読む・cacheなし）
+  claude  Claude Code の MCP・plugin・skill を操作（実体を直接読む・cacheなし）
+  codex   Codex の MCP・plugin・skill を操作（CLIの統合済み実体を読む・cacheなし）
 EOF
 }
 
@@ -287,46 +288,60 @@ _package_file() {
   esac
 }
 
-_claude() {
-  local action="${1:-}" mcp_only=false plugin_only=false
-  [[ -n "${action}" ]] || _error "usage: dots claude {apply|diff} [--mcp-only|--plugin-only]"
-  shift
+_ai_agent() {
+  local agent="$1" action="${2:-}"
+  local mcp_only=false plugin_only=false skill_only=false only_count=0
+  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff} [--mcp-only|--plugin-only|--skill-only]"
+  shift 2
+
+  [[ "${action}" == apply || "${action}" == diff ]] || \
+    _error "unknown ${agent} action: ${action} (only apply/diff are supported; no cache)"
 
   local arg
   for arg in "$@"; do
     case "${arg}" in
       --mcp-only) mcp_only=true ;;
       --plugin-only) plugin_only=true ;;
-      *) _error "unknown claude option: ${arg}" ;;
+      --skill-only) skill_only=true ;;
+      *) _error "unknown ${agent} option: ${arg}" ;;
     esac
   done
-  [[ "${mcp_only}" == true && "${plugin_only}" == true ]] && _error "--mcp-only と --plugin-only は同時指定できない"
+  [[ "${mcp_only}" == true ]] && (( only_count++ )) || true
+  [[ "${plugin_only}" == true ]] && (( only_count++ )) || true
+  [[ "${skill_only}" == true ]] && (( only_count++ )) || true
+  (( only_count <= 1 )) || _error "--mcp-only / --plugin-only / --skill-only は同時指定できない"
 
-  local run_mcp=true run_plugin=true
-  [[ "${mcp_only}" == true ]] && run_plugin=false
-  [[ "${plugin_only}" == true ]] && run_mcp=false
+  local run_mcp=true run_plugin=true run_skill=true
+  if (( only_count == 1 )); then
+    run_mcp="${mcp_only}"
+    run_plugin="${plugin_only}"
+    run_skill="${skill_only}"
+  fi
 
-  case "${action}" in
-    apply|diff)
-      if [[ "${run_mcp}" == true ]]; then
-        echo "--- mcp ---"
-        if [[ "${action}" == diff ]]; then
-          bash "${DOTFILES_DIR}/ai/claude/mcp/diff.sh" || true
-        else
-          bash "${DOTFILES_DIR}/ai/claude/mcp/${action}.sh"
-        fi
-      fi
-      if [[ "${run_plugin}" == true ]]; then
-        echo "--- plugin ---"
-        if [[ "${action}" == diff ]]; then
-          bash "${DOTFILES_DIR}/ai/claude/plugin/diff.sh" || true
-        else
-          bash "${DOTFILES_DIR}/ai/claude/plugin/${action}.sh"
-        fi
-      fi
-      ;;
-    *) _error "unknown claude action: ${action} (only apply/diff are supported; no cache — reads live state directly)" ;;
-  esac
+  if [[ "${run_mcp}" == true ]]; then
+    echo "--- mcp ---"
+    if [[ "${action}" == diff ]]; then
+      bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true
+    else
+      bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh"
+    fi
+  fi
+  if [[ "${run_plugin}" == true ]]; then
+    echo "--- plugin ---"
+    if [[ "${action}" == diff ]]; then
+      bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true
+    else
+      bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh"
+    fi
+  fi
+  if [[ "${run_skill}" == true ]]; then
+    echo "--- skill ---"
+    if [[ "${action}" == diff ]]; then
+      bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true
+    else
+      bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}"
+    fi
+  fi
 }
 
 command_name="${1:-help}"
@@ -338,7 +353,7 @@ case "${command_name}" in
   brew) _brew "$@" ;;
   dock) _dock "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
-  claude) _claude "$@" ;;
+  claude|codex) _ai_agent "${command_name}" "$@" ;;
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;
 esac

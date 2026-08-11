@@ -31,12 +31,16 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 
 ---
 
-## Codex 設定の管理境界
+## AI agent の skill / plugin / MCP 管理境界
 
 Codex の自作 skill は `ai/codex/skills/<skill-name>/` を正本とし、公式の個人 skill
 配置である `~/.agents/skills/<skill-name>/` へディレクトリ単位でリンクする。
+Claude Code は `ai/claude/skills/<skill-name>/` から `~/.claude/skills/<skill-name>/`
+へ同じ方式でリンクする。
 `~/.agents/skills` 全体をリンクしないのは、Codex やプラグインが管理する skill と
-自作 skill の所有範囲を分離するため。
+自作 skill の所有範囲を分離するため。Claude Code 側も同様に skill root 全体を所有しない。
+各 agent の実際の skill root を走査するため、アプリ・CLI・手動で追加された未管理 skill は
+削除されず `+actual` として検知される。
 
 旧配置 `~/.codex/skills` の同名 skill は、インストール時に削除せず
 `~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避する。`.system` と公式 curated
@@ -46,6 +50,16 @@ skills は Codex 側の更新に追従するため vendor しない。
 デスクトップアプリ固有パスなども含む可変ファイルなので、全体をシンボリックリンク
 しない。公開可能で安定した共通設定は公開 repo、個人情報やシークレットを含む設定は
 `dotfiles-private/ai/codex/`、端末・セッション状態はローカル専用とする。
+
+MCP と plugin は `ai/{claude,codex}/{mcp,plugin}/` に公開可能な宣言を置き、CLI で
+統合済みの実態またはアプリと共有する実体ファイルを検査する。`apply` は不足分だけを追加し、
+未宣言項目は削除しない。MCP は local（stdio）/ remote（HTTP）の両方を検知する。
+Claude Code は user scope に加え、既知 project の local scope と `.mcp.json` も検査する。
+
+外部 AI CLI を MCP として接続する場合は、提供元が公式に公開する server mode または
+remote server のみ採用する。現在の Codex 管理対象は GitHub Remote MCP と
+その Copilot toolset、および `claude mcp serve` だけで、Copilot CLI / Gemini CLI /
+Ollama 用の独自 bridge は作らない。
 
 ---
 
