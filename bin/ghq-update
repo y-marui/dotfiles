@@ -14,14 +14,22 @@
 # 動作:
 #   デフォルト:
 #     - keep-up-to-date=true のリポジトリのみ git fetch + pull --ff-only
-#     - dirty な場合は fetch のみ実行し pull をスキップ
+#     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
+#     - uv.lock 以外にも dirty な変更がある場合は fetch のみ実行し pull をスキップ
 #     - .venv があれば uv sync --upgrade（pull 成功時のみ）
 #   --all:
 #     - 全リポジトリを git fetch origin --prune + git pull --ff-only
-#     - detached HEAD・upstream 未設定・dirty な場合は pull をスキップ（fetch は実行）
+#     - detached HEAD・upstream 未設定の場合は pull をスキップ（fetch は実行）
+#     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
+#     - uv.lock 以外にも dirty な変更がある場合は pull をスキップ
+#     - 復元時にコンフリクトした場合は stash を残したまま警告を表示する
 #     - .venv があり keep-up-to-date=true のリポジトリのみ uv sync --upgrade（pull 成功時のみ）
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=bin/_ghq-lib.sh
+source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 ALL=false
 PULL_ONLY=false
@@ -55,12 +63,13 @@ while IFS= read -r f; do
       continue
     fi
     git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
-    if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
+    if ! _ghq_stash_uv_lock "$f"; then
       echo "  [skip pull] dirty working tree"
       continue
     fi
     pulled=true
     git -C "$f" pull --ff-only || pulled=false
+    _ghq_unstash_uv_lock "$f" || true
     if [[ "$pulled" == true ]] && \
        [[ "$PULL_ONLY" == false ]] && \
        [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]] && \
@@ -77,12 +86,13 @@ while IFS= read -r f; do
       continue
     fi
     git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
-    if [[ -n "$(git -C "$f" status --porcelain 2>/dev/null)" ]]; then
+    if ! _ghq_stash_uv_lock "$f"; then
       echo "  [skip pull] dirty working tree"
       continue
     fi
     pulled=true
     git -C "$f" pull --ff-only || pulled=false
+    _ghq_unstash_uv_lock "$f" || true
     if [[ "$pulled" == true ]] && [[ "$PULL_ONLY" == false ]] && [[ -d "$f/.venv" ]]; then
       (cd "$f" && uv sync --upgrade)
     fi
