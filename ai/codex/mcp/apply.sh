@@ -165,7 +165,17 @@ for entry in declared:
     else:
         command = ["codex", "mcp", "add", name, "--url", entry["url"]]
 
-    subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
+    add_result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if add_result.returncode != 0:
+        # `codex mcp add --url` writes the config entry and then attempts an
+        # OAuth handshake; the handshake commonly fails for servers that only
+        # support bearer-token auth (added below), but the entry is still
+        # written, so treat "entry now present" as success.
+        recheck = subprocess.run(
+            ["codex", "mcp", "list", "--json"], capture_output=True, check=True, text=True
+        )
+        if name not in {e["name"] for e in json.loads(recheck.stdout)}:
+            raise RuntimeError(f"codex mcp add failed for {name}")
     changed = True
 
 for entry in declared:

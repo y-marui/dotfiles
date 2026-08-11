@@ -2,8 +2,8 @@
   "plugins": [
     "browser@openai-bundled",
     "chrome@openai-bundled",
-    "computer-use@openai-bundled",
     "documents@openai-primary-runtime",
+    "google-calendar@openai-curated",
     "pdf@openai-primary-runtime",
     "presentations@openai-primary-runtime",
     "sites@openai-bundled",

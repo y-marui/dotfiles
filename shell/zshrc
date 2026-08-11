@@ -460,6 +460,24 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/claude/plugin/plugins.json"
 fi
 
 # --------------------------------------------------------
+# 19c. Codex の MCP サーバー / プラグインの乖離確認（codex CLI を呼ぶため claude より遅い）
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/mcp/servers.json" ]] && (( ${+commands[codex]} )); then
+  _codex_mcp_diff=$(bash "$DOTFILES_DIR/ai/codex/mcp/diff.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_codex_mcp_diff" ]]; then
+    print -P "%F{yellow}⚠ codex mcp: $_codex_mcp_diff (dots codex diff --mcp-only で確認)%f"
+  fi
+  unset _codex_mcp_diff
+fi
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/plugin/plugins.json" ]] && (( ${+commands[codex]} )); then
+  _codex_plugin_diff=$(bash "$DOTFILES_DIR/ai/codex/plugin/diff.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_codex_plugin_diff" ]]; then
+    print -P "%F{yellow}⚠ codex plugin: $_codex_plugin_diff (dots codex diff --plugin-only で確認)%f"
+  fi
+  unset _codex_plugin_diff
+fi
+
+# --------------------------------------------------------
 # 20. iTerm2 Shell Integration
 # --------------------------------------------------------
 # iTerm2 Shell Integration は iTerm2 直下のシェルだけで読み込む。
