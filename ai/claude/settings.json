@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)"
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Bash(make *)",
+      "Bash(run-quiet gh *)",
+      "Bash(run-quiet git *)",
+      "Bash(run-quiet make *)"
     ]
   },
   "model": "sonnet",
