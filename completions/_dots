@@ -22,6 +22,7 @@ _dots() {
   ai_actions=(
     'apply:不足しているMCP・plugin・skillを追加'
     'diff:実際の状態と管理ファイルの差分を表示'
+    'prune:管理ファイルから外れたMCP・plugin・skillを削除または退避'
   )
   if (( CURRENT == 2 )); then
     _describe 'command' commands

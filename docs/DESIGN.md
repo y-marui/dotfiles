@@ -33,18 +33,23 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 
 ## AI agent の skill / plugin / MCP 管理境界
 
-Codex の自作 skill は `ai/codex/skills/<skill-name>/` を正本とし、公式の個人 skill
-配置である `~/.agents/skills/<skill-name>/` へディレクトリ単位でリンクする。
-Claude Code は `ai/claude/skills/<skill-name>/` から `~/.claude/skills/<skill-name>/`
-へ同じ方式でリンクする。
+ツール非依存の Agent Skills は `ai/skills/<skill-name>/` を正本とし、同じ実体を
+Codex の公式個人配置 `~/.agents/skills/<skill-name>/` と Claude Code の個人配置
+`~/.claude/skills/<skill-name>/` へディレクトリ単位でリンクする。ツール固有の機能や
+記法に依存するものだけを `ai/{codex,claude}/skills/<skill-name>/` に置き、それぞれの
+個人配置へリンクする。共通 skill とツール固有 skill の同名定義は禁止する。
 `~/.agents/skills` 全体をリンクしないのは、Codex やプラグインが管理する skill と
 自作 skill の所有範囲を分離するため。Claude Code 側も同様に skill root 全体を所有しない。
 各 agent の実際の skill root を走査するため、アプリ・CLI・手動で追加された未管理 skill は
-削除されず `+actual` として検知される。
+削除されず `+actual` として検知される。Codex は正規配置 `~/.agents/skills` に加え、
+Codex 自身や skill-installer が利用する `~/.codex/skills` も探索し、`.system` 以外を
+`+codex` として検知する。後者は検知専用で、`apply` / `prune` では変更しない。
 
-旧配置 `~/.codex/skills` の同名 skill は、インストール時に削除せず
-`~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避する。`.system` と公式 curated
-skills は Codex 側の更新に追従するため vendor しない。
+`~/.codex/skills` に管理対象と同名の skill がある場合、インストール時に削除せず
+`~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避する。`.system` はCodex管理とする。
+外部・curated skillは `ai/skills/external.json` にrepo/path/ref/targetを宣言し、公式
+skill-installerで `~/.local/share/dotfiles/skills/` へ取得する。本体をrepoへvendorせず、
+Claude CodeとCodexから同じキャッシュへリンクする。
 
 `~/.codex/config.toml` は手動設定だけでなく、プロジェクトの trust、プラグイン、
 デスクトップアプリ固有パスなども含む可変ファイルなので、全体をシンボリックリンク
@@ -52,9 +57,16 @@ skills は Codex 側の更新に追従するため vendor しない。
 `dotfiles-private/ai/codex/`、端末・セッション状態はローカル専用とする。
 
 MCP と plugin は `ai/{claude,codex}/{mcp,plugin}/` に公開可能な宣言を置き、CLI で
-統合済みの実態またはアプリと共有する実体ファイルを検査する。`apply` は不足分だけを追加し、
-未宣言項目は削除しない。MCP は local（stdio）/ remote（HTTP）の両方を検知する。
-Claude Code は user scope に加え、既知 project の local scope と `.mcp.json` も検査する。
+統合済みの実態またはアプリと共有する実体ファイルを検査する。`apply` は不足・設定不一致を
+追加または更新し、削除は明示的な `prune` だけが行う。MCP は local（stdio）/ remote
+（HTTP）の両方を検知する。Claude Code は user scope に加え、既知 project の local scopeと
+`.mcp.json` も検査するが、後者はproject所有として削除しない。loopback IDE MCP、
+plugin内包MCP、ChatGPT/Codexアプリ内部MCPも所有元を表示し、直接MCPの差分・削除対象から外す。
+
+`prune` の削除境界は、MCPが未宣言のuser/global直接登録、pluginが未宣言のインストール、
+skillがdotfilesまたは専用キャッシュを指す未宣言リンクに限定する。MCP設定は削除前に
+`~/.dotfiles-backup/` へ退避し、Claude pluginの永続データは保持する。
+静的認証ヘッダーを含む `~/.claude.json` と `~/.codex/config.toml` は `600` を維持する。
 
 外部 AI CLI を MCP として接続する場合は、提供元が公式に公開する server mode または
 remote server のみ採用する。現在の Codex 管理対象は GitHub Remote MCP と

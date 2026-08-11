@@ -31,17 +31,27 @@ fi
 
 python3 - "$SERVERS_FILE" "$CLAUDE_JSON" "$SUMMARY_MODE" << 'PYEOF'
 import json
+import os
 import sys
+from urllib.parse import urlparse
 
 servers_path, claude_json_path, summary_mode = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
 
 with open(servers_path, encoding="utf-8") as f:
-    declared = {entry["name"] for entry in json.load(f)}
+    declared_entries = json.load(f)
+declared = {entry["name"]: entry for entry in declared_entries}
 
 with open(claude_json_path, encoding="utf-8") as f:
     claude_config = json.load(f)
+insecure_mode = os.stat(claude_json_path).st_mode & 0o077 != 0
 
-actual = set(claude_config.get("mcpServers", {}).keys())
+actual_config = claude_config.get("mcpServers", {})
+actual = set(actual_config)
+
+
+def is_local_app(config):
+    hostname = urlparse(config.get("url", "")).hostname
+    return hostname in {"127.0.0.1", "localhost", "::1"}
 
 
 def transport_name(config):
@@ -64,38 +74,82 @@ for project_path, project_config in claude_config.get("projects", {}).items():
     for name, config in project_mcp.get("mcpServers", {}).items():
         scoped_actual.append(("project", project_path, name, transport_name(config)))
 
-only_in_actual = sorted(actual - declared)
-only_in_files = sorted(declared - actual)
+extra_actual = actual - declared.keys()
+app_actual = sorted(
+    name for name in extra_actual if is_local_app(claude_config["mcpServers"][name])
+)
+only_in_actual = sorted(extra_actual - set(app_actual))
+only_in_files = sorted(declared.keys() - actual)
+
+
+def config_matches(wanted, current):
+    if wanted["type"] == "stdio":
+        return (
+            current.get("type", "stdio") == "stdio"
+            and current.get("command") == wanted["command"]
+            and current.get("args", []) == wanted.get("args", [])
+        )
+    wanted_header_names = set(wanted.get("headers", {}))
+    return (
+        current.get("type") in {"http", "sse"}
+        and current.get("url") == wanted["url"]
+        and wanted_header_names.issubset(set(current.get("headers", {})))
+    )
+
+
+mismatched = sorted(
+    name
+    for name in declared.keys() & actual
+    if not config_matches(declared[name], actual_config[name])
+)
 
 if summary_mode:
     parts = []
-    actual_count = len(only_in_actual) + len(scoped_actual)
-    if actual_count:
-        parts.append(f"+{actual_count} actual のみ")
+    if only_in_actual:
+        parts.append(f"+{len(only_in_actual)} actual のみ")
     if only_in_files:
         parts.append(f"-{len(only_in_files)} files のみ")
+    if mismatched:
+        parts.append(f"~{len(mismatched)} config 不一致")
+    if insecure_mode:
+        parts.append("~permission")
     if parts:
         print(" / ".join(parts))
     sys.exit(0)
 
-if not only_in_actual and not only_in_files and not scoped_actual:
+if not only_in_actual and not only_in_files and not mismatched and not insecure_mode:
     print("No diff: 実際の登録状態と servers.json は一致しています。")
-    sys.exit(0)
+else:
+    if only_in_actual:
+        print("user scope に直接登録済みだが servers.json 未記載 (+actual のみ):")
+        for name in only_in_actual:
+            print(f"  [+actual]  {name}")
+        print()
+    if only_in_files:
+        print("servers.json にあるがシステム未登録 (-files のみ):")
+        for name in only_in_files:
+            print(f"  [-files]  {name}")
+        print()
+    if mismatched:
+        print("同名だが設定が不一致 (~config):")
+        for name in mismatched:
+            print(f"  [~config]  {name}")
+        print()
+    if insecure_mode:
+        print("認証情報を含む設定ファイルの権限が広すぎます (~permission):")
+        print("  [~permission]  ~/.claude.json (expected: 600)")
+        print()
 
-if only_in_actual:
-    print("user scope に登録済みだが servers.json 未記載 (+actual のみ):")
-    for name in only_in_actual:
-        print(f"  [+actual]  {name}")
+if app_actual:
+    print("IDE/app が提供する loopback MCP (app 管理):")
+    for name in app_actual:
+        print(f"  [app]      {name}")
     print()
 if scoped_actual:
-    print("local / project scope にある追加登録 (+actual のみ):")
+    print("local / project scope で検出した MCP (project 管理):")
     for scope, project_path, name, transport in sorted(scoped_actual):
         print(f"  [+{scope}]  {name} ({transport}) @ {project_path}")
     print()
-if only_in_files:
-    print("servers.json にあるがシステム未登録 (-files のみ):")
-    for name in only_in_files:
-        print(f"  [-files]  {name}")
 
-sys.exit(1)
+sys.exit(1 if only_in_actual or only_in_files or mismatched or insecure_mode else 0)
 PYEOF

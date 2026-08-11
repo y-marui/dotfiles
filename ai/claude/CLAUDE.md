@@ -39,5 +39,6 @@ claude mcp add -s user --transport http <name> <url>
 ```
 
 local scope のままだと、そのプロジェクトディレクトリでしか有効にならない。
-なお `~/.claude.json`（MCP サーバー登録）や `~/.claude/plugins`・`~/.claude/skills` は dotfiles の
-シンボリックリンク管理外（symlink 対象は `CLAUDE.md` と `settings.json` のみ）なので、他マシンには自動で反映されない。
+なお `~/.claude.json`（MCP サーバー登録）や `~/.claude/plugins` はディレクトリ全体を
+シンボリックリンク管理しない。`~/.claude/skills` も root 全体は所有せず、dotfiles 管理対象の
+共通・Claude Code 専用 skill だけをディレクトリ単位でリンクする。

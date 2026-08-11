@@ -2,6 +2,7 @@
 # servers.json にあって未登録の公式 MCP サーバーを Codex の共通設定へ追加する。
 
 set -euo pipefail
+umask 077
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)}"
 SERVERS_FILE="${DOTFILES_DIR}/ai/codex/mcp/servers.json"
@@ -30,8 +31,7 @@ result = subprocess.run(
     check=True,
     text=True,
 )
-actual_names = {entry["name"] for entry in json.loads(result.stdout)}
-missing = [entry for entry in declared if entry["name"] not in actual_names]
+actual = {entry["name"]: entry for entry in json.loads(result.stdout)}
 
 changed = False
 backup_dir = (
@@ -46,6 +46,30 @@ backup_created = False
 
 def toml_string(value):
     return json.dumps(value, ensure_ascii=False)
+
+
+def transport_matches(entry, current):
+    transport = current.get("transport", {})
+    if entry["type"] == "stdio":
+        return (
+            transport.get("type") == "stdio"
+            and transport.get("command") == entry["command"]
+            and transport.get("args", []) == entry.get("args", [])
+        )
+    return transport.get("type") in {"http", "streamable_http"} and transport.get(
+        "url"
+    ) == entry["url"]
+
+
+def backup_config():
+    global backup_created
+
+    config_path = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).expanduser() / "config.toml"
+    if not config_path.exists() or backup_path.exists():
+        return
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(config_path, backup_path)
+    backup_created = True
 
 
 def update_http_auth(entry, headers):
@@ -100,10 +124,7 @@ def update_http_auth(entry, headers):
     replacement.append(f"http_headers = {{ {header_items} }}\n")
     updated = "".join([*lines[:start], *replacement, *lines[end:]])
 
-    backup_dir.mkdir(parents=True, exist_ok=True)
-    if not backup_path.exists():
-        shutil.copy2(config_path, backup_path)
-        backup_created = True
+    backup_config()
 
     config_mode = stat.S_IMODE(config_path.stat().st_mode)
     with tempfile.NamedTemporaryFile(
@@ -116,8 +137,21 @@ def update_http_auth(entry, headers):
     return True
 
 
-for entry in missing:
+for entry in declared:
     name = entry["name"]
+    current = actual.get(name)
+    if current and transport_matches(entry, current):
+        continue
+    if current:
+        backup_config()
+        print(f"  replace  {name}")
+        subprocess.run(
+            ["codex", "mcp", "remove", name],
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+    else:
+        print(f"  add  {name}")
     if entry["type"] == "stdio":
         command = [
             "codex",
@@ -131,7 +165,6 @@ for entry in missing:
     else:
         command = ["codex", "mcp", "add", name, "--url", entry["url"]]
 
-    print(f"  add  {name}")
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
     changed = True
 

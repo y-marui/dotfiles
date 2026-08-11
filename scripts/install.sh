@@ -10,13 +10,12 @@ count_ok=0
 count_skip=0
 count_backup=0
 
-# Codex の旧配置にある自作 skill を、削除せずバックアップへ退避する。
-# ~/.codex/skills/.system や curated skills は対象にしない。
+# ~/.codex/skills にある管理対象と同名の skill を、削除せずバックアップへ退避する。
+# ~/.codex/skills/.system や別名の curated skills は対象にしない。
 for skill_name in "${CODEX_LEGACY_SKILLS[@]}"; do
-  src="${DOTFILES_DIR}/ai/codex/skills/${skill_name}"
   legacy_dest="${HOME}/.codex/skills/${skill_name}"
 
-  if [[ ! -e "${src}" || ( ! -e "${legacy_dest}" && ! -L "${legacy_dest}" ) ]]; then
+  if [[ ! -e "${legacy_dest}" && ! -L "${legacy_dest}" ]]; then
     continue
   fi
 

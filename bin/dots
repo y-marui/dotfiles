@@ -33,7 +33,7 @@ Usage:
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
-  dots {claude|codex} {apply|diff} [--mcp-only|--plugin-only|--skill-only]
+  dots {claude|codex} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots help
 
 Commands:
@@ -43,8 +43,8 @@ Commands:
   dock    Dock・Finderサイドバー設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
-  claude  Claude Code の MCP・plugin・skill を操作（実体を直接読む・cacheなし）
-  codex   Codex の MCP・plugin・skill を操作（CLIの統合済み実体を読む・cacheなし）
+  claude  Claude Code の MCP・plugin・skill を宣言的に管理
+  codex   Codex の MCP・plugin・skill を宣言的に管理
 EOF
 }
 
@@ -291,11 +291,11 @@ _package_file() {
 _ai_agent() {
   local agent="$1" action="${2:-}"
   local mcp_only=false plugin_only=false skill_only=false only_count=0
-  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff} [--mcp-only|--plugin-only|--skill-only]"
+  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]"
   shift 2
 
-  [[ "${action}" == apply || "${action}" == diff ]] || \
-    _error "unknown ${agent} action: ${action} (only apply/diff are supported; no cache)"
+  [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
+    _error "unknown ${agent} action: ${action} (apply/diff/prune are supported)"
 
   local arg
   for arg in "$@"; do
@@ -320,27 +320,27 @@ _ai_agent() {
 
   if [[ "${run_mcp}" == true ]]; then
     echo "--- mcp ---"
-    if [[ "${action}" == diff ]]; then
-      bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true
-    else
-      bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh"
-    fi
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh" ;;
+      prune) bash "${DOTFILES_DIR}/ai/${agent}/mcp/prune.sh" ;;
+    esac
   fi
   if [[ "${run_plugin}" == true ]]; then
     echo "--- plugin ---"
-    if [[ "${action}" == diff ]]; then
-      bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true
-    else
-      bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh"
-    fi
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh" ;;
+      prune) bash "${DOTFILES_DIR}/ai/${agent}/plugin/prune.sh" ;;
+    esac
   fi
   if [[ "${run_skill}" == true ]]; then
     echo "--- skill ---"
-    if [[ "${action}" == diff ]]; then
-      bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true
-    else
-      bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}"
-    fi
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}" ;;
+      prune) bash "${DOTFILES_DIR}/ai/skills/prune.sh" "${agent}" ;;
+    esac
   fi
 }
 

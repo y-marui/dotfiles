@@ -89,14 +89,17 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 | [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
 | [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
 | [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
-| [`ai/claude/skills/`](ai/claude/skills/) | `~/.claude/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`ai/skills/`](ai/skills/) | `~/.claude/skills/<skill-name>/` | Codex と共有する個人 skill |
+| [`ai/claude/skills/`](ai/claude/skills/) | `~/.claude/skills/<skill-name>/` | Claude Code 専用の個人 skill |
 | [`ai/claude/mcp/`](ai/claude/mcp/) | Claude Code user scope | MCP の宣言と実態との差分・追加 |
 | [`ai/claude/plugin/`](ai/claude/plugin/) | Claude Code user scope | marketplace / plugin の宣言と実態との差分・追加 |
 | [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
 
-`dots claude {diff|apply}` は MCP・plugin・skill をまとめて処理する。
+`dots claude {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
 `--mcp-only`、`--plugin-only`、`--skill-only` で対象を1種類に限定できる。
-未宣言の追加物は削除せず、`diff` で `+actual` として検知する。
+`apply` は追加・更新だけを行い、`prune` は未宣言の user scope MCP / plugin と
+dotfiles 所有の skill リンクだけを削除またはバックアップへ退避する。
+IDE/app と local/project scope のMCPは検出するが `prune` の対象外とする。
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -105,21 +108,27 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
 | [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.codex/AGENTS.md` | 全リポジトリで使うグローバル指示 |
-| [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`ai/skills/`](ai/skills/) | `~/.agents/skills/<skill-name>/` | Claude Code と共有する個人 skill |
+| [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | Codex 専用の個人 skill |
 | [`ai/codex/mcp/`](ai/codex/mcp/) | `~/.codex/config.toml` 内の MCP 設定 | 公式 MCP の宣言と実態との差分・追加 |
 | [`ai/codex/plugin/`](ai/codex/plugin/) | Codex の plugin 状態 | plugin の宣言と実態との差分・追加 |
 | [`AGENTS.md`](AGENTS.md) | — | リポジトリ固有指示（`AI_CONTEXT.md` を参照） |
 
-Codex の個人 skill は現行標準の `~/.agents/skills` で管理する。旧配置の
-`~/.codex/skills` に同名の自作 skill がある場合、`make install` は二重読み込みを
+Codex の個人 skill は現行標準の `~/.agents/skills` へ追加する。
+`~/.codex/skills` も検知対象に含め、`.system` 以外は `+codex` として報告するが、
+`apply` では変更しない。管理対象と同名の skill がある場合、`make install` は二重読み込みを
 避けるため `~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避してからリンクする。
-`.system` と公式 curated skills は Codex 側で更新されるため、このリポジトリには
-vendor しない。
+`.system` はCodex管理のため対象外とする。外部・curated skillを共通利用する場合は
+[`ai/skills/external.json`](ai/skills/external.json) に取得元とrefを宣言し、
+dotfiles専用キャッシュからClaude CodeとCodexの両方へリンクする。第三者のskill本体は
+このリポジトリへvendorしない。
 
-`dots codex {diff|apply}` は MCP・plugin・skill をまとめて処理する。
+`dots codex {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
 Claude Code と同じく `--mcp-only`、`--plugin-only`、`--skill-only` を指定できる。
 Codex CLI が返す統合済みの実態を使うため、Codex アプリまたは CLI から追加された
 local / remote MCP と plugin を検知する。skill は実際の個人 skill ディレクトリを検査する。
+plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、直接MCPの差分や
+`prune`対象には含めない。
 
 追加する MCP は、公式サーバーが確認できる次の接続だけに限定する。
 
@@ -130,6 +139,8 @@ GitHub の認証値は `apply` 時に `gh auth token` から取得する。値�
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
 ヘッダーへ保存する。これにより別の環境変数なしでアプリと CLI の両方から利用できる。
 トークンが更新された場合は `apply --mcp-only` を再実行する。
+両設定ファイルは `600` とし、Claude側は `diff` で権限も検査する。
+`codex mcp list --json` は静的ヘッダー値も返すため、出力をログやIssueへ貼らない。
 
 Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
 server は採用していない。独自 MCP bridge も作成しない。
@@ -141,7 +152,7 @@ server は採用していない。独自 MCP bridge も作成しない。
 - `config.toml` 全体（プロジェクト信頼状態、アプリ固有の絶対パス等を含み、Codex が更新する）
 
 MCP と plugin の管理ファイルは公開可能な宣言だけを保持し、`config.toml` 自体はリンクせず
-Codex CLI 経由で不足分だけを追加する。トークン値は管理対象外とする。
+各CLI経由で追加・更新・削除する。トークン値は管理対象外とする。
 
 将来、シークレットを含む Codex 設定を再現する必要が出た場合は、公開 repo ではなく
 `dotfiles-private/ai/codex/` に置き、`dotfiles-private/setup.sh` から個別リンクする。
