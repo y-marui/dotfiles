@@ -23,6 +23,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | コマンド | 説明 |
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
+| `make links` | Unix向けシンボリックリンクだけを再適用 |
 | `make uninstall` | シンボリックリンクを削除 |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |

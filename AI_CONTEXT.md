@@ -98,6 +98,7 @@ dotfiles/
 ## よく使うコマンド
 
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
+- `make links`    : Unix 向けシンボリックリンクだけを再適用
 - `make check`    : リンク整合性確認
 - `make init`     : ホスト固有設定テンプレートを生成
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認

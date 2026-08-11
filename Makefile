@@ -5,7 +5,7 @@ BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows uninstall check init private
+.PHONY: help install install-macos install-rpi install-windows links uninstall check init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -56,6 +56,9 @@ install-windows: ## Windows 向けセットアップ（gsudo + シンボリッ�
 	pwsh -NoLogo -NoProfile -File scripts/setup-gsudo.ps1
 	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
+
+links: ## Unix 向けシンボリックリンクだけを再適用
+	@bash scripts/install.sh
 
 uninstall: ## シンボリックリンクを削除
 	@bash scripts/uninstall.sh
