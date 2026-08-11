@@ -33,7 +33,7 @@ Usage:
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
-  dots claude {apply|diff|cache} [--mcp-only|--plugin-only]
+  dots claude {apply|diff} [--mcp-only|--plugin-only]
   dots help
 
 Commands:
@@ -43,7 +43,7 @@ Commands:
   dock    Dock・Finderサイドバー設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
-  claude  Claude Code の MCP サーバー登録・プラグイン導入状態を操作（sync 未対応）
+  claude  Claude Code の MCP サーバー登録・プラグイン導入状態を操作（実体を直接読む・cacheなし）
 EOF
 }
 
@@ -289,7 +289,7 @@ _package_file() {
 
 _claude() {
   local action="${1:-}" mcp_only=false plugin_only=false
-  [[ -n "${action}" ]] || _error "usage: dots claude {apply|diff|cache} [--mcp-only|--plugin-only]"
+  [[ -n "${action}" ]] || _error "usage: dots claude {apply|diff} [--mcp-only|--plugin-only]"
   shift
 
   local arg
@@ -307,7 +307,7 @@ _claude() {
   [[ "${plugin_only}" == true ]] && run_mcp=false
 
   case "${action}" in
-    apply|diff|cache)
+    apply|diff)
       if [[ "${run_mcp}" == true ]]; then
         echo "--- mcp ---"
         if [[ "${action}" == diff ]]; then
@@ -325,7 +325,7 @@ _claude() {
         fi
       fi
       ;;
-    *) _error "unknown claude action: ${action} (sync is not implemented yet)" ;;
+    *) _error "unknown claude action: ${action} (only apply/diff are supported; no cache — reads live state directly)" ;;
   esac
 }
 

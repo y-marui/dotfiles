@@ -17,8 +17,6 @@ macos/Brewfile.local
 macos/Brewfile.cache
 npm/npmfile.cache
 pipx/pipxfile.cache
-ai/claude/mcp/servers.cache.json
-ai/claude/plugin/plugins.cache.json
 
 # バックアップファイル
 *.backup.*
