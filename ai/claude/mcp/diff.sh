@@ -93,7 +93,7 @@ def config_matches(wanted, current):
     return (
         current.get("type") in {"http", "sse"}
         and current.get("url") == wanted["url"]
-        and wanted_header_names.issubset(set(current.get("headers", {})))
+        and wanted_header_names == set(current.get("headers", {}))
     )
 
 
@@ -145,9 +145,16 @@ if app_actual:
     for name in app_actual:
         print(f"  [app]      {name}")
     print()
-if scoped_actual:
-    print("local / project scope で検出した MCP (project 管理):")
-    for scope, project_path, name, transport in sorted(scoped_actual):
+local_actual = [entry for entry in scoped_actual if entry[0] == "local"]
+project_actual = [entry for entry in scoped_actual if entry[0] == "project"]
+if local_actual:
+    print("Claude Code local scope の MCP (端末・リポジトリ別、dotfiles 管理外):")
+    for scope, project_path, name, transport in sorted(local_actual):
+        print(f"  [+{scope}]  {name} ({transport}) @ {project_path}")
+    print()
+if project_actual:
+    print("Claude Code project scope の MCP (.mcp.json、リポジトリ管理):")
+    for scope, project_path, name, transport in sorted(project_actual):
         print(f"  [+{scope}]  {name} ({transport}) @ {project_path}")
     print()
 

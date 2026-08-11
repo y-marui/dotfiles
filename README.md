@@ -100,7 +100,9 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 `--mcp-only`、`--plugin-only`、`--skill-only` で対象を1種類に限定できる。
 `apply` は追加・更新だけを行い、`prune` は未宣言の user scope MCP / plugin と
 dotfiles 所有の skill リンクだけを削除またはバックアップへ退避する。
-IDE/app と local/project scope のMCPは検出するが `prune` の対象外とする。
+IDE/app と local/project scope のMCPは検出するが `prune` の対象外とする。local scopeは
+`~/.claude.json` 内の端末・リポジトリ固有設定、project scopeは各リポジトリの
+`.mcp.json` にある共有設定として区別して表示する。
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -138,7 +140,7 @@ plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、�
 
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
-ヘッダーへ保存する。これにより別の環境変数なしでアプリと CLI の両方から利用できる。
+ヘッダーへ保存する。これは `GITHUB_PAT_TOKEN` 環境変数や手動発行PATを必要としない。
 トークンが更新された場合は `apply --mcp-only` を再実行する。
 両設定ファイルは `600` とし、Claude側は `diff` で権限も検査する。
 `codex mcp list --json` は静的ヘッダー値も返すため、出力をログやIssueへ貼らない。

@@ -60,7 +60,8 @@ MCP と plugin は `ai/{claude,codex}/{mcp,plugin}/` に公開可能な宣言を
 統合済みの実態またはアプリと共有する実体ファイルを検査する。`apply` は不足・設定不一致を
 追加または更新し、削除は明示的な `prune` だけが行う。MCP は local（stdio）/ remote
 （HTTP）の両方を検知する。Claude Code は user scope に加え、既知 project の local scopeと
-`.mcp.json` も検査するが、後者はproject所有として削除しない。loopback IDE MCP、
+`.mcp.json` も検査するが、local scopeは端末・リポジトリ固有、project scopeは
+リポジトリ共有設定として区別し、どちらも削除しない。loopback IDE MCP、
 plugin内包MCP、ChatGPT/Codexアプリ内部MCPも所有元を表示し、直接MCPの差分・削除対象から外す。
 
 `prune` の削除境界は、MCPが未宣言のuser/global直接登録、pluginが未宣言のインストール、
