@@ -19,6 +19,7 @@ python3 - "${SERVERS_FILE}" "${actual_file}" "${plugins_file}" "${SUMMARY_MODE}"
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 servers_path, actual_path, plugins_path = sys.argv[1:4]
 summary = sys.argv[4] == "1"
@@ -54,12 +55,24 @@ def is_app_owned(entry):
     return command.startswith("/Applications/ChatGPT.app/")
 
 
+def is_loopback(entry):
+    hostname = urlparse(entry.get("transport", {}).get("url", "")).hostname
+    return hostname in {"127.0.0.1", "localhost", "::1"}
+
+
 extra_names = actual.keys() - declared.keys()
 plugin_actual = sorted(name for name in extra_names if name in plugin_owned)
 app_actual = sorted(
     name for name in extra_names if name not in plugin_owned and is_app_owned(actual[name])
 )
-only_actual = sorted(set(extra_names) - set(plugin_actual) - set(app_actual))
+loopback_actual = sorted(
+    name
+    for name in extra_names
+    if name not in plugin_owned and name not in app_actual and is_loopback(actual[name])
+)
+only_actual = sorted(
+    set(extra_names) - set(plugin_actual) - set(app_actual) - set(loopback_actual)
+)
 only_files = sorted(declared.keys() - actual.keys())
 
 
@@ -127,6 +140,11 @@ if plugin_actual:
 if app_actual:
     print("ChatGPT/Codex アプリが提供する内部 MCP (app 管理):")
     for name in app_actual:
+        print(f"  [app]      {name}")
+    print()
+if loopback_actual:
+    print("IDE/app が提供する loopback MCP (app 管理):")
+    for name in loopback_actual:
         print(f"  [app]      {name}")
 
 raise SystemExit(1 if only_actual or only_files or mismatched else 0)

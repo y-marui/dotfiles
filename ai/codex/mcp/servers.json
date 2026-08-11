@@ -26,5 +26,10 @@
     "type": "stdio",
     "command": "claude",
     "args": ["mcp", "serve"]
+  },
+  {
+    "name": "openaiDeveloperDocs",
+    "type": "http",
+    "url": "https://developers.openai.com/mcp"
   }
 ]
