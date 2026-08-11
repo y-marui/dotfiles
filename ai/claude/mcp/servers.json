@@ -1,0 +1,19 @@
+[
+  {
+    "name": "codex",
+    "type": "stdio",
+    "command": "codex",
+    "args": ["mcp-server"]
+  },
+  {
+    "name": "github",
+    "type": "http",
+    "url": "https://api.githubcopilot.com/mcp/",
+    "headers": {
+      "Authorization": {
+        "cmd": ["gh", "auth", "token"],
+        "prefix": "Bearer "
+      }
+    }
+  }
+]

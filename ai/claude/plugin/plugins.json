@@ -1,0 +1,15 @@
+{
+  "marketplaces": [
+    {
+      "name": "claude-plugins-official",
+      "repo": "anthropics/claude-plugins-official"
+    }
+  ],
+  "plugins": [
+    "commit-commands@claude-plugins-official",
+    "pr-review-toolkit@claude-plugins-official",
+    "pyright-lsp@claude-plugins-official",
+    "swift-lsp@claude-plugins-official",
+    "typescript-lsp@claude-plugins-official"
+  ]
+}
