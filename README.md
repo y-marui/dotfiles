@@ -153,7 +153,7 @@ GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使�
 
 ### 全 Agent 一括チェック (`dots check`)
 
-`dots check` は `claude`, `codex`, `gemini` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+`dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
 
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
@@ -162,8 +162,9 @@ Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Au
 両設定ファイルは `600` とし、Claude側は `diff` で権限も検査する。
 `codex mcp list --json` は静的ヘッダー値も返すため、出力をログやIssueへ貼らない。
 
-Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
-server は採用していない。独自 MCP bridge も作成しない。
+- Copilot CLI → Claude Code / Codex の公式 MCP server mode
+- Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
+  server は採用していない。独自 MCP bridge も作成しない。
 
 `~/.codex` の次の内容も管理対象外とする。
 
@@ -184,7 +185,11 @@ MCP と plugin の管理ファイルは公開可能な宣言だけを保持し�
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
 | [`ai/copilot/instructions.md`](ai/copilot/instructions.md) | `~/.copilot/copilot-instructions.md` | グローバル指示（`~/.ai/AI_CONTEXT.md` への参照のみ） |
+| [`ai/copilot/mcp/`](ai/copilot/mcp/) | `~/.copilot/mcp-config.json` 内の MCP 設定 | MCP の宣言と実態との差分・追加 |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | — | リポジトリ固有指示 |
+
+`dots copilot {diff|apply|prune}` は Copilot CLI の user scope MCP を処理する。
+workspace・plugin・builtin MCP は検出対象だが `prune` の対象外とする。
 
 参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
 

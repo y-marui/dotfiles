@@ -517,6 +517,17 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; t
 fi
 
 # --------------------------------------------------------
+# 19e. GitHub Copilot CLI の user scope MCP サーバーの乖離確認
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/copilot/mcp/servers.json" ]] && (( ${+commands[copilot]} )); then
+  _copilot_mcp_diff=$(bash "$DOTFILES_DIR/ai/copilot/mcp/diff.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_copilot_mcp_diff" ]]; then
+    print -P "%F{yellow}⚠ copilot mcp: $_copilot_mcp_diff (dots copilot diff で確認)%f"
+  fi
+  unset _copilot_mcp_diff
+fi
+
+# --------------------------------------------------------
 # 20. iTerm2 Shell Integration
 # --------------------------------------------------------
 # iTerm2 Shell Integration は iTerm2 直下のシェルだけで読み込む。

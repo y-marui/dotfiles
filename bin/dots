@@ -34,6 +34,7 @@ Usage:
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
   dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
+  dots copilot {apply|diff|prune} [--mcp-only]
   dots check
   dots help
 
@@ -47,7 +48,8 @@ Commands:
   claude  Claude Code の MCP・plugin・skill を宣言的に管理
   codex   Codex の MCP・plugin・skill を宣言的に管理
   gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
-  check   全 AI Agent (claude, codex, gemini) の MCP・plugin・skill 差分を一括検査
+  copilot GitHub Copilot CLI の user scope MCP を宣言的に管理
+  check   全 AI Agent の MCP・plugin・skill 差分を一括検査
 EOF
 }
 
@@ -347,14 +349,37 @@ _ai_agent() {
   fi
 }
 
+_copilot() {
+  local action="${1:-}"
+  [[ -n "${action}" ]] || _error "usage: dots copilot {apply|diff|prune} [--mcp-only]"
+  shift
+
+  [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
+    _error "unknown copilot action: ${action} (apply/diff/prune are supported)"
+  if (( $# > 0 )); then
+    [[ "$1" == "--mcp-only" && $# -eq 1 ]] || _error "unknown copilot option: $1"
+  fi
+
+  echo "--- mcp ---"
+  case "${action}" in
+    diff) bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" || true ;;
+    apply) bash "${DOTFILES_DIR}/ai/copilot/mcp/apply.sh" ;;
+    prune) bash "${DOTFILES_DIR}/ai/copilot/mcp/prune.sh" ;;
+  esac
+}
+
 _check_ai() {
   _require_no_args "$@"
   local agent
-  for agent in claude codex gemini; do
+  for agent in claude codex gemini copilot; do
     echo "=========================================="
     echo " Checking ${agent} ..."
     echo "=========================================="
-    _ai_agent "${agent}" diff || true
+    if [[ "${agent}" == copilot ]]; then
+      _copilot diff || true
+    else
+      _ai_agent "${agent}" diff || true
+    fi
     echo ""
   done
 }
@@ -369,6 +394,7 @@ case "${command_name}" in
   dock) _dock "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
   claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
+  copilot) _copilot "$@" ;;
   check) _check_ai "$@" ;;
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;

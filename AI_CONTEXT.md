@@ -107,7 +107,7 @@ dotfiles/
 - `dots {claude|codex|gemini} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
 - `dots {claude|codex|gemini} apply`: 宣言済みの不足・設定不一致を追加または更新
 - `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
-- `dots check`    : 全 AI Agent (claude, codex, gemini) の MCP・plugin・skill 差分を一括確認
+- `dots check`    : 全 AI Agent (claude, codex, gemini, copilot) の MCP・plugin・skill 差分を一括確認
 
 ## zprezto について
 

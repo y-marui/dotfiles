@@ -1,0 +1,16 @@
+[
+  {
+    "name": "claude-code",
+    "type": "local",
+    "command": "claude",
+    "args": ["mcp", "serve"],
+    "tools": ["*"]
+  },
+  {
+    "name": "codex",
+    "type": "local",
+    "command": "codex",
+    "args": ["mcp-server"],
+    "tools": ["*"]
+  }
+]
