@@ -33,7 +33,8 @@ Usage:
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
-  dots {claude|codex} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
+  dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
+  dots check
   dots help
 
 Commands:
@@ -45,6 +46,8 @@ Commands:
   pipx    pipxパッケージ設定を操作
   claude  Claude Code の MCP・plugin・skill を宣言的に管理
   codex   Codex の MCP・plugin・skill を宣言的に管理
+  gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
+  check   全 AI Agent (claude, codex, gemini) の MCP・plugin・skill 差分を一括検査
 EOF
 }
 
@@ -344,6 +347,18 @@ _ai_agent() {
   fi
 }
 
+_check_ai() {
+  _require_no_args "$@"
+  local agent
+  for agent in claude codex gemini; do
+    echo "=========================================="
+    echo " Checking ${agent} ..."
+    echo "=========================================="
+    _ai_agent "${agent}" diff || true
+    echo ""
+  done
+}
+
 command_name="${1:-help}"
 shift || true
 
@@ -353,7 +368,8 @@ case "${command_name}" in
   brew) _brew "$@" ;;
   dock) _dock "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
-  claude|codex) _ai_agent "${command_name}" "$@" ;;
+  claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
+  check) _check_ai "$@" ;;
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;
 esac

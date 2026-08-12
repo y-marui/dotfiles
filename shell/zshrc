@@ -442,7 +442,7 @@ if [[ -n "${DOTFILES_DIR:-}" ]]; then
 fi
 
 # --------------------------------------------------------
-# 19b. Claude Code の MCP サーバー / プラグインの乖離確認（~/.claude.json 等を直接読む・cache不要）
+# 19b. Claude Code の MCP サーバー / plugin / skill の乖離確認
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/claude/mcp/servers.json" ]]; then
   _claude_mcp_diff=$(bash "$DOTFILES_DIR/ai/claude/mcp/diff.sh" --summary 2>/dev/null || true)
@@ -458,9 +458,16 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/claude/plugin/plugins.json"
   fi
   unset _claude_plugin_diff
 fi
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
+  _claude_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" claude --summary 2>/dev/null || true)
+  if [[ -n "$_claude_skill_diff" ]]; then
+    print -P "%F{yellow}⚠ claude skill: $_claude_skill_diff (dots claude diff --skill-only で確認)%f"
+  fi
+  unset _claude_skill_diff
+fi
 
 # --------------------------------------------------------
-# 19c. Codex の MCP サーバー / プラグインの乖離確認（codex CLI を呼ぶため claude より遅い）
+# 19c. Codex の MCP サーバー / plugin / skill の乖離確認
 # --------------------------------------------------------
 if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/mcp/servers.json" ]] && (( ${+commands[codex]} )); then
   _codex_mcp_diff=$(bash "$DOTFILES_DIR/ai/codex/mcp/diff.sh" --summary 2>/dev/null || true)
@@ -475,6 +482,38 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/plugin/plugins.json" 
     print -P "%F{yellow}⚠ codex plugin: $_codex_plugin_diff (dots codex diff --plugin-only で確認)%f"
   fi
   unset _codex_plugin_diff
+fi
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
+  _codex_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" codex --summary 2>/dev/null || true)
+  if [[ -n "$_codex_skill_diff" ]]; then
+    print -P "%F{yellow}⚠ codex skill: $_codex_skill_diff (dots codex diff --skill-only で確認)%f"
+  fi
+  unset _codex_skill_diff
+fi
+
+# --------------------------------------------------------
+# 19d. Gemini / Antigravity の MCP サーバー / plugin / skill の乖離確認
+# --------------------------------------------------------
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/gemini/mcp/servers.json" ]]; then
+  _gemini_mcp_diff=$(bash "$DOTFILES_DIR/ai/gemini/mcp/diff.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_gemini_mcp_diff" ]]; then
+    print -P "%F{yellow}⚠ gemini mcp: $_gemini_mcp_diff (dots gemini diff --mcp-only で確認)%f"
+  fi
+  unset _gemini_mcp_diff
+fi
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/gemini/plugin/plugins.json" ]]; then
+  _gemini_plugin_diff=$(bash "$DOTFILES_DIR/ai/gemini/plugin/diff.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_gemini_plugin_diff" ]]; then
+    print -P "%F{yellow}⚠ gemini plugin: $_gemini_plugin_diff (dots gemini diff --plugin-only で確認)%f"
+  fi
+  unset _gemini_plugin_diff
+fi
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
+  _gemini_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" gemini --summary 2>/dev/null || true)
+  if [[ -n "$_gemini_skill_diff" ]]; then
+    print -P "%F{yellow}⚠ gemini skill: $_gemini_skill_diff (dots gemini diff --skill-only で確認)%f"
+  fi
+  unset _gemini_skill_diff
 fi
 
 # --------------------------------------------------------

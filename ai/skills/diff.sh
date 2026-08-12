@@ -11,13 +11,19 @@ SUMMARY_MODE=0
 [[ "${2:-}" == "--summary" ]] && SUMMARY_MODE=1
 
 case "${AGENT}" in
-  claude) SKILL_HOME="${HOME}/.claude/skills" ;;
-  codex) SKILL_HOME="${HOME}/.agents/skills" ;;
+  claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
+  codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
+  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex} [--summary]\n' "$0" >&2
+    printf 'usage: %s {claude|codex|gemini} [--summary]\n' "$0" >&2
     exit 2
     ;;
 esac
+
+PYTHON_BIN="$(command -v python3 || echo "python3")"
+if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
+  PYTHON_BIN="/usr/bin/python3"
+fi
 
 sources_file="$(mktemp)"
 declared_file="$(mktemp)"
@@ -27,7 +33,7 @@ codex_installed_file="$(mktemp)"
 source_missing_file="$(mktemp)"
 trap 'rm -f "${sources_file}" "${declared_file}" "${actual_file}" "${mismatch_file}" "${codex_installed_file}" "${source_missing_file}"' EXIT
 
-python3 - "${EXTERNAL_FILE}" "${AGENT}" "${CACHE_HOME}" <<'PYEOF' >> "${sources_file}"
+"${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" "${CACHE_HOME}" <<'PYEOF' >> "${sources_file}"
 import json
 import sys
 
@@ -35,7 +41,7 @@ path, agent, cache_home = sys.argv[1:]
 with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
 for entry in entries:
-    if agent in entry.get("targets", ["claude", "codex"]):
+    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
         print(entry["name"], f"{cache_home}/{entry['name']}", sep="\t")
 PYEOF
 
@@ -60,21 +66,28 @@ while IFS=$'\t' read -r name source_dir; do
   printf '%s\n' "${name}" >> "${declared_file}"
   [[ -f "${source_dir}/SKILL.md" ]] || printf '%s\n' "${name}" >> "${source_missing_file}"
 
-  destination="${SKILL_HOME}/${name}"
-  if [[ ( -e "${destination}" || -L "${destination}" ) && \
-    ( ! -L "${destination}" || "$(readlink "${destination}" 2>/dev/null || true)" != "${source_dir}" ) ]]; then
-    printf '%s\n' "${name}" >> "${mismatch_file}"
-  fi
+  for skill_home in "${SKILL_HOMES[@]}"; do
+    destination="${skill_home}/${name}"
+    if [[ ! -e "${destination}" && ! -L "${destination}" ]]; then
+      printf '%s\n' "${name}" >> "${mismatch_file}"
+    elif [[ ! -L "${destination}" || \
+      "$(readlink "${destination}" 2>/dev/null || true)" != "${source_dir}" ]]; then
+      printf '%s\n' "${name}" >> "${mismatch_file}"
+    fi
+  done
 done < <(sort -k1,1 "${sources_file}")
 
-if [[ -d "${SKILL_HOME}" ]]; then
-  for destination in "${SKILL_HOME}/"*; do
+for skill_home in "${SKILL_HOMES[@]}"; do
+  if [[ ! -d "${skill_home}" ]]; then
+    continue
+  fi
+  for destination in "${skill_home}/"*; do
     [[ -e "${destination}" || -L "${destination}" ]] || continue
     if [[ -f "${destination}/SKILL.md" || -L "${destination}" ]]; then
       basename "${destination}" >> "${actual_file}"
     fi
   done
-fi
+done
 
 # Codex の正規追加先は ~/.agents/skills。~/.codex/skills は Codex 自身や
 # skill-installer が使うため、apply では触らず .system 以外を追加済み skill として検知する。
@@ -94,14 +107,14 @@ sort -u -o "${mismatch_file}" "${mismatch_file}"
 sort -u -o "${codex_installed_file}" "${codex_installed_file}"
 sort -u -o "${source_missing_file}" "${source_missing_file}"
 
-python3 - "${declared_file}" "${actual_file}" "${mismatch_file}" \
+"${PYTHON_BIN}" - "${declared_file}" "${actual_file}" "${mismatch_file}" \
   "${codex_installed_file}" "${source_missing_file}" "${SUMMARY_MODE}" "${AGENT}" <<'PYEOF'
 import sys
 
 declared_path, actual_path, mismatch_path, codex_installed_path, source_missing_path = sys.argv[1:6]
 summary = sys.argv[6] == "1"
 agent = sys.argv[7]
-agent_label = "Claude Code" if agent == "claude" else "Codex"
+agent_label = "Claude Code" if agent == "claude" else ("Codex" if agent == "codex" else "Gemini/Antigravity")
 
 
 def names(path):
@@ -134,7 +147,7 @@ if summary:
     raise SystemExit(1 if parts else 0)
 
 if not only_actual and not only_files and not mismatched and not codex_installed and not source_missing:
-    location = "~/.claude/skills" if agent == "claude" else "~/.agents/skills"
+    location = "~/.claude/skills" if agent == "claude" else ("~/.agents/skills" if agent == "codex" else "~/.gemini/skills and ~/.gemini/config/skills")
     print(f"No diff: 管理対象の共通・{agent_label}専用 skill と {location} は一致しています。")
     raise SystemExit(0)
 

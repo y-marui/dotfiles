@@ -138,6 +138,23 @@ plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、�
 - Claude Code → Codex の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
 - Codex → Claude Code の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
 
+### Gemini / Antigravity
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示 |
+| [`ai/skills/`](ai/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity にも配置する共有 skill |
+| [`ai/gemini/skills/`](ai/gemini/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity 専用の個人 skill |
+| [`ai/gemini/mcp/`](ai/gemini/mcp/) | `~/.gemini/config/mcp_config.json` | MCP の宣言と実態との差分・追加 |
+| [`ai/gemini/plugin/plugins/`](ai/gemini/plugin/plugins/) | `~/.gemini/config/plugins/<plugin-name>/` | Antigravity plugin の実体（`plugin.json` 必須） |
+
+`dots gemini {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
+GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使用して認証情報を動的に読み込むラッパースクリプト経由で安全に起動される。
+
+### 全 Agent 一括チェック (`dots check`)
+
+`dots check` は `claude`, `codex`, `gemini` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
 ヘッダーへ保存する。これは `GITHUB_PAT_TOKEN` 環境変数や手動発行PATを必要としない。

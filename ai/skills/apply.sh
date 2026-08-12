@@ -10,23 +10,29 @@ CACHE_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/skills"
 STATE_HOME="${CACHE_HOME}/.sources"
 
 case "${AGENT}" in
-  claude) SKILL_HOME="${HOME}/.claude/skills" ;;
-  codex) SKILL_HOME="${HOME}/.agents/skills" ;;
+  claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
+  codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
+  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex}\n' "$0" >&2
+    printf 'usage: %s {claude|codex|gemini}\n' "$0" >&2
     exit 2
     ;;
 esac
+
+PYTHON_BIN="$(command -v python3 || echo "python3")"
+if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
+  PYTHON_BIN="/usr/bin/python3"
+fi
 
 BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)/ai-skills/${AGENT}"
 sources_file="$(mktemp)"
 trap 'rm -f "${sources_file}"' EXIT
 changed=0
 
-mkdir -p "${SKILL_HOME}"
+mkdir -p "${SKILL_HOMES[@]}"
 
 # 外部 skill は公式 skill-installer で dotfiles 専用キャッシュへ取得し、
-# Claude Code / Codex から同じ実体を参照する。
+# Claude Code / Codex / Gemini から同じ実体を参照する。
 while IFS=$'\t' read -r name repo ref path; do
   [[ -n "${name}" ]] || continue
   source_dir="${CACHE_HOME}/${name}"
@@ -48,13 +54,13 @@ while IFS=$'\t' read -r name repo ref path; do
     fi
     mkdir -p "${CACHE_HOME}" "${STATE_HOME}"
     printf '  INSTALL %s (%s@%s:%s)\n' "${name}" "${repo}" "${ref}" "${path}"
-    python3 "${installer}" --repo "${repo}" --ref "${ref}" --path "${path}" --dest "${CACHE_HOME}"
+    "${PYTHON_BIN}" "${installer}" --repo "${repo}" --ref "${ref}" --path "${path}" --dest "${CACHE_HOME}"
     printf '%s\n' "${wanted_state}" > "${state_file}"
     changed=1
   fi
   printf '%s\t%s\n' "${name}" "${source_dir}" >> "${sources_file}"
 done < <(
-  python3 - "${EXTERNAL_FILE}" "${AGENT}" <<'PYEOF'
+  "${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" <<'PYEOF'
 import json
 import sys
 
@@ -67,7 +73,7 @@ for entry in entries:
     skill_path = entry["path"]
     if name != skill_path.rstrip("/").rsplit("/", 1)[-1]:
         raise SystemExit(f"external skill name must match path basename: {name}")
-    if agent in entry.get("targets", ["claude", "codex"]):
+    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
         print(
             name,
             entry["repo"],
@@ -96,21 +102,24 @@ fi
 
 while IFS=$'\t' read -r name source_dir; do
   [[ -n "${name}" ]] || continue
-  destination="${SKILL_HOME}/${name}"
+  for skill_home in "${SKILL_HOMES[@]}"; do
+    destination="${skill_home}/${name}"
 
-  if [[ -L "${destination}" && "$(readlink "${destination}")" == "${source_dir}" ]]; then
-    continue
-  fi
+    if [[ -L "${destination}" && "$(readlink "${destination}")" == "${source_dir}" ]]; then
+      continue
+    fi
 
-  if [[ -e "${destination}" || -L "${destination}" ]]; then
-    mkdir -p "${BACKUP_DIR}"
-    mv "${destination}" "${BACKUP_DIR}/${name}"
-    printf '  BACKUP  %s -> %s\n' "${destination}" "${BACKUP_DIR}/${name}"
-  fi
+    if [[ -e "${destination}" || -L "${destination}" ]]; then
+      backup_scope="$(basename "$(dirname "${skill_home}")")-$(basename "${skill_home}")"
+      mkdir -p "${BACKUP_DIR}/${backup_scope}"
+      mv "${destination}" "${BACKUP_DIR}/${backup_scope}/${name}"
+      printf '  BACKUP  %s -> %s\n' "${destination}" "${BACKUP_DIR}/${backup_scope}/${name}"
+    fi
 
-  ln -s "${source_dir}" "${destination}"
-  printf '  LINK    %s -> %s\n' "${destination}" "${source_dir}"
-  changed=1
+    ln -s "${source_dir}" "${destination}"
+    printf '  LINK    %s -> %s\n' "${destination}" "${source_dir}"
+    changed=1
+  done
 done < <(sort -k1,1 "${sources_file}")
 
 if [[ "${changed}" -eq 0 ]]; then

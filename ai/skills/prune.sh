@@ -10,13 +10,19 @@ CACHE_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/skills"
 BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)/ai-skills-pruned/${AGENT}"
 
 case "${AGENT}" in
-  claude) SKILL_HOME="${HOME}/.claude/skills" ;;
-  codex) SKILL_HOME="${HOME}/.agents/skills" ;;
+  claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
+  codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
+  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex}\n' "$0" >&2
+    printf 'usage: %s {claude|codex|gemini}\n' "$0" >&2
     exit 2
     ;;
 esac
+
+PYTHON_BIN="$(command -v python3 || echo "python3")"
+if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
+  PYTHON_BIN="/usr/bin/python3"
+fi
 
 declared_file="$(mktemp)"
 trap 'rm -f "${declared_file}"' EXIT
@@ -28,7 +34,7 @@ for source_home in "${DOTFILES_DIR}/ai/skills" "${DOTFILES_DIR}/ai/${AGENT}/skil
   done
 done
 
-python3 - "${EXTERNAL_FILE}" "${AGENT}" <<'PYEOF' >> "${declared_file}"
+"${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" <<'PYEOF' >> "${declared_file}"
 import json
 import sys
 
@@ -36,33 +42,37 @@ path, agent = sys.argv[1:]
 with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
 for entry in entries:
-    if agent in entry.get("targets", ["claude", "codex"]):
+    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
         print(entry["name"])
 PYEOF
 sort -u -o "${declared_file}" "${declared_file}"
 
 changed=0
-if [[ -d "${SKILL_HOME}" ]]; then
-  for destination in "${SKILL_HOME}/"*; do
+for skill_home in "${SKILL_HOMES[@]}"; do
+  if [[ ! -d "${skill_home}" ]]; then
+    continue
+  fi
+  for destination in "${skill_home}/"*; do
     [[ -L "${destination}" ]] || continue
     name="$(basename "${destination}")"
     grep -Fxq "${name}" "${declared_file}" && continue
     target="$(readlink "${destination}")"
     case "${target}" in
       "${DOTFILES_DIR}/ai/skills/"*|"${DOTFILES_DIR}/ai/${AGENT}/skills/"*|"${CACHE_HOME}/"*)
-        mkdir -p "${BACKUP_DIR}/links"
-        mv "${destination}" "${BACKUP_DIR}/links/${name}"
-        printf '  BACKUP  %s -> %s\n' "${destination}" "${BACKUP_DIR}/links/${name}"
+        backup_scope="$(basename "$(dirname "${skill_home}")")-$(basename "${skill_home}")"
+        mkdir -p "${BACKUP_DIR}/links/${backup_scope}"
+        mv "${destination}" "${BACKUP_DIR}/links/${backup_scope}/${name}"
+        printf '  BACKUP  %s -> %s\n' "${destination}" "${BACKUP_DIR}/links/${backup_scope}/${name}"
         changed=1
         ;;
     esac
   done
-fi
+done
 
 # どちらの agent からも参照されず、宣言にもない専用キャッシュだけを退避する。
 all_external_file="$(mktemp)"
 trap 'rm -f "${declared_file}" "${all_external_file}"' EXIT
-python3 - "${EXTERNAL_FILE}" <<'PYEOF' > "${all_external_file}"
+"${PYTHON_BIN}" - "${EXTERNAL_FILE}" <<'PYEOF' > "${all_external_file}"
 import json
 import sys
 
@@ -79,7 +89,8 @@ if [[ -d "${CACHE_HOME}" ]]; then
     name="$(basename "${source_dir}")"
     grep -Fxq "${name}" "${all_external_file}" && continue
     referenced=false
-    for destination in "${HOME}/.agents/skills/${name}" "${HOME}/.claude/skills/${name}"; do
+    for destination in "${HOME}/.agents/skills/${name}" "${HOME}/.claude/skills/${name}" \
+      "${HOME}/.gemini/skills/${name}" "${HOME}/.gemini/config/skills/${name}"; do
       if [[ -L "${destination}" && "$(readlink "${destination}")" == "${source_dir}" ]]; then
         referenced=true
       fi
