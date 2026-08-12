@@ -15,11 +15,13 @@ codex plugin list --json > "${plugins_file}"
 
 python3 - "${SERVERS_FILE}" "${actual_file}" "${plugins_file}" <<'PYEOF'
 import json
+import os
 import shutil
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 servers_path, actual_path, plugins_path = sys.argv[1:]
 with open(servers_path, encoding="utf-8") as file:
@@ -47,16 +49,27 @@ def is_app_owned(entry):
     )
 
 
+def is_loopback(entry):
+    hostname = urlparse(entry.get("transport", {}).get("url", "")).hostname
+    return hostname in {"127.0.0.1", "localhost", "::1"}
+
+
 remove_names = sorted(
     name
     for name, entry in actual.items()
-    if name not in declared and name not in plugin_owned and not is_app_owned(entry)
+    if name not in declared
+    and name not in plugin_owned
+    and not is_app_owned(entry)
+    and not is_loopback(entry)
 )
 if not remove_names:
     print("  (nothing to prune)")
     raise SystemExit(0)
 
-config_path = Path.home() / ".codex" / "config.toml"
+config_path = (
+    Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")).expanduser()
+    / "config.toml"
+)
 if config_path.exists():
     backup_path = (
         Path.home()

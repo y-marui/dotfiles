@@ -69,7 +69,9 @@ while IFS= read -r f; do
     fi
     pulled=true
     git -C "$f" pull --ff-only || pulled=false
-    _ghq_unstash_uv_lock "$f" || true
+    if ! _ghq_unstash_uv_lock "$f"; then
+      continue
+    fi
     if [[ "$pulled" == true ]] && \
        [[ "$PULL_ONLY" == false ]] && \
        [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]] && \
@@ -92,7 +94,9 @@ while IFS= read -r f; do
     fi
     pulled=true
     git -C "$f" pull --ff-only || pulled=false
-    _ghq_unstash_uv_lock "$f" || true
+    if ! _ghq_unstash_uv_lock "$f"; then
+      continue
+    fi
     if [[ "$pulled" == true ]] && [[ "$PULL_ONLY" == false ]] && [[ -d "$f/.venv" ]]; then
       (cd "$f" && uv sync --upgrade)
     fi
