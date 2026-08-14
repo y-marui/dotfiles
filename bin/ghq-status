@@ -26,7 +26,9 @@ _row() {
   local _bc=''
   [[ ! "$4" =~ ^1/1([+]1)?$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
-  printf ' │ '; _pad "$5" "$w_charter"
+  local _cc=''
+  [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
+  printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
   case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
   printf ' │ %s' "$_kc"; _pad "$6" "$w_keep"; printf '\033[0m │\n'
@@ -46,6 +48,11 @@ main() {
   local filter="$1"
   local root
   root="$(ghq root)"
+
+  local charter_repo
+  charter_repo="$(ghq list -p 2>/dev/null | grep -iE '/dev-charter$' | head -1)"
+  charter_latest=""
+  [[ -n "$charter_repo" ]] && charter_latest="$(cat "$charter_repo/VERSION" 2>/dev/null)"
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
 
