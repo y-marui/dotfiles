@@ -5,7 +5,7 @@ BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows links uninstall check init private
+.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -65,6 +65,9 @@ uninstall: ## シンボリックリンクを削除
 
 check: ## シンボリックリンクの整合性を確認
 	@bash scripts/check.sh
+
+check-skills: ## uv で全 Agent Skill の構造と同梱テストを検証
+	@bash scripts/check-skills.sh
 
 init: ## このマシン用のホスト固有設定テンプレートを生成
 	@bash scripts/init-host.sh
