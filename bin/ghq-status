@@ -10,8 +10,18 @@
 #   -a, --all              branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
 #                          ハイライトされていないリポジトリも表示する（デフォルトでは非表示）
 #   -h, --help             ヘルプを表示
+#
+# git config:
+#   local.status-allowed-remote-branch PATTERN
+#       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
+#       ブランチには適用されない。複数設定可
+#       （git config --add local.status-allowed-remote-branch gemini）。
+#       BRANCHES 列でベース比率(1/1)から除外し +N 側に計上する（複数登録時は合算して +N）。
+#       git-sweep 等の削除処理には影響しない（表示専用の設定）。
 
 # shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
+# shellcheck disable=SC2053  # ${~pat} は zsh の glob 展開フラグで意図的に unquote している
+# shellcheck disable=SC2034  # ${~br_pat} 内で参照されるが shellcheck(bash) は検出できない
 
 _pad() {
   local str="$1" w="$2"
@@ -27,7 +37,7 @@ _is_quiet_row() {
   local branch="$1" status_val="$2" br="$3" charter="$4"
   [[ "$branch" != "main" ]] && return 1
   [[ "$status_val" != "✓" ]] && return 1
-  [[ ! "$br" =~ ^1/1([+]1)?$ ]] && return 1
+  [[ ! "$br" =~ ^1/1([+][0-9]+)?$ ]] && return 1
   [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
   return 0
 }
@@ -37,7 +47,7 @@ _row() {
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
   local _bc=''
-  [[ ! "$4" =~ ^1/1([+]1)?$ ]] && _bc=$'\033[31m'
+  [[ ! "$4" =~ ^1/1([+][0-9]+)?$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
   [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
@@ -95,10 +105,32 @@ main() {
     [[ -z "$status_str" ]] && status_str="✓"
 
     local_br=$(git -C "$repo" branch 2>/dev/null | wc -l | tr -d ' ')
-    origin_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /' | wc -l | tr -d ' ')
     dev_charter_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  dev-charter\// && !/ -> /' | wc -l | tr -d ' ')
-    if (( dev_charter_br > 0 )); then
-      br_str="${local_br}/${origin_br}+${dev_charter_br}"
+
+    # git config local.status-allowed-remote-branch (複数可) に登録されたパターンに一致する
+    # origin (remote) ブランチは ghq-status の表示上「想定内」とみなし、ベース比率(1/1)から
+    # 除外して +N 側に計上する（git-sweep 等の削除処理には影響しない、表示専用の設定）
+    typeset -a allowed_remote_patterns origin_branch_names
+    allowed_remote_patterns=("${(@f)$(git -C "$repo" config --get-all local.status-allowed-remote-branch 2>/dev/null)}")
+    origin_branch_names=("${(@f)$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /{sub(/.*origin\//,""); print}')}")
+
+    local br_name br_pat br_matched allowed_remote_extra=0
+    origin_br=0
+    for br_name in "${origin_branch_names[@]}"; do
+      br_matched=0
+      for br_pat in "${allowed_remote_patterns[@]}"; do
+        [[ "$br_name" == ${~br_pat} ]] && { br_matched=1; break; }
+      done
+      if (( br_matched )); then
+        (( allowed_remote_extra++ ))
+      else
+        (( origin_br++ ))
+      fi
+    done
+
+    local extra_br=$(( dev_charter_br + allowed_remote_extra ))
+    if (( extra_br > 0 )); then
+      br_str="${local_br}/${origin_br}+${extra_br}"
     else
       br_str="${local_br}/${origin_br}"
     fi
