@@ -7,6 +7,8 @@
 #
 # オプション:
 #   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -a, --all              branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
+#                          ハイライトされていないリポジトリも表示する（デフォルトでは非表示）
 #   -h, --help             ヘルプを表示
 
 # shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
@@ -18,6 +20,17 @@ _pad() {
 }
 
 _rule() { printf '%*s' "$1" '' | tr ' ' "$2"; }
+
+# branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
+# ハイライト対象でない（=注目すべき情報がない）行かどうかを判定する
+_is_quiet_row() {
+  local branch="$1" status_val="$2" br="$3" charter="$4"
+  [[ "$branch" != "main" ]] && return 1
+  [[ "$status_val" != "✓" ]] && return 1
+  [[ ! "$br" =~ ^1/1([+]1)?$ ]] && return 1
+  [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
+  return 0
+}
 
 _row() {
   printf '│ '; _pad "$1" "$w_repo"
@@ -46,6 +59,7 @@ _header() {
 
 main() {
   local filter="$1"
+  local show_all="$2"
   local root
   root="$(ghq root)"
 
@@ -108,10 +122,32 @@ main() {
     all_keeps+=("$keep_val")
   done < <(ghq list -p | sort -fV | grep -iE -- "$filter") > /dev/null
 
+  local i
+
+  if [[ "$show_all" != 1 ]]; then
+    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps
+    for (( i = 1; i <= ${#all_groups}; i++ )); do
+      _is_quiet_row "${all_branches[$i]}" "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" && continue
+      q_groups+=("${all_groups[$i]}")
+      q_repo_names+=("${all_repo_names[$i]}")
+      q_branches+=("${all_branches[$i]}")
+      q_statuses+=("${all_statuses[$i]}")
+      q_brs+=("${all_brs[$i]}")
+      q_charters+=("${all_charters[$i]}")
+      q_keeps+=("${all_keeps[$i]}")
+    done
+    all_groups=("${q_groups[@]}")
+    all_repo_names=("${q_repo_names[@]}")
+    all_branches=("${q_branches[@]}")
+    all_statuses=("${q_statuses[@]}")
+    all_brs=("${q_brs[@]}")
+    all_charters=("${q_charters[@]}")
+    all_keeps=("${q_keeps[@]}")
+  fi
+
   local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
 
   typeset -a seen_groups
-  local i
   for (( i = 1; i <= ${#all_groups}; i++ )); do
     (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
   done
@@ -169,14 +205,16 @@ main() {
 }
 
 FILTER=''
+SHOW_ALL=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--filter)
       (( $# < 2 )) && { print -u2 "error: --filter requires an argument"; exit 1; }
       FILTER="$2"; shift 2 ;;
+    -a|--all)  SHOW_ALL=1; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         print -u2 "error: unknown option: $1"; exit 1 ;;
   esac
 done
 
-main "$FILTER"
+main "$FILTER" "$SHOW_ALL"
