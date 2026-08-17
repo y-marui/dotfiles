@@ -1,10 +1,6 @@
 # Brewfile
 # brew bundle install --file=macos/Brewfile
 
-# ── tap ──────────────────────────────────────────────────────────────────────
-tap "buo/cask-upgrade"
-tap "mczachurski/wallpapper"
-
 # ── CLI tools ─────────────────────────────────────────────────────────────────
 brew "curl"
 brew "fzf"
