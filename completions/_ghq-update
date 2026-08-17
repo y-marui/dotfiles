@@ -4,6 +4,7 @@ _ghq-update() {
   _arguments \
     '--all[全リポジトリを対象にする（デフォルトは keep-up-to-date=true のみ）]' \
     '--pull-only[uv sync --upgrade をスキップ]' \
+    '--no-auto-pr[uv.lock 更新時の自動 PR 作成を無効化]' \
     '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }
