@@ -57,13 +57,14 @@ main() {
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
 
   while IFS= read -r repo; do
-    local rel branch staged unstaged untracked ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
+    local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
     rel="${repo#"$root/"}"
 
     branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
     staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
     unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
     untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    stashed=$(git -C "$repo" stash list 2>/dev/null | wc -l | tr -d ' ')
     # shellcheck disable=SC1083
     ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
     # shellcheck disable=SC1083
@@ -73,6 +74,7 @@ main() {
     (( staged    > 0 )) && status_str+=" +${staged}"
     (( unstaged  > 0 )) && status_str+=" !${unstaged}"
     (( untracked > 0 )) && status_str+=" ?${untracked}"
+    (( stashed   > 0 )) && status_str+=" *${stashed}"
     (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
     (( behind    > 0 )) && status_str+=" ⇣${behind}"
     status_str="${status_str# }"
