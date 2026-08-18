@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $cacheDuration = '00:30:00'
-$gsudo = Get-Command gsudo -CommandType Application -ErrorAction SilentlyContinue
+$gsudo = Get-Command gsudo.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $gsudo) {
     throw @'
 gsudo が見つかりません。先に以下を実行し、新しい PowerShell を開いてください:
