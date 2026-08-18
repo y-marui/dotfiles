@@ -29,7 +29,11 @@ _pad() {
   printf '%s%*s' "$str" $(( w - ${(m)#str} )) ''
 }
 
-_rule() { printf '%*s' "$1" '' | tr ' ' "$2"; }
+_rule() {
+  local n="$1" ch="$2" out='' i
+  for (( i = 0; i < n; i++ )); do out+="$ch"; done
+  printf '%s' "$out"
+}
 
 # branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
 # ハイライト対象でない（=注目すべき情報がない）行かどうかを判定する

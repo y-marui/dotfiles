@@ -179,8 +179,8 @@ repos:
     hooks:
       - id: check-bin-parity
         name: "bin/unix ⇔ bin/windows のコマンド対応チェック"
-        language: script
-        entry: scripts/check-bin-parity.sh
+        language: system
+        entry: bash scripts/check-bin-parity.sh
         pass_filenames: false
         files: ^bin/
 
@@ -194,7 +194,7 @@ repos:
     hooks:
       - id: check-sh-ps1-parity
         name: ".sh ⇔ .ps1 の対応チェック"
-        language: script
-        entry: scripts/check-sh-ps1-parity.sh
+        language: system
+        entry: bash scripts/check-sh-ps1-parity.sh
         pass_filenames: false
         files: \.(sh|ps1)$
