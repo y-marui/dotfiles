@@ -35,14 +35,20 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
 - Windows 向けスクリプトは PowerShell でネイティブに実装する（Windows で zsh は使わない）
 - 他 OS 向けの実装（bash スクリプト等）を `*.cmd` 等のラッパー経由で別 OS から
   呼び出す設計は避け、各 OS のネイティブシェルで書き直す
-  （例: `bin/dots.ps1` は bash 版 `bin/dots` のロジックを PowerShell に移植したもの。
-  `bin/git-sweep.ps1`・`bin/run-quiet.ps1` 等の `bin/*.ps1` も同様）
+  （例: `bin/windows/dots.ps1` は `bin/unix/dots`（bash版）のロジックをPowerShellに
+  移植したもの。`bin/windows/*.ps1` は全てこのパターン）
 - Windows で bare コマンド名（拡張子なし）から呼べるようにするには `*.cmd` シムが必須。
   `$env:PATHEXT` に `.PS1` は含まれておらず、`pwsh -File` を呼ぶだけの薄い `*.cmd`
-  （`bin/dots.cmd` 等）と併置する構成にする。これは PowerShell の意図的なセキュリティ
-  設計（なりすまし実行やダブルクリックでの誤実行を防ぐため）であり回避すべきではない
-- zsh 固有構文に依存するスクリプト（`bin/ghq-check`・`bin/ghq-status`）は
-  現状 Windows 未対応。Windows 対応させる場合は PowerShell へのネイティブ移植が必要
+  （`bin/windows/dots.cmd` 等）と併置する構成にする。これは PowerShell の意図的な
+  セキュリティ設計（なりすまし実行やダブルクリックでの誤実行を防ぐため）であり
+  回避すべきではない
+- `bin/unix/`（拡張子なしのbash/zshスクリプト）と `bin/windows/`（`*.ps1` + `*.cmd`）
+  は別ディレクトリに分離する。同じ `bin/` に混在させると、Unix側で `bin` 全体を
+  `~/.local/bin/dotfiles` へリンクした際に `*.cmd` が紛れ込んでしまうため
+- **コマンドは原則両OSに実装し、`bin/unix/` と `bin/windows/` の対応関係を保つ**
+  （片方専用は明確な理由がある場合のみ許容: 例 `install-my-apps` はmacOS専用の
+  .appインストーラー）。`scripts/check-bin-parity.sh` が pre-commit でこの対応
+  関係を検証する。片方専用にする場合はスクリプト内の `EXCEPTIONS` に理由を追記する
 
 ## Zellij 自動アタッチ条件
 
@@ -76,7 +82,9 @@ Zellij セッション内で `ssh` を実行すると、新しいペインを作
 
 ```
 dotfiles/
-├── bin/            # カスタムコマンド（OS別ネイティブ実装 + Windows向け*.cmdシム）
+├── bin/
+│   ├── unix/       # カスタムコマンド（zsh/bash、拡張子なし）— ~/.local/bin/dotfiles にリンク（Unix）
+│   └── windows/    # カスタムコマンド（*.ps1 ネイティブ実装 + bareコマンド名用*.cmdシム）— 同（Windows）
 ├── shell/          # zsh / bash / sh 設定ファイル
 ├── git/            # gitconfig、gitignore_global、エイリアス
 │   └── gitconfig.d/

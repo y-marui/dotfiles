@@ -185,19 +185,6 @@ function g {
     }
 }
 
-# ghq リポジトリの local.keep-up-to-date 状態を一覧表示
-function ghq-status {
-    $root = ghq root
-    ghq list -p | Sort-Object | ForEach-Object {
-        $repo = $_
-        $val  = git -C $repo config local.keep-up-to-date 2>$null
-        $rel  = $repo.Replace("$root\", '').Replace("$root/", '')
-        if ($val -eq 'true')       { Write-Host "[keep]  $rel" -ForegroundColor Green }
-        elseif ($val -eq 'false')  { Write-Host "[skip]  $rel" -ForegroundColor Red   }
-        else                       { Write-Host "[----]  $rel" }
-    }
-}
-
 Set-Alias make mingw32-make
 
 # ─── dotfiles 未コミット・未プッシュ確認 ───────────────────────────────────────

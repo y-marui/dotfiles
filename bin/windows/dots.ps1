@@ -3,15 +3,22 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$scriptItem = Get-Item -LiteralPath $PSCommandPath -Force
-while ($scriptItem.LinkType -eq 'SymbolicLink') {
-    $target = [string]$scriptItem.Target
+# $PSScriptRoot（通常 ~\.local\bin\dotfiles）自体がディレクトリシンボリックリンク
+# （bin\windows へのリンク）の場合はその実体を解決する。dots.ps1 個別のファイル
+# リンクではなく親ディレクトリ全体をリンクする方式のため、ファイル単位の
+# LinkType チェックではなくディレクトリ単位でチェックする必要がある。
+$scriptDirItem = Get-Item -LiteralPath $PSScriptRoot -Force
+if ($scriptDirItem.LinkType -eq 'SymbolicLink') {
+    $target = [string]$scriptDirItem.Target
     if (-not [System.IO.Path]::IsPathRooted($target)) {
-        $target = Join-Path $scriptItem.DirectoryName $target
+        $target = Join-Path (Split-Path $scriptDirItem.FullName -Parent) $target
     }
-    $scriptItem = Get-Item -LiteralPath $target -Force
+    $realScriptDir = $target
+} else {
+    $realScriptDir = $scriptDirItem.FullName
 }
-$dotfilesDir = Split-Path -Parent $scriptItem.DirectoryName
+# realScriptDir は <dotfiles>\bin\windows なので、リポジトリルートへは二階層上がる
+$dotfilesDir = Split-Path -Parent (Split-Path -Parent $realScriptDir)
 $privateDir = "$dotfilesDir-private"
 
 function Show-Usage {

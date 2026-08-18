@@ -11,19 +11,12 @@ $DOTFILES_DIR = Split-Path -Parent $PSScriptRoot
 
 $Links = @(
     [pscustomobject]@{
-        Src  = "bin\dots.ps1"
-        Dest = Join-Path $HOME ".local\bin\dots.ps1"
-    }
-    [pscustomobject]@{
-        Src  = "bin\dots.cmd"
-        Dest = Join-Path $HOME ".local\bin\dots.cmd"
-    }
-    [pscustomobject]@{
-        # git-sweep・git-survey・ghq-pull・ghq-update・run-quiet 等（Windows向けに
-        # *.ps1 でネイティブ移植し、bareコマンド名で呼べるよう *.cmd を同梱）を
-        # まとめてリンクする（macOS/RPiの bin -> ~/.local/bin/dotfiles 相当）。
-        # ghq-check・ghq-status はzsh依存のためWindowsでは非対応。
-        Src  = "bin"
+        # dots・git-sweep・git-survey・ghq-pull・ghq-update・ghq-sweep・ghq-check・
+        # ghq-status・run-quiet 等（*.ps1 でネイティブ移植し、bareコマンド名で呼べる
+        # よう *.cmd を同梱）をまとめてリンクする（macOS/RPiの bin/unix ->
+        # ~/.local/bin/dotfiles 相当）。bin/unix と bin/windows のコマンド対応は
+        # scripts/check-bin-parity.sh が pre-commit で検証する。
+        Src  = "bin\windows"
         Dest = Join-Path $HOME ".local\bin\dotfiles"
     }
     [pscustomobject]@{

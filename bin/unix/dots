@@ -16,7 +16,8 @@ _resolve_dotfiles_dir() {
   done
 
   source_dir="$(cd -P "$(dirname "${source_path}")" && pwd)"
-  cd "${source_dir}/.." && pwd -P
+  # source_dir は <dotfiles>/bin/unix なので、リポジトリルートへは二階層上がる
+  cd "${source_dir}/../.." && pwd -P
 }
 
 DOTFILES_DIR="$(_resolve_dotfiles_dir)"

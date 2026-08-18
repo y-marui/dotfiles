@@ -30,7 +30,7 @@ LINKS=(
   "ai/copilot/instructions.md|${HOME}/.copilot/copilot-instructions.md"
   "ai/gemini/GEMINI.md|${HOME}/.gemini/GEMINI.md"
   "completions|${HOME}/.zsh_completions"
-  "bin|${HOME}/.local/bin/dotfiles"
+  "bin/unix|${HOME}/.local/bin/dotfiles"
 )
 
 # OS 別 git 設定（credential.helper 等）。macOS でのみ ~/.gitconfig.d/os としてリンクする。

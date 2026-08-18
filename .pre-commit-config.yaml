@@ -168,3 +168,18 @@ repos:
             terminal/p10k\.zsh|
             .*\.zsh$
           )$
+
+  # ============================================================
+  # [6] bin/unix ⇔ bin/windows のコマンド対応チェック
+  #     全コマンドは原則両OSに実装すること（AI_CONTEXT.md の
+  #     「OS 別実装の方針」参照）。片方専用のコマンドは
+  #     scripts/check-bin-parity.sh 内の EXCEPTIONS で明示する。
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: check-bin-parity
+        name: "bin/unix ⇔ bin/windows のコマンド対応チェック"
+        language: script
+        entry: scripts/check-bin-parity.sh
+        pass_filenames: false
+        files: ^bin/

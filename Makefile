@@ -33,8 +33,8 @@ install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリ�
 	   echo "  SKIP    dotfiles-private (make private でセットアップしてください)"; \
 	 fi
 	@bash macos/defaults.sh
-	@bash bin/dots brew apply --backup-dir "$(BACKUP_DIR)"
-	@bash bin/dots dock apply --backup-dir "$(BACKUP_DIR)"
+	@bash bin/unix/dots brew apply --backup-dir "$(BACKUP_DIR)"
+	@bash bin/unix/dots dock apply --backup-dir "$(BACKUP_DIR)"
 
 install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリンク + apt パッケージ + claude-code/homebridge/tailscale + zsh化）
 	@bash scripts/install.sh
@@ -45,7 +45,7 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	 fi
 	@DOTFILES_DIR="$(DOTFILES_DIR)" bash rpi/apply_packages.sh
 	@bash scripts/setup-prezto.sh
-	@bash bin/dots pipx apply
+	@bash bin/unix/dots pipx apply
 	@bash rpi/repos/setup_claude-code.sh
 	@bash rpi/repos/setup_homebridge.sh
 	@bash rpi/repos/setup_tailscale.sh

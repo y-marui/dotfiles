@@ -64,7 +64,9 @@ $failed = 0
 
 $repos = @(& ghq list -p) | Sort-Object
 if ($FILTER) {
-    $repos = @($repos | Where-Object { $_ -match $FILTER })
+    # owner/repo 記法（"/"区切り）でフィルタを書けるよう、Windowsのバックスラッシュ
+    # パスを比較用に正規化する（実際のファイル操作には元のパスを使う）
+    $repos = @($repos | Where-Object { ($_ -replace '\\', '/') -match $FILTER })
 }
 
 foreach ($repo in $repos) {
