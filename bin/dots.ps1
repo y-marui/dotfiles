@@ -120,7 +120,9 @@ function Show-RepositoryStatus {
 }
 
 $commandName = if ($args.Count -gt 0) { $args[0] } else { 'help' }
-$commandArgs = if ($args.Count -gt 1) { @($args[1..($args.Count - 1)]) } else { @() }
+# 空配列を if 式の出力として代入すると PowerShell のパイプライン展開で $null に潰れる
+# （Set-StrictMode 下で $null.Count がエラーになる）ため、@() でパイプ全体を包んで防ぐ。
+$commandArgs = @($args | Select-Object -Skip 1)
 
 switch ($commandName) {
     'status' {

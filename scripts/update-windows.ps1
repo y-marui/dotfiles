@@ -33,7 +33,10 @@ Invoke-NativeCommand winget upgrade --all --silent --accept-source-agreements --
 
 # Enable-WURemoting
 Get-WindowsUpdate -Verbose
-Install-WindowsUpdate -AcceptAll -Verbose
+# -AcceptAllはEULA同意のみを自動化し、再起動確認は別扱いのため、
+# -NonInteractive下では応答できず内部でnull参照例外になる。-IgnoreRebootで
+# 再起動確認自体をスキップする（自動再起動はしない。手動で再起動すること）。
+Install-WindowsUpdate -AcceptAll -IgnoreReboot -Verbose
 
 if (Get-Command npm -ErrorAction SilentlyContinue) {
     Invoke-NativeCommand npm update --global
