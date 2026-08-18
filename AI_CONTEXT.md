@@ -22,8 +22,27 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 
 | プラットフォーム | インストール方法 |
 |---|---|
-| macOS / Linux | `make install`（bash スクリプト） |
-| Windows | `pwsh scripts/install.ps1` |
+| macOS / Linux | `make install`（内部で bash スクリプトを実行） |
+| Windows | `mingw32-make install`（内部で `pwsh scripts/install.ps1` 等を実行） |
+
+`make links` / `make check` / `make uninstall` も同様に `$(OS)` を見て
+Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.sh` を実行する
+（`Makefile` 内で分岐）。
+
+## OS 別実装の方針
+
+- macOS / Raspberry Pi 向けスクリプトは zsh / bash / sh でネイティブに実装する
+- Windows 向けスクリプトは PowerShell でネイティブに実装する（Windows で zsh は使わない）
+- 他 OS 向けの実装（bash スクリプト等）を `*.cmd` 等のラッパー経由で別 OS から
+  呼び出す設計は避け、各 OS のネイティブシェルで書き直す
+  （例: `bin/dots.ps1` は bash 版 `bin/dots` のロジックを PowerShell に移植したもの。
+  `bin/git-sweep.ps1`・`bin/run-quiet.ps1` 等の `bin/*.ps1` も同様）
+- Windows で bare コマンド名（拡張子なし）から呼べるようにするには `*.cmd` シムが必須。
+  `$env:PATHEXT` に `.PS1` は含まれておらず、`pwsh -File` を呼ぶだけの薄い `*.cmd`
+  （`bin/dots.cmd` 等）と併置する構成にする。これは PowerShell の意図的なセキュリティ
+  設計（なりすまし実行やダブルクリックでの誤実行を防ぐため）であり回避すべきではない
+- zsh 固有構文に依存するスクリプト（`bin/ghq-check`・`bin/ghq-status`）は
+  現状 Windows 未対応。Windows 対応させる場合は PowerShell へのネイティブ移植が必要
 
 ## Zellij 自動アタッチ条件
 
@@ -57,6 +76,7 @@ Zellij セッション内で `ssh` を実行すると、新しいペインを作
 
 ```
 dotfiles/
+├── bin/            # カスタムコマンド（OS別ネイティブ実装 + Windows向け*.cmdシム）
 ├── shell/          # zsh / bash / sh 設定ファイル
 ├── git/            # gitconfig、gitignore_global、エイリアス
 │   └── gitconfig.d/
@@ -98,7 +118,7 @@ dotfiles/
 ## よく使うコマンド
 
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
-- `make links`    : Unix 向けシンボリックリンクだけを再適用
+- `make links`    : シンボリックリンクだけを再適用
 - `make check`    : リンク整合性確認
 - `make init`     : ホスト固有設定テンプレートを生成
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認

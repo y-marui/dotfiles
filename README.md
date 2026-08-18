@@ -23,7 +23,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | コマンド | 説明 |
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
-| `make links` | Unix向けシンボリックリンクだけを再適用 |
+| `make links` | シンボリックリンクだけを再適用 |
 | `make uninstall` | シンボリックリンクを削除 |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |
@@ -55,15 +55,22 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 
 ### カスタムコマンド（`~/.local/bin/`）
 
-`make install` で `~/.local/bin/` にシンボリックリンクが作成される。
+`make install` で `~/.local/bin/` にシンボリックリンクが作成される。Windowsでは
+`bin/*.ps1`（ネイティブPowerShell実装）を`bin/*.cmd`（`pwsh -File`を呼ぶ薄いシム）
+経由でbareコマンド名から呼び出す。zsh依存のコマンド（`ghq-check`・`ghq-status`）は
+Windows未対応。
 
-| コマンド | 説明 |
-|---------|------|
-| `dots` | dotfilesとマシン環境を管理 |
-| `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
-| `ghq-check` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
-| `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
-| `git-sweep [--all] [main-branch]` | マージ済みブランチを整理（fast-forward・squash・rebase merge 対応） |
+| コマンド | 説明 | Windows |
+|---------|------|:---:|
+| `dots` | dotfilesとマシン環境を管理 | ✅ |
+| `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 | ✅ |
+| `git-sweep [--all] [main-branch]` | マージ済みブランチを整理（fast-forward・squash・rebase merge 対応） | ✅ |
+| `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 | ✅ |
+| `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull | ✅ |
+| `ghq-update [--all\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync、uv.lock自動PR含む） | ✅ |
+| `ghq-sweep` | ghq管理リポジトリ全件に`git-sweep --all`を実行 | ✅ |
+| `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` | ❌（zsh依存） |
+| `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 | ❌（zsh依存） |
 
 ## ファイル構成
 
