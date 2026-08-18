@@ -5,27 +5,36 @@
 #   ghq-update [options]
 #
 # オプション:
-#   --all        全リポジトリを fetch + pull し、uv sync は keep-up-to-date=true のみ
-#                （省略時は keep-up-to-date=true のリポジトリのみ pull + uv sync）
-#   --pull-only  uv sync --upgrade をスキップ
-#   --no-auto-pr uv sync --upgrade で uv.lock のみ更新された場合の自動 PR 作成を無効化し、
-#                従来通り working tree に dirty な差分を残す
+#   --all           uv sync 対象を「keep-up-to-date=true」から
+#                   「keep-up-to-date=true ∪ .venv が存在する」に拡張する
+#   --pull-all      fetch + pull 対象を全リポジトリに拡張する（uv sync 対象には影響しない）
+#   --uv-sync-only  fetch + pull をスキップし、uv sync --upgrade のみ実行する
+#                   （事前に ghq-pull 等で pull 済みであることが前提）
+#   --pull-only     fetch + pull のみ実行し、uv sync をスキップする
+#                   （--uv-sync-only と同時指定は不可）
+#   --no-auto-pr    uv sync --upgrade で uv.lock のみ更新された場合の自動 PR 作成を無効化し、
+#                   従来通り working tree に dirty な差分を残す
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -h, --help   ヘルプを表示
+#   -h, --help      ヘルプを表示
 #
 # 動作:
-#   デフォルト:
-#     - keep-up-to-date=true のリポジトリのみ git fetch + pull --ff-only
-#     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
-#     - uv.lock 以外にも dirty な変更がある場合は fetch のみ実行し pull をスキップ
-#     - .venv があれば uv sync --upgrade（pull 成功時のみ）
-#   --all:
-#     - 全リポジトリを git fetch origin --prune + git pull --ff-only
+#   uv sync 対象（sync 対象）:
+#     - デフォルト: keep-up-to-date=true のリポジトリ
+#     - --all:      上記 ∪ .venv が存在するリポジトリ
+#     - sync 対象なのに .venv が無い場合は warning を出し、そのリポジトリの
+#       uv sync のみスキップする（pull は通常通り行う）
+#   fetch + pull 対象（pull 対象）:
+#     - デフォルト: sync 対象と同じ
+#     - --pull-all: 全リポジトリに拡張する（旧 --all 相当。--all と併用すると
+#       「全リポジトリ pull + sync 対象を uv sync」というフル動作になる）
+#     - --uv-sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
+#   共通:
+#     - dotfiles・dev-charter は他より先に処理する（ghq-status の基準バージョン等、
+#       他リポジトリの処理より先に最新化しておきたいため）
 #     - detached HEAD・upstream 未設定の場合は pull をスキップ（fetch は実行）
 #     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
+#       （復元時にコンフリクトした場合は stash を残したまま警告を表示する）
 #     - uv.lock 以外にも dirty な変更がある場合は pull をスキップ
-#     - 復元時にコンフリクトした場合は stash を残したまま警告を表示する
-#     - .venv があり keep-up-to-date=true のリポジトリのみ uv sync --upgrade（pull 成功時のみ）
 #   auto-pr（デフォルト有効。--no-auto-pr で無効化）:
 #     - uv sync --upgrade の結果 uv.lock のみが dirty な場合、chore/uv-lock-update
 #       ブランチにコミットして force push し、gh で PR を作成する
@@ -51,6 +60,8 @@ function Get-KeepUpToDate([string]$Repo) {
 }
 
 $ALL = $false
+$PULL_ALL = $false
+$UV_SYNC_ONLY = $false
 $PULL_ONLY = $false
 $AUTO_PR = $true
 $FILTER = ''
@@ -60,6 +71,12 @@ while ($i -lt $args.Count) {
     $arg = $args[$i]
     if ($arg -eq '--all') {
         $ALL = $true
+        $i++
+    } elseif ($arg -eq '--pull-all') {
+        $PULL_ALL = $true
+        $i++
+    } elseif ($arg -eq '--uv-sync-only') {
+        $UV_SYNC_ONLY = $true
         $i++
     } elseif ($arg -eq '--pull-only') {
         $PULL_ONLY = $true
@@ -83,72 +100,40 @@ while ($i -lt $args.Count) {
     }
 }
 
+if ($PULL_ONLY -and $UV_SYNC_ONLY) {
+    Write-GhqStderr "error: --pull-only と --uv-sync-only は同時に指定できません"
+    exit 1
+}
+
 if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
     Write-GhqStderr "error: 'ghq' が見つかりません。"
     exit 1
 }
 
-$repos = @(& ghq list -p) | Sort-Object
-if ($FILTER) {
-    # owner/repo 記法（"/"区切り）でフィルタを書けるよう、Windowsのバックスラッシュ
-    # パスを比較用に正規化する（実際のファイル操作には元のパスを使う）
-    $repos = @($repos | Where-Object { ($_ -replace '\\', '/') -match $FILTER })
-}
+$repos = Get-GhqOrderedList $FILTER
 
 foreach ($f in $repos) {
+    $kutd = Get-KeepUpToDate $f
+    $hasVenv = Test-Path -LiteralPath (Join-Path $f '.venv')
+
+    $inSyncTarget = $kutd -or ($ALL -and $hasVenv)
+    $inVisitSet = $inSyncTarget -or $PULL_ALL
+
+    if (-not $inVisitSet) { continue }
+
     Write-Host ""
     Write-Host "==> $f"
 
-    if ($ALL) {
-        $global:LASTEXITCODE = $null
-        $baseBranch = (& git -C $f symbolic-ref --short HEAD 2>$null)
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip] detached HEAD"
-            continue
-        }
+    $global:LASTEXITCODE = $null
+    $baseBranch = (& git -C $f symbolic-ref --short HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  [skip] detached HEAD"
+        continue
+    }
 
-        $global:LASTEXITCODE = $null
-        & git -C $f fetch origin --prune
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] fetch failed"
-            continue
-        }
-
-        $global:LASTEXITCODE = $null
-        & git -C $f rev-parse '@{u}' *> $null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] no upstream"
-            continue
-        }
-        if (-not (Push-GhqUvLockStash $f)) {
-            Write-Host "  [skip pull] dirty working tree"
-            continue
-        }
-
-        $global:LASTEXITCODE = $null
-        & git -C $f pull --ff-only
-        $pulled = ($LASTEXITCODE -eq 0)
-        if (-not (Pop-GhqUvLockStash $f)) {
-            continue
-        }
-
-        if ($pulled -and (-not $PULL_ONLY) -and (Get-KeepUpToDate $f) -and (Test-Path -LiteralPath (Join-Path $f '.venv'))) {
-            Push-Location $f
-            try { & uv sync --upgrade } finally { Pop-Location }
-            if ($AUTO_PR) { Invoke-GhqAutoPrUvLock $f $baseBranch }
-        }
+    if ($UV_SYNC_ONLY) {
+        $pulled = $true
     } else {
-        if (-not (Get-KeepUpToDate $f)) {
-            continue
-        }
-
-        $global:LASTEXITCODE = $null
-        $baseBranch = (& git -C $f symbolic-ref --short HEAD 2>$null)
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip] detached HEAD"
-            continue
-        }
-
         $global:LASTEXITCODE = $null
         & git -C $f fetch origin --prune
         if ($LASTEXITCODE -ne 0) {
@@ -173,11 +158,20 @@ foreach ($f in $repos) {
         if (-not (Pop-GhqUvLockStash $f)) {
             continue
         }
+    }
 
-        if ($pulled -and (-not $PULL_ONLY) -and (Test-Path -LiteralPath (Join-Path $f '.venv'))) {
+    if ($inSyncTarget -and (-not $PULL_ONLY) -and $pulled) {
+        if ($hasVenv) {
             Push-Location $f
             try { & uv sync --upgrade } finally { Pop-Location }
             if ($AUTO_PR) { Invoke-GhqAutoPrUvLock $f $baseBranch }
+        } else {
+            $hasUvProject = (Test-Path -LiteralPath (Join-Path $f 'pyproject.toml')) -or (Test-Path -LiteralPath (Join-Path $f 'uv.lock'))
+            if ($hasUvProject) {
+                Write-GhqStderr "  [warn] keep-up-to-date=true ですが .venv が見つかりません（uv 設定はあるので uv sync 未実行の可能性があります。uv sync をスキップします）"
+            } else {
+                Write-GhqStderr "  [warn] keep-up-to-date=true ですが .venv が見つかりません（pyproject.toml/uv.lock も無く uv 設定自体が見当たりません。uv sync をスキップします）"
+            }
         }
     }
 }

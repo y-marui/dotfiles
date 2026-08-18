@@ -5,27 +5,36 @@
 #   ghq-update [options]
 #
 # オプション:
-#   --all        全リポジトリを fetch + pull し、uv sync は keep-up-to-date=true のみ
-#                （省略時は keep-up-to-date=true のリポジトリのみ pull + uv sync）
-#   --pull-only  uv sync --upgrade をスキップ
-#   --no-auto-pr uv sync --upgrade で uv.lock のみ更新された場合の自動 PR 作成を無効化し、
-#                従来通り working tree に dirty な差分を残す
+#   --all           uv sync 対象を「keep-up-to-date=true」から
+#                   「keep-up-to-date=true ∪ .venv が存在する」に拡張する
+#   --pull-all      fetch + pull 対象を全リポジトリに拡張する（uv sync 対象には影響しない）
+#   --uv-sync-only  fetch + pull をスキップし、uv sync --upgrade のみ実行する
+#                   （事前に ghq-pull 等で pull 済みであることが前提）
+#   --pull-only     fetch + pull のみ実行し、uv sync をスキップする
+#                   （--uv-sync-only と同時指定は不可）
+#   --no-auto-pr    uv sync --upgrade で uv.lock のみ更新された場合の自動 PR 作成を無効化し、
+#                   従来通り working tree に dirty な差分を残す
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -h, --help   ヘルプを表示
+#   -h, --help      ヘルプを表示
 #
 # 動作:
-#   デフォルト:
-#     - keep-up-to-date=true のリポジトリのみ git fetch + pull --ff-only
-#     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
-#     - uv.lock 以外にも dirty な変更がある場合は fetch のみ実行し pull をスキップ
-#     - .venv があれば uv sync --upgrade（pull 成功時のみ）
-#   --all:
-#     - 全リポジトリを git fetch origin --prune + git pull --ff-only
+#   uv sync 対象（sync 対象）:
+#     - デフォルト: keep-up-to-date=true のリポジトリ
+#     - --all:      上記 ∪ .venv が存在するリポジトリ
+#     - sync 対象なのに .venv が無い場合は warning を出し、そのリポジトリの
+#       uv sync のみスキップする（pull は通常通り行う）
+#   fetch + pull 対象（pull 対象）:
+#     - デフォルト: sync 対象と同じ
+#     - --pull-all: 全リポジトリに拡張する（旧 --all 相当。--all と併用すると
+#       「全リポジトリ pull + sync 対象を uv sync」というフル動作になる）
+#     - --uv-sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
+#   共通:
+#     - dotfiles・dev-charter は他より先に処理する（ghq-status の基準バージョン等、
+#       他リポジトリの処理より先に最新化しておきたいため）
 #     - detached HEAD・upstream 未設定の場合は pull をスキップ（fetch は実行）
 #     - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
+#       （復元時にコンフリクトした場合は stash を残したまま警告を表示する）
 #     - uv.lock 以外にも dirty な変更がある場合は pull をスキップ
-#     - 復元時にコンフリクトした場合は stash を残したまま警告を表示する
-#     - .venv があり keep-up-to-date=true のリポジトリのみ uv sync --upgrade（pull 成功時のみ）
 #   auto-pr（デフォルト有効。--no-auto-pr で無効化）:
 #     - uv sync --upgrade の結果 uv.lock のみが dirty な場合、chore/uv-lock-update
 #       ブランチにコミットして force push し、gh で PR を作成する
@@ -40,22 +49,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 ALL=false
+PULL_ALL=false
+UV_SYNC_ONLY=false
 PULL_ONLY=false
 AUTO_PR=true
 FILTER=''
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --all)      ALL=true; shift ;;
-    --pull-only) PULL_ONLY=true; shift ;;
-    --no-auto-pr) AUTO_PR=false; shift ;;
+    --all)          ALL=true; shift ;;
+    --pull-all)     PULL_ALL=true; shift ;;
+    --uv-sync-only) UV_SYNC_ONLY=true; shift ;;
+    --pull-only)    PULL_ONLY=true; shift ;;
+    --no-auto-pr)   AUTO_PR=false; shift ;;
     -f|--filter)
       [[ $# -lt 2 ]] && { echo "error: --filter requires an argument" >&2; exit 1; }
       FILTER="$2"; shift 2 ;;
-    -h|--help)  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *)          echo "error: unknown option: $1" >&2; exit 1 ;;
+    -h|--help)      sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)              echo "error: unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+if [[ "$PULL_ONLY" == true ]] && [[ "$UV_SYNC_ONLY" == true ]]; then
+  echo "error: --pull-only と --uv-sync-only は同時に指定できません" >&2
+  exit 1
+fi
 
 if ! command -v ghq >/dev/null 2>&1; then
   echo "error: 'ghq' が見つかりません。" >&2
@@ -63,37 +81,26 @@ if ! command -v ghq >/dev/null 2>&1; then
 fi
 
 while IFS= read -r f; do
+  kutd="$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" || kutd=''
+  has_venv=false
+  [[ -d "$f/.venv" ]] && has_venv=true
+
+  in_sync_target=false
+  [[ "$kutd" == true || ( "$ALL" == true && "$has_venv" == true ) ]] && in_sync_target=true
+
+  in_visit_set=false
+  [[ "$in_sync_target" == true || "$PULL_ALL" == true ]] && in_visit_set=true
+
+  [[ "$in_visit_set" == true ]] || continue
+
   echo ""
   echo "==> $f"
 
-  if [[ "$ALL" == true ]]; then
-    base_branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || { echo "  [skip] detached HEAD"; continue; }
-    if ! git -C "$f" fetch origin --prune; then
-      echo "  [skip pull] fetch failed"
-      continue
-    fi
-    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
-    if ! _ghq_stash_uv_lock "$f"; then
-      echo "  [skip pull] dirty working tree"
-      continue
-    fi
+  base_branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || { echo "  [skip] detached HEAD"; continue; }
+
+  if [[ "$UV_SYNC_ONLY" == true ]]; then
     pulled=true
-    git -C "$f" pull --ff-only || pulled=false
-    if ! _ghq_unstash_uv_lock "$f"; then
-      continue
-    fi
-    if [[ "$pulled" == true ]] && \
-       [[ "$PULL_ONLY" == false ]] && \
-       [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" == "true" ]] && \
-       [[ -d "$f/.venv" ]]; then
-      (cd "$f" && uv sync --upgrade)
-      [[ "$AUTO_PR" == true ]] && _ghq_auto_pr_uv_lock "$f" "$base_branch"
-    fi
   else
-    if [[ "$(git -C "$f" config --bool local.keep-up-to-date 2>/dev/null)" != "true" ]]; then
-      continue
-    fi
-    base_branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || { echo "  [skip] detached HEAD"; continue; }
     if ! git -C "$f" fetch origin --prune; then
       echo "  [skip pull] fetch failed"
       continue
@@ -107,10 +114,21 @@ while IFS= read -r f; do
     git -C "$f" pull --ff-only || pulled=false
     if ! _ghq_unstash_uv_lock "$f"; then
       continue
-    fi
-    if [[ "$pulled" == true ]] && [[ "$PULL_ONLY" == false ]] && [[ -d "$f/.venv" ]]; then
-      (cd "$f" && uv sync --upgrade)
-      [[ "$AUTO_PR" == true ]] && _ghq_auto_pr_uv_lock "$f" "$base_branch"
     fi
   fi
-done < <(ghq list -p | sort -fV | grep -iE -- "$FILTER")
+
+  if [[ "$in_sync_target" == true ]] && [[ "$PULL_ONLY" == false ]] && [[ "$pulled" == true ]]; then
+    if [[ "$has_venv" == true ]]; then
+      (cd "$f" && uv sync --upgrade)
+      [[ "$AUTO_PR" == true ]] && _ghq_auto_pr_uv_lock "$f" "$base_branch"
+    else
+      has_uv_project=false
+      { [[ -f "$f/pyproject.toml" ]] || [[ -f "$f/uv.lock" ]]; } && has_uv_project=true
+      if [[ "$has_uv_project" == true ]]; then
+        echo "  [warn] keep-up-to-date=true ですが .venv が見つかりません（uv 設定はあるので uv sync 未実行の可能性があります。uv sync をスキップします）" >&2
+      else
+        echo "  [warn] keep-up-to-date=true ですが .venv が見つかりません（pyproject.toml/uv.lock も無く uv 設定自体が見当たりません。uv sync をスキップします）" >&2
+      fi
+    fi
+  fi
+done < <(_ghq_ordered_list "$FILTER")

@@ -14,6 +14,38 @@ function Write-GhqStderr([string]$Message) {
     [Console]::Error.WriteLine($Message)
 }
 
+$Script:GhqPriorityRepos = @('dotfiles', 'dev-charter')
+
+# Get-GhqOrderedList <filter>
+# ghq list -p の結果を、$Script:GhqPriorityRepos に列挙したリポジトリ（存在し filter に
+# 一致するもののみ）を先頭に、残りをソートした順で返す。
+# dotfiles はツール自体（ghq-update.ps1 等のスクリプト）を、dev-charter は各リポジトリの
+# 基準バージョン（docs/dev-charter/VERSION の比較元）を提供するため、他のリポジトリ
+# より先に最新化しておきたい。
+function Get-GhqOrderedList([string]$Filter) {
+    $all = @(& ghq list -p)
+    if ($Filter) {
+        # owner/repo 記法（"/"区切り）でフィルタを書けるよう、Windowsのバックスラッシュ
+        # パスを比較用に正規化する（実際のファイル操作には元のパスを使う）
+        $all = @($all | Where-Object { ($_ -replace '\\', '/') -match $Filter })
+    }
+    if ($all.Count -eq 0) { return @() }
+
+    $rest = [System.Collections.ArrayList]@($all)
+    $ordered = [System.Collections.ArrayList]@()
+
+    foreach ($name in $Script:GhqPriorityRepos) {
+        $match = $rest | Where-Object { ($_ -replace '\\', '/') -match "/${name}`$" } | Select-Object -First 1
+        if ($match) {
+            [void]$ordered.Add($match)
+            [void]$rest.Remove($match)
+        }
+    }
+
+    [void]$ordered.AddRange(@($rest | Sort-Object))
+    return $ordered
+}
+
 $Script:GhqStashed = $false
 
 # Push-GhqUvLockStash <repo>

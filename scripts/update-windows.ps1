@@ -51,7 +51,7 @@ if (Get-Command pipx -ErrorAction SilentlyContinue) {
 }
 
 if (Get-Command ghq-update -ErrorAction SilentlyContinue) {
-    Invoke-NativeCommand ghq-update --all
+    Invoke-NativeCommand ghq-update --pull-all
 } else {
     Write-Host '  SKIP    ghq-update (command not found)'
 }

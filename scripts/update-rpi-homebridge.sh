@@ -22,6 +22,13 @@ sudo env TMPDIR=/var/tmp PATH="/opt/homebridge/bin:$PATH" /opt/homebridge/bin/np
 # インストール済みプラグインの更新
 sudo env TMPDIR=/var/tmp PATH="/opt/homebridge/bin:$PATH" /opt/homebridge/bin/npm update -g
 
+# ghq 管理リポジトリの更新
+if command -v ghq-update >/dev/null 2>&1; then
+  ghq-update --pull-all
+else
+  echo "  SKIP    ghq-update (command not found)"
+fi
+
 # Homebridge 再起動
 sudo systemctl restart homebridge
 

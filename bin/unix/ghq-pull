@@ -59,4 +59,4 @@ while IFS= read -r f; do
     git -C "$f" pull --ff-only || true
     _ghq_unstash_uv_lock "$f" || true
   fi
-done < <(ghq list -p | sort -fV | grep -iE -- "$FILTER")
+done < <(_ghq_ordered_list "$FILTER")

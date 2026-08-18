@@ -28,6 +28,6 @@ bash "${0:A:h}/update-prezto.sh"
 mas upgrade
 softwareupdate -i -a
 
-ghq-update --all
+ghq-update --pull-all
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') Update completed ==="

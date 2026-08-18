@@ -9,6 +9,39 @@
 # 処理後に復元する。uv.lock 以外にも dirty な変更がある場合は従来通り
 # スキップする。
 
+_GHQ_PRIORITY_REPOS=(dotfiles dev-charter)
+
+# _ghq_ordered_list <filter>
+# ghq list -p の結果を、_GHQ_PRIORITY_REPOS に列挙したリポジトリ（存在し filter に
+# 一致するもののみ）を先頭に、残りを sort -fV した順で出力する。
+# dotfiles はツール自体（ghq-update 等のスクリプト）を、dev-charter は各リポジトリの
+# 基準バージョン（docs/dev-charter/VERSION の比較元）を提供するため、他のリポジトリ
+# より先に最新化しておきたい。
+_ghq_ordered_list() {
+  local filter="$1" all rest name repo
+
+  all="$(ghq list -p | grep -iE -- "$filter")" || true
+  if [[ -z "${all}" ]]; then
+    return 0
+  fi
+
+  rest="${all}"
+  for name in "${_GHQ_PRIORITY_REPOS[@]}"; do
+    repo="$(printf '%s\n' "${rest}" | grep -iE "/${name}\$" | head -1)" || true
+    if [[ -z "${repo}" ]]; then
+      continue
+    fi
+    printf '%s\n' "${repo}"
+    rest="$(printf '%s\n' "${rest}" | grep -ivFx "${repo}")" || true
+  done
+
+  if [[ -n "${rest}" ]]; then
+    printf '%s\n' "${rest}" | sort -fV
+  fi
+
+  return 0
+}
+
 _GHQ_STASHED=false
 
 # _ghq_stash_uv_lock <repo>
