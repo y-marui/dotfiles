@@ -19,6 +19,13 @@ $Links = @(
         Dest = Join-Path $HOME ".local\bin\dots.cmd"
     }
     [pscustomobject]@{
+        # git-sweep・git-survey・ghq-pull・ghq-update・run-quiet 等のbashスクリプトと
+        # 同梱の *.cmd ラッパーをまとめてリンクする（macOS/RPiの bin -> ~/.local/bin/dotfiles
+        # 相当）。ghq-check・ghq-status はzsh依存のためWindowsでは非対応。
+        Src  = "bin"
+        Dest = Join-Path $HOME ".local\bin\dotfiles"
+    }
+    [pscustomobject]@{
         Src  = "terminal\powershell\profile.ps1"
         # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
         Dest = $PROFILE.CurrentUserCurrentHost

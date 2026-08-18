@@ -3,12 +3,16 @@
 # 対象環境: Windows（Windows Terminal）
 
 # ─── ユーザーローカルコマンド ───────────────────────────────────────────────
-$_dotfiles_user_bin = Join-Path $HOME '.local\bin'
-if ((Test-Path -LiteralPath $_dotfiles_user_bin) -and
-    -not (@($env:PATH -split ';') | Where-Object {
-        $_.TrimEnd('\') -ieq $_dotfiles_user_bin.TrimEnd('\')
-    })) {
-    $env:PATH = "$_dotfiles_user_bin;$env:PATH"
+foreach ($_dotfiles_user_bin in @(
+    (Join-Path $HOME '.local\bin\dotfiles'),
+    (Join-Path $HOME '.local\bin')
+)) {
+    if ((Test-Path -LiteralPath $_dotfiles_user_bin) -and
+        -not (@($env:PATH -split ';') | Where-Object {
+            $_.TrimEnd('\') -ieq $_dotfiles_user_bin.TrimEnd('\')
+        })) {
+        $env:PATH = "$_dotfiles_user_bin;$env:PATH"
+    }
 }
 
 $_dotfiles_zellij_config = Join-Path $HOME '.config\zellij'
