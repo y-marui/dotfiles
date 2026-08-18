@@ -33,5 +33,7 @@ echo ""
 echo "OK=${count_ok}  BROKEN=${count_broken}  NOT LINKED=${count_missing}"
 
 if [[ "${count_broken}" -gt 0 || "${count_missing}" -gt 0 ]]; then
+  echo ""
+  echo "修復するには: make links"
   exit 1
 fi

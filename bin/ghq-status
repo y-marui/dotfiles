@@ -7,9 +7,21 @@
 #
 # オプション:
 #   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -a, --all              branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
+#                          ハイライトされていないリポジトリも表示する（デフォルトでは非表示）
 #   -h, --help             ヘルプを表示
+#
+# git config:
+#   local.status-allowed-remote-branch PATTERN
+#       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
+#       ブランチには適用されない。複数設定可
+#       （git config --add local.status-allowed-remote-branch gemini）。
+#       BRANCHES 列でベース比率(1/1)から除外し +N 側に計上する（複数登録時は合算して +N）。
+#       git-sweep 等の削除処理には影響しない（表示専用の設定）。
 
 # shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
+# shellcheck disable=SC2053  # ${~pat} は zsh の glob 展開フラグで意図的に unquote している
+# shellcheck disable=SC2034  # ${~br_pat} 内で参照されるが shellcheck(bash) は検出できない
 
 _pad() {
   local str="$1" w="$2"
@@ -19,14 +31,27 @@ _pad() {
 
 _rule() { printf '%*s' "$1" '' | tr ' ' "$2"; }
 
+# branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
+# ハイライト対象でない（=注目すべき情報がない）行かどうかを判定する
+_is_quiet_row() {
+  local branch="$1" status_val="$2" br="$3" charter="$4"
+  [[ "$branch" != "main" ]] && return 1
+  [[ "$status_val" != "✓" ]] && return 1
+  [[ ! "$br" =~ ^1/1([+][0-9]+)?$ ]] && return 1
+  [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
+  return 0
+}
+
 _row() {
   printf '│ '; _pad "$1" "$w_repo"
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
   local _bc=''
-  [[ ! "$4" =~ ^1/1([+]1)?$ ]] && _bc=$'\033[31m'
+  [[ ! "$4" =~ ^1/1([+][0-9]+)?$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
-  printf ' │ '; _pad "$5" "$w_charter"
+  local _cc=''
+  [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
+  printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
   case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
   printf ' │ %s' "$_kc"; _pad "$6" "$w_keep"; printf '\033[0m │\n'
@@ -44,19 +69,26 @@ _header() {
 
 main() {
   local filter="$1"
+  local show_all="$2"
   local root
   root="$(ghq root)"
+
+  local charter_repo
+  charter_repo="$(ghq list -p 2>/dev/null | grep -iE '/dev-charter$' | head -1)"
+  charter_latest=""
+  [[ -n "$charter_repo" ]] && charter_latest="$(cat "$charter_repo/VERSION" 2>/dev/null)"
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
 
   while IFS= read -r repo; do
-    local rel branch staged unstaged untracked ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
+    local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
     rel="${repo#"$root/"}"
 
     branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
     staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
     unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
     untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    stashed=$(git -C "$repo" stash list 2>/dev/null | wc -l | tr -d ' ')
     # shellcheck disable=SC1083
     ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
     # shellcheck disable=SC1083
@@ -66,16 +98,39 @@ main() {
     (( staged    > 0 )) && status_str+=" +${staged}"
     (( unstaged  > 0 )) && status_str+=" !${unstaged}"
     (( untracked > 0 )) && status_str+=" ?${untracked}"
+    (( stashed   > 0 )) && status_str+=" *${stashed}"
     (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
     (( behind    > 0 )) && status_str+=" ⇣${behind}"
     status_str="${status_str# }"
     [[ -z "$status_str" ]] && status_str="✓"
 
     local_br=$(git -C "$repo" branch 2>/dev/null | wc -l | tr -d ' ')
-    origin_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /' | wc -l | tr -d ' ')
     dev_charter_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  dev-charter\// && !/ -> /' | wc -l | tr -d ' ')
-    if (( dev_charter_br > 0 )); then
-      br_str="${local_br}/${origin_br}+${dev_charter_br}"
+
+    # git config local.status-allowed-remote-branch (複数可) に登録されたパターンに一致する
+    # origin (remote) ブランチは ghq-status の表示上「想定内」とみなし、ベース比率(1/1)から
+    # 除外して +N 側に計上する（git-sweep 等の削除処理には影響しない、表示専用の設定）
+    typeset -a allowed_remote_patterns origin_branch_names
+    allowed_remote_patterns=("${(@f)$(git -C "$repo" config --get-all local.status-allowed-remote-branch 2>/dev/null)}")
+    origin_branch_names=("${(@f)$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /{sub(/.*origin\//,""); print}')}")
+
+    local br_name br_pat br_matched allowed_remote_extra=0
+    origin_br=0
+    for br_name in "${origin_branch_names[@]}"; do
+      br_matched=0
+      for br_pat in "${allowed_remote_patterns[@]}"; do
+        [[ "$br_name" == ${~br_pat} ]] && { br_matched=1; break; }
+      done
+      if (( br_matched )); then
+        (( allowed_remote_extra++ ))
+      else
+        (( origin_br++ ))
+      fi
+    done
+
+    local extra_br=$(( dev_charter_br + allowed_remote_extra ))
+    if (( extra_br > 0 )); then
+      br_str="${local_br}/${origin_br}+${extra_br}"
     else
       br_str="${local_br}/${origin_br}"
     fi
@@ -99,10 +154,32 @@ main() {
     all_keeps+=("$keep_val")
   done < <(ghq list -p | sort -fV | grep -iE -- "$filter") > /dev/null
 
+  local i
+
+  if [[ "$show_all" != 1 ]]; then
+    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps
+    for (( i = 1; i <= ${#all_groups}; i++ )); do
+      _is_quiet_row "${all_branches[$i]}" "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" && continue
+      q_groups+=("${all_groups[$i]}")
+      q_repo_names+=("${all_repo_names[$i]}")
+      q_branches+=("${all_branches[$i]}")
+      q_statuses+=("${all_statuses[$i]}")
+      q_brs+=("${all_brs[$i]}")
+      q_charters+=("${all_charters[$i]}")
+      q_keeps+=("${all_keeps[$i]}")
+    done
+    all_groups=("${q_groups[@]}")
+    all_repo_names=("${q_repo_names[@]}")
+    all_branches=("${q_branches[@]}")
+    all_statuses=("${q_statuses[@]}")
+    all_brs=("${q_brs[@]}")
+    all_charters=("${q_charters[@]}")
+    all_keeps=("${q_keeps[@]}")
+  fi
+
   local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
 
   typeset -a seen_groups
-  local i
   for (( i = 1; i <= ${#all_groups}; i++ )); do
     (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
   done
@@ -160,14 +237,16 @@ main() {
 }
 
 FILTER=''
+SHOW_ALL=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--filter)
       (( $# < 2 )) && { print -u2 "error: --filter requires an argument"; exit 1; }
       FILTER="$2"; shift 2 ;;
+    -a|--all)  SHOW_ALL=1; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         print -u2 "error: unknown option: $1"; exit 1 ;;
   esac
 done
 
-main "$FILTER"
+main "$FILTER" "$SHOW_ALL"

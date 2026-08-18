@@ -121,7 +121,7 @@ if [[ ! -f "${BREWFILE_LOCAL}" ]]; then
 # mas "アプリ名", id: XXXXXXX  # Mac App Store
 # vscode "拡張機能ID"          # VS Code 拡張
 #
-# 自動整合（make brew-sync 実行時）:
+# 自動整合（dots brew sync 実行時）:
 #   - システムからアンインストールされたパッケージは自動で除去される
 #   - メインの Brewfile に追記されたパッケージは自動で除去される（重複防止）
 EOF

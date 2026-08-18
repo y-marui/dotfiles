@@ -47,6 +47,11 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 ### Writing
 文章作成・校正・リライトではAI特有の不自然さを避け、自然で人間らしい文体を優先する。
 
+### Tool Selection
+外部サービス（GitHub、AIコラボレーションツール等）を操作する場合、
+利用可能な手段のうち MCP > CLI > GUI/Web の優先順位で選択する。
+MCP・CLI とも利用できない、または明らかに不向きな場合のみ GUI/Web を使う。
+
 ## Coding Style
 
 - シェルスクリプト: ShellCheck 準拠、`set -euo pipefail`
@@ -59,6 +64,12 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 
 PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
 テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
+
+- PR・Issue の操作は GitHub MCP サーバーを優先し、使えない場合は `gh` CLI を使う。
+  いずれも Web UI から直接作成・更新・マージしない（[Tool Selection](#tool-selection) 参照）
+- `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
+- PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
+- ブランチまたは PR をマージした直後は、対象リポジトリで `git-sweep` を実行する
 
 ## アカウント情報
 

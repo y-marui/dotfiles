@@ -58,7 +58,7 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 ITERM2_PREFS_DIR="$(cd "$(dirname "$0")/.." && pwd)/terminal/iterm2"
 defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$ITERM2_PREFS_DIR"
 defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
-# 終了時の自動保存を無効化（make iterm-save で明示的に保存する）
+# 終了時の自動保存を無効化（意図した設定変更時のみ明示的に保存する）
 defaults write com.googlecode.iterm2 NoSyncNeverRemindPrefsChangesLostForFile -bool true
 defaults write com.googlecode.iterm2 NoSyncNeverRemindPrefsChangesLostForFile_selection -int 1
 

@@ -8,7 +8,7 @@
 #
 # 使い方:
 #   bash npm/update_npmcache.sh
-#   make npm-cache
+#   dots npm cache
 
 set -euo pipefail
 

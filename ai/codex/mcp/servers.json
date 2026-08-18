@@ -1,0 +1,35 @@
+[
+  {
+    "name": "github",
+    "type": "http",
+    "url": "https://api.githubcopilot.com/mcp/",
+    "headers": {
+      "Authorization": {
+        "cmd": ["gh", "auth", "token"],
+        "prefix": "Bearer "
+      }
+    }
+  },
+  {
+    "name": "github-copilot",
+    "type": "http",
+    "url": "https://api.githubcopilot.com/mcp/x/copilot",
+    "headers": {
+      "Authorization": {
+        "cmd": ["gh", "auth", "token"],
+        "prefix": "Bearer "
+      }
+    }
+  },
+  {
+    "name": "claude-code",
+    "type": "stdio",
+    "command": "claude",
+    "args": ["mcp", "serve"]
+  },
+  {
+    "name": "openaiDeveloperDocs",
+    "type": "http",
+    "url": "https://developers.openai.com/mcp"
+  }
+]

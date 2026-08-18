@@ -104,4 +104,4 @@ python3 <skill-dir>/scripts/museum_events.py sort \
 - Reorder through `reorder task ... after ...` and verify by fetching again and lexically sorting `task position`.
 - Stop if any unfinished task is unparseable or `task position` is unavailable; never fall back to fetch order.
 
-Report the task ID, exact before/after title and notes, and whether reordering occurred. Never create a new task from this skill; hand creation requests to `$add-glance-task-museum-event`.
+Report the task ID, exact before/after title and notes, and whether reordering occurred. Never create a new task from this skill; hand creation requests to the `add-glance-task-museum-event` skill.

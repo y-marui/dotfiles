@@ -62,8 +62,9 @@ dotfiles/
 │   └── gitconfig.d/
 ├── terminal/       # Zellij、p10k、PowerShell 設定
 ├── ai/
-│   ├── codex/      # ~/.agents/skills/ にリンクされる自作 Codex skill
-│   ├── claude/     # ~/.claude/ にリンクされる Claude Code 設定
+│   ├── skills/     # Claude Code / Codex で共有する Agent Skills
+│   ├── codex/      # Codex 固有の skill / plugin / MCP 宣言
+│   ├── claude/     # Claude Code 固有の設定と skill / plugin / MCP 宣言
 │   ├── copilot/    # GitHub Copilot 設定ドキュメント
 │   └── gemini/     # ~/.gemini/ にリンクされる Gemini CLI 設定
 ├── macos/          # Brewfile、macOS defaults スクリプト
@@ -97,11 +98,16 @@ dotfiles/
 ## よく使うコマンド
 
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
+- `make links`    : Unix 向けシンボリックリンクだけを再適用
 - `make check`    : リンク整合性確認
 - `make init`     : ホスト固有設定テンプレートを生成
-- `make update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
-- `make brew`     : Homebrew パッケージインストール
-- `make macos`    : macOS デフォルト設定を適用
+- `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
+- `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
+- `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用）
+- `dots {claude|codex|gemini} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
+- `dots {claude|codex|gemini} apply`: 宣言済みの不足・設定不一致を追加または更新
+- `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
+- `dots check`    : 全 AI Agent (claude, codex, gemini, copilot) の MCP・plugin・skill 差分を一括確認
 
 ## zprezto について
 

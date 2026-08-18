@@ -27,3 +27,18 @@ warning やエラーの情報が不足していて原因を特定できない場
 pre-commit run --all-files
 make build
 ```
+
+## MCP サーバーの追加
+
+`claude mcp add` で特定プロジェクトに紐付かない個人の恒常的なツール連携（Codex・GitHub 等）を追加する場合は、
+デフォルトの local scope ではなく `-s user` を付けて登録する。
+
+```sh
+claude mcp add -s user <name> -- <command>
+claude mcp add -s user --transport http <name> <url>
+```
+
+local scope のままだと、そのプロジェクトディレクトリでしか有効にならない。
+なお `~/.claude.json`（MCP サーバー登録）や `~/.claude/plugins` はディレクトリ全体を
+シンボリックリンク管理しない。`~/.claude/skills` も root 全体は所有せず、dotfiles 管理対象の
+共通・Claude Code 専用 skill だけをディレクトリ単位でリンクする。

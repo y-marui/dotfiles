@@ -9,7 +9,7 @@
 #
 # 使い方:
 #   DOTFILES_DIR=~/dotfiles bash macos/apply_dockfile.sh
-#   make dock
+#   dots dock apply
 
 set -euo pipefail
 
@@ -33,12 +33,12 @@ _mysides() {
 # ── dock ファイルのチェック ────────────────────────────────────────────────────
 if [[ ! -f "$DOCK_FILE" ]]; then
   printf '%sError: dock file not found: %s%s\n' "$YELLOW" "$DOCK_FILE" "$RESET" >&2
-  echo "  Run 'make dock-sync' to create dockfile from current dock state." >&2
+  echo "  Run 'dots dock sync' to create dockfile from current dock state." >&2
   exit 1
 fi
 if [[ ! -s "$DOCK_FILE" ]]; then
   printf '%sError: dock file is empty: %s%s\n' "$YELLOW" "$DOCK_FILE" "$RESET" >&2
-  echo "  Run 'make dock-sync' to populate it from current dock state." >&2
+  echo "  Run 'dots dock sync' to populate it from current dock state." >&2
   exit 1
 fi
 

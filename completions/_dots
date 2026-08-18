@@ -1,0 +1,70 @@
+#compdef dots
+
+_dots() {
+  local -a commands actions ai_actions expl
+  commands=(
+    'status:dotfiles・dotfiles-privateのGit状態を確認'
+    'update:dotfilesとOS別パッケージを更新'
+    'brew:Homebrewパッケージ設定を操作'
+    'dock:Dock・Finderサイドバー設定を操作'
+    'npm:npmグローバルパッケージ設定を操作'
+    'pipx:pipxパッケージ設定を操作'
+    'claude:Claude CodeのMCP・plugin・skillを操作'
+    'codex:CodexのMCP・plugin・skillを操作'
+    'help:ヘルプを表示'
+  )
+  actions=(
+    'apply:設定を適用'
+    'diff:差分を表示'
+    'sync:現在の状態を管理ファイルへ同期'
+    'cache:現在の状態をキャッシュ'
+  )
+  ai_actions=(
+    'apply:不足しているMCP・plugin・skillを追加'
+    'diff:実際の状態と管理ファイルの差分を表示'
+    'prune:管理ファイルから外れたMCP・plugin・skillを削除または退避'
+  )
+  if (( CURRENT == 2 )); then
+    _describe 'command' commands
+    return
+  fi
+
+  case "${words[2]}" in
+    status)
+      if (( CURRENT == 3 )); then
+        _wanted options expl 'option' compadd -- --no-fetch --help -h
+      fi
+      ;;
+    brew|dock)
+      if (( CURRENT == 3 )); then
+        _describe 'action' actions
+      elif [[ "${words[3]}" == apply ]] && (( CURRENT == 4 )); then
+        if [[ "${words[2]}" == brew ]]; then
+          _wanted options expl 'option' compadd -- --full --backup-dir
+        else
+          _wanted options expl 'option' compadd -- --backup-dir
+        fi
+      elif [[ "${words[3]}" == apply && "${words[4]}" == --full ]] && (( CURRENT == 5 )); then
+        _wanted options expl 'option' compadd -- --backup-dir
+      elif [[ "${words[3]}" == apply && "${words[4]}" == --backup-dir ]] && (( CURRENT == 5 )); then
+        _directories
+      elif [[ "${words[3]}" == apply && "${words[5]}" == --backup-dir ]] && (( CURRENT == 6 )); then
+        _directories
+      fi
+      ;;
+    npm|pipx)
+      if (( CURRENT == 3 )); then
+        _describe 'action' actions
+      fi
+      ;;
+    claude|codex)
+      if (( CURRENT == 3 )); then
+        _describe 'action' ai_actions
+      elif (( CURRENT == 4 )); then
+        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
+      fi
+      ;;
+  esac
+}
+
+_dots "$@"

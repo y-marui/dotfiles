@@ -4,7 +4,7 @@
 #
 # 使い方:
 #   DOTFILES_DIR=~/dotfiles bash rpi/apply_packages.sh
-#   make rpi-packages
+#   make install-rpi
 
 set -euo pipefail
 

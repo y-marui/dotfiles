@@ -8,6 +8,12 @@ scripts/.env
 # Claude Code プロジェクトローカル設定
 .claude/
 
+# uv が作成するプロジェクトローカル仮想環境
+.venv/
+
+# Antigravity が生成するプロジェクトローカル MCP 設定
+.agents/mcp_config.json
+
 # グローバル gitignore の [Bb]in/ を上書き除外
 !bin/
 

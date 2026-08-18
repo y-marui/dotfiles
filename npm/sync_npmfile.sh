@@ -10,7 +10,7 @@
 #
 # 使い方:
 #   bash npm/sync_npmfile.sh
-#   make npm-sync
+#   dots npm sync
 
 set -euo pipefail
 

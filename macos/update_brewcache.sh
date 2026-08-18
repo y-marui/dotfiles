@@ -7,7 +7,7 @@
 #
 # 使い方:
 #   bash macos/update_brewcache.sh
-#   make brew-cache
+#   dots brew cache
 #
 # brew ラッパー（zshrc）から自動呼び出しされる場合もある
 

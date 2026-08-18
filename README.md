@@ -23,16 +23,31 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | コマンド | 説明 |
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
+| `make links` | Unix向けシンボリックリンクだけを再適用 |
 | `make uninstall` | シンボリックリンクを削除 |
-| `make update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
 | `make check` | リンク整合性確認 |
 | `make init` | ホスト固有設定テンプレートを生成 |
 | `make private` | dotfiles-private を GitHub からクローン・更新 |
-| `make brew` | Brewfile を適用 |
-| `make brew-sync` | 現在の Homebrew 状態を Brewfile に同期 |
-| `make macos` | macOS デフォルト設定を適用 |
-| `make dock` | Dock アプリ・Finder サイドバーを適用 |
-| `make dock-sync` | 現在の Dock・サイドバーを管理ファイルに同期 |
+
+初回セットアップ後の日常操作は、カレントディレクトリに依存しない `dots` を使用する。
+
+| コマンド | 説明 |
+|---------|------|
+| `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
+| `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
+| `dots brew apply` | Brewfileと現在のHomebrew状態の差分だけを適用 |
+| `dots brew apply --full` | Brewfile / Brewfile.localを従来どおり全件適用 |
+| `dots brew diff` | Brewfileの差分を表示 |
+| `dots brew sync` | 現在のHomebrew状態をBrewfileに同期 |
+| `dots dock apply` | Dock・Finderサイドバーを適用 |
+| `dots dock diff` | Dock・Finderサイドバーの差分を表示 |
+| `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
+| `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
+| `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
+
+`dots status` は両リポジトリを `git fetch --prune` してから確認し、要対応の状態が
+1つでもあれば終了コード1を返す。ネットワークへ接続せず、既存のremote-tracking refだけで
+確認する場合は `dots status --no-fetch` を使用する。
 
 ZellijはOS別に互換性を確認したバージョンを固定する。macOS/Raspberry Piは
 `scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
@@ -44,6 +59,7 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 
 | コマンド | 説明 |
 |---------|------|
+| `dots` | dotfilesとマシン環境を管理 |
 | `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
 | `ghq-check` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
@@ -74,7 +90,19 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 | [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
 | [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
 | [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
+| [`ai/skills/`](ai/skills/) | `~/.claude/skills/<skill-name>/` | Codex と共有する個人 skill |
+| [`ai/claude/skills/`](ai/claude/skills/) | `~/.claude/skills/<skill-name>/` | Claude Code 専用の個人 skill |
+| [`ai/claude/mcp/`](ai/claude/mcp/) | Claude Code user scope | MCP の宣言と実態との差分・追加 |
+| [`ai/claude/plugin/`](ai/claude/plugin/) | Claude Code user scope | marketplace / plugin の宣言と実態との差分・追加 |
 | [`CLAUDE.md`](CLAUDE.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
+
+`dots claude {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
+`--mcp-only`、`--plugin-only`、`--skill-only` で対象を1種類に限定できる。
+`apply` は追加・更新だけを行い、`prune` は未宣言の user scope MCP / plugin と
+dotfiles 所有の skill リンクだけを削除またはバックアップへ退避する。
+IDE/app と local/project scope のMCPは検出するが `prune` の対象外とする。local scopeは
+`~/.claude.json` 内の端末・リポジトリ固有設定、project scopeは各リポジトリの
+`.mcp.json` にある共有設定として区別して表示する。
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
@@ -83,32 +111,85 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
 | [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.codex/AGENTS.md` | 全リポジトリで使うグローバル指示 |
-| [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | 自作の個人 skill（skill ごとに個別リンク） |
+| [`ai/skills/`](ai/skills/) | `~/.agents/skills/<skill-name>/` | Claude Code と共有する個人 skill |
+| [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | Codex 専用の個人 skill |
+| [`ai/codex/mcp/`](ai/codex/mcp/) | `~/.codex/config.toml` 内の MCP 設定 | 公式 MCP の宣言と実態との差分・追加 |
+| [`ai/codex/plugin/`](ai/codex/plugin/) | Codex の plugin 状態 | plugin の宣言と実態との差分・追加 |
 | [`AGENTS.md`](AGENTS.md) | — | リポジトリ固有指示（`AI_CONTEXT.md` を参照） |
 
-Codex の個人 skill は現行標準の `~/.agents/skills` で管理する。旧配置の
-`~/.codex/skills` に同名の自作 skill がある場合、`make install` は二重読み込みを
+Codex の個人 skill は現行標準の `~/.agents/skills` へ追加する。
+`~/.codex/skills` も検知対象に含め、`.system` 以外は `+codex` として報告するが、
+`apply` では変更しない。管理対象と同名の skill がある場合、`make install` は二重読み込みを
 避けるため `~/.dotfiles-backup/<timestamp>/codex-skills/` へ退避してからリンクする。
-`.system` と公式 curated skills は Codex 側で更新されるため、このリポジトリには
-vendor しない。
+`.system` はCodex管理のため対象外とする。外部・curated skillを共通利用する場合は
+[`ai/skills/external.json`](ai/skills/external.json) に取得元とrefを宣言し、
+dotfiles専用キャッシュからClaude CodeとCodexの両方へリンクする。第三者のskill本体は
+このリポジトリへvendorしない。
+
+`dots codex {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
+Claude Code と同じく `--mcp-only`、`--plugin-only`、`--skill-only` を指定できる。
+Codex CLI が返す統合済みの実態を使うため、Codex アプリまたは CLI から追加された
+local / remote MCP と plugin を検知する。skill は実際の個人 skill ディレクトリを検査する。
+plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、直接MCPの差分や
+`prune`対象には含めない。
+
+追加する MCP は、公式サーバーが確認できる次の接続だけに限定する。
+
+- Claude Code → Codex の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
+- Codex → Claude Code の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
+
+### Gemini / Antigravity
+
+| ファイル | リンク先 | 説明 |
+|---------|---------|------|
+| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示 |
+| [`ai/skills/`](ai/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity にも配置する共有 skill |
+| [`ai/gemini/skills/`](ai/gemini/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity 専用の個人 skill |
+| [`ai/gemini/mcp/`](ai/gemini/mcp/) | `~/.gemini/config/mcp_config.json` | MCP の宣言と実態との差分・追加 |
+| [`ai/gemini/plugin/plugins/`](ai/gemini/plugin/plugins/) | `~/.gemini/config/plugins/<plugin-name>/` | Antigravity plugin の実体（`plugin.json` 必須） |
+
+`dots gemini {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
+GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使用して認証情報を動的に読み込むラッパースクリプト経由で安全に起動される。
+
+### 全 Agent 一括チェック (`dots check`)
+
+`dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+
+GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
+Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
+ヘッダーへ保存する。これは `GITHUB_PAT_TOKEN` 環境変数や手動発行PATを必要としない。
+トークンが更新された場合は `apply --mcp-only` を再実行する。
+両設定ファイルは `600` とし、Claude側は `diff` で権限も検査する。
+`codex mcp list --json` は静的ヘッダー値も返すため、出力をログやIssueへ貼らない。
+
+- Copilot CLI → Claude Code / Codex の公式 MCP server mode
+- Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
+  server は採用していない。独自 MCP bridge も作成しない。
 
 `~/.codex` の次の内容も管理対象外とする。
 
 - `auth.json`、履歴、DB、ログ、キャッシュ、端末・セッション状態
 - `rules/default.rules`（端末固有パスや過去の承認を蓄積したローカル状態）
-- `config.toml`（プロジェクト信頼状態、プラグイン状態、アプリ固有の絶対パスを含み、Codex が更新する）
+- `config.toml` 全体（プロジェクト信頼状態、アプリ固有の絶対パス等を含み、Codex が更新する）
+
+MCP と plugin の管理ファイルは公開可能な宣言だけを保持し、`config.toml` 自体はリンクせず
+各CLI経由で追加・更新・削除する。トークン値は管理対象外とする。
 
 将来、シークレットを含む Codex 設定を再現する必要が出た場合は、公開 repo ではなく
 `dotfiles-private/ai/codex/` に置き、`dotfiles-private/setup.sh` から個別リンクする。
 
-参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex config](https://learn.chatgpt.com/docs/config-file/config-basic)
+参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex MCP](https://learn.chatgpt.com/docs/extend/mcp)、[Codex plugins](https://learn.chatgpt.com/docs/build-plugins)
 
 ### GitHub Copilot CLI
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
 | [`ai/copilot/instructions.md`](ai/copilot/instructions.md) | `~/.copilot/copilot-instructions.md` | グローバル指示（`~/.ai/AI_CONTEXT.md` への参照のみ） |
+| [`ai/copilot/mcp/`](ai/copilot/mcp/) | `~/.copilot/mcp-config.json` 内の MCP 設定 | MCP の宣言と実態との差分・追加 |
 | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) | — | リポジトリ固有指示 |
+
+`dots copilot {diff|apply|prune}` は Copilot CLI の user scope MCP を処理する。
+workspace・plugin・builtin MCP は検出対象だが `prune` の対象外とする。
 
 参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
 
@@ -212,15 +293,20 @@ mas "App Name", id: 1234567  # Mac App Store
 vscode "publisher.extension" # VS Code 拡張
 ```
 
-**自動整合（`make brew-sync` 実行時）:**
+**自動整合（`dots brew sync` 実行時）:**
 
 | 状況 | 動作 |
 |------|------|
 | パッケージをシステムからアンインストールした | `Brewfile.local` からも自動除去 |
 | パッケージをメインの `Brewfile` に追記した | `Brewfile.local` からも自動除去（重複防止） |
 
-**インストール（`make brew` 実行時）:**
-`Brewfile` のインストール後に `Brewfile.local` のパッケージも自動でインストールされる。
+**インストール（`dots brew apply` 実行時）:**
+`Brewfile.cache`との差分から、`Brewfile` / `Brewfile.local`にのみ存在するエントリを
+一時Brewfileへ抽出して適用する。管理ファイルにないエントリがある場合だけcleanupするため、
+差分と無関係な既存パッケージは処理しない。
+
+`dots brew apply --full`は従来のapplyと同じく、`Brewfile`と`Brewfile.local`を
+それぞれ`brew bundle install`へ渡して全件適用した後、cleanupを実行する。
 
 ### 設定が必要な環境変数
 

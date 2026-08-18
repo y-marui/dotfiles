@@ -1,10 +1,6 @@
 # Brewfile
 # brew bundle install --file=macos/Brewfile
 
-# ── tap ──────────────────────────────────────────────────────────────────────
-tap "buo/cask-upgrade"
-tap "mczachurski/wallpapper"
-
 # ── CLI tools ─────────────────────────────────────────────────────────────────
 brew "curl"
 brew "fzf"
@@ -211,6 +207,10 @@ vscode "ziyasal.vscode-open-in-github"
 brew "colormake"
 brew "libtiff"
 brew "xcodegen"
+cask "antigravity"
+cask "antigravity-cli"
+cask "github-copilot-app"
 cask "gitx"
+cask "google-gemini"
 cask "microsoft-office"
 mas "RunCatNeo", id: 6757801838

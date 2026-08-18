@@ -45,7 +45,7 @@ gsudo cache off
 Windowsではネイティブ対応とWindows固有の修正を含むZellij `0.44.3`を使用する。
 macOS/Raspberry Piで固定している`0.43.1`とは別に管理する。
 
-`make install`と`make update`は`scripts/setup-zellij.ps1`を実行し、公式ZIPと
+`make install`と`dots update`は`scripts/setup-zellij.ps1`を実行し、公式ZIPと
 展開後の`zellij.exe`のSHA-256を検証して`~\.local\bin`へインストールする。
 インストールせず配布物だけを検証する場合は`-VerifyOnly`を指定できる。
 
@@ -86,8 +86,12 @@ Get-Process -Name zellij -ErrorAction SilentlyContinue
 ## 更新
 
 ```powershell
-make update
+dots update
 ```
+
+`dots` は `make install` により `~\.local\bin` へリンクされるため、dotfilesの
+リポジトリ外からも実行できる。`dots status` ではdotfilesとdotfiles-privateの
+未コミット・未push・未pullをまとめて確認できる。
 
 Windows版の更新は次の順に実行する。
 
@@ -97,9 +101,5 @@ Windows版の更新は次の順に実行する。
 4. WinGetパッケージとWindows Updateを適用
 5. 利用可能な場合はnpm、pipx、ghq管理下のリポジトリを更新
 
-`make update`自身がWinLibsの`mingw32-make.exe`から実行されるため、WinLibsは
-WinGetの一括更新から除外される。`make update`完了後、必要に応じて別途更新する。
-
-```powershell
-winget upgrade --id BrechtSanders.WinLibs.POSIX.UCRT --exact
-```
+旧`make update`が作成したWinLibsのpinが残っている場合は自動的に解除し、WinLibsも
+WinGetの一括更新に含める。

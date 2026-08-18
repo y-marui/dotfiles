@@ -12,7 +12,7 @@ Use the bundled CLI to create exactly one new exhibition through Glance Task's A
 - Resolve the target group to exactly `美術展: 関東` or `美術展: 東北`. Ask if the region is unclear.
 - Require an exhibition title, start date, end date, and venue. Treat an omitted end date as a one-day event only when that is clearly intended.
 - Do not invent a status emoji.
-- Check for an exact-title duplicate. If one exists, do not add another task; hand the request to `$format-glance-task-museum-events` with the existing stable task ID.
+- Check for an exact-title duplicate. If one exists, do not add another task; hand the request to the `format-glance-task-museum-events` skill with the existing stable task ID.
 
 ## Format
 

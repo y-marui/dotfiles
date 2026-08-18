@@ -1,0 +1,401 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+_resolve_dotfiles_dir() {
+  local source_path source_dir link_target
+  source_path="${BASH_SOURCE[0]}"
+
+  while [[ -L "${source_path}" ]]; do
+    source_dir="$(cd -P "$(dirname "${source_path}")" && pwd)"
+    link_target="$(readlink "${source_path}")"
+    if [[ "${link_target}" == /* ]]; then
+      source_path="${link_target}"
+    else
+      source_path="${source_dir}/${link_target}"
+    fi
+  done
+
+  source_dir="$(cd -P "$(dirname "${source_path}")" && pwd)"
+  cd "${source_dir}/.." && pwd -P
+}
+
+DOTFILES_DIR="$(_resolve_dotfiles_dir)"
+PRIVATE_DIR="${DOTFILES_DIR%-private}-private"
+export DOTFILES_DIR
+
+_usage() {
+  cat <<'EOF'
+Usage:
+  dots status [--no-fetch]
+  dots update
+  dots brew apply [--full] [--backup-dir DIR]
+  dots brew {diff|sync|cache}
+  dots dock {apply|diff|sync|cache} [--backup-dir DIR]
+  dots npm {apply|diff|sync|cache}
+  dots pipx {apply|diff|sync|cache}
+  dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
+  dots copilot {apply|diff|prune} [--mcp-only]
+  dots check
+  dots help
+
+Commands:
+  status  dotfiles / dotfiles-private の未コミット・未push・未pullを確認
+  update  dotfilesを更新・再リンク後、OS別の更新を実行
+  brew    Homebrewパッケージ設定を操作
+  dock    Dock・Finderサイドバー設定を操作
+  npm     npmグローバルパッケージ設定を操作
+  pipx    pipxパッケージ設定を操作
+  claude  Claude Code の MCP・plugin・skill を宣言的に管理
+  codex   Codex の MCP・plugin・skill を宣言的に管理
+  gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
+  copilot GitHub Copilot CLI の user scope MCP を宣言的に管理
+  check   全 AI Agent の MCP・plugin・skill 差分を一括検査
+EOF
+}
+
+_error() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+_require_no_args() {
+  (( $# == 0 )) || _error "unexpected argument: $1"
+}
+
+_status_repo() {
+  local name="$1" repo_dir="$2" fetch="$3"
+  local fetch_failed=false branch changes upstream counts ahead behind
+
+  printf '%s\n' "${name}"
+  printf '  path: %s\n' "${repo_dir}"
+
+  if [[ ! -d "${repo_dir}/.git" ]]; then
+    printf '  status: not found\n\n'
+    return 1
+  fi
+
+  if [[ "${fetch}" == true ]]; then
+    if ! git -C "${repo_dir}" fetch --quiet --prune; then
+      printf '  fetch: failed (cached remote state follows)\n'
+      fetch_failed=true
+    fi
+  fi
+
+  branch="$(git -C "${repo_dir}" branch --show-current 2>/dev/null || true)"
+  [[ -n "${branch}" ]] || branch="(detached HEAD)"
+  printf '  branch: %s\n' "${branch}"
+
+  if ! changes="$(git -C "${repo_dir}" status --short)"; then
+    printf '  status: git status failed\n\n'
+    return 1
+  fi
+  if [[ -n "${changes}" ]]; then
+    printf '  working tree:\n'
+    while IFS= read -r line; do
+      printf '    %s\n' "${line}"
+    done <<< "${changes}"
+  else
+    printf '  working tree: clean\n'
+  fi
+
+  if ! upstream="$(git -C "${repo_dir}" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)"; then
+    printf '  remote: no upstream\n\n'
+    return 1
+  fi
+
+  if ! counts="$(git -C "${repo_dir}" rev-list --left-right --count "HEAD...${upstream}")"; then
+    printf '  remote: comparison failed (%s)\n\n' "${upstream}"
+    return 1
+  fi
+  read -r ahead behind <<< "${counts}"
+  if [[ ! "${ahead}" =~ ^[0-9]+$ || ! "${behind}" =~ ^[0-9]+$ ]]; then
+    printf '  remote: invalid comparison result (%s)\n\n' "${upstream}"
+    return 1
+  fi
+  case "${ahead}:${behind}" in
+    0:0) printf '  remote: up to date (%s)\n' "${upstream}" ;;
+    0:*) printf '  remote: %s commit(s) to pull (%s)\n' "${behind}" "${upstream}" ;;
+    *:0) printf '  remote: %s commit(s) to push (%s)\n' "${ahead}" "${upstream}" ;;
+    *)   printf '  remote: diverged; %s to push, %s to pull (%s)\n' "${ahead}" "${behind}" "${upstream}" ;;
+  esac
+  printf '\n'
+
+  if [[ -n "${changes}" || "${ahead}" -gt 0 || "${behind}" -gt 0 || "${fetch_failed}" == true ]]; then
+    return 1
+  fi
+  return 0
+}
+
+_status() {
+  local fetch=true result=0
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --no-fetch) fetch=false ;;
+      -h|--help)
+        printf 'Usage: dots status [--no-fetch]\n'
+        return 0
+        ;;
+      *) _error "unknown status option: $1" ;;
+    esac
+    shift
+  done
+
+  _status_repo "dotfiles" "${DOTFILES_DIR}" "${fetch}" || result=1
+  _status_repo "dotfiles-private" "${PRIVATE_DIR}" "${fetch}" || result=1
+  return "${result}"
+}
+
+_update() {
+  _require_no_args "$@"
+
+  case "$(uname -s)" in
+    Darwin)
+      bash "${DOTFILES_DIR}/scripts/update-dotfiles.sh"
+      zsh "${DOTFILES_DIR}/scripts/update-macos.zsh"
+      ;;
+    Linux)
+      bash "${DOTFILES_DIR}/scripts/update-dotfiles.sh"
+      bash "${DOTFILES_DIR}/scripts/update-rpi-homebridge.sh"
+      ;;
+    *) _error "unsupported OS: $(uname -s)" ;;
+  esac
+}
+
+_backup_dir_arg() {
+  local backup_dir=""
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --backup-dir)
+        (( $# >= 2 )) || _error "--backup-dir requires a directory"
+        backup_dir="$2"
+        shift 2
+        ;;
+      *) _error "unknown option: $1" ;;
+    esac
+  done
+
+  printf '%s' "${backup_dir}"
+}
+
+_brew() {
+  local action="${1:-}" backup_dir full=false
+  [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|cache}"
+  shift
+
+  case "${action}" in
+    apply)
+      backup_dir=""
+      while (( $# > 0 )); do
+        case "$1" in
+          --full)
+            full=true
+            shift
+            ;;
+          --backup-dir)
+            (( $# >= 2 )) || _error "--backup-dir requires a directory"
+            backup_dir="$2"
+            shift 2
+            ;;
+          *) _error "unknown brew apply option: $1" ;;
+        esac
+      done
+
+      if [[ "${full}" == false && ! -f "${DOTFILES_DIR}/macos/Brewfile.cache" ]]; then
+        bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      fi
+      if [[ "${full}" == false ]] && bash "${DOTFILES_DIR}/macos/diff_brewfile.sh"; then
+        printf '差分なし: Brewfile はすでに適用済みです。\n'
+        return 0
+      fi
+      if [[ -n "${backup_dir}" ]]; then
+        mkdir -p "${backup_dir}"
+        brew bundle dump --force --file="${backup_dir}/Brewfile" 2>/dev/null && \
+          printf '  BACKUP  %s\n' "${backup_dir}/Brewfile" || true
+      fi
+      if [[ "${full}" == true ]]; then
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --force
+      else
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --diff-only --force
+      fi
+      bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      ;;
+    diff)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" || true
+      ;;
+    sync)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh"
+      ;;
+    cache)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      ;;
+    *) _error "unknown brew action: ${action}" ;;
+  esac
+}
+
+_dock() {
+  local action="${1:-}" backup_dir
+  [[ -n "${action}" ]] || _error "usage: dots dock {apply|diff|sync|cache}"
+  shift
+
+  case "${action}" in
+    apply)
+      backup_dir="$(_backup_dir_arg "$@")"
+      if bash "${DOTFILES_DIR}/macos/diff_dockfile.sh"; then
+        printf '差分なし: Dock はすでに適用済みです。\n'
+        return 0
+      fi
+      if [[ -n "${backup_dir}" && -f "${PRIVATE_DIR}/macos/dockfile.cache" ]]; then
+        mkdir -p "${backup_dir}"
+        cp "${PRIVATE_DIR}/macos/dockfile.cache" "${backup_dir}/dockfile.cache"
+        printf '  BACKUP  %s\n' "${backup_dir}/dockfile.cache"
+      fi
+      bash "${DOTFILES_DIR}/macos/apply_dockfile.sh"
+      ;;
+    diff)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" || true
+      ;;
+    sync)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/sync_dockfile.sh"
+      ;;
+    cache)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/update_dockcache.sh"
+      ;;
+    *) _error "unknown dock action: ${action}" ;;
+  esac
+}
+
+_package_file() {
+  local package="$1" action="${2:-}"
+  [[ -n "${action}" ]] || _error "usage: dots ${package} {apply|diff|sync|cache}"
+  shift 2
+  _require_no_args "$@"
+
+  case "${action}" in
+    apply)
+      if bash "${DOTFILES_DIR}/${package}/diff_${package}file.sh"; then
+        printf '差分なし: %sfile はすでに適用済みです。\n' "${package}"
+        return 0
+      fi
+      bash "${DOTFILES_DIR}/${package}/apply_${package}file.sh"
+      ;;
+    diff)  bash "${DOTFILES_DIR}/${package}/diff_${package}file.sh" || true ;;
+    sync)  bash "${DOTFILES_DIR}/${package}/sync_${package}file.sh" ;;
+    cache) bash "${DOTFILES_DIR}/${package}/update_${package}cache.sh" ;;
+    *) _error "unknown ${package} action: ${action}" ;;
+  esac
+}
+
+_ai_agent() {
+  local agent="$1" action="${2:-}"
+  local mcp_only=false plugin_only=false skill_only=false only_count=0
+  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]"
+  shift 2
+
+  [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
+    _error "unknown ${agent} action: ${action} (apply/diff/prune are supported)"
+
+  local arg
+  for arg in "$@"; do
+    case "${arg}" in
+      --mcp-only) mcp_only=true ;;
+      --plugin-only) plugin_only=true ;;
+      --skill-only) skill_only=true ;;
+      *) _error "unknown ${agent} option: ${arg}" ;;
+    esac
+  done
+  [[ "${mcp_only}" == true ]] && (( only_count++ )) || true
+  [[ "${plugin_only}" == true ]] && (( only_count++ )) || true
+  [[ "${skill_only}" == true ]] && (( only_count++ )) || true
+  (( only_count <= 1 )) || _error "--mcp-only / --plugin-only / --skill-only は同時指定できない"
+
+  local run_mcp=true run_plugin=true run_skill=true
+  if (( only_count == 1 )); then
+    run_mcp="${mcp_only}"
+    run_plugin="${plugin_only}"
+    run_skill="${skill_only}"
+  fi
+
+  if [[ "${run_mcp}" == true ]]; then
+    echo "--- mcp ---"
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh" ;;
+      prune) bash "${DOTFILES_DIR}/ai/${agent}/mcp/prune.sh" ;;
+    esac
+  fi
+  if [[ "${run_plugin}" == true ]]; then
+    echo "--- plugin ---"
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh" ;;
+      prune) bash "${DOTFILES_DIR}/ai/${agent}/plugin/prune.sh" ;;
+    esac
+  fi
+  if [[ "${run_skill}" == true ]]; then
+    echo "--- skill ---"
+    case "${action}" in
+      diff) bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true ;;
+      apply) bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}" ;;
+      prune) bash "${DOTFILES_DIR}/ai/skills/prune.sh" "${agent}" ;;
+    esac
+  fi
+}
+
+_copilot() {
+  local action="${1:-}"
+  [[ -n "${action}" ]] || _error "usage: dots copilot {apply|diff|prune} [--mcp-only]"
+  shift
+
+  [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
+    _error "unknown copilot action: ${action} (apply/diff/prune are supported)"
+  if (( $# > 0 )); then
+    [[ "$1" == "--mcp-only" && $# -eq 1 ]] || _error "unknown copilot option: $1"
+  fi
+
+  echo "--- mcp ---"
+  case "${action}" in
+    diff) bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" || true ;;
+    apply) bash "${DOTFILES_DIR}/ai/copilot/mcp/apply.sh" ;;
+    prune) bash "${DOTFILES_DIR}/ai/copilot/mcp/prune.sh" ;;
+  esac
+}
+
+_check_ai() {
+  _require_no_args "$@"
+  local agent
+  for agent in claude codex gemini copilot; do
+    echo "=========================================="
+    echo " Checking ${agent} ..."
+    echo "=========================================="
+    if [[ "${agent}" == copilot ]]; then
+      _copilot diff || true
+    else
+      _ai_agent "${agent}" diff || true
+    fi
+    echo ""
+  done
+}
+
+command_name="${1:-help}"
+shift || true
+
+case "${command_name}" in
+  status) _status "$@" ;;
+  update) _update "$@" ;;
+  brew) _brew "$@" ;;
+  dock) _dock "$@" ;;
+  npm|pipx) _package_file "${command_name}" "$@" ;;
+  claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
+  copilot) _copilot "$@" ;;
+  check) _check_ai "$@" ;;
+  help|-h|--help) _require_no_args "$@"; _usage ;;
+  *) _error "unknown command: ${command_name}" ;;
+esac

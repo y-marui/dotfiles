@@ -18,25 +18,18 @@ function Invoke-NativeCommand {
 
 Write-Host "=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Update started ==="
 
-# make update is itself running from this WinLibs installation. Keep it out of
-# winget upgrade --all; otherwise winget cannot remove mingw64 while
-# mingw32-make.exe is still executing from that directory.
+# 旧make updateが実行中のmingw32-make.exeを保護するために作成したpinを解除する。
+# dots updateはPowerShellで動作するため、WinLibsも一括更新できる。
 $winLibsPackageId = 'BrechtSanders.WinLibs.POSIX.UCRT'
 $winLibsPins = & winget pin list --id $winLibsPackageId --exact 2>&1
 if ($LASTEXITCODE -ne 0) {
     throw "winget pin list failed with exit code $LASTEXITCODE"
 }
-if ($winLibsPins -notmatch [regex]::Escape($winLibsPackageId)) {
-    Invoke-NativeCommand winget pin add --id $winLibsPackageId --exact
+if ($winLibsPins -match [regex]::Escape($winLibsPackageId)) {
+    Invoke-NativeCommand winget pin remove --id $winLibsPackageId --exact
 }
 
 Invoke-NativeCommand winget upgrade --all --silent --accept-source-agreements --include-unknown
-
-Write-Warning @"
-WinLibs was skipped because mingw32-make is using it during make update.
-After this command finishes, update it from PowerShell with:
-  winget upgrade --id $winLibsPackageId --exact
-"@
 
 # Enable-WURemoting
 Get-WindowsUpdate -Verbose
