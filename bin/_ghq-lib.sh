@@ -54,7 +54,7 @@ _GHQ_AUTO_PR_BRANCH='chore/uv-lock-update'
 # あれば push だけでその PR に反映される）。作業ツリーは base_branch に
 # 戻した状態で返す。失敗時も呼び出し元の処理は継続できるよう常に 0 を返す。
 _ghq_auto_pr_uv_lock() {
-  local repo="$1" base_branch="$2" branch="${_GHQ_AUTO_PR_BRANCH}" other pr_count
+  local repo="$1" base_branch="$2" branch="${_GHQ_AUTO_PR_BRANCH}" other pr_count gh_repo create_err
 
   [[ -z "$(git -C "$repo" status --porcelain -- uv.lock 2>/dev/null || true)" ]] && return 0
 
@@ -67,6 +67,20 @@ _ghq_auto_pr_uv_lock() {
   fi
   if ! (cd "$repo" && gh auth status) >/dev/null 2>&1; then
     echo "  [skip auto-pr] gh が未認証です（uv.lock の変更はローカルに残しています）" >&2
+    return 0
+  fi
+
+  # origin の remote URL から owner/repo を直接切り出す。upstream 等の追加
+  # remote がある fork で --repo を渡さずに `gh pr list`/`gh pr create` を
+  # 実行すると、gh がベースリポジトリを fork 元（upstream）だと誤解決し、
+  # origin にしか存在しないブランチが見つからず PR 作成が常に失敗する
+  # （ブランチだけ push されて PR が出ない）。`gh repo view <url>` による
+  # 解決は ~/.ssh/config の Host エイリアス（例: github-public:owner/repo.git）
+  # を解釈できないため使わず、正規表現で owner/repo を抜き出す。
+  gh_repo="$(git -C "$repo" remote get-url origin 2>/dev/null \
+    | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#')"
+  if [[ -z "${gh_repo}" ]]; then
+    echo "  [skip auto-pr] origin リポジトリを解決できませんでした" >&2
     return 0
   fi
 
@@ -85,14 +99,14 @@ _ghq_auto_pr_uv_lock() {
     return 0
   fi
 
-  pr_count="$(cd "$repo" && gh pr list --head "$branch" --state open --json number -q 'length' 2>/dev/null || echo 0)"
+  pr_count="$(cd "$repo" && gh pr list --repo "$gh_repo" --head "$branch" --state open --json number -q 'length' 2>/dev/null || echo 0)"
   if [[ "${pr_count}" == "0" ]]; then
-    if (cd "$repo" && gh pr create --title "chore: update uv.lock" \
+    if create_err="$(cd "$repo" && gh pr create --repo "$gh_repo" --title "chore: update uv.lock" \
       --body "uv sync --upgrade により生成された uv.lock の更新です（ghq-update の自動 PR 機能）。" \
-      --base "$base_branch" --head "$branch") >/dev/null 2>&1; then
+      --base "$base_branch" --head "$branch" 2>&1 >/dev/null)"; then
       echo "  [auto-pr] PR を作成しました: ${branch}"
     else
-      echo "  [warn] PR 作成に失敗しました（ブランチは push 済み: ${branch}）" >&2
+      echo "  [warn] PR 作成に失敗しました（ブランチは push 済み: ${branch}）: ${create_err}" >&2
     fi
   else
     echo "  [auto-pr] 既存 PR を更新しました: ${branch}"
