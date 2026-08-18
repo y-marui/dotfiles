@@ -63,6 +63,12 @@ $links = @(
         Dest = Join-Path $HOME ".gitconfig.d\aliases.gitconfig"
     }
     [pscustomobject]@{
+        # Windows 純正 OpenSSH に core.sshCommand を向け、ssh-agent サービス経由の
+        # 認証にする（Git バンドルの usr/bin/ssh.exe は毎回パスフレーズを要求する）。
+        Src  = "git\gitconfig.d\windows.gitconfig"
+        Dest = Join-Path $HOME ".gitconfig.d\os"
+    }
+    [pscustomobject]@{
         Src  = "ai\claude\settings.json"
         Dest = Join-Path $HOME ".claude\settings.json"
     }

@@ -33,6 +33,11 @@ LINKS=(
   "bin|${HOME}/.local/bin/dotfiles"
 )
 
+# OS 別 git 設定（credential.helper 等）。macOS でのみ ~/.gitconfig.d/os としてリンクする。
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  LINKS+=("git/gitconfig.d/macos.gitconfig|${HOME}/.gitconfig.d/os")
+fi
+
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを
 # 個別リンクする。これにより、アプリや CLI が追加した未管理 skill と所有範囲が衝突しない。
 CODEX_LEGACY_SKILLS=()

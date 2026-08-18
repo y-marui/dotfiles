@@ -1,0 +1,5 @@
+# git/gitconfig.d/macos.gitconfig
+# macOS でのみ ~/.gitconfig.d/os としてリンクされる（scripts/_links.sh）。
+
+[credential]
+	helper = osxkeychain

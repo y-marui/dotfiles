@@ -45,6 +45,13 @@
 [include]
 	path = ~/.gitconfig.d/local
 
+# OS 別設定（credential.helper、core.sshCommand 等）。
+# macOS/Windows のインストールスクリプトが該当する
+# git/gitconfig.d/{macos,windows}.gitconfig をここにリンクする。
+# 存在しない場合 git は黙って無視する。
+[include]
+	path = ~/.gitconfig.d/os
+
 [color]
 	ui = true
 

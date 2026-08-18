@@ -1,0 +1,10 @@
+# git/gitconfig.d/windows.gitconfig
+# Windows でのみ ~/.gitconfig.d/os としてリンクされる（scripts/install.ps1）。
+#
+# Git for Windows がバンドルする usr/bin/ssh.exe は Windows の
+# ssh-agent サービス（名前付きパイプ）と連携できず、push/fetch のたびに
+# 秘密鍵のパスフレーズを求められる。Windows 純正 OpenSSH を使わせることで
+# ssh-agent 経由の認証にする。
+
+[core]
+	sshCommand = "C:/Windows/System32/OpenSSH/ssh.exe"
