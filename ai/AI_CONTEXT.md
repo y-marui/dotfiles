@@ -70,6 +70,7 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
 - PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
 - ブランチまたは PR をマージした直後は、対象リポジトリで `git-sweep` を実行する
+- GitHub Actions の CI が `recent account payments have failed or your spending limit needs to be increased` 等の課金エラーで失敗している場合、コード側の問題ではないため無視してよい（マージ判断を妨げない）
 
 ## アカウント情報
 
