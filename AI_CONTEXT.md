@@ -49,6 +49,11 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   （片方専用は明確な理由がある場合のみ許容: 例 `install-my-apps` はmacOS専用の
   .appインストーラー）。`scripts/check-bin-parity.sh` が pre-commit でこの対応
   関係を検証する。片方専用にする場合はスクリプト内の `EXCEPTIONS` に理由を追記する
+- `bin/` 以外の `.sh`/`.ps1` も同様に対応関係を保つのが原則。OS固有で片方にしか
+  存在しないと分かっているもの（macOS/Raspberry Pi専用スクリプト、Windows専用の
+  `dots.ps1` 未実装サブコマンド向けスクリプト等）だけ、理由付きで例外にする。
+  `scripts/check-sh-ps1-parity.sh` が pre-commit でこの対応関係を検証する。
+  片方専用にする場合はスクリプト内の `EXCEPTIONS` に理由を追記する
 
 ## Zellij 自動アタッチ条件
 

@@ -183,3 +183,18 @@ repos:
         entry: scripts/check-bin-parity.sh
         pass_filenames: false
         files: ^bin/
+
+  # ============================================================
+  # [7] .sh ⇔ .ps1 の対応チェック（bin/ を除く）
+  #     Windows 向けスクリプトは PowerShell でネイティブに実装すること
+  #     （AI_CONTEXT.md の「OS 別実装の方針」参照）。片方専用のファイルは
+  #     scripts/check-sh-ps1-parity.sh 内の EXCEPTIONS で明示する。
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: check-sh-ps1-parity
+        name: ".sh ⇔ .ps1 の対応チェック"
+        language: script
+        entry: scripts/check-sh-ps1-parity.sh
+        pass_filenames: false
+        files: \.(sh|ps1)$
