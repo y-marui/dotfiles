@@ -29,7 +29,8 @@
     "commit-commands@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true
   },
+  "tui": "fullscreen",
   "theme": "light",
   "defaultMode": "plan",
-  "tui": "fullscreen"
+  "agentPushNotifEnabled": true
 }
