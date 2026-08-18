@@ -1,5 +1,2 @@
 @echo off
-setlocal
-set "GIT_BASH=%ProgramFiles%\Git\bin\bash.exe"
-if not exist "%GIT_BASH%" set "GIT_BASH=bash"
-"%GIT_BASH%" "%~dp0run-quiet" %*
+pwsh -NoLogo -NoProfile -File "%~dp0run-quiet.ps1" %*

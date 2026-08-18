@@ -19,9 +19,10 @@ $Links = @(
         Dest = Join-Path $HOME ".local\bin\dots.cmd"
     }
     [pscustomobject]@{
-        # git-sweep・git-survey・ghq-pull・ghq-update・run-quiet 等のbashスクリプトと
-        # 同梱の *.cmd ラッパーをまとめてリンクする（macOS/RPiの bin -> ~/.local/bin/dotfiles
-        # 相当）。ghq-check・ghq-status はzsh依存のためWindowsでは非対応。
+        # git-sweep・git-survey・ghq-pull・ghq-update・run-quiet 等（Windows向けに
+        # *.ps1 でネイティブ移植し、bareコマンド名で呼べるよう *.cmd を同梱）を
+        # まとめてリンクする（macOS/RPiの bin -> ~/.local/bin/dotfiles 相当）。
+        # ghq-check・ghq-status はzsh依存のためWindowsでは非対応。
         Src  = "bin"
         Dest = Join-Path $HOME ".local\bin\dotfiles"
     }
