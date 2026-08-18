@@ -57,14 +57,26 @@ install-windows: ## Windows 向けセットアップ（gsudo + シンボリッ�
 	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
 
-links: ## Unix 向けシンボリックリンクだけを再適用
+links: ## シンボリックリンクだけを再適用
+ifeq ($(OS),Windows_NT)
+	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
+else
 	@bash scripts/install.sh
+endif
 
 uninstall: ## シンボリックリンクを削除
+ifeq ($(OS),Windows_NT)
+	pwsh -NoLogo -File scripts/uninstall.ps1
+else
 	@bash scripts/uninstall.sh
+endif
 
 check: ## シンボリックリンクの整合性を確認
+ifeq ($(OS),Windows_NT)
+	pwsh -NoLogo -NonInteractive -File scripts/check.ps1
+else
 	@bash scripts/check.sh
+endif
 
 check-skills: ## uv で全 Agent Skill の構造と同梱テストを検証
 	@bash scripts/check-skills.sh

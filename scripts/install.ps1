@@ -13,7 +13,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$DOTFILES_DIR = Split-Path -Parent $PSScriptRoot
+. "$PSScriptRoot\_links.ps1"
+
 $userBin = Join-Path $HOME '.local\bin'
 if ((Test-Path -LiteralPath $userBin) -and
     -not (@($env:PATH -split ';') | Where-Object { $_.TrimEnd('\') -ieq $userBin.TrimEnd('\') })) {
@@ -22,67 +23,11 @@ if ((Test-Path -LiteralPath $userBin) -and
 
 $backupDir = Join-Path $HOME ".dotfiles-backup" (Get-Date -Format 'yyyyMMddHHmmss')
 
-# Windows で使う設定のリンク定義
-$links = @(
-    [pscustomobject]@{
-        Src  = "bin\dots.ps1"
-        Dest = Join-Path $HOME ".local\bin\dots.ps1"
-    }
-    [pscustomobject]@{
-        Src  = "bin\dots.cmd"
-        Dest = Join-Path $HOME ".local\bin\dots.cmd"
-    }
-    [pscustomobject]@{
-        Src  = "terminal\powershell\profile.ps1"
-        # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
-        Dest = $PROFILE.CurrentUserCurrentHost
-    }
-    [pscustomobject]@{
-        Src  = "terminal\windows-terminal\dotfiles.json"
-        # 自動attachを迂回できる「PowerShell (No Zellij)」プロファイル。
-        Dest = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\dotfiles\profiles.json"
-    }
-    [pscustomobject]@{
-        Src  = "terminal\ohmyposh\p10k-lean.json"
-        Dest = Join-Path $HOME ".config\oh-my-posh\p10k-lean.json"
-    }
-    [pscustomobject]@{
-        Src  = "terminal\zellij\windows\config.kdl"
-        Dest = Join-Path $HOME ".config\zellij\config.kdl"
-    }
-    [pscustomobject]@{
-        Src  = "git\gitconfig"
-        Dest = Join-Path $HOME ".gitconfig"
-    }
-    [pscustomobject]@{
-        Src  = "git\gitignore_global"
-        Dest = Join-Path $HOME ".gitignore_global"
-    }
-    [pscustomobject]@{
-        Src  = "git\gitconfig.d\aliases.gitconfig"
-        Dest = Join-Path $HOME ".gitconfig.d\aliases.gitconfig"
-    }
-    [pscustomobject]@{
-        # Windows 純正 OpenSSH に core.sshCommand を向け、ssh-agent サービス経由の
-        # 認証にする（Git バンドルの usr/bin/ssh.exe は毎回パスフレーズを要求する）。
-        Src  = "git\gitconfig.d\windows.gitconfig"
-        Dest = Join-Path $HOME ".gitconfig.d\os"
-    }
-    [pscustomobject]@{
-        Src  = "ai\claude\settings.json"
-        Dest = Join-Path $HOME ".claude\settings.json"
-    }
-    [pscustomobject]@{
-        Src  = "ai\AI_CONTEXT.md"
-        Dest = Join-Path $HOME ".codex\AGENTS.md"
-    }
-)
-
 $countOk     = 0
 $countSkip   = 0
 $countBackup = 0
 
-foreach ($link in $links) {
+foreach ($link in $Links) {
     $src  = Join-Path $DOTFILES_DIR $link.Src
     $dest = $link.Dest
 
