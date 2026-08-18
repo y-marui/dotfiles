@@ -10,10 +10,23 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UNIX_DIR="${DOTFILES_DIR}/bin/unix"
 WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 
-# コマンド名 => 片方だけに存在してよい理由
-declare -A EXCEPTIONS=(
-  [install-my-apps]="macOS専用ツール（.appのDMGインストール）"
+# コマンド名:片方だけに存在してよい理由
+# bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
+EXCEPTIONS=(
+  "install-my-apps:macOS専用ツール（.appのDMGインストール）"
 )
+
+_exception_key() {
+  printf '%s' "${1%%:*}"
+}
+
+_is_exception() {
+  local needle="$1" entry
+  for entry in "${EXCEPTIONS[@]}"; do
+    [[ "$(_exception_key "${entry}")" == "${needle}" ]] && return 0
+  done
+  return 1
+}
 
 unix_cmds=()
 for f in "${UNIX_DIR}"/*; do
@@ -40,13 +53,13 @@ _contains() {
 
 missing_on_windows=()
 for cmd in "${unix_cmds[@]}"; do
-  [[ -n "${EXCEPTIONS[${cmd}]:-}" ]] && continue
+  _is_exception "${cmd}" && continue
   _contains "${cmd}" "${windows_cmds[@]}" || missing_on_windows+=("${cmd}")
 done
 
 missing_on_unix=()
 for cmd in "${windows_cmds[@]}"; do
-  [[ -n "${EXCEPTIONS[${cmd}]:-}" ]] && continue
+  _is_exception "${cmd}" && continue
   _contains "${cmd}" "${unix_cmds[@]}" || missing_on_unix+=("${cmd}")
 done
 

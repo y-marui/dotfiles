@@ -13,94 +13,108 @@ set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# 相対パス（.sh または .ps1）=> 対応するスクリプトが不要な理由
-declare -A EXCEPTIONS=(
-  [macos/apply_brewfile.sh]="macOS専用（Homebrew）"
-  [macos/apply_dockfile.sh]="macOS専用（Dock）"
-  [macos/defaults.sh]="macOS専用（macOS defaults）"
-  [macos/diff_brewfile.sh]="macOS専用（Homebrew）"
-  [macos/diff_dockfile.sh]="macOS専用（Dock）"
-  [macos/sync_brewfile.sh]="macOS専用（Homebrew）"
-  [macos/sync_dockfile.sh]="macOS専用（Dock）"
-  [macos/update_brewcache.sh]="macOS専用（Homebrew）"
-  [macos/update_dockcache.sh]="macOS専用（Dock）"
-  [rpi/apply_packages.sh]="Raspberry Pi専用"
-  [rpi/repos/setup_claude-code.sh]="Raspberry Pi専用"
-  [rpi/repos/setup_homebridge.sh]="Raspberry Pi専用"
-  [rpi/repos/setup_tailscale.sh]="Raspberry Pi専用"
-  [rpi/setup_zellij.sh]="Raspberry Pi専用"
-  [rpi/setup_zsh.sh]="Raspberry Pi専用"
-  [scripts/setup-prezto.sh]="zpreztoはWindowsで未使用"
-  [scripts/update-prezto.sh]="zpreztoはWindowsで未使用"
-  [scripts/update-rpi-homebridge.sh]="Raspberry Pi専用"
-  [scripts/check-bin-parity.sh]="pre-commit専用ツール。git-bash経由で全OS共通実行"
-  [scripts/check-sh-ps1-parity.sh]="pre-commit専用ツール。git-bash経由で全OS共通実行"
-  [scripts/check-skills.sh]="make専用ツール。git-bash経由で全OS共通実行"
-  [scripts/init-host.sh]="make専用ツール。git-bash経由で全OS共通実行"
-  [scripts/setup-private.sh]="make専用ツール（gh CLI依存）。git-bash経由で全OS共通実行"
-  [scripts/run_quiet_hook.sh]="Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
-  [ai/claude/hooks/status.sh]="Claude Codeのstatuslineはbash経由で実行される前提のためOS問わず動作"
-  [ai/claude/mcp/apply.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/claude/mcp/diff.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/claude/mcp/prune.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/claude/plugin/apply.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/claude/plugin/diff.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/claude/plugin/prune.sh]="TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
-  [ai/codex/mcp/apply.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/codex/mcp/diff.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/codex/mcp/prune.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/codex/plugin/apply.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/codex/plugin/diff.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/codex/plugin/prune.sh]="TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
-  [ai/copilot/mcp/apply.sh]="TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
-  [ai/copilot/mcp/diff.sh]="TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
-  [ai/copilot/mcp/prune.sh]="TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
-  [ai/gemini/mcp/apply.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/mcp/diff.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/mcp/prune.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/mcp/run-github-mcp.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/plugin/apply.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/plugin/diff.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/gemini/plugin/prune.sh]="TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
-  [ai/skills/apply.sh]="TODO: dots.ps1がskillサブコマンド未実装のため未移植"
-  [ai/skills/diff.sh]="TODO: dots.ps1がskillサブコマンド未実装のため未移植"
-  [ai/skills/prune.sh]="TODO: dots.ps1がskillサブコマンド未実装のため未移植"
-  [npm/apply_npmfile.sh]="TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
-  [npm/diff_npmfile.sh]="TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
-  [npm/sync_npmfile.sh]="TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
-  [npm/update_npmcache.sh]="TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
-  [pipx/apply_pipxfile.sh]="TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
-  [pipx/diff_pipxfile.sh]="TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
-  [pipx/sync_pipxfile.sh]="TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
-  [pipx/update_pipxcache.sh]="TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
-  [scripts/link-private.ps1]="dotfiles-private/setup.ps1（別リポジトリ、Windows専用）を呼ぶだけの薄いグルー。install-macos/install-rpiのbash \$(PRIVATE_DIR)/setup.sh呼び出しに相当し対のunix実装は不要"
-  [scripts/setup-gsudo.ps1]="gsudoはWindows専用ツールのセットアップ"
-  [scripts/update-windows.ps1]="Windows専用の追加更新処理。役割の異なるOS別スクリプト（update-rpi-homebridge.sh等）に相当するため対のunix実装なし"
-  [terminal/powershell/profile.ps1]="PowerShellプロファイル本体。zshrc等と役割が異なる設定ファイルのため対応不要"
+# 相対パス（.sh または .ps1）:対応するスクリプトが不要な理由
+# bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
+EXCEPTIONS=(
+  "macos/apply_brewfile.sh:macOS専用（Homebrew）"
+  "macos/apply_dockfile.sh:macOS専用（Dock）"
+  "macos/defaults.sh:macOS専用（macOS defaults）"
+  "macos/diff_brewfile.sh:macOS専用（Homebrew）"
+  "macos/diff_dockfile.sh:macOS専用（Dock）"
+  "macos/sync_brewfile.sh:macOS専用（Homebrew）"
+  "macos/sync_dockfile.sh:macOS専用（Dock）"
+  "macos/update_brewcache.sh:macOS専用（Homebrew）"
+  "macos/update_dockcache.sh:macOS専用（Dock）"
+  "rpi/apply_packages.sh:Raspberry Pi専用"
+  "rpi/repos/setup_claude-code.sh:Raspberry Pi専用"
+  "rpi/repos/setup_homebridge.sh:Raspberry Pi専用"
+  "rpi/repos/setup_tailscale.sh:Raspberry Pi専用"
+  "rpi/setup_zellij.sh:Raspberry Pi専用"
+  "rpi/setup_zsh.sh:Raspberry Pi専用"
+  "scripts/setup-prezto.sh:zpreztoはWindowsで未使用"
+  "scripts/update-prezto.sh:zpreztoはWindowsで未使用"
+  "scripts/update-rpi-homebridge.sh:Raspberry Pi専用"
+  "scripts/check-bin-parity.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
+  "scripts/check-sh-ps1-parity.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
+  "scripts/check-skills.sh:make専用ツール。git-bash経由で全OS共通実行"
+  "scripts/init-host.sh:make専用ツール。git-bash経由で全OS共通実行"
+  "scripts/setup-private.sh:make専用ツール（gh CLI依存）。git-bash経由で全OS共通実行"
+  "scripts/run_quiet_hook.sh:Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
+  "ai/claude/hooks/status.sh:Claude Codeのstatuslineはbash経由で実行される前提のためOS問わず動作"
+  "ai/claude/mcp/apply.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/claude/mcp/diff.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/claude/mcp/prune.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/claude/plugin/apply.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/claude/plugin/diff.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/claude/plugin/prune.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
+  "ai/codex/mcp/apply.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/codex/mcp/diff.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/codex/mcp/prune.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/codex/plugin/apply.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/codex/plugin/diff.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/codex/plugin/prune.sh:TODO: dots.ps1がcodexサブコマンド未実装のため未移植"
+  "ai/copilot/mcp/apply.sh:TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
+  "ai/copilot/mcp/diff.sh:TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
+  "ai/copilot/mcp/prune.sh:TODO: dots.ps1がcopilotサブコマンド未実装のため未移植"
+  "ai/gemini/mcp/apply.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/mcp/diff.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/mcp/prune.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/mcp/run-github-mcp.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/plugin/apply.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/plugin/diff.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/gemini/plugin/prune.sh:TODO: dots.ps1がgeminiサブコマンド未実装のため未移植"
+  "ai/skills/apply.sh:TODO: dots.ps1がskillサブコマンド未実装のため未移植"
+  "ai/skills/diff.sh:TODO: dots.ps1がskillサブコマンド未実装のため未移植"
+  "ai/skills/prune.sh:TODO: dots.ps1がskillサブコマンド未実装のため未移植"
+  "npm/apply_npmfile.sh:TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
+  "npm/diff_npmfile.sh:TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
+  "npm/sync_npmfile.sh:TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
+  "npm/update_npmcache.sh:TODO: dots.ps1がnpmサブコマンド未実装のため未移植"
+  "pipx/apply_pipxfile.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
+  "pipx/diff_pipxfile.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
+  "pipx/sync_pipxfile.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
+  "pipx/update_pipxcache.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
+  "scripts/link-private.ps1:dotfiles-private/setup.ps1（別リポジトリ、Windows専用）を呼ぶだけの薄いグルー。install-macos/install-rpiのbash \$(PRIVATE_DIR)/setup.sh呼び出しに相当し対のunix実装は不要"
+  "scripts/setup-gsudo.ps1:gsudoはWindows専用ツールのセットアップ"
+  "scripts/update-windows.ps1:Windows専用の追加更新処理。役割の異なるOS別スクリプト（update-rpi-homebridge.sh等）に相当するため対のunix実装なし"
+  "terminal/powershell/profile.ps1:PowerShellプロファイル本体。zshrc等と役割が異なる設定ファイルのため対応不要"
 )
+
+_exception_key() {
+  printf '%s' "${1%%:*}"
+}
+
+_is_exception() {
+  local needle="$1" entry
+  for entry in "${EXCEPTIONS[@]}"; do
+    [[ "$(_exception_key "${entry}")" == "${needle}" ]] && return 0
+  done
+  return 1
+}
 
 missing_ps1=()
 while IFS= read -r -d '' f; do
   rel="${f#./}"
   [[ "${rel}" == bin/* ]] && continue
-  [[ -n "${EXCEPTIONS[${rel}]:-}" ]] && continue
+  _is_exception "${rel}" && continue
   ps1="${rel%.sh}.ps1"
   [[ -f "${DOTFILES_DIR}/${ps1}" ]] || missing_ps1+=("${rel}")
-done < <(cd "${DOTFILES_DIR}" && find . -name "*.sh" -not -path "./.git/*" -print0)
+done < <(cd "${DOTFILES_DIR}" && find . -name "*.sh" -not -path "./.git/*" -not -path "./.venv/*" -print0)
 
 missing_sh=()
 while IFS= read -r -d '' f; do
   rel="${f#./}"
   [[ "${rel}" == bin/* ]] && continue
-  [[ -n "${EXCEPTIONS[${rel}]:-}" ]] && continue
+  _is_exception "${rel}" && continue
   sh="${rel%.ps1}.sh"
   [[ -f "${DOTFILES_DIR}/${sh}" ]] || missing_sh+=("${rel}")
-done < <(cd "${DOTFILES_DIR}" && find . -name "*.ps1" -not -path "./.git/*" -print0)
+done < <(cd "${DOTFILES_DIR}" && find . -name "*.ps1" -not -path "./.git/*" -not -path "./.venv/*" -print0)
 
 # EXCEPTIONS に列挙されているが実在しない、または不要になったパスを検出
 # （ファイルの削除・移動時の登録漏れ防止）
 stale=()
-for rel in "${!EXCEPTIONS[@]}"; do
+for entry in "${EXCEPTIONS[@]}"; do
+  rel="$(_exception_key "${entry}")"
   [[ -f "${DOTFILES_DIR}/${rel}" ]] || stale+=("${rel}")
 done
 
