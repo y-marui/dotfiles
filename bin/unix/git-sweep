@@ -7,20 +7,52 @@
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する
 #
+# 設定（2ブランチ恒久運用向け。リポジトリの .gitattributes に以下があれば使う）:
+#   * git-sweep-main=develop
+#   * git-sweep-protected=main,develop
+# 無ければ従来通り MAIN=main, PROTECTED=(main) のデフォルトのまま。
+# コマンドライン引数 [main-branch] は .gitattributes の値より優先する。
+#
 # 動作:
 #   1. fetch --prune でリモートの削除済みブランチを反映
-#   2. 現在のブランチがマージ済みなら main に切り替えて pull、ブランチ削除
-#   3. --all の場合、他のマージ済みブランチも削除
-#   4. main 以外の残存ブランチを表示
+#   2. 現在のブランチが保護対象（PROTECTED）なら pull するだけ
+#   3. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
+#   4. PROTECTED のうち現在のブランチ以外は、HEAD を動かさず fast-forward fetch
+#      で同期する（コンフリクトがあれば警告のみ、自動マージはしない）
+#   5. --all の場合、他のマージ済みブランチも削除
+#   6. 保護ブランチ以外の残存ブランチを表示
 #
 # マージ済みの判定:
+#   - PROTECTED に含まれるブランチは常に対象外
+#   - $MAIN と同一コミット（まだ何もコミットしていない新規ブランチ）も対象外
+#     （誤削除防止: 作成直後は HEAD が $MAIN と同じコミットを指すため、
+#     git branch --merged だけで判定すると常に「マージ済み」扱いになってしまう）
 #   - git branch --merged（fast-forward / merge commit）
 #   - リモートブランチが gone（squash merge / rebase merge 後に PR がクローズ済み）
 
 set -euo pipefail
 
 ALL=false
-MAIN="main"
+MAIN=""
+PROTECTED=()
+
+_get_attr() {
+  local attr="$1"
+  git check-attr "$attr" -- . 2>/dev/null | sed -n "s/.*: ${attr}: //p"
+}
+
+if git rev-parse --git-dir > /dev/null 2>&1; then
+  attr_main=$(_get_attr git-sweep-main)
+  [[ -n "$attr_main" && "$attr_main" != "unspecified" ]] && MAIN="$attr_main"
+
+  attr_protected=$(_get_attr git-sweep-protected)
+  if [[ -n "$attr_protected" && "$attr_protected" != "unspecified" ]]; then
+    IFS=',' read -ra PROTECTED <<< "$attr_protected"
+  fi
+fi
+
+[[ -z "$MAIN" ]] && MAIN="main"
+[[ ${#PROTECTED[@]} -eq 0 ]] && PROTECTED=("main")
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,33 +69,59 @@ fi
 
 git fetch --all --prune --quiet
 
+_is_protected() {
+  local b="$1" p
+  for p in "${PROTECTED[@]}"; do
+    [[ "$b" == "$p" ]] && return 0
+  done
+  return 1
+}
+
 # ブランチがマージ済みか判定
 _is_merged() {
   local b="$1"
+  _is_protected "$b" && return 1
+  [[ "$(git rev-parse "$b" 2>/dev/null)" == "$(git rev-parse "$MAIN" 2>/dev/null)" ]] && return 1
   git branch --merged "$MAIN" 2>/dev/null | grep -qE "^[*]? +${b}$" && return 0
   git branch -vv | grep -qE "^[*]? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
   return 1
 }
 
-_pull_main() {
+_pull_current() {
   if git pull --rebase --autostash --quiet; then
-    echo "Updated $MAIN."
+    echo "Updated $(git rev-parse --abbrev-ref HEAD)."
   else
     git rebase --abort 2>/dev/null || true
-    echo "warning: could not pull $MAIN (conflict). Run 'git pull --rebase' manually." >&2
+    echo "warning: could not pull (conflict). Run 'git pull --rebase' manually." >&2
   fi
+}
+
+# PROTECTED のうち current 以外を、HEAD を動かさず fast-forward だけ同期する
+_sync_other_protected() {
+  local current="$1" b
+  for b in "${PROTECTED[@]}"; do
+    [[ "$b" == "$current" ]] && continue
+    git rev-parse --verify -q "$b" >/dev/null 2>&1 || continue
+    if git fetch . "origin/${b}:${b}" --quiet 2>/dev/null; then
+      echo "Updated $b (fast-forward)."
+    else
+      echo "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually." >&2
+    fi
+  done
 }
 
 current=$(git rev-parse --abbrev-ref HEAD)
 
-if [[ "$current" == "$MAIN" ]]; then
-  _pull_main
+if _is_protected "$current"; then
+  _pull_current
+  _sync_other_protected "$current"
 elif _is_merged "$current"; then
   echo "Branch '$current' is merged. Switching to $MAIN..."
   git checkout "$MAIN"
-  _pull_main
+  _pull_current
   git branch -d "$current" 2>/dev/null || git branch -D "$current"
   echo "Deleted: $current"
+  _sync_other_protected "$MAIN"
 else
   echo "Branch '$current' is not yet merged into $MAIN."
 fi
@@ -71,7 +129,7 @@ fi
 # --all: 他のマージ済みブランチも削除
 if [[ "$ALL" == true ]]; then
   while IFS= read -r b; do
-    [[ "$b" == "$MAIN" ]] && continue
+    _is_protected "$b" && continue
     if _is_merged "$b"; then
       git branch -d "$b" 2>/dev/null || git branch -D "$b"
       echo "Deleted: $b"
@@ -79,11 +137,11 @@ if [[ "$ALL" == true ]]; then
   done < <(git branch | sed 's/^[* ]*//')
 fi
 
-# main 以外の残存ブランチを表示
+# 保護ブランチ以外の残存ブランチを表示
 others=""
 while IFS= read -r b; do
   b="${b#"${b%%[! ]*}"}"  # trim leading spaces/asterisk
-  [[ "$b" == "$MAIN" ]] && continue
+  _is_protected "$b" && continue
   others="${others:+$others$'\n'}$b"
 done < <(git branch | sed 's/^[* ]*//')
 
