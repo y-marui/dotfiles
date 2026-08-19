@@ -28,6 +28,10 @@
 ### Safety
 変更前に影響範囲を確認する。
 シークレット・認証情報をコードに書かない。
+`git commit`/`push` 等で `--no-verify`（`commit` の `-n` 含む）は使わない。
+pre-commit フックのエラーは無視・回避せず原因を修正する
+（shell では git wrapper 関数（`dotfiles/shell/zshrc`）で技術的にも禁止済みだが、
+フルパス実行や IDE 統合はこれを回避し得るため、指示としても明記する）。
 
 ### Language
 指示がない限り、やりとりは日本語で行う。

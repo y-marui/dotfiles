@@ -272,6 +272,34 @@ function pip() {
   return 1
 }
 
+# git commit/push 等での --no-verify は禁止: フックのエラーは修正すること。
+# -n は commit のときだけ --no-verify の短縮形（push の -n は --dry-run、
+# log/merge の -n は別の意味）なので、commit サブコマンド限定で拾う。
+# 注: フルパス（/usr/bin/git 等）や IDE 統合からの呼び出しはこの関数を経由
+# しないため回避され得る。強制力の本体ではなく、うっかり防止のためのもの。
+function git() {
+  if [[ "$1" == "commit" ]]; then
+    local arg
+    for arg in "${@:2}"; do
+      case "$arg" in
+        --) break ;;
+        --no-verify|-n)
+          echo "git commit --no-verify は使用禁止です。フックのエラーは修正してください。" >&2
+          return 1
+          ;;
+      esac
+    done
+  fi
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" == "--no-verify" ]]; then
+      echo "git --no-verify は使用禁止です。フックのエラーは修正してください。" >&2
+      return 1
+    fi
+  done
+  command git "$@"
+}
+
 # claude-rc: リモートで claude remote-control を起動
 # デスクトップの ghq リポジトリを fzf で選択し、
 # リモートの zellij 新タブで claude remote-control を起動する。
