@@ -93,6 +93,8 @@ def update_http_auth(entry, headers):
     original = config_path.read_text(encoding="utf-8")
     lines = original.splitlines(keepends=True)
     table = f"[mcp_servers.{entry['name']}]"
+    subtable_prefix = f"[mcp_servers.{entry['name']}."
+    http_headers_table = f"[mcp_servers.{entry['name']}.http_headers]"
     start = next(
         (index for index, line in enumerate(lines) if line.strip() == table),
         None,
@@ -104,15 +106,36 @@ def update_http_auth(entry, headers):
             index
             for index in range(start + 1, len(lines))
             if lines[index].lstrip().startswith("[")
+            and not lines[index].lstrip().startswith(subtable_prefix)
         ),
         len(lines),
     )
 
+    # A nested table such as [mcp_servers.NAME.http_headers] also starts with
+    # "[", so it must be walked as a block rather than treated as the end of
+    # the entry's table (which previously left the old http_headers subtable
+    # behind and produced a duplicate key on the next run).
     preserved = []
-    for line in lines[start + 1 : end]:
+    index = start + 1
+    while index < end:
+        line = lines[index]
+        if line.lstrip().startswith(subtable_prefix):
+            block_end = next(
+                (
+                    i
+                    for i in range(index + 1, end)
+                    if lines[i].lstrip().startswith("[")
+                ),
+                end,
+            )
+            if line.strip() != http_headers_table:
+                preserved.extend(lines[index:block_end])
+            index = block_end
+            continue
         key = line.split("=", 1)[0].strip() if "=" in line else ""
         if key not in {"bearer_token_env_var", "http_headers"}:
             preserved.append(line)
+        index += 1
 
     header_items = ", ".join(
         f"{toml_string(key)} = {toml_string(value)}"
