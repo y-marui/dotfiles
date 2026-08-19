@@ -11,6 +11,9 @@ _dots() {
     'pipx:pipxパッケージ設定を操作'
     'claude:Claude CodeのMCP・plugin・skillを操作'
     'codex:CodexのMCP・plugin・skillを操作'
+    'gemini:Gemini/AntigravityのMCP・plugin・skillを操作'
+    'copilot:GitHub Copilot CLIのuser scope MCPを操作'
+    'check:シンボリックリンク・dotfiles状態・全AI Agentの差分を一括検査'
     'help:ヘルプを表示'
   )
   actions=(
@@ -35,6 +38,11 @@ _dots() {
         _wanted options expl 'option' compadd -- --no-fetch --help -h
       fi
       ;;
+    check)
+      if (( CURRENT == 3 )); then
+        _wanted options expl 'option' compadd -- --verbose --help -h
+      fi
+      ;;
     brew|dock)
       if (( CURRENT == 3 )); then
         _describe 'action' actions
@@ -57,11 +65,18 @@ _dots() {
         _describe 'action' actions
       fi
       ;;
-    claude|codex)
+    claude|codex|gemini)
       if (( CURRENT == 3 )); then
         _describe 'action' ai_actions
       elif (( CURRENT == 4 )); then
         _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
+      fi
+      ;;
+    copilot)
+      if (( CURRENT == 3 )); then
+        _describe 'action' ai_actions
+      elif (( CURRENT == 4 )); then
+        _wanted options expl 'option' compadd -- --mcp-only
       fi
       ;;
   esac
