@@ -11,9 +11,9 @@
 # 動作:
 #   ghq list -p のリポジトリに対して git-sweep --all を実行する。
 #   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
-#   uv.lock のみ dirty な場合は一時的に stash して実行し、実行後に復元する
-#   （復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
-#   uv.lock 以外にも dirty な変更がある場合はスキップする。
+#   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
+#   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
+#   それら以外にも dirty な変更がある場合はスキップする。
 
 Set-StrictMode -Version Latest
 
@@ -81,7 +81,7 @@ foreach ($repo in $repos) {
         continue
     }
 
-    if (-not (Push-GhqUvLockStash $repo)) {
+    if (-not (Push-GhqLockfileStash $repo)) {
         Write-Host "  [skip] dirty working tree"
         $skipped++
         continue
@@ -95,7 +95,7 @@ foreach ($repo in $repos) {
     } finally {
         Pop-Location
     }
-    if (-not (Pop-GhqUvLockStash $repo)) { $sweepOk = $false }
+    if (-not (Pop-GhqLockfileStash $repo)) { $sweepOk = $false }
 
     if ($sweepOk) {
         $ok++

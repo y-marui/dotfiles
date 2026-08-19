@@ -2,11 +2,11 @@
 
 _ghq-update() {
   _arguments \
-    '--all[uv sync 対象を keep-up-to-date=true ∪ .venv ありに拡張]' \
+    '--all[sync 対象を keep-up-to-date=true ∪ .venv/node_modules ありに拡張]' \
     '--pull-all[fetch+pull 対象を全リポジトリに拡張]' \
-    '--uv-sync-only[fetch+pull をスキップし uv sync --upgrade のみ実行]' \
-    '--pull-only[fetch+pull のみ実行し uv sync をスキップ]' \
-    '--no-auto-pr[uv.lock 更新時の自動 PR 作成を無効化]' \
+    '--uv-sync-only[fetch+pull をスキップし uv sync --upgrade / npm update・build のみ実行]' \
+    '--pull-only[fetch+pull のみ実行し uv sync / npm update・build をスキップ]' \
+    '--no-auto-pr[uv.lock/package-lock.json 更新時の自動 PR 作成を無効化]' \
     '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }

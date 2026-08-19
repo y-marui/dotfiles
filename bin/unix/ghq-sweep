@@ -11,9 +11,9 @@
 # 動作:
 #   ghq list -p のリポジトリに対して git-sweep --all を実行する。
 #   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
-#   uv.lock のみ dirty な場合は一時的に stash して実行し、実行後に復元する
-#   （復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
-#   uv.lock 以外にも dirty な変更がある場合はスキップする。
+#   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
+#   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
+#   それら以外にも dirty な変更がある場合はスキップする。
 
 set -euo pipefail
 
@@ -49,14 +49,14 @@ while IFS= read -r repo; do
   echo ""
   echo "==> $repo"
   git -C "$repo" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip] detached HEAD"; (( skipped++ )) || true; continue; }
-  if ! _ghq_stash_uv_lock "$repo"; then
+  if ! _ghq_stash_lockfiles "$repo"; then
     echo "  [skip] dirty working tree"
     (( skipped++ )) || true
     continue
   fi
   sweep_ok=true
   (cd "$repo" && git-sweep --all) || sweep_ok=false
-  _ghq_unstash_uv_lock "$repo" || sweep_ok=false
+  _ghq_unstash_lockfiles "$repo" || sweep_ok=false
   if [[ "$sweep_ok" == true ]]; then
     (( ok++ )) || true
   else

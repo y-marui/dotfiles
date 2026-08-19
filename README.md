@@ -67,7 +67,7 @@ pre-commitで両者の対応関係を検証する。
 | `git-sweep [--all] [main-branch]` | マージ済みブランチを整理（fast-forward・squash・rebase merge 対応） |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
-| `ghq-update [--all\|--pull-all\|--uv-sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync、uv.lock自動PR含む） |
+| `ghq-update [--all\|--pull-all\|--uv-sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
 | `ghq-sweep` | ghq管理リポジトリ全件に`git-sweep --all`を実行 |
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |

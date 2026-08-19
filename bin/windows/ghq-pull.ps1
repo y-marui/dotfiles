@@ -12,9 +12,9 @@
 # 動作:
 #   - git fetch origin --prune を実行する（dirty でも実行）
 #   - fetch 失敗・detached HEAD・upstream 未設定の場合は pull をスキップ
-#   - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
-#     （復元時にコンフリクトした場合は stash を残したまま警告を表示する）
-#   - uv.lock 以外にも dirty な変更がある場合は pull をスキップ
+#   - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
+#     pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
+#   - それら以外にも dirty な変更がある場合は pull をスキップ
 #   - それ以外は git pull --ff-only を実行する
 
 Set-StrictMode -Version Latest
@@ -85,11 +85,11 @@ foreach ($f in $repos) {
             Write-Host "  [skip pull] no upstream"
             continue
         }
-        if (-not (Push-GhqUvLockStash $f)) {
+        if (-not (Push-GhqLockfileStash $f)) {
             Write-Host "  [skip pull] dirty working tree"
             continue
         }
         & git -C $f pull --ff-only
-        Pop-GhqUvLockStash $f | Out-Null
+        Pop-GhqLockfileStash $f | Out-Null
     }
 }

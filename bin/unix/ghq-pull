@@ -12,9 +12,9 @@
 # 動作:
 #   - git fetch origin --prune を実行する（dirty でも実行）
 #   - fetch 失敗・detached HEAD・upstream 未設定の場合は pull をスキップ
-#   - uv.lock のみ dirty な場合は一時的に stash して pull し、pull 後に復元する
-#     （復元時にコンフリクトした場合は stash を残したまま警告を表示する）
-#   - uv.lock 以外にも dirty な変更がある場合は pull をスキップ
+#   - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
+#     pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
+#   - それら以外にも dirty な変更がある場合は pull をスキップ
 #   - それ以外は git pull --ff-only を実行する
 
 set -euo pipefail
@@ -52,11 +52,11 @@ while IFS= read -r f; do
   if [[ "$FETCH_ONLY" == false ]]; then
     git -C "$f" symbolic-ref --short HEAD &>/dev/null || { echo "  [skip pull] detached HEAD"; continue; }
     git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
-    if ! _ghq_stash_uv_lock "$f"; then
+    if ! _ghq_stash_lockfiles "$f"; then
       echo "  [skip pull] dirty working tree"
       continue
     fi
     git -C "$f" pull --ff-only || true
-    _ghq_unstash_uv_lock "$f" || true
+    _ghq_unstash_lockfiles "$f" || true
   fi
 done < <(_ghq_ordered_list "$FILTER")
