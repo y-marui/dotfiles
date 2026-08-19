@@ -6,8 +6,10 @@
 #
 # オプション:
 #   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -a, --all              branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
-#                          ハイライトされていないリポジトリも表示する（デフォルトでは非表示）
+#   -a, --all              branch が保護ブランチ（リポジトリの .gitattributes の
+#                          git-sweep-protected、未設定なら main のみ）かつ git status が
+#                          clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
+#                          リポジトリも表示する（デフォルトでは非表示）
 #   -h, --help             ヘルプを表示
 #
 # git config:
@@ -15,8 +17,12 @@
 #       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
 #       ブランチには適用されない。複数設定可
 #       （git config --add local.status-allowed-remote-branch gemini）。
-#       BRANCHES 列でベース比率(1/1)から除外し +N 側に計上する（複数登録時は合算して +N）。
+#       BRANCHES 列でベース比率から除外し +N 側に計上する（複数登録時は合算して +N）。
 #       git-sweep 等の削除処理には影響しない（表示専用の設定）。
+#
+# BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
+# 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
+# main+develop の2ブランチ恒久運用なら 2/2 が正常値になる。
 
 Set-StrictMode -Version Latest
 
@@ -85,12 +91,13 @@ function Get-TerminalWidth {
     return 80
 }
 
-# branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
-# ハイライト対象でない（=注目すべき情報がない）行かどうかを判定する
-function Test-QuietRow([string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$CharterLatest) {
-    if ($Branch -ne 'main') { return $false }
+# branch が保護ブランチ（main+develop 運用なら develop も含む）かつ git status が
+# clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
+# 行かどうかを判定する
+function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [int]$Base, [string]$Charter, [string]$CharterLatest) {
+    if (-not $IsProtected) { return $false }
     if ($StatusVal -ne '✓') { return $false }
-    if ($Br -notmatch '^1/1([+][0-9]+)?$') { return $false }
+    if ($Br -notmatch "^${Base}/${Base}([+][0-9]+)?`$") { return $false }
     if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { return $false }
     return $true
 }
@@ -102,8 +109,8 @@ function Write-StatusHeader([string[]]$Cells, [int[]]$Widths) {
     Write-Host ("│ " + ($parts -join " │ ") + " │")
 }
 
-function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest) {
-    $bc = if ($Br -notmatch '^1/1([+][0-9]+)?$') { "`e[31m" } else { '' }
+function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [int]$Base) {
+    $bc = if ($Br -notmatch "^${Base}/${Base}([+][0-9]+)?`$") { "`e[31m" } else { '' }
     $cc = if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
     $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[31m" } default { '' } }
 
@@ -170,6 +177,8 @@ $allStatuses = New-Object System.Collections.Generic.List[string]
 $allBrs = New-Object System.Collections.Generic.List[string]
 $allCharters = New-Object System.Collections.Generic.List[string]
 $allKeeps = New-Object System.Collections.Generic.List[string]
+$allBases = New-Object System.Collections.Generic.List[int]
+$allProtected = New-Object System.Collections.Generic.List[bool]
 
 foreach ($repo in $repoList) {
     $rel = $repo
@@ -180,6 +189,21 @@ foreach ($repo in $repoList) {
     $global:LASTEXITCODE = $null
     $branch = (& git -C $repo rev-parse --abbrev-ref HEAD 2>$null)
     if ($LASTEXITCODE -ne 0 -or -not $branch) { $branch = '?' }
+
+    # .gitattributes の git-sweep-protected 属性（git-sweep と共通）から、この
+    # リポジトリの保護ブランチ一覧と、正常時のローカル/リモートブランチ数の基準を
+    # 求める。未設定なら従来通り main のみ・基準 1 のまま
+    $global:LASTEXITCODE = $null
+    $attrOutput = (& git -C $repo check-attr git-sweep-protected -- . 2>$null)
+    $protectedRaw = $null
+    if ($attrOutput -match ': git-sweep-protected: (.+)$') { $protectedRaw = $Matches[1] }
+    $protectedList = if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
+        @($protectedRaw -split ',')
+    } else {
+        @('main')
+    }
+    $base = $protectedList.Count
+    $isProtected = $protectedList -contains $branch
 
     $staged = @(& git -C $repo diff --cached --name-only 2>$null).Count
     $unstaged = @(& git -C $repo diff --name-only 2>$null).Count
@@ -258,6 +282,8 @@ foreach ($repo in $repoList) {
     $allBrs.Add($brStr)
     $allCharters.Add($charterVer)
     $allKeeps.Add($keepVal)
+    $allBases.Add($base)
+    $allProtected.Add($isProtected)
 }
 
 $activeIdxList = New-Object System.Collections.Generic.List[int]
@@ -265,7 +291,7 @@ for ($idx = 0; $idx -lt $allGroups.Count; $idx++) { $activeIdxList.Add($idx) }
 $activeIdx = @($activeIdxList)
 if (-not $SHOW_ALL) {
     $activeIdx = @($activeIdx | Where-Object {
-        -not (Test-QuietRow $allBranches[$_] $allStatuses[$_] $allBrs[$_] $allCharters[$_] $charterLatest)
+        -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allCharters[$_] $charterLatest)
     })
 }
 
@@ -310,7 +336,7 @@ foreach ($group in $seenGroups) {
 
     for ($j = 0; $j -lt $idxInGroup.Count; $j++) {
         $idx = $idxInGroup[$j]
-        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest
+        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx]
         if ($j -lt $idxInGroup.Count - 1) {
             Write-Host "├$r1┼$r2┼$r3┼$r4┼$r5┼$r6┤"
         }

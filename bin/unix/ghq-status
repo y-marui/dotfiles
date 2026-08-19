@@ -7,8 +7,10 @@
 #
 # オプション:
 #   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -a, --all              branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
-#                          ハイライトされていないリポジトリも表示する（デフォルトでは非表示）
+#   -a, --all              branch が保護ブランチ（リポジトリの .gitattributes の
+#                          git-sweep-protected、未設定なら main のみ）かつ git status が
+#                          clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
+#                          リポジトリも表示する（デフォルトでは非表示）
 #   -h, --help             ヘルプを表示
 #
 # git config:
@@ -16,8 +18,12 @@
 #       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
 #       ブランチには適用されない。複数設定可
 #       （git config --add local.status-allowed-remote-branch gemini）。
-#       BRANCHES 列でベース比率(1/1)から除外し +N 側に計上する（複数登録時は合算して +N）。
+#       BRANCHES 列でベース比率から除外し +N 側に計上する（複数登録時は合算して +N）。
 #       git-sweep 等の削除処理には影響しない（表示専用の設定）。
+#
+# BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
+# 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
+# main+develop の2ブランチ恒久運用なら 2/2 が正常値になる。
 
 # shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
 # shellcheck disable=SC2053  # ${~pat} は zsh の glob 展開フラグで意図的に unquote している
@@ -35,13 +41,14 @@ _rule() {
   printf '%s' "$out"
 }
 
-# branch が main かつ git status が clean かつ BRANCHES/DEV-CHARTER が
-# ハイライト対象でない（=注目すべき情報がない）行かどうかを判定する
+# branch が保護ブランチ（main+develop 運用なら develop も含む）かつ git status が
+# clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
+# 行かどうかを判定する
 _is_quiet_row() {
-  local branch="$1" status_val="$2" br="$3" charter="$4"
-  [[ "$branch" != "main" ]] && return 1
+  local status_val="$1" br="$2" charter="$3" is_protected="$4" base="$5"
+  [[ "$is_protected" != 1 ]] && return 1
   [[ "$status_val" != "✓" ]] && return 1
-  [[ ! "$br" =~ ^1/1([+][0-9]+)?$ ]] && return 1
+  [[ ! "$br" =~ ^${base}/${base}([+][0-9]+)?$ ]] && return 1
   [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
   return 0
 }
@@ -51,7 +58,7 @@ _row() {
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
   local _bc=''
-  [[ ! "$4" =~ ^1/1([+][0-9]+)?$ ]] && _bc=$'\033[31m'
+  [[ ! "$4" =~ ^${7}/${7}([+][0-9]+)?$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
   [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
@@ -83,13 +90,31 @@ main() {
   # ローカルの checkout 中ブランチではなく main の VERSION を基準にする
   [[ -n "$charter_repo" ]] && charter_latest="$(git -C "$charter_repo" show main:VERSION 2>/dev/null)"
 
-  typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
+  typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected
 
   while IFS= read -r repo; do
     local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
     rel="${repo#"$root/"}"
 
     branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+
+    # .gitattributes の git-sweep-protected 属性（git-sweep と共通）から、この
+    # リポジトリの保護ブランチ一覧と、正常時のローカル/リモートブランチ数の基準を
+    # 求める。未設定なら従来通り main のみ・基準 1 のまま
+    local protected_raw base is_protected p
+    protected_raw="$(git -C "$repo" check-attr git-sweep-protected -- . 2>/dev/null | sed -n 's/.*: git-sweep-protected: //p')"
+    typeset -a protected_list
+    if [[ -n "$protected_raw" && "$protected_raw" != "unspecified" ]]; then
+      protected_list=("${(@s:,:)protected_raw}")
+    else
+      protected_list=("main")
+    fi
+    base=${#protected_list}
+    is_protected=0
+    for p in "${protected_list[@]}"; do
+      [[ "$branch" == "$p" ]] && { is_protected=1; break; }
+    done
+
     staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
     unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
     untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
@@ -157,14 +182,16 @@ main() {
     all_brs+=("$br_str")
     all_charters+=("$charter_ver")
     all_keeps+=("$keep_val")
+    all_bases+=("$base")
+    all_protected+=("$is_protected")
   done < <(ghq list -p | sort -fV | grep -iE -- "$filter") > /dev/null
 
   local i
 
   if [[ "$show_all" != 1 ]]; then
-    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps
+    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps q_bases q_protected
     for (( i = 1; i <= ${#all_groups}; i++ )); do
-      _is_quiet_row "${all_branches[$i]}" "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" && continue
+      _is_quiet_row "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" "${all_protected[$i]}" "${all_bases[$i]}" && continue
       q_groups+=("${all_groups[$i]}")
       q_repo_names+=("${all_repo_names[$i]}")
       q_branches+=("${all_branches[$i]}")
@@ -172,6 +199,8 @@ main() {
       q_brs+=("${all_brs[$i]}")
       q_charters+=("${all_charters[$i]}")
       q_keeps+=("${all_keeps[$i]}")
+      q_bases+=("${all_bases[$i]}")
+      q_protected+=("${all_protected[$i]}")
     done
     all_groups=("${q_groups[@]}")
     all_repo_names=("${q_repo_names[@]}")
@@ -180,6 +209,8 @@ main() {
     all_brs=("${q_brs[@]}")
     all_charters=("${q_charters[@]}")
     all_keeps=("${q_keeps[@]}")
+    all_bases=("${q_bases[@]}")
+    all_protected=("${q_protected[@]}")
   fi
 
   local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
@@ -189,12 +220,12 @@ main() {
     (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
   done
 
-  typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps
+  typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps g_bases
   local w_repo w_repo_max w_branch w_status w_br w_charter w_keep w_repo_expanded
   local r1 r2 r3 r4 r5 r6 g j
 
   for g in "${seen_groups[@]}"; do
-    g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=()
+    g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=(); g_bases=()
     w_repo=4; w_branch=6; w_status=10; w_br=8; w_charter=11; w_keep=4
 
     for (( i = 1; i <= ${#all_groups}; i++ )); do
@@ -205,6 +236,7 @@ main() {
       g_brs+=("${all_brs[$i]}")
       g_charters+=("${all_charters[$i]}")
       g_keeps+=("${all_keeps[$i]}")
+      g_bases+=("${all_bases[$i]}")
       (( ${(m)#all_repo_names[$i]} > w_repo    )) && w_repo=${(m)#all_repo_names[$i]}
       (( ${(m)#all_branches[$i]}   > w_branch  )) && w_branch=${(m)#all_branches[$i]}
       (( ${(m)#all_statuses[$i]}   > w_status  )) && w_status=${(m)#all_statuses[$i]}
@@ -230,7 +262,7 @@ main() {
     printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
 
     for (( j = 1; j <= ${#g_names}; j++ )); do
-      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}"
+      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}" "${g_bases[$j]}"
       if (( j < ${#g_names} )); then
         printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
       fi
