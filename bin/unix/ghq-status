@@ -23,7 +23,9 @@
 #
 # BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
 # 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
-# main+develop の2ブランチ恒久運用なら 2/2 が正常値になる。
+# main+develop の2ブランチ恒久運用なら 1+1/1+1 が正常値になる（左が main の基準、
+# 右の +1 が develop 分。ローカル・リモートそれぞれの実測値なので、develop が
+# 片方にしか無い等の不一致は 1+1/1+0 のような形で見える）。
 
 # shellcheck disable=SC2296  # ${(m)#} ${(f)} は zsh 固有の構文
 # shellcheck disable=SC2053  # ${~pat} は zsh の glob 展開フラグで意図的に unquote している
@@ -45,10 +47,10 @@ _rule() {
 # clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
 # 行かどうかを判定する
 _is_quiet_row() {
-  local status_val="$1" br="$2" charter="$3" is_protected="$4" base="$5"
+  local status_val="$1" br="$2" charter="$3" is_protected="$4" expected_br="$5"
   [[ "$is_protected" != 1 ]] && return 1
   [[ "$status_val" != "✓" ]] && return 1
-  [[ ! "$br" =~ ^${base}/${base}([+][0-9]+)?$ ]] && return 1
+  [[ ! "$br" =~ ^${expected_br}([+][0-9]+)?$ ]] && return 1
   [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
   return 0
 }
@@ -58,7 +60,7 @@ _row() {
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
   local _bc=''
-  [[ ! "$4" =~ ^${7}/${7}([+][0-9]+)?$ ]] && _bc=$'\033[31m'
+  [[ ! "$4" =~ ^${7}([+][0-9]+)?$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
   [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
@@ -159,10 +161,30 @@ main() {
     done
 
     local extra_br=$(( dev_charter_br + allowed_remote_extra ))
-    if (( extra_br > 0 )); then
-      br_str="${local_br}/${origin_br}+${extra_br}"
+
+    # base_extra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら
+    # 従来通りの "local/origin[+N]" 表示のまま。1 以上（main+develop 等の複数
+    # ブランチ恒久運用）なら "1" の基準と実測の追加分を "1+N" の形に分解して
+    # 表示する。ローカル・リモートそれぞれの N が独立して見えるので、develop が
+    # 片方にしか無い異常（例: "1+1/1+0"）も判別できる
+    local base_extra=$(( base - 1 ))
+    local expected_br
+    if (( base_extra > 0 )); then
+      local local_extra_actual=$(( local_br - 1 ))
+      local origin_extra_actual=$(( origin_br - 1 ))
+      if (( extra_br > 0 )); then
+        br_str="1+${local_extra_actual}/1+${origin_extra_actual}+${extra_br}"
+      else
+        br_str="1+${local_extra_actual}/1+${origin_extra_actual}"
+      fi
+      expected_br="1\+${base_extra}/1\+${base_extra}"
     else
-      br_str="${local_br}/${origin_br}"
+      if (( extra_br > 0 )); then
+        br_str="${local_br}/${origin_br}+${extra_br}"
+      else
+        br_str="${local_br}/${origin_br}"
+      fi
+      expected_br="1/1"
     fi
 
     charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
@@ -182,7 +204,7 @@ main() {
     all_brs+=("$br_str")
     all_charters+=("$charter_ver")
     all_keeps+=("$keep_val")
-    all_bases+=("$base")
+    all_bases+=("$expected_br")
     all_protected+=("$is_protected")
   done < <(ghq list -p | sort -fV | grep -iE -- "$filter") > /dev/null
 

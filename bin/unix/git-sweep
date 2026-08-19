@@ -17,8 +17,10 @@
 #   1. fetch --prune でリモートの削除済みブランチを反映
 #   2. 現在のブランチが保護対象（PROTECTED）なら pull するだけ
 #   3. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
-#   4. PROTECTED のうち現在のブランチ以外は、HEAD を動かさず fast-forward fetch
-#      で同期する（コンフリクトがあれば警告のみ、自動マージはしない）
+#   4. PROTECTED のうち現在のブランチ以外は、ローカルに既にあれば HEAD を動かさず
+#      fast-forward fetch で同期する（コンフリクトがあれば警告のみ、自動マージは
+#      しない）。ローカルにまだ無ければ origin から新規作成し、それが $MAIN なら
+#      checkout する（develop 運用に気づかず main のまま作業を続ける事故を防ぐ）
 #   5. --all の場合、他のマージ済みブランチも削除
 #   6. 保護ブランチ以外の残存ブランチを表示
 #
@@ -96,16 +98,28 @@ _pull_current() {
   fi
 }
 
-# PROTECTED のうち current 以外を、HEAD を動かさず fast-forward だけ同期する
+# PROTECTED のうち current 以外を同期する。ローカルに既にあれば HEAD を動かさず
+# fast-forward だけ行う。ローカルにまだ無ければ origin から新規作成し、それが
+# $MAIN（develop 運用の統合ブランチ）であれば checkout する（2ブランチ運用の
+# 導入に気づかず main のままローカル作業を続けてしまう事故を防ぐため）。
 _sync_other_protected() {
   local current="$1" b
   for b in "${PROTECTED[@]}"; do
     [[ "$b" == "$current" ]] && continue
-    git rev-parse --verify -q "$b" >/dev/null 2>&1 || continue
-    if git fetch . "origin/${b}:${b}" --quiet 2>/dev/null; then
-      echo "Updated $b (fast-forward)."
+    if git rev-parse --verify -q "$b" >/dev/null 2>&1; then
+      if git fetch . "origin/${b}:${b}" --quiet 2>/dev/null; then
+        echo "Updated $b (fast-forward)."
+      else
+        echo "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually." >&2
+      fi
     else
-      echo "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually." >&2
+      if git fetch origin "${b}:${b}" --quiet 2>/dev/null; then
+        echo "Created local branch $b (tracking origin/$b)."
+        if [[ "$b" == "$MAIN" ]]; then
+          git checkout "$MAIN"
+          echo "Switched to $MAIN."
+        fi
+      fi
     fi
   done
 }

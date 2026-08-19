@@ -22,7 +22,9 @@
 #
 # BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
 # 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
-# main+develop の2ブランチ恒久運用なら 2/2 が正常値になる。
+# main+develop の2ブランチ恒久運用なら 1+1/1+1 が正常値になる（左が main の基準、
+# 右の +1 が develop 分。ローカル・リモートそれぞれの実測値なので、develop が
+# 片方にしか無い等の不一致は 1+1/1+0 のような形で見える）。
 
 Set-StrictMode -Version Latest
 
@@ -94,10 +96,10 @@ function Get-TerminalWidth {
 # branch が保護ブランチ（main+develop 運用なら develop も含む）かつ git status が
 # clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
 # 行かどうかを判定する
-function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [int]$Base, [string]$Charter, [string]$CharterLatest) {
+function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [string]$ExpectedBr, [string]$Charter, [string]$CharterLatest) {
     if (-not $IsProtected) { return $false }
     if ($StatusVal -ne '✓') { return $false }
-    if ($Br -notmatch "^${Base}/${Base}([+][0-9]+)?`$") { return $false }
+    if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { return $false }
     if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { return $false }
     return $true
 }
@@ -109,8 +111,8 @@ function Write-StatusHeader([string[]]$Cells, [int[]]$Widths) {
     Write-Host ("│ " + ($parts -join " │ ") + " │")
 }
 
-function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [int]$Base) {
-    $bc = if ($Br -notmatch "^${Base}/${Base}([+][0-9]+)?`$") { "`e[31m" } else { '' }
+function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr) {
+    $bc = if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { "`e[31m" } else { '' }
     $cc = if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
     $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[31m" } default { '' } }
 
@@ -177,7 +179,7 @@ $allStatuses = New-Object System.Collections.Generic.List[string]
 $allBrs = New-Object System.Collections.Generic.List[string]
 $allCharters = New-Object System.Collections.Generic.List[string]
 $allKeeps = New-Object System.Collections.Generic.List[string]
-$allBases = New-Object System.Collections.Generic.List[int]
+$allBases = New-Object System.Collections.Generic.List[string]
 $allProtected = New-Object System.Collections.Generic.List[bool]
 
 foreach ($repo in $repoList) {
@@ -250,7 +252,26 @@ foreach ($repo in $repoList) {
     }
 
     $extraBr = $devCharterBr + $allowedRemoteExtra
-    $brStr = if ($extraBr -gt 0) { "$localBr/$originBr+$extraBr" } else { "$localBr/$originBr" }
+
+    # baseExtra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら
+    # 従来通りの "local/origin[+N]" 表示のまま。1 以上（main+develop 等の複数
+    # ブランチ恒久運用）なら "1" の基準と実測の追加分を "1+N" の形に分解して
+    # 表示する。ローカル・リモートそれぞれの N が独立して見えるので、develop が
+    # 片方にしか無い異常（例: "1+1/1+0"）も判別できる
+    $baseExtra = $base - 1
+    if ($baseExtra -gt 0) {
+        $localExtraActual = $localBr - 1
+        $originExtraActual = $originBr - 1
+        $brStr = if ($extraBr -gt 0) {
+            "1+$localExtraActual/1+$originExtraActual+$extraBr"
+        } else {
+            "1+$localExtraActual/1+$originExtraActual"
+        }
+        $expectedBr = "1\+$baseExtra/1\+$baseExtra"
+    } else {
+        $brStr = if ($extraBr -gt 0) { "$localBr/$originBr+$extraBr" } else { "$localBr/$originBr" }
+        $expectedBr = '1/1'
+    }
 
     $charterVerFile = Join-Path $repo 'docs\dev-charter\VERSION'
     $charterVer = if (Test-Path -LiteralPath $charterVerFile) {
@@ -282,7 +303,7 @@ foreach ($repo in $repoList) {
     $allBrs.Add($brStr)
     $allCharters.Add($charterVer)
     $allKeeps.Add($keepVal)
-    $allBases.Add($base)
+    $allBases.Add($expectedBr)
     $allProtected.Add($isProtected)
 }
 
