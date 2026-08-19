@@ -36,7 +36,7 @@ Usage:
   dots pipx {apply|diff|sync|cache}
   dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots copilot {apply|diff|prune} [--mcp-only]
-  dots check
+  dots check [--verbose]
   dots help
 
 Commands:
@@ -50,7 +50,8 @@ Commands:
   codex   Codex の MCP・plugin・skill を宣言的に管理
   gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
   copilot GitHub Copilot CLI の user scope MCP を宣言的に管理
-  check   全 AI Agent の MCP・plugin・skill 差分を一括検査
+  check   シンボリックリンク・dotfiles状態・パッケージ管理・全 AI Agent の差分を一括検査
+          （デフォルトは差分がある項目のみ1行で表示。--verbose で詳細表示）
 EOF
 }
 
@@ -369,8 +370,113 @@ _copilot() {
   esac
 }
 
-_check_ai() {
-  _require_no_args "$@"
+_check_repo_summary() {
+  local label="$1" dir="$2"
+  [[ -d "${dir}/.git" ]] || return 0
+
+  local parts=()
+  if ! git -C "${dir}" diff --quiet 2>/dev/null || \
+     ! git -C "${dir}" diff --cached --quiet 2>/dev/null; then
+    parts+=("uncommitted changes")
+  fi
+  local unpushed
+  unpushed="$(git -C "${dir}" log '@{u}..' --oneline 2>/dev/null | wc -l | tr -d ' ')"
+  if [[ "${unpushed}" -gt 0 ]]; then
+    parts+=("${unpushed} commits unpushed")
+  fi
+
+  (( ${#parts[@]} > 0 )) || return 0
+  local joined
+  joined="$(IFS=' / '; echo "${parts[*]}")"
+  printf '⚠ %s: %s (dots status で確認)\n' "${label}" "${joined}"
+  return 1
+}
+
+_check_links_summary() {
+  local output broken missing
+  output="$(bash "${DOTFILES_DIR}/scripts/check.sh" 2>&1)" || true
+  broken="$(printf '%s\n' "${output}" | grep -oE 'BROKEN=[0-9]+' | cut -d= -f2)"
+  missing="$(printf '%s\n' "${output}" | grep -oE 'NOT LINKED=[0-9]+' | cut -d= -f2)"
+  [[ "${broken:-0}" -gt 0 || "${missing:-0}" -gt 0 ]] || return 0
+  printf '⚠ links: %s broken / %s not linked (make check で確認)\n' "${broken:-0}" "${missing:-0}"
+  return 1
+}
+
+_check_script_summary() {
+  local label="$1" hint="$2"
+  shift 2
+  local output
+  output="$("$@" --summary 2>/dev/null)" || true
+  [[ -n "${output}" ]] || return 0
+  printf '⚠ %s: %s (%s)\n' "${label}" "${output}" "${hint}"
+  return 1
+}
+
+_check_summary() {
+  local found=0
+
+  _check_links_summary || found=1
+  _check_repo_summary "dotfiles" "${DOTFILES_DIR}" || found=1
+  _check_repo_summary "dotfiles-private" "${PRIVATE_DIR}" || found=1
+
+  _check_script_summary "brew" "dots brew diff で確認" \
+    bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" || found=1
+  _check_script_summary "npm" "dots npm diff で確認" \
+    bash "${DOTFILES_DIR}/npm/diff_npmfile.sh" || found=1
+  _check_script_summary "pipx" "dots pipx diff で確認" \
+    bash "${DOTFILES_DIR}/pipx/diff_pipxfile.sh" || found=1
+  _check_script_summary "dock" "dots dock diff で確認" \
+    bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" || found=1
+
+  local agent
+  for agent in claude codex gemini; do
+    if [[ "${agent}" == codex ]] && ! command -v codex >/dev/null 2>&1; then
+      continue
+    fi
+    if [[ -f "${DOTFILES_DIR}/ai/${agent}/mcp/servers.json" ]]; then
+      _check_script_summary "${agent} mcp" "dots ${agent} diff --mcp-only で確認" \
+        bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || found=1
+    fi
+    if [[ -f "${DOTFILES_DIR}/ai/${agent}/plugin/plugins.json" ]]; then
+      _check_script_summary "${agent} plugin" "dots ${agent} diff --plugin-only で確認" \
+        bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || found=1
+    fi
+    if [[ -f "${DOTFILES_DIR}/ai/skills/external.json" ]]; then
+      _check_script_summary "${agent} skill" "dots ${agent} diff --skill-only で確認" \
+        bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || found=1
+    fi
+  done
+
+  if command -v copilot >/dev/null 2>&1 && [[ -f "${DOTFILES_DIR}/ai/copilot/mcp/servers.json" ]]; then
+    _check_script_summary "copilot mcp" "dots copilot diff で確認" \
+      bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" || found=1
+  fi
+
+  return "${found}"
+}
+
+_check_verbose() {
+  echo "=========================================="
+  echo " Checking symlinks (make check) ..."
+  echo "=========================================="
+  bash "${DOTFILES_DIR}/scripts/check.sh" || true
+  echo ""
+
+  echo "=========================================="
+  echo " Checking dotfiles / dotfiles-private status ..."
+  echo "=========================================="
+  _status || true
+  echo ""
+
+  echo "=========================================="
+  echo " Checking brew / npm / pipx / dock ..."
+  echo "=========================================="
+  _brew diff
+  _package_file npm diff
+  _package_file pipx diff
+  _dock diff
+  echo ""
+
   local agent
   for agent in claude codex gemini copilot; do
     echo "=========================================="
@@ -385,6 +491,28 @@ _check_ai() {
   done
 }
 
+_check() {
+  local verbose=false
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --verbose) verbose=true ;;
+      -h|--help)
+        printf 'Usage: dots check [--verbose]\n'
+        return 0
+        ;;
+      *) _error "unknown check option: $1" ;;
+    esac
+    shift
+  done
+
+  if [[ "${verbose}" == true ]]; then
+    _check_verbose
+  else
+    _check_summary
+  fi
+}
+
 command_name="${1:-help}"
 shift || true
 
@@ -396,7 +524,7 @@ case "${command_name}" in
   npm|pipx) _package_file "${command_name}" "$@" ;;
   claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
   copilot) _copilot "$@" ;;
-  check) _check_ai "$@" ;;
+  check) _check "$@" ;;
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;
 esac
