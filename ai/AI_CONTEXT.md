@@ -56,7 +56,8 @@ MCP・CLI とも利用できない、または明らかに不向きな場合の�
 
 - シェルスクリプト: ShellCheck 準拠、`set -euo pipefail`
 - Swift: SwiftLint 準拠
-- Python: ruff / black 準拠
+- Python: ruff / black 準拠。新規プロジェクトの最低サポートバージョンは 3.11 以上を基準とする
+  （3.11 の EOL は 2027-10-24。近づいたら基準の引き上げを検討する）
 - ハードコードされたパスを避ける（`$HOME` を使う）
 - zsh を優先しつつ bash 互換を維持する
 - uv/npm 等の依存関係管理があるリポジトリで、git 上 clean な状態からコード編集を伴う
@@ -72,6 +73,7 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   いずれも Web UI から直接作成・更新・マージしない（[Tool Selection](#tool-selection) 参照）
 - `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
 - PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
+- PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
 - ブランチまたは PR をマージした直後は、対象リポジトリで `git-sweep` を実行する
 - GitHub Actions の CI が `recent account payments have failed or your spending limit needs to be increased` 等の課金エラーで失敗している場合、コード側の問題ではないため無視してよい（マージ判断を妨げない）
 - `y-marui/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する
