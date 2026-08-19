@@ -80,7 +80,8 @@ main() {
   local charter_repo
   charter_repo="$(ghq list -p 2>/dev/null | grep -iE '/dev-charter$' | head -1)"
   charter_latest=""
-  [[ -n "$charter_repo" ]] && charter_latest="$(cat "$charter_repo/VERSION" 2>/dev/null)"
+  # ローカルの checkout 中ブランチではなく main の VERSION を基準にする
+  [[ -n "$charter_repo" ]] && charter_latest="$(git -C "$charter_repo" show main:VERSION 2>/dev/null)"
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps
 

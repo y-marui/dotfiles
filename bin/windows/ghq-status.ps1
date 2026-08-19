@@ -148,9 +148,11 @@ $allRepoPaths = @(& ghq list -p)
 $charterRepo = $allRepoPaths | Where-Object { $_ -match '/dev-charter$' -or $_ -match '\\dev-charter$' } | Select-Object -First 1
 $charterLatest = ''
 if ($charterRepo) {
-    $versionFile = Join-Path $charterRepo 'VERSION'
-    if (Test-Path -LiteralPath $versionFile) {
-        $charterLatest = (Get-Content -LiteralPath $versionFile -Raw -ErrorAction SilentlyContinue).Trim()
+    # ローカルの checkout 中ブランチではなく main の VERSION を基準にする
+    $global:LASTEXITCODE = $null
+    $charterLatestLines = @(& git -C $charterRepo show main:VERSION 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $charterLatestLines.Count -gt 0) {
+        $charterLatest = (($charterLatestLines -join "`n").Trim())
     }
 }
 
