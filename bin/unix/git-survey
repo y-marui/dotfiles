@@ -17,7 +17,9 @@ fi
 git fetch --all --prune --quiet 2>/dev/null || true
 
 locals=$(git branch --format='%(refname:short)' | grep -v "^${MAIN}$" || true)
-remotes=$(git branch -r | grep -v ' -> ' | grep -v "/${MAIN}$" | sed 's|^[[:space:]]*||' | sed 's|^[^/]*/||' | sort -u || true)
+# dev-charter は複数リポジトリ共通のドキュメント共有用リモートなので、
+# 個別リポジトリのブランチ一覧には出さない
+remotes=$(git branch -r | grep -v ' -> ' | grep -v "/${MAIN}$" | grep -vE '^[[:space:]]*dev-charter/' | sed 's|^[[:space:]]*||' | sed 's|^[^/]*/||' | sort -u || true)
 all=$(printf '%s\n%s\n' "$locals" "$remotes" | sort -u | grep -v '^$' || true)
 
 [[ -z "$all" ]] && exit 0
