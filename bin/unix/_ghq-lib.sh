@@ -97,7 +97,7 @@ _GHQ_NPM_LOCK_PR_BRANCH='chore/npm-lock-update'
 # PR があれば push だけでその PR に反映される）。作業ツリーは base_branch
 # に戻した状態で返す。失敗時も呼び出し元の処理は継続できるよう常に 0 を返す。
 _ghq_auto_pr_lockfile() {
-  local repo="$1" base_branch="$2" lockfile="$3" branch="$4" title="$5" body="$6" other pr_count gh_repo create_err
+  local repo="$1" base_branch="$2" lockfile="$3" branch="$4" title="$5" body="$6" other pr_count gh_repo pr_output
 
   [[ -z "$(git -C "$repo" status --porcelain -- "$lockfile" 2>/dev/null || true)" ]] && return 0
 
@@ -149,10 +149,11 @@ _ghq_auto_pr_lockfile() {
       --base "$base_branch" --head "$branch")
     # 自分（y-marui）名義のリポジトリでは見逃し防止のため自分を assignee にする
     [[ "${gh_repo}" == y-marui/* ]] && pr_create_args+=(--assignee y-marui)
-    if create_err="$(cd "$repo" && gh pr create "${pr_create_args[@]}" 2>&1 >/dev/null)"; then
-      echo "  [auto-pr] PR を作成しました: ${branch}"
+    if pr_output="$(cd "$repo" && gh pr create "${pr_create_args[@]}" 2>&1)"; then
+      # dots update 実行後にまとめて気付けるよう warning 扱いで報告する
+      echo "  [warn][auto-pr] PR を作成しました: ${branch} ${pr_output}" >&2
     else
-      echo "  [warn] PR 作成に失敗しました（ブランチは push 済み: ${branch}）: ${create_err}" >&2
+      echo "  [warn] PR 作成に失敗しました（ブランチは push 済み: ${branch}）: ${pr_output}" >&2
     fi
   else
     echo "  [auto-pr] 既存 PR を更新しました: ${branch}"
