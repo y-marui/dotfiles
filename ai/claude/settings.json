@@ -1,4 +1,27 @@
 {
+  "agentPushNotifEnabled": true,
+  "defaultMode": "plan",
+  "enabledPlugins": {
+    "commit-commands@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "${DOTFILES_DIR}/scripts/run_quiet_hook.sh",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  },
+  "model": "sonnet",
   "permissions": {
     "allow": [
       "Bash(gh *)",
@@ -9,33 +32,10 @@
       "Bash(run-quiet make *)"
     ]
   },
-  "model": "sonnet",
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${DOTFILES_DIR}/scripts/run_quiet_hook.sh"
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
-    "type": "command",
-    "command": "$HOME/.claude/hooks/status.sh"
+    "command": "$HOME/.claude/hooks/status.sh",
+    "type": "command"
   },
-  "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "commit-commands@claude-plugins-official": true,
-    "pr-review-toolkit@claude-plugins-official": true
-  },
-  "tui": "fullscreen",
   "theme": "light",
-  "defaultMode": "plan",
-  "agentPushNotifEnabled": true
+  "tui": "fullscreen"
 }
