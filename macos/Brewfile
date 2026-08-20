@@ -57,7 +57,7 @@ brew "uv"
 # ── 開発ツール ────────────────────────────────────────────────────────────────
 brew "cmake"
 brew "flyctl"
-brew "ollama", restart_service: :changed
+brew "ollama"
 brew "postgresql@14"
 brew "pre-commit"
 brew "pyright"
