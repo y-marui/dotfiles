@@ -6,8 +6,11 @@ echo "=== $(date '+%Y-%m-%d %H:%M:%S') Update started ==="
 # tlmgr 等、途中で sudo が必要なコマンドのためにここで認証を済ませておく。
 # バックグラウンドループでタイムスタンプを更新し続け、この後の sudo 呼び出しで
 # 再度パスワード入力を求められないようにする（スクリプト終了時に自動停止）。
+# サブシェルは親の `set -e` を継承するため、`sudo -n true` が一度でも失敗すると
+# （スリープ/画面ロック等でタイムスタンプが無効化された場合等）ループごと即終了し、
+# 以降二度と再試行されなくなる。`|| true` で単発の失敗をループ継続扱いにする。
 sudo -v
-( while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done ) 2>/dev/null &
+( while true; do sudo -n true || true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done ) 2>/dev/null &
 SUDO_KEEPALIVE_PID=$!
 
 LOG_FILE=$(mktemp)
