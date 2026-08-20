@@ -26,6 +26,7 @@ brew "cliclick"
 brew "displayplacer"
 brew "dockutil"
 brew "duti"
+cask "karabiner-elements"
 brew "lsusb"
 brew "switchaudio-osx"
 
@@ -56,6 +57,7 @@ brew "uv"
 
 # ── 開発ツール ────────────────────────────────────────────────────────────────
 brew "cmake"
+brew "colormake"
 brew "flyctl"
 brew "ollama"
 brew "postgresql@14"
@@ -64,6 +66,7 @@ brew "pyright"
 brew "swiftformat"
 brew "swiftlint"
 brew "typescript-language-server"
+brew "xcodegen"
 
 # ── ライブラリ（依存関係） ────────────────────────────────────────────────────────
 brew "aom"
@@ -79,6 +82,7 @@ brew "libavif"
 brew "libheif"
 brew "libmicrohttpd"
 brew "libpq"
+brew "libtiff"
 brew "maxima"
 brew "openjpeg"
 brew "openssl@3"
@@ -94,9 +98,13 @@ brew "wxmaxima"
 cask "font-meslo-lg-nerd-font"
 
 # ── macOS アプリ（開発） ──────────────────────────────────────────────────────
+cask "antigravity"
+cask "antigravity-cli"
 cask "claude-code"
 cask "codex"
 cask "db-browser-for-sqlite"
+cask "github-copilot-app"
+cask "gitx"
 cask "iterm2"
 cask "pycharm"
 cask "sublime-text"
@@ -114,6 +122,7 @@ cask "jordanbaird-ice"
 cask "logi-options+"
 cask "logitech-g-hub"
 cask "microsoft-auto-update"
+cask "microsoft-office"
 cask "monitorcontrol"
 cask "obsidian"
 # mysides: Deprecated upstream (2025-10-13). Replaced by macos/mysides.py (pyobjc via uv)
@@ -121,6 +130,7 @@ cask "obsidian"
 # ── macOS アプリ（コミュニケーション） ──────────────────────────────────────────
 cask "chatgpt"
 cask "claude"
+cask "google-gemini"
 cask "microsoft-teams"
 cask "slack"
 cask "zoom"
@@ -165,6 +175,7 @@ mas "MARKETSPEED", id: 946680495
 mas "Notability", id: 360593530
 mas "PDF Expert", id: 1055273043
 mas "Remote Mouse", id: 403195710
+mas "RunCatNeo", id: 6757801838
 mas "Tailscale", id: 1475387142
 mas "ToDo", id: 1498581975
 mas "Xcode", id: 497799835
@@ -201,16 +212,3 @@ vscode "redhat.vscode-yaml"
 vscode "shuworks.vscode-table-formatter"
 vscode "tomoki1207.vscode-input-sequence"
 vscode "ziyasal.vscode-open-in-github"
-
-# ── 未分類 ────────────────────────────────────────────────────────────────────
-brew "colormake"
-brew "libtiff"
-brew "xcodegen"
-cask "antigravity"
-cask "antigravity-cli"
-cask "github-copilot-app"
-cask "gitx"
-cask "google-gemini"
-cask "karabiner-elements"
-cask "microsoft-office"
-mas "RunCatNeo", id: 6757801838
