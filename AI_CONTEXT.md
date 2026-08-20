@@ -151,6 +151,8 @@ dotfiles/
 
 ## 変更時の注意
 
+- このリポジトリは `main` に直接 push 可能。作業前にブランチを切る必要はない
+  （切ってもよいが必須ではない）
 - シェルスクリプトは ShellCheck を通す（`shellcheck scripts/*.sh`）
 - シェルスクリプトの先頭に `set -euo pipefail` を書く
 - 既存ファイルを変更する前に `make check` を実行する
