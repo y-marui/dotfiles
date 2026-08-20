@@ -199,11 +199,13 @@ foreach ($repo in $repoList) {
     $attrOutput = (& git -C $repo check-attr git-sweep-protected -- . 2>$null)
     $protectedRaw = $null
     if ($attrOutput -match ': git-sweep-protected: (.+)$') { $protectedRaw = $Matches[1] }
-    $protectedList = if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
+    # if/else の結果が要素数1の配列だと PowerShell が自動でスカラーに
+    # 展開してしまうため、外側を @() で囲んで配列を保証する
+    $protectedList = @(if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
         @($protectedRaw -split ',')
     } else {
         @('main')
-    }
+    })
     $base = $protectedList.Count
     $isProtected = $protectedList -contains $branch
 
