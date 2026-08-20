@@ -37,7 +37,6 @@ brew "latexdiff"
 brew "latexindent"
 brew "markdownlint-cli"
 brew "pdfcrack"
-brew "pdftk-java"
 
 # ── セキュリティ ──────────────────────────────────────────────────────────────
 brew "gitleaks"
