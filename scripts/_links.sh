@@ -36,6 +36,14 @@ LINKS=(
 # OS 別 git 設定（credential.helper 等）。macOS でのみ ~/.gitconfig.d/os としてリンクする。
 if [[ "$(uname -s)" == "Darwin" ]]; then
   LINKS+=("git/gitconfig.d/macos.gitconfig|${HOME}/.gitconfig.d/os")
+
+  # Karabiner-Elements（macOS 専用）。karabiner.json はアプリが Preferences 保存や
+  # デバイス接続時に atomic rename で書き換えるため、シンボリックリンクが実ファイルに
+  # 置き換わり同期が切れることがある。切れた場合は make links で再リンクする。
+  LINKS+=(
+    "karabiner/karabiner.json|${HOME}/.config/karabiner/karabiner.json"
+    "karabiner/complex_modifications/rdp-jis.json|${HOME}/.config/karabiner/assets/complex_modifications/rdp-jis.json"
+  )
 fi
 
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを

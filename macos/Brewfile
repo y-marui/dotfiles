@@ -211,5 +211,6 @@ cask "antigravity-cli"
 cask "github-copilot-app"
 cask "gitx"
 cask "google-gemini"
+cask "karabiner-elements"
 cask "microsoft-office"
 mas "RunCatNeo", id: 6757801838

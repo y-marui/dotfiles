@@ -1,0 +1,104 @@
+{
+    "title": "Windows App (RDP) JIS キー設定",
+    "rules": [
+        {
+            "description": "Windows App: 英数/かな → 半角全角キー（IME トグル）",
+            "manipulators": [
+                {
+                    "from": {
+                        "key_code": "japanese_eisuu",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "grave_accent_and_tilde" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                },
+                {
+                    "from": {
+                        "key_code": "japanese_kana",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "grave_accent_and_tilde" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                }
+            ]
+        },
+        {
+            "description": "Windows App: かな のみ → 半角全角キー（英数は無効化・誤爆防止）",
+            "manipulators": [
+                {
+                    "from": {
+                        "key_code": "japanese_eisuu",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "vk_none" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                },
+                {
+                    "from": {
+                        "key_code": "japanese_kana",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "grave_accent_and_tilde" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                }
+            ]
+        },
+        {
+            "description": "Windows App: 英数 → F13 / かな → F14（Google 日本語入力で明示切替する場合）",
+            "manipulators": [
+                {
+                    "from": {
+                        "key_code": "japanese_eisuu",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "f13" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                },
+                {
+                    "from": {
+                        "key_code": "japanese_kana",
+                        "modifiers": { "optional": ["any"] }
+                    },
+                    "to": [ { "key_code": "f14" } ],
+                    "conditions": [
+                        {
+                            "type": "frontmost_application_if",
+                            "bundle_identifiers": ["^com\\.microsoft\\.rdc\\.macos$"]
+                        }
+                    ],
+                    "type": "basic"
+                }
+            ]
+        }
+    ]
+}

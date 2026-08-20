@@ -94,6 +94,7 @@ dotfiles/
 ├── git/            # gitconfig、gitignore_global、エイリアス
 │   └── gitconfig.d/
 ├── terminal/       # Zellij、p10k、PowerShell 設定
+├── karabiner/      # Karabiner-Elements 設定（macOS専用。詳細は docs/karabiner-rdp-jis.md）
 ├── ai/
 │   ├── skills/     # Claude Code / Codex で共有する Agent Skills
 │   ├── codex/      # Codex 固有の skill / plugin / MCP 宣言
