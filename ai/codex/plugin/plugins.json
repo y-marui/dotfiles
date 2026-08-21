@@ -2,7 +2,6 @@
   "plugins": [
     "browser@openai-bundled",
     "chrome@openai-bundled",
-    "codex-app-tools@openai-bundled",
     "computer-use@openai-bundled",
     "documents@openai-primary-runtime",
     "google-calendar@openai-curated",
