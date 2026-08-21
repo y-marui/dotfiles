@@ -20,8 +20,7 @@ fi
 # iTerm.app / Windows Terminal（WSL）/ SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
 if command -v zellij >/dev/null 2>&1 && [[ -z "$ZELLIJ" && -z "$NO_ZELLIJ" ]]; then
   if [[ "$TERM_PROGRAM" == "iTerm.app" || -n "$WT_SESSION" || -n "$SSH_CONNECTION" ]]; then
-    zellij attach -c "${HOST%%.*}"
-    exit
+    zellij attach -c "${HOST%%.*}" && exit
   fi
 fi
 
