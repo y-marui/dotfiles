@@ -7,10 +7,39 @@
 # --------------------------------------------------------
 # SSH ログインのたびに ~/.ssh/auth_sock を最新のソケットへ更新する。
 # Zellij 既存セッションに再アタッチした後も有効なソケットを参照できるようにする。
+# 転送されたエージェントソケットは接続が切れると即座に無効化されるため、
+# 上書き前に生死を確認し、死んでいれば永続 gpg-agent の ssh ソケットへフォールバックする。
+# ssh-add -l の終了コード: 0=鍵あり 1=生きているが鍵なし 2=接続不可（死んでいる）。
+# 生死判定は != 2 に統一し、鍵なし(1)を死亡扱いしないようにする。
+_ssh_agent_alive() {
+  SSH_AUTH_SOCK="$1" ssh-add -l &>/dev/null
+  (( $? != 2 ))
+}
+
 if [[ -n "$SSH_CONNECTION" && -n "$SSH_AUTH_SOCK" && "$SSH_AUTH_SOCK" != "$HOME/.ssh/auth_sock" ]]; then
-  ln -sf "$SSH_AUTH_SOCK" "$HOME/.ssh/auth_sock"
+  _ssh_agent_alive "$SSH_AUTH_SOCK" && ln -sf "$SSH_AUTH_SOCK" "$HOME/.ssh/auth_sock"
 fi
+
+if [[ ! -e "$HOME/.ssh/auth_sock" ]] || ! _ssh_agent_alive "$(readlink "$HOME/.ssh/auth_sock" 2>/dev/null)"; then
+  _local_ssh_agent_sock="$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null)"
+  [[ -n "$_local_ssh_agent_sock" ]] && ln -sf "$_local_ssh_agent_sock" "$HOME/.ssh/auth_sock"
+  unset _local_ssh_agent_sock
+fi
+
+unset -f _ssh_agent_alive
+
 [[ -e "$HOME/.ssh/auth_sock" ]] && export SSH_AUTH_SOCK="$HOME/.ssh/auth_sock"
+
+# gpg-agent（pinentry）が現在の端末に対して正しくプロンプトを出せるようにする。
+# ssh-add は ssh-agent プロトコルしか話さず GPG_TTY を gpg-agent に伝えないため、
+# updatestartuptty で明示的に登録する。未設定だと pinentry 呼び出しが
+# "Inappropriate ioctl for device" で失敗する。
+# tty を持たない非対話シェル（AIエージェント等）がここを通ると、壊れた GPG_TTY で
+# 他セッションの正しい登録を上書きしてしまうため、実端末がある場合のみ実行する。
+if [[ -t 0 ]]; then
+  export GPG_TTY="$(tty)"
+  gpg-connect-agent updatestartuptty /bye &>/dev/null
+fi
 
 # --------------------------------------------------------
 # 1. Zellijの自動アタッチ
@@ -34,7 +63,9 @@ fi
 # --------------------------------------------------------
 # 3. 補完パス（Prezto の completion 初期化より前に設定）
 # --------------------------------------------------------
-if command -v brew &>/dev/null; then
+# command -v は下部で定義する brew() シェル関数（shim）にもマッチしてしまうため、
+# PATH 上の実バイナリのみを見る whence -p を使う。
+if whence -p brew &>/dev/null; then
   fpath+=$(brew --prefix)/share/zsh/site-functions
 fi
 fpath+="${HOME}/.zsh_completions"
