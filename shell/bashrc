@@ -88,8 +88,10 @@ if [ -n "$ZELLIJ" ]; then
     $no_zellij && no_zellij_env="NO_ZELLIJ=1"
 
     local cmd
+    # zellij action new-pane/run が作るペインは呼び出し元の $TERM を継承しないことがあり、
+    # 空のTERMがそのままSSH先へ転送されてプロンプト等が壊れるため明示的に渡す。
     # shellcheck disable=SC2046
-    cmd="env $no_zellij_env command ssh $(printf '%q ' "${args[@]}")"
+    cmd="env $no_zellij_env TERM=${TERM:-xterm-256color} command ssh $(printf '%q ' "${args[@]}")"
     local host="${args[-1]}"
 
     if $new_tab; then
