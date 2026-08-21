@@ -207,8 +207,10 @@ _brew() {
       if [[ "${full}" == false && ! -f "${DOTFILES_DIR}/macos/Brewfile.cache" ]]; then
         bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
       fi
-      if [[ "${full}" == false ]] && bash "${DOTFILES_DIR}/macos/diff_brewfile.sh"; then
-        printf '差分なし: Brewfile はすでに適用済みです。\n'
+      bash "${DOTFILES_DIR}/macos/apply_brewpin.sh"
+      if [[ "${full}" == false ]] && bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" && \
+        bash "${DOTFILES_DIR}/macos/diff_brewpin.sh"; then
+        printf '差分なし: Brewfile / Brewfile-pin はすでに適用済みです。\n'
         return 0
       fi
       if [[ -n "${backup_dir}" ]]; then
@@ -222,18 +224,22 @@ _brew() {
         bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --diff-only --force
       fi
       bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     diff)
       _require_no_args "$@"
       bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" || true
+      bash "${DOTFILES_DIR}/macos/diff_brewpin.sh" || true
       ;;
     sync)
       _require_no_args "$@"
       bash "${DOTFILES_DIR}/macos/sync_brewfile.sh"
+      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     cache)
       _require_no_args "$@"
       bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     *) _error "unknown brew action: ${action}" ;;
   esac
@@ -421,6 +427,8 @@ _check_summary() {
 
   _check_script_summary "brew" "dots brew diff で確認" \
     bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" || found=1
+  _check_script_summary "brew pin" "dots brew diff で確認" \
+    bash "${DOTFILES_DIR}/macos/diff_brewpin.sh" || found=1
   _check_script_summary "npm" "dots npm diff で確認" \
     bash "${DOTFILES_DIR}/npm/diff_npmfile.sh" || found=1
   _check_script_summary "pipx" "dots pipx diff で確認" \

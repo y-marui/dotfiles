@@ -16,13 +16,16 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # 相対パス（.sh または .ps1）:対応するスクリプトが不要な理由
 # bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
 EXCEPTIONS=(
+  "macos/apply_brewpin.sh:macOS専用（Homebrew）"
   "macos/apply_brewfile.sh:macOS専用（Homebrew）"
   "macos/apply_dockfile.sh:macOS専用（Dock）"
   "macos/defaults.sh:macOS専用（macOS defaults）"
+  "macos/diff_brewpin.sh:macOS専用（Homebrew）"
   "macos/diff_brewfile.sh:macOS専用（Homebrew）"
   "macos/diff_dockfile.sh:macOS専用（Dock）"
   "macos/sync_brewfile.sh:macOS専用（Homebrew）"
   "macos/sync_dockfile.sh:macOS専用（Dock）"
+  "macos/update_brewpin_cache.sh:macOS専用（Homebrew）"
   "macos/update_brewcache.sh:macOS専用（Homebrew）"
   "macos/update_dockcache.sh:macOS専用（Dock）"
   "rpi/apply_packages.sh:Raspberry Pi専用"

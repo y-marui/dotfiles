@@ -20,6 +20,9 @@ trap 'kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null; rm -f "${LOG_FILE}"' EXIT
 # warning/deprecated 行だけをまとめて再掲する。
 log() { "$@" 2>&1 | tee -a "${LOG_FILE}"; }
 
+# Brewfile-pinの一時除外を先に適用し、既知の不具合で全体更新が停止するのを防ぐ。
+log bash "${0:A:h}/../macos/apply_brewpin.sh"
+
 # ask mode がデフォルトのため、deprecated/disabled パッケージ等を含むと
 # 対話プロンプトで停止する。-y で確認をスキップし非対話実行を通す。
 log brew update

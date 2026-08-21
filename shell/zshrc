@@ -191,10 +191,30 @@ else
 fi
 # pyenv と brew の PATH 衝突回避 + Brewfile.cache 自動更新
 function brew() {
-  env PATH="${PATH//${PYENV_ROOT}/bin:/}" brew "$@"
-  case "$1" in
+  local brewfile_pin="$DOTFILES_DIR/macos/Brewfile-pin"
+  local pinned_packages=""
+  local pin_diff=""
+  local brew_status=0
+  if [[ -f "$brewfile_pin" ]]; then
+    pinned_packages="$(sed -nE 's/^(brew|cask) "([^"]+)".*/\2/p' "$brewfile_pin" | paste -sd ',' -)"
+  fi
+  if [[ -n "$pinned_packages" ]]; then
+    print -P "%F{yellow}⚠ brew: 一時的なpinが有効です: ${pinned_packages} (dots brew diff で確認)%f" >&2
+  fi
+  pin_diff="$(bash "$DOTFILES_DIR/macos/diff_brewpin.sh" --summary 2>/dev/null || true)"
+  if [[ -n "$pin_diff" ]]; then
+    print -P "%F{yellow}⚠ brew pin: ${pin_diff} (dots brew apply で同期)%f" >&2
+  fi
+
+  env PATH="${PATH//${PYENV_ROOT}/bin:/}" brew "$@" || brew_status=$?
+  [[ $brew_status -eq 0 ]] || return "$brew_status"
+  case "${1:-}" in
     install|uninstall|tap|untap|upgrade)
       bash "$DOTFILES_DIR/macos/update_brewcache.sh" 2>/dev/null || true
+      bash "$DOTFILES_DIR/macos/update_brewpin_cache.sh" 2>/dev/null || true
+      ;;
+    pin|unpin)
+      bash "$DOTFILES_DIR/macos/update_brewpin_cache.sh" 2>/dev/null || true
       ;;
   esac
 }
@@ -451,6 +471,14 @@ if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile.cache" ]]; then
     print -P "%F{yellow}⚠ brew: $_brew_diff (dots brew diff で確認)%f"
   fi
   unset _brew_diff
+fi
+
+if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile-pin.cache" ]]; then
+  _brew_pin_diff=$(bash "$DOTFILES_DIR/macos/diff_brewpin.sh" --summary 2>/dev/null || true)
+  if [[ -n "$_brew_pin_diff" ]]; then
+    print -P "%F{yellow}⚠ brew pin: $_brew_pin_diff (dots brew diff で確認)%f"
+  fi
+  unset _brew_pin_diff
 fi
 
 # --------------------------------------------------------

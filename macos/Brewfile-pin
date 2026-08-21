@@ -1,0 +1,5 @@
+# Homebrewで一時的に更新を止めるパッケージ。
+# brew "name" または cask "name" 形式で記載し、解除条件をIssueで追跡する。
+
+# https://github.com/y-marui/dotfiles/issues/35
+cask "audius"
