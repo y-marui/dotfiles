@@ -8,14 +8,16 @@ Windows Terminal / PowerShell 7を利用するWindows環境向けの手順。
 - Git
 - GNU Make (`mingw32-make`でも可)
 - gsudo
-- jq（`ai/claude/settings.json`のキー順序差分を無視するgit clean filterで使用）
 
-gsudo・jqが未導入の場合は、PowerShellで以下を実行してからコンソールを開き直す。
+gsudoが未導入の場合は、PowerShellで以下を実行してからコンソールを開き直す。
 
 ```powershell
 winget install gerardog.gsudo
-winget install jqlang.jq
 ```
+
+jq（`ai/claude/settings.json`のキー順序差分を無視するgit clean filterで使用）は
+`scripts/setup-jq.ps1`が`mingw32-make install`/`dots update`の中で自動導入するため、
+手動インストールは不要。
 
 ## 初回セットアップ
 

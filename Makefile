@@ -52,8 +52,9 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	@bash scripts/setup-zellij.sh
 	@bash rpi/setup_zsh.sh
 
-install-windows: ## Windows 向けセットアップ（gsudo + シンボリックリンク + Zellij自動attach + private repo リンク）
+install-windows: ## Windows 向けセットアップ（gsudo + jq + シンボリックリンク + Zellij自動attach + private repo リンク）
 	pwsh -NoLogo -NoProfile -File scripts/setup-gsudo.ps1
+	pwsh -NoLogo -NoProfile -File scripts/setup-jq.ps1
 	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/link-private.ps1

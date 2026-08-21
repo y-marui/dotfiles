@@ -21,8 +21,12 @@ scripts/.env
 .DS_Store
 macos/Brewfile.local
 macos/Brewfile.cache
+macos/Brewfile-pin.cache
 npm/npmfile.cache
 pipx/pipxfile.cache
+
+# Windows
+windows/WingetPin.cache
 
 # バックアップファイル
 *.backup.*
