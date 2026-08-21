@@ -26,9 +26,10 @@ function Show-Usage {
 Usage:
   dots status [-NoFetch]
   dots update
+  dots winget {apply|diff|cache}
   dots help
 
-Windowsでは status / update を利用できます。
+Windowsでは status / update / winget を利用できます。
 '@
 }
 
@@ -158,6 +159,44 @@ switch ($commandName) {
         Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\install.ps1"
         Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\setup-zellij.ps1"
         Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\update-windows.ps1"
+    }
+    'winget' {
+        $wingetDir = "$dotfilesDir\windows"
+        $wingetAction = if ($commandArgs.Count -gt 0) { $commandArgs[0] } else { $null }
+        $wingetArgs = @($commandArgs | Select-Object -Skip 1)
+
+        switch ($wingetAction) {
+            'apply' {
+                if ($wingetArgs.Count -gt 0) {
+                    throw "unexpected argument: $($wingetArgs[0])"
+                }
+                Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$wingetDir\apply_wingetpin.ps1"
+            }
+            'diff' {
+                $summary = $false
+                foreach ($argument in $wingetArgs) {
+                    switch ($argument) {
+                        '--summary' { $summary = $true }
+                        default { throw "unknown winget diff option: $argument" }
+                    }
+                }
+                if ($summary) {
+                    & pwsh -NoLogo -NoProfile -File "$wingetDir\diff_wingetpin.ps1" -Summary
+                } else {
+                    & pwsh -NoLogo -NoProfile -File "$wingetDir\diff_wingetpin.ps1"
+                }
+                exit $LASTEXITCODE
+            }
+            'cache' {
+                if ($wingetArgs.Count -gt 0) {
+                    throw "unexpected argument: $($wingetArgs[0])"
+                }
+                Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$wingetDir\update_wingetpin_cache.ps1"
+            }
+            default {
+                throw "usage: dots winget {apply|diff|cache}"
+            }
+        }
     }
     { $_ -in @('help', '-h', '--help') } {
         Show-Usage

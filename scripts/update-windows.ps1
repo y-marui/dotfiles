@@ -18,16 +18,11 @@ function Invoke-NativeCommand {
 
 Write-Host "=== $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') Update started ==="
 
-# 旧make updateが実行中のmingw32-make.exeを保護するために作成したpinを解除する。
-# dots updateはPowerShellで動作するため、WinLibsも一括更新できる。
-$winLibsPackageId = 'BrechtSanders.WinLibs.POSIX.UCRT'
-$winLibsPins = & winget pin list --id $winLibsPackageId --exact 2>&1
-if ($LASTEXITCODE -ne 0) {
-    throw "winget pin list failed with exit code $LASTEXITCODE"
-}
-if ($winLibsPins -match [regex]::Escape($winLibsPackageId)) {
-    Invoke-NativeCommand winget pin remove --id $winLibsPackageId --exact
-}
+$dotfilesDir = Split-Path -Parent $PSScriptRoot
+
+# WingetPinの宣言に実際のpin状態を合わせる（未宣言のpinは解除、宣言済みは追加）。
+# 既知の不具合（誤検知等）で全体更新が停止するのを防ぐため、winget upgradeの前に実行する。
+Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\windows\apply_wingetpin.ps1"
 
 Invoke-NativeCommand winget upgrade --all --silent --accept-source-agreements --include-unknown
 

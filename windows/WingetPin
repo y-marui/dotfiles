@@ -1,0 +1,8 @@
+# Wingetで一時的に更新を止めるパッケージ。
+# <PackageIdentifier> の形式で1行ずつ記載し、解除条件をIssueで追跡する。
+
+# https://github.com/y-marui/dotfiles/issues/36
+# Defenderがインストーラーをマルウェアと誤検知（Trojan:Win32/Wacatac.C!ml, 2026-08-21）。
+# VirusTotalでは66エンジン中1のみ検知で、ハッシュはwinget-pkgs公式マニフェストと一致
+# （誤検知の可能性が高い）。Defenderの定義更新で誤検知が解消され次第、pinを解除する。
+vim.vim.nightly

@@ -103,5 +103,8 @@ Windows版の更新は次の順に実行する。
 4. WinGetパッケージとWindows Updateを適用
 5. 利用可能な場合はnpm、pipx、ghq管理下のリポジトリを更新
 
-旧`make update`が作成したWinLibsのpinが残っている場合は自動的に解除し、WinLibsも
-WinGetの一括更新に含める。
+`windows/WingetPin`に宣言されたパッケージは、WinGetの一括更新前に自動でpinされる
+（宣言から外れたpinは自動で解除される）。既知の不具合でアップグレードが失敗する
+パッケージを一時的に除外したい場合は`windows/WingetPin`に追記する
+（macOSの`macos/Brewfile-pin`に相当。`dots winget apply`で手動適用、
+`dots winget diff`で宣言と実際のpin状態の差分を確認できる）。

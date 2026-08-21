@@ -81,6 +81,9 @@ EXCEPTIONS=(
   "scripts/setup-gsudo.ps1:gsudoはWindows専用ツールのセットアップ"
   "scripts/update-windows.ps1:Windows専用の追加更新処理。役割の異なるOS別スクリプト（update-rpi-homebridge.sh等）に相当するため対のunix実装なし"
   "terminal/powershell/profile.ps1:PowerShellプロファイル本体。zshrc等と役割が異なる設定ファイルのため対応不要"
+  "windows/apply_wingetpin.ps1:Windows専用（winget）。macOSのBrewfile-pin相当だがパッケージマネージャーが異なるため対のunix実装なし"
+  "windows/diff_wingetpin.ps1:Windows専用（winget）。macOSのBrewfile-pin相当だがパッケージマネージャーが異なるため対のunix実装なし"
+  "windows/update_wingetpin_cache.ps1:Windows専用（winget）。macOSのBrewfile-pin相当だがパッケージマネージャーが異なるため対のunix実装なし"
 )
 
 _exception_key() {
