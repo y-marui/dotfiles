@@ -102,6 +102,7 @@ dotfiles/
 │   ├── copilot/    # GitHub Copilot 設定ドキュメント
 │   └── gemini/     # ~/.gemini/ にリンクされる Gemini CLI 設定
 ├── macos/          # Brewfile、macOS defaults スクリプト
+├── windows/        # WingetPin（winget一時pin宣言）
 ├── host/           # マシン固有設定（コミット対象外）
 ├── scripts/        # install / uninstall / check / init スクリプト
 ├── docs/           # 設計ドキュメント
@@ -138,6 +139,8 @@ dotfiles/
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
 - `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
 - `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用）
+- `dots winget apply/diff/cache`: Windows専用。`windows/WingetPin` に宣言したパッケージの
+  一時pinをwinget側の実際の状態と同期する（macOSの `dots brew` におけるBrewfile-pin相当）
 - `macos/Brewfile-pin`: 一時的に更新を止める formula/Cask を宣言。`dots brew apply/diff/cache` で実pin状態と同期する
 - `dots {claude|codex|gemini} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
 - `dots {claude|codex|gemini} apply`: 宣言済みの不足・設定不一致を追加または更新

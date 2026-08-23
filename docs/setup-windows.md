@@ -8,14 +8,16 @@ Windows Terminal / PowerShell 7を利用するWindows環境向けの手順。
 - Git
 - GNU Make (`mingw32-make`でも可)
 - gsudo
-- jq（`ai/claude/settings.json`のキー順序差分を無視するgit clean filterで使用）
 
-gsudo・jqが未導入の場合は、PowerShellで以下を実行してからコンソールを開き直す。
+gsudoが未導入の場合は、PowerShellで以下を実行してからコンソールを開き直す。
 
 ```powershell
 winget install gerardog.gsudo
-winget install jqlang.jq
 ```
+
+jq（`ai/claude/settings.json`のキー順序差分を無視するgit clean filterで使用）は
+`scripts/setup-jq.ps1`が`mingw32-make install`/`dots update`の中で自動導入するため、
+手動インストールは不要。
 
 ## 初回セットアップ
 
@@ -103,5 +105,8 @@ Windows版の更新は次の順に実行する。
 4. WinGetパッケージとWindows Updateを適用
 5. 利用可能な場合はnpm、pipx、ghq管理下のリポジトリを更新
 
-旧`make update`が作成したWinLibsのpinが残っている場合は自動的に解除し、WinLibsも
-WinGetの一括更新に含める。
+`windows/WingetPin`に宣言されたパッケージは、WinGetの一括更新前に自動でpinされる
+（宣言から外れたpinは自動で解除される）。既知の不具合でアップグレードが失敗する
+パッケージを一時的に除外したい場合は`windows/WingetPin`に追記する
+（macOSの`macos/Brewfile-pin`に相当。`dots winget apply`で手動適用、
+`dots winget diff`で宣言と実際のpin状態の差分を確認できる）。

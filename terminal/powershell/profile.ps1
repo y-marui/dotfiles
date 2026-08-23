@@ -145,7 +145,10 @@ if ($env:ZELLIJ) {
         if ($noZellij) { $noZellijEnv = 'NO_ZELLIJ=1' }
 
         $remoteHost = $sshArgs[-1]
-        $sshCmd     = "env $noZellijEnv ssh $($sshArgs -join ' ')"
+        # zellij action new-pane/run が作るペインは呼び出し元の $env:TERM を継承しないことがあり、
+        # 空のTERMがそのままSSH先へ転送されてプロンプト等が壊れるため明示的に渡す。
+        $termValue  = if ($env:TERM) { $env:TERM } else { 'xterm-256color' }
+        $sshCmd     = "env $noZellijEnv TERM=$termValue ssh $($sshArgs -join ' ')"
 
         if ($newTab) {
             zellij action new-pane --new-tab --name "ssh:$remoteHost" --close-on-exit -- sh -c $sshCmd
