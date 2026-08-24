@@ -56,6 +56,30 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 利用可能な手段のうち MCP > CLI > GUI/Web の優先順位で選択する。
 MCP・CLI とも利用できない、または明らかに不向きな場合のみ GUI/Web を使う。
 
+## Documentation and Task Management
+
+- 完成後も参照する設計判断、仕様、運用手順、確認方法、復旧・rollback、長期間有効な
+  制約は、リポジトリの `docs/`、README、AI_CONTEXT 等の恒久ドキュメントに記録する
+- TODO、進捗、担当、期限、ブロッカー、調査途中の仮説、実装チェックリスト等、完了後に
+  不要になる情報は、GitHub Issue・sub-issue・Project（または同等のタスク管理機能）で管理する
+- 一時的な計画・作業メモをリポジトリへコミットしない。タスク管理機能を使えない場合は、
+  gitignore対象のローカル作業領域を使う
+- タスク中に確定し、将来も必要になった知識は、同じ作業内で恒久ドキュメントへ要点を昇格する。
+  docsとIssueへ同じチェックリストや進捗を重複させない
+- Issue / Pull Requestのタスク固有指示は、プロジェクト文書やグローバル原則より優先する。
+  ただし、シークレット管理等の上位の安全ルールには反しない
+- 公開リポジトリのIssue・Project・docsには、秘密情報に加えて、ホスト名、IPアドレス、鍵情報、
+  詳細なサービス構成等、不要な運用情報も掲載しない
+
+この節は `y-marui/dev-charter` の
+[`DOCS_STRUCTURE.md`](https://github.com/y-marui/dev-charter/blob/main/DOCS_STRUCTURE.md)、
+[`PRINCIPLES.md`](https://github.com/y-marui/dev-charter/blob/main/PRINCIPLES.md)、
+[`AI_CONTEXT_HIERARCHY.md`](https://github.com/y-marui/dev-charter/blob/main/AI_CONTEXT_HIERARCHY.md)、
+[`topics/GITHUB_SETTINGS.md`](https://github.com/y-marui/dev-charter/blob/main/topics/GITHUB_SETTINGS.md)
+から必要部分だけを選択的に引用・一般化したもので、dev-charterのfull適用ではない。
+引用元の関連ファイルが変更されたとき、プロジェクトの文書・タスク運用を変更するとき、または
+活発な開発中は少なくとも四半期ごとに整合性を確認し、必要な差分だけを反映する。
+
 ## Coding Style
 
 - シェルスクリプト: ShellCheck 準拠、`set -euo pipefail`
