@@ -29,6 +29,7 @@ EXCEPTIONS=(
   "macos/update_brewcache.sh:macOS専用（Homebrew）"
   "macos/update_dockcache.sh:macOS専用（Dock）"
   "rpi/apply_packages.sh:Raspberry Pi専用"
+  "rpi/setup_gpg_agent.sh:Raspberry Pi専用"
   "rpi/repos/setup_claude-code.sh:Raspberry Pi専用"
   "rpi/repos/setup_homebridge.sh:Raspberry Pi専用"
   "rpi/repos/setup_tailscale.sh:Raspberry Pi専用"

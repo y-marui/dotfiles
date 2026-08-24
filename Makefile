@@ -36,7 +36,7 @@ install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリ�
 	@bash bin/unix/dots brew apply --backup-dir "$(BACKUP_DIR)"
 	@bash bin/unix/dots dock apply --backup-dir "$(BACKUP_DIR)"
 
-install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリンク + apt パッケージ + claude-code/homebridge/tailscale + zsh化）
+install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリンク + apt パッケージ + claude-code/homebridge/tailscale + zsh化 + gpg-agent永続化）
 	@bash scripts/install.sh
 	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
 	   bash $(PRIVATE_DIR)/setup.sh; \
@@ -51,6 +51,7 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	@bash rpi/repos/setup_tailscale.sh
 	@bash scripts/setup-zellij.sh
 	@bash rpi/setup_zsh.sh
+	@bash rpi/setup_gpg_agent.sh
 
 install-windows: ## Windows 向けセットアップ（gsudo + jq + シンボリックリンク + Zellij自動attach + private repo リンク）
 	pwsh -NoLogo -NoProfile -File scripts/setup-gsudo.ps1
