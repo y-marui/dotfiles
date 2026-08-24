@@ -11,24 +11,30 @@
 # 上書き前に生死を確認し、死んでいれば永続 gpg-agent の ssh ソケットへフォールバックする。
 # ssh-add -l の終了コード: 0=鍵あり 1=生きているが鍵なし 2=接続不可（死んでいる）。
 # 生死判定は != 2 に統一し、鍵なし(1)を死亡扱いしないようにする。
-_ssh_agent_alive() {
-  SSH_AUTH_SOCK="$1" ssh-add -l &>/dev/null
-  (( $? != 2 ))
-}
+# ローカル（非SSH）セッションでは無関係の処理のため、SSH_CONNECTION がある場合のみ実行する。
+# でないとローカルMacで ~/.ssh/auth_sock 未作成時にgpg-agentのssh-socketへフォールバックし、
+# ~/.ssh/config の AddKeysToAgent 経由で意図せずgpg-agentに鍵が渡って
+# pinentryの鍵保管プロンプトが出て止まってしまう。
+if [[ -n "$SSH_CONNECTION" ]]; then
+  _ssh_agent_alive() {
+    SSH_AUTH_SOCK="$1" ssh-add -l &>/dev/null
+    (( $? != 2 ))
+  }
 
-if [[ -n "$SSH_CONNECTION" && -n "$SSH_AUTH_SOCK" && "$SSH_AUTH_SOCK" != "$HOME/.ssh/auth_sock" ]]; then
-  _ssh_agent_alive "$SSH_AUTH_SOCK" && ln -sf "$SSH_AUTH_SOCK" "$HOME/.ssh/auth_sock"
+  if [[ -n "$SSH_AUTH_SOCK" && "$SSH_AUTH_SOCK" != "$HOME/.ssh/auth_sock" ]]; then
+    _ssh_agent_alive "$SSH_AUTH_SOCK" && ln -sf "$SSH_AUTH_SOCK" "$HOME/.ssh/auth_sock"
+  fi
+
+  if [[ ! -e "$HOME/.ssh/auth_sock" ]] || ! _ssh_agent_alive "$(readlink "$HOME/.ssh/auth_sock" 2>/dev/null)"; then
+    _local_ssh_agent_sock="$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null)"
+    [[ -n "$_local_ssh_agent_sock" ]] && ln -sf "$_local_ssh_agent_sock" "$HOME/.ssh/auth_sock"
+    unset _local_ssh_agent_sock
+  fi
+
+  unset -f _ssh_agent_alive
+
+  [[ -e "$HOME/.ssh/auth_sock" ]] && export SSH_AUTH_SOCK="$HOME/.ssh/auth_sock"
 fi
-
-if [[ ! -e "$HOME/.ssh/auth_sock" ]] || ! _ssh_agent_alive "$(readlink "$HOME/.ssh/auth_sock" 2>/dev/null)"; then
-  _local_ssh_agent_sock="$(gpgconf --list-dirs agent-ssh-socket 2>/dev/null)"
-  [[ -n "$_local_ssh_agent_sock" ]] && ln -sf "$_local_ssh_agent_sock" "$HOME/.ssh/auth_sock"
-  unset _local_ssh_agent_sock
-fi
-
-unset -f _ssh_agent_alive
-
-[[ -e "$HOME/.ssh/auth_sock" ]] && export SSH_AUTH_SOCK="$HOME/.ssh/auth_sock"
 
 # gpg-agent（pinentry）が現在の端末に対して正しくプロンプトを出せるようにする。
 # ssh-add は ssh-agent プロトコルしか話さず GPG_TTY を gpg-agent に伝えないため、
