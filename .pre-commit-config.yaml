@@ -198,3 +198,133 @@ repos:
         entry: bash scripts/check-sh-ps1-parity.sh
         pass_filenames: false
         files: \.(sh|ps1)$
+
+  # ============================================================
+  # dev-charter 憲章準拠チェック（docs/dev-charter/ に subtree 導入した
+  # dev-charter lite 版が要求する自動チェック。各フックの詳細は
+  # docs/dev-charter/SECURITY_POLICY.md の Configuration Files 参照）
+  # ============================================================
+
+  # [8] AI_CONTEXT.md があるのに CLAUDE.md 等がそれを参照していない
+  - repo: local
+    hooks:
+      - id: check-ai-context-reference
+        name: "dev-charter: AI_CONTEXT.md 参照チェック"
+        language: system
+        entry: bash scripts/check-ai-context-reference.sh
+        pass_filenames: false
+        always_run: true
+
+  # [9] .github/workflows/dev-charter-check.yml が README の CI テンプレートと不一致
+  - repo: local
+    hooks:
+      - id: check-charter-ci-template
+        name: "dev-charter: CI テンプレート一致チェック"
+        language: system
+        entry: bash scripts/check-charter-ci-template.sh
+        pass_filenames: false
+        always_run: true
+
+  # [10] docs/dev-charter/ 配下の直接編集を禁止（git subtree pull のみ許可）
+  - repo: local
+    hooks:
+      - id: check-charter-subtree-edit
+        name: "dev-charter: subtree 直接編集の禁止"
+        language: system
+        entry: bash scripts/check-charter-subtree-edit.sh
+        pass_filenames: false
+        always_run: true
+
+  # [11] コミットメッセージが Conventional Commits 形式かチェック（commit-msg ステージ）
+  #      core.hooksPath 使用時は `pre-commit install --hook-type commit-msg` が
+  #      拒否されるため、このステージは個人の dotfiles 側の対応が別途必要
+  #      （docs/dev-charter/SECURITY_POLICY.md の Setup Steps 参照）
+  - repo: local
+    hooks:
+      - id: check-conventional-commit
+        name: "dev-charter: Conventional Commits 形式チェック"
+        language: system
+        entry: bash scripts/check-conventional-commit.sh
+        stages: [commit-msg]
+
+  # [12] .env.example 等があるのに .gitignore が .env を無視していない
+  - repo: local
+    hooks:
+      - id: check-dotenv-gitignore
+        name: "dev-charter: .env/.gitignore 整合性チェック"
+        language: system
+        entry: bash scripts/check-dotenv-gitignore.sh
+        pass_filenames: false
+        always_run: true
+
+  # [13] 日英ペアドキュメントの冒頭宣言・末尾フッターの有無をチェック
+  - repo: local
+    hooks:
+      - id: check-language-pair-footer
+        name: "dev-charter: 日英ペア見出し/フッターチェック"
+        language: system
+        entry: bash scripts/check-language-pair-footer.sh
+        pass_filenames: false
+        always_run: true
+
+  # [14] <name>-jp.<ext> / <name>.<ext> ペアの片側のみ更新をチェック
+  - repo: local
+    hooks:
+      - id: check-language-pair-sync
+        name: "dev-charter: 日英ペア同時更新チェック"
+        language: system
+        entry: bash scripts/check-language-pair-sync.sh
+        pass_filenames: false
+        always_run: true
+
+  # [15] LICENSE ファイルの存在チェック
+  - repo: local
+    hooks:
+      - id: check-license-exists
+        name: "dev-charter: LICENSE 存在チェック"
+        language: system
+        entry: bash scripts/check-license-exists.sh
+        pass_filenames: false
+        always_run: true
+
+  # [16] ローカルの ../dev-charter チェックアウトとの VERSION 差分をチェック
+  - repo: local
+    hooks:
+      - id: check-local-charter-version
+        name: "dev-charter: VERSION 追従チェック"
+        language: system
+        entry: bash scripts/check-local-charter-version.sh
+        pass_filenames: false
+        always_run: true
+
+  # [17] Markdown の H2〜H6 見出しに日本語が含まれていないかチェック
+  #      NOTE: 導入時点で dotfiles の大半のドキュメントは日本語見出しのため、
+  #      `pre-commit run --all-files` はこのフックで広範囲に失敗する
+  #      （見出しを英語化するまでの既知の状態）
+  - repo: local
+    hooks:
+      - id: check-markdown-heading-language
+        name: "dev-charter: Markdown 見出し言語チェック"
+        language: system
+        entry: bash scripts/check-markdown-heading-language.sh
+        files: \.md$
+
+  # [18] pyproject.toml があるのに requirements.txt が存在する、または uv.lock が無い
+  - repo: local
+    hooks:
+      - id: check-python-package-management
+        name: "dev-charter: Python パッケージ管理チェック"
+        language: system
+        entry: bash scripts/check-python-package-management.sh
+        pass_filenames: false
+        always_run: true
+
+  # [19] LICENSE/.github/FUNDING.yml/README にプレースホルダが残っていないかチェック
+  - repo: local
+    hooks:
+      - id: check-readme-placeholders
+        name: "dev-charter: README 等プレースホルダチェック"
+        language: system
+        entry: bash scripts/check-readme-placeholders.sh
+        pass_filenames: false
+        always_run: true

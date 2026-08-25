@@ -18,11 +18,14 @@
 #       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
 #       ブランチには適用されない。複数設定可
 #       （git config --add local.status-allowed-remote-branch gemini）。
-#       BRANCHES 列でベース比率から除外し +N 側に計上する（複数登録時は合算して +N）。
+#       BRANCHES 列の origin 側カウントに合算したうえで、想定値(expected)側も同数
+#       引き上げることでハイライト対象から除外する（別セグメントには分けない）。
 #       git-sweep 等の削除処理には影響しない（表示専用の設定）。
 #
-# BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
-# 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
+# BRANCHES 列は常に "(main+通常ブランチ)/(main+通常ブランチ)" の2数で表示する
+# （想定内の追加リモートブランチも同じ枠に合算し、3つ目のセグメントは作らない）。
+# ベース比率は、リポジトリの .gitattributes の git-sweep-protected 属性
+# （git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
 # main+develop の2ブランチ恒久運用なら 1+1/1+1 が正常値になる（左が main の基準、
 # 右の +1 が develop 分。ローカル・リモートそれぞれの実測値なので、develop が
 # 片方にしか無い等の不一致は 1+1/1+0 のような形で見える）。
@@ -50,8 +53,8 @@ _is_quiet_row() {
   local status_val="$1" br="$2" charter="$3" is_protected="$4" expected_br="$5"
   [[ "$is_protected" != 1 ]] && return 1
   [[ "$status_val" != "✓" ]] && return 1
-  [[ ! "$br" =~ ^${expected_br}([+][0-9]+)?$ ]] && return 1
-  [[ -n "$charter_latest" && "$charter" != "-" && "$charter" != "$charter_latest" ]] && return 1
+  [[ ! "$br" =~ ^${expected_br}$ ]] && return 1
+  [[ -n "$charter_latest" && "$charter" != "-" && "$charter" < "$charter_latest" ]] && return 1
   return 0
 }
 
@@ -60,10 +63,10 @@ _row() {
   printf ' │ '; _pad "$2" "$w_branch"
   printf ' │ '; _pad "$3" "$w_status"
   local _bc=''
-  [[ ! "$4" =~ ^${7}([+][0-9]+)?$ ]] && _bc=$'\033[31m'
+  [[ ! "$4" =~ ^${7}$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
-  [[ -n "$charter_latest" && "$5" != "-" && "$5" != "$charter_latest" ]] && _cc=$'\033[31m'
+  [[ -n "$charter_latest" && "$5" != "-" && "$5" < "$charter_latest" ]] && _cc=$'\033[31m'
   printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
   case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
@@ -91,11 +94,15 @@ main() {
   charter_latest=""
   # ローカルの checkout 中ブランチではなく main の VERSION を基準にする
   [[ -n "$charter_repo" ]] && charter_latest="$(git -C "$charter_repo" show main:VERSION 2>/dev/null)"
+  # DEV-CHARTER 列は charter_latest（main の VERSION）より古い場合のみ赤くする。
+  # lite ブランチは publish-lite.yml が main とは独立したタイミングで VERSION を
+  # 打ち直すため、lite 導入先の VERSION が main より新しくなることがある
+  # （その場合は要更新ではないので赤くしない、単純な不一致判定にはしない）
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected
 
   while IFS= read -r repo; do
-    local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br dev_charter_br br_str charter_ver keep_val
+    local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br br_str charter_ver keep_val
     rel="${repo#"$root/"}"
 
     branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
@@ -137,54 +144,41 @@ main() {
     [[ -z "$status_str" ]] && status_str="✓"
 
     local_br=$(git -C "$repo" branch 2>/dev/null | wc -l | tr -d ' ')
-    dev_charter_br=$(git -C "$repo" branch -r 2>/dev/null | awk '/  dev-charter\// && !/ -> /' | wc -l | tr -d ' ')
 
     # git config local.status-allowed-remote-branch (複数可) に登録されたパターンに一致する
-    # origin (remote) ブランチは ghq-status の表示上「想定内」とみなし、ベース比率(1/1)から
-    # 除外して +N 側に計上する（git-sweep 等の削除処理には影響しない、表示専用の設定）
+    # origin (remote) ブランチは ghq-status の表示上「想定内」とみなす。ブランチ数自体には
+    # 含めたうえで、想定値(expected)側を同数だけ引き上げることでハイライト対象から除外する
+    # （git-sweep 等の削除処理には影響しない、表示専用の設定）
     typeset -a allowed_remote_patterns origin_branch_names
     allowed_remote_patterns=("${(@f)$(git -C "$repo" config --get-all local.status-allowed-remote-branch 2>/dev/null)}")
     origin_branch_names=("${(@f)$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /{sub(/.*origin\//,""); print}')}")
 
-    local br_name br_pat br_matched allowed_remote_extra=0
-    origin_br=0
+    local br_name br_pat allowed_remote_extra=0
+    origin_br=${#origin_branch_names[@]}
     for br_name in "${origin_branch_names[@]}"; do
-      br_matched=0
       for br_pat in "${allowed_remote_patterns[@]}"; do
-        [[ "$br_name" == ${~br_pat} ]] && { br_matched=1; break; }
+        [[ "$br_name" == ${~br_pat} ]] && { (( allowed_remote_extra++ )); break; }
       done
-      if (( br_matched )); then
-        (( allowed_remote_extra++ ))
-      else
-        (( origin_br++ ))
-      fi
     done
 
-    local extra_br=$(( dev_charter_br + allowed_remote_extra ))
+    local extra_br=$allowed_remote_extra
 
-    # base_extra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら
-    # 従来通りの "local/origin[+N]" 表示のまま。1 以上（main+develop 等の複数
-    # ブランチ恒久運用）なら "1" の基準と実測の追加分を "1+N" の形に分解して
-    # 表示する。ローカル・リモートそれぞれの N が独立して見えるので、develop が
-    # 片方にしか無い異常（例: "1+1/1+0"）も判別できる
+    # BRANCHES 列は常に "(main+通常ブランチ)/(main+通常ブランチ)" の2数のみで表示する。
+    # base_extra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら従来通り
+    # "local/origin" の実測値表示、1 以上（main+develop 等の複数ブランチ恒久運用）なら
+    # "1" の基準と実測の追加分を "1+N" の形に分解して表示する。origin 側の想定値には
+    # extra_br（想定内の追加リモートブランチ数）を合算し、想定外のブランチだけが
+    # ハイライト対象になるようにする
     local base_extra=$(( base - 1 ))
+    local local_extra_actual=$(( local_br - 1 ))
+    local origin_extra_actual=$(( origin_br - 1 ))
     local expected_br
     if (( base_extra > 0 )); then
-      local local_extra_actual=$(( local_br - 1 ))
-      local origin_extra_actual=$(( origin_br - 1 ))
-      if (( extra_br > 0 )); then
-        br_str="1+${local_extra_actual}/1+${origin_extra_actual}+${extra_br}"
-      else
-        br_str="1+${local_extra_actual}/1+${origin_extra_actual}"
-      fi
-      expected_br="1\+${base_extra}/1\+${base_extra}"
+      br_str="1+${local_extra_actual}/1+${origin_extra_actual}"
+      expected_br="1\+${base_extra}/1\+$(( base_extra + extra_br ))"
     else
-      if (( extra_br > 0 )); then
-        br_str="${local_br}/${origin_br}+${extra_br}"
-      else
-        br_str="${local_br}/${origin_br}"
-      fi
-      expected_br="1/1"
+      br_str="${local_br}/${origin_br}"
+      expected_br="1/$(( 1 + extra_br ))"
     fi
 
     charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
