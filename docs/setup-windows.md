@@ -2,7 +2,7 @@
 
 Windows Terminal / PowerShell 7を利用するWindows環境向けの手順。
 
-## 前提ツール
+## Prerequisites
 
 - PowerShell 7 (`pwsh`)
 - Git
@@ -19,7 +19,7 @@ jq（`ai/claude/settings.json`のキー順序差分を無視するgit clean filt
 `scripts/setup-jq.ps1`が`mingw32-make install`/`dots update`の中で自動導入するため、
 手動インストールは不要。
 
-## 初回セットアップ
+## Initial Setup
 
 初回はUACダイアログを操作できるMRDなどの対話デスクトップセッションで実行する。
 
@@ -44,7 +44,7 @@ gsudo config CacheDuration 00:30:00
 gsudo cache off
 ```
 
-## Zellijの継続起動
+## Keeping Zellij Running
 
 Windowsではネイティブ対応とWindows固有の修正を含むZellij `0.44.3`を使用する。
 macOS/Raspberry Piで固定している`0.43.1`とは別に管理する。
@@ -87,7 +87,7 @@ Get-Process -Name zellij -ErrorAction SilentlyContinue
 ($env:COMPUTERNAME -split '\.')[0].ToLower()
 ```
 
-## 更新
+## Updating
 
 ```powershell
 dots update

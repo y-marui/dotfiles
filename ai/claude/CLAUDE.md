@@ -1,7 +1,7 @@
 @~/.ai/AI_CONTEXT.md
 @~/.ai/AI_CONTEXT_CLI.md
 
-## ビルド・テストコマンドの実行
+## Running Build/Test Commands
 
 ビルド・テスト・lint・pre-commit など出力が多いコマンドは `run-quiet` でラップして実行する。
 エラーがなければ1行サマリーのみ出力され、コンテキストを節約できる。
@@ -28,7 +28,7 @@ pre-commit run --all-files
 make build
 ```
 
-## MCP サーバーの追加
+## Adding MCP Servers
 
 `claude mcp add` で特定プロジェクトに紐付かない個人の恒常的なツール連携（Codex・GitHub 等）を追加する場合は、
 デフォルトの local scope ではなく `-s user` を付けて登録する。

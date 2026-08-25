@@ -1,10 +1,10 @@
 # AI Instructions for CLI Tools
 
-## コミットのタイミング
+## Commit Timing
 
 ユーザーから明示的に指示された時だけコミットする。作業完了後に自動でコミットしない。
 
-## 作業前の fetch
+## Fetch Before Starting Work
 
 git リポジトリでコード変更を伴うタスクに着手する前は、ブランチの保護有無やリポジトリの
 push ポリシーに関わらず、常に `git fetch` でリモートの最新状態を取り込んでからにする
@@ -15,7 +15,7 @@ push ポリシーに関わらず、常に `git fetch` でリモートの最新�
 取り込んだ結果を実際に `git pull` や `git merge` で取り込むかどうかは、ワーキングツリーを
 変更する操作なので下記「作業前のブランチ確認」と同様 clean な場合に限る。
 
-## 作業前のブランチ確認
+## Branch Check Before Starting Work
 
 現在のブランチが `main`/`master` 等の直接 push が禁止されたブランチで、かつ clean な
 状態の場合は、fetch に続けて次の順で進める。
@@ -29,20 +29,20 @@ push ポリシーに関わらず、常に `git fetch` でリモートの最新�
 作成の要否確認）の対象外。直接 push が許可されたリポジトリで、各プロジェクトの
 AI_CONTEXT.md/CLAUDE.md がブランチ作成不要と明記している場合はそれに従う（例: dotfiles）。
 
-## PR 作成・push 前のローカル CI チェック
+## Local CI Checks Before Creating a PR or Pushing
 
 PR を作成する前、またはブランチに push する前に、そのプロジェクトの CI 設定
 （`.github/workflows/`）を確認し、GitHub Actions と同等の lint・build・test をローカルで
 実行する（`run-quiet` でラップする）。CI が失敗してから直す往復コストを防ぐため。
 
-## Mac/iOS アプリの UI 検証
+## UI Verification for Mac/iOS Apps
 
 Swift/SwiftUI など Mac/iOS ネイティブアプリの変更を検証する際は、iOS Simulator の
 操作ツールやスクリーンショットを使わない。ユーザー自身が実機・シミュレータで確認する。
 `swift build` / `swift test` / `xcodebuild` やコンパイル・自動テストでの検証は問題ない。
 UI 上の見た目確認が必要な場合は、その旨を伝えてユーザーに確認してもらう。
 
-## Warp ターミナルでのコマンド実行
+## Running Commands in the Warp Terminal
 
 Warp ターミナルは `ssh` や `make` などを独自ラッパーで包み、直接呼び出すとエラーになる
 ことがある（例: `(eval):1: make: function definition file not found`）。発生した場合は

@@ -3,7 +3,7 @@
 macOS を中心に、Raspberry Pi・Windowsでも共有する個人開発環境設定。
 zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copilot + Gemini CLI。
 
-## セットアップ（新規マシン）
+## Setup (New Machine)
 
 詳細な手順は **[macOS](docs/setup-mac.md)** / **[Windows](docs/setup-windows.md)** を参照。
 
@@ -18,7 +18,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 7. `make install-macos` → dotfiles 一括適用
 8. iTerm2 の Shell Integration をインストール
 
-## コマンド一覧
+## Command List
 
 | コマンド | 説明 |
 |---------|------|
@@ -53,7 +53,7 @@ ZellijはOS別に互換性を確認したバージョンを固定する。macOS/
 `scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
 ネイティブWindows対応の`0.44.3`をユーザーローカルへインストールする。
 
-### カスタムコマンド（`~/.local/bin/`）
+### Custom Commands (`~/.local/bin/`)
 
 `make install` で `~/.local/bin/` にシンボリックリンクが作成される。実装は
 `bin/unix/`（zsh/bash、拡張子なし）と `bin/windows/`（`*.ps1` ネイティブ実装 +
@@ -72,7 +72,7 @@ pre-commitで両者の対応関係を検証する。
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
 
-## ファイル構成
+## File Structure
 
 | パス | 説明 |
 |-----|------|
@@ -84,7 +84,7 @@ pre-commitで両者の対応関係を検証する。
 | `host/` | ホスト固有設定（git 管理外） |
 | `scripts/` | install / check 等のスクリプト |
 
-## AI 設定
+## AI Configuration
 
 グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートまたは直接リンクしている。
 リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
@@ -158,7 +158,7 @@ plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、�
 `dots gemini {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
 GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使用して認証情報を動的に読み込むラッパースクリプト経由で安全に起動される。
 
-### 全 Agent 一括チェック (`dots check`)
+### Batch-Check All Agents (`dots check`)
 
 `dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
 
@@ -211,9 +211,9 @@ workspace・plugin・builtin MCP は検出対象だが `prune` の対象外と�
 
 ---
 
-## Zellij 自動アタッチ・SSH ラッパー
+## Zellij Auto-Attach & SSH Wrapper
 
-### Zellij 自動アタッチ
+### Zellij Auto-Attach
 
 以下の条件で起動時に自動的にZellijセッション（セッション名: ホスト名）にアタッチする。
 
@@ -227,7 +227,7 @@ WindowsではWindows TerminalまたはSSHからの最初の接続でホスト名
 詳細は [Windowsセットアップ](docs/setup-windows.md) を参照。
 Zellijなしで作業する場合は、Windows Terminalの `PowerShell (No Zellij)` を選ぶ。
 
-### ssh コマンドのラッパー（iTerm2 + Zellij内のみ有効）
+### ssh Command Wrapper (Active Only Inside iTerm2 + Zellij)
 
 Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の別ペイン/タブで開くラッパーを提供している。
 接続先でもZellijが自動起動する。
@@ -241,7 +241,7 @@ Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の�
 
 > `--same` と `--no-zellij` は独立したフラグなので併用できる。
 
-### claude-rc — リモート Claude remote-control 起動
+### claude-rc — Launching Remote Claude Remote-Control
 
 デスクトップの ghq リポジトリを fzf で選択し、リモートの zellij 新タブで `claude remote-control` を起動する。
 
@@ -256,7 +256,7 @@ Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の�
 
 ---
 
-## プライベート設定の管理
+## Managing Private Settings
 
 Git の user 情報・SSH config・Dock 設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
 
@@ -269,7 +269,7 @@ vi scripts/.env  # PRIVATE_REPO を記入（例: y-marui/dotfiles-private）
 make private
 ```
 
-## ローカル専用設定
+## Local-Only Settings
 
 マシン固有の設定は以下のファイルに書く（git 管理外）：
 
@@ -278,7 +278,7 @@ make private
 - `~/.bashrc.local` — bash: 自動的に読み込まれる追加設定
 - `macos/Brewfile.local` — Homebrew: このマシン固有のパッケージ（`make init` で空ファイルを生成）
 
-### Brewfile.local — マシン固有 Homebrew パッケージ
+### Brewfile.local — Machine-Specific Homebrew Packages
 
 メインの `Brewfile` に含めたくない（他のマシンには入れたくない）パッケージを管理する。
 
@@ -315,7 +315,7 @@ vscode "publisher.extension" # VS Code 拡張
 `dots brew apply --full`は従来のapplyと同じく、`Brewfile`と`Brewfile.local`を
 それぞれ`brew bundle install`へ渡して全件適用した後、cleanupを実行する。
 
-### 設定が必要な環境変数
+### Environment Variables That Need Configuring
 
 以下の変数は `host/$(hostname -s).zsh` または `~/.zshrc.local` に設定する。
 
@@ -326,12 +326,12 @@ vscode "publisher.extension" # VS Code 拡張
 
 ---
 
-## セキュリティ: pre-commit フック
+## Security: pre-commit Hooks
 
 機密情報（トークン・秘密鍵・ローカルパス等）の誤コミットを防ぐ静的解析フックを導入している。
 [gitleaks](https://github.com/gitleaks/gitleaks) と [pre-commit](https://pre-commit.com/) を使用。
 
-### 検知対象
+### What Gets Detected
 
 | カテゴリ | 具体例 |
 |---------|-------|
@@ -342,7 +342,7 @@ vscode "publisher.extension" # VS Code 拡張
 | .env ファイル | `.env`、`.env.local`、`.env.production` 等（`.env.example` は許可） |
 | 汎用シークレット | `password = "..."` のような直接代入 |
 
-### セットアップ
+### Setup
 
 ```bash
 # 1. pre-commit をインストール（Python 3.8+ が必要）
@@ -362,14 +362,14 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-### 設定ファイル
+### Configuration Files
 
 | ファイル | 説明 |
 |---------|------|
 | `.pre-commit-config.yaml` | フック定義（使用するツール・バージョン） |
 | `.gitleaks.toml` | gitleaks カスタムルール・除外設定 |
 
-### False Positive（誤検知）への対応
+### Handling False Positives
 
 **特定ファイルをスキャン対象から除外する**
 
@@ -417,7 +417,7 @@ git commit --no-verify -m "..."
 > `--no-verify` は緊急時以外使用しないこと。
 > スキップした場合は必ず直後のコミットで修正すること。
 
-### フックのアップデート
+### Updating the Hooks
 
 ```bash
 # 全フックを最新バージョンに更新

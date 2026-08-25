@@ -5,30 +5,30 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 
 # Conversation Log Update Skill
 
-## 1. 対象ファイルの選定
+## 1. Selecting Target Files
 - **最優先（個別指定）**: ユーザーがファイルを直接指定した場合（例：`@2026-03-21.md` やパス指定）、そのファイルのみを対象とする。この場合、**「ログの確認（ブランチ間の差分チェック）」は一切行わず、即座に編集フェーズへ移行すること**。
 - **自動抽出**: ファイル指定がない場合のみ、以下の基準で特定する。
     - `origin/ai/review` ブランチが存在する場合：`git diff --name-only origin/main origin/ai/review` で差分ファイルを特定。
     - 存在しない場合：`conversation_log/` 配下の全 `.md` ファイルを対象とする。
 
-## 2. 実行フローの最適化（重要）
+## 2. Execution Flow Optimization (Important)
 トークン消費を最小限に抑えつつ、エラー耐性を高めるために以下のフローを遵守すること。
 - **個別指定時のショートカット**: ファイルが指定されている場合は、対象の読み込み、校正、保存、コミットを最小限の手順で実行する。**この際、`origin/ai/review` への push は行わない。**
 - **バッチ処理**: 複数ファイルを自動抽出した後は、ユーザーへの確認を挟まず、全ファイルを連続して処理すること。
 - **一括コミット（自動抽出時）**: 自動抽出で複数ファイルを処理した場合は、全ファイルの処理完了後に一度だけコミットとプッシュを実行する。
 - **トークン節約**: チャットへの校正後の全文出力は最小限（または省略）とし、「Updated: filename」などの簡潔なステータス報告にとどめる。
 
-## 3. 編集・校正ルール
+## 3. Editing and Proofreading Rules
 各ファイルの性質に応じて、以下の処理を行う：
 
-### 編集・校正のスキップ（保護タグ）
+### Skipping Editing/Proofreading (Protected Tags)
 - **優先ルール**: ファイル内に `#no-update` というタグが含まれている場合、そのファイルの内容（校正・要約・再構成）を**一切行ってはならない。**
 - **運用の継続**: 編集は行わないが、Git操作（コミット・プッシュ）のフローには含め、現状のまま最新の状態として扱う。
 
-### A. デイリーノート (`YYYY-MM-DD.md`) の場合
+### A. For Daily Notes (`YYYY-MM-DD.md`)
 情報の優先度を考慮し、「タスク」「予定」「課題」を必ずファイルの冒頭に配置する。構成は以下の形式を厳守すること：
 
-#### 冒頭 3 セクション（タスク・予定・課題）
+#### The First 3 Sections (Tasks, Schedule, Issues)
 見出しとリスト形式を用い、以下のフォーマットで記述する。
 - **タスク**: 今日やるべきこと、または現在進行中のタスク。
 - **予定**: **明日以降**に控えている未来の予定。
@@ -37,7 +37,7 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 `## タスク` (または `## 予定`, `## 課題`)
 `* **短い見出し**: 自然な文章による中身の説明（過度な要約を避け、元のニュアンスを維持・拡張する）`
 
-#### 本文（トピック記述部：4セクション目以降）
+#### Body (Topic Sections: 4th Section Onward)
 今日行われた活動、出来事、対話の内容は、すべてこちらに記述する。
 「生活」「開発状況」「交流」といった抽象的なカテゴリではなく、**具体的なトピック（出来事、話題、プロジェクト名など）**ごとに見出しを立てる。
 見出しと段落の組み合わせを用い、以下のフォーマットで記述する。
@@ -45,15 +45,15 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 `自然な文章による中身の説明（過度な要約を避け、論理的な一文または段落として構成する）`
 例：`## カルメンとカラオケ`, `## Windows の自動更新の制御アプリ`
 
-#### 情報の整理と重複排除（重要）
+#### Organizing Information and Removing Duplicates (Important)
 - **予定の抽出**: タスクや本文の中に「明日以降の行動予定」が含まれている場合、それらを切り出して「予定」セクションに移動させること。
 - **タスクと本文の重複回避（タスクへの統合）**: タスクの項目と本文の内容が重複する場合、**詳細をタスクの記述に統合し、本文側のセクションは削除すること**。タスクセクションを活動報告の主たる場所とし、情報の分散を防ぐ。
 
-### B. その他のファイル (`-MJ.md`, `-(topic).md`) の場合
+### B. For Other Files (`-MJ.md`, `-(topic).md`)
 - **校正 and 最適化**: 誤字脱字の修正に加え、より論理的で読みやすいセクション構成への再構成案を適用する。
 - **現状の尊重**: すでに完成度が高い部分は維持し、構造的な改善が見込める場合のみ再構成を行う。
 
-### C. 全ファイル共通のルール（重要）
+### C. Rules Common to All Files (Important)
 - **文体**: 原則として「だ・である」調、または体言止めを用いた簡潔で知的なスタイルとする。
   - **例外**: 「メッセージ」「メール」「対話文」のセクションは、元の丁寧な口調や敬体をそのまま維持すること。
 - **人名の扱い**: 原文にある敬称（「さん」など）はそのまま維持し、敬称がない場合は付け加えない。
@@ -62,7 +62,7 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 - **付録の扱い**: ソースコード、参考文献、あるいは明示的に `## Appendix` や `## 付録` と記された内容は、統合せず末尾の独立セクションとして維持すること。
 - **自動生成の禁止**: AIが主観的に作成する「まとめ」「考察」「（指示にない）追記」といった新たな定型セクションの自動生成は一切禁止する。
 
-## 3. Git操作の実行
+## 4. Executing Git Operations
 - **Commit**: `YYYY-MM-DD HH:MM:SS - Proofread and rewrite conversation logs`
 - **Hook Bypass**: `git config hooks.skip-policy-check true` を実行。
 - **Push**:

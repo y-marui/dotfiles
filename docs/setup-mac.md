@@ -2,7 +2,7 @@
 
 新規 Mac に開発環境を構築するための手順。
 
-## 1. Homebrew をインストール
+## 1. Install Homebrew
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -16,7 +16,7 @@ Xcode Command Line Tools も同時にインストールされる。
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-## 2. SSH キーを生成・登録
+## 2. Generate and Register an SSH Key
 
 GitHub およびその他サービスへの SSH キーを設定する。
 
@@ -50,7 +50,7 @@ pbcopy < ~/.ssh/id_ed25519_github.pub
 ssh -T git@github.com
 ```
 
-## 3. ghq で dotfiles を取得
+## 3. Fetch dotfiles with ghq
 
 ```bash
 brew install ghq
@@ -63,7 +63,7 @@ cd ~/src/github.com/y-marui/dotfiles
 
 > SSH キーが未設定の場合は、GitHub から ZIP でダウンロードして展開しても構わない。
 
-## 4. zprezto をインストール
+## 4. Install zprezto
 
 zsh テーマ・補完等は zprezto に依存している。共通セットアップスクリプトで
 Prezto 本体とサブモジュールの Powerlevel10k を導入する。
@@ -75,7 +75,7 @@ bash scripts/setup-prezto.sh
 `make install-macos` でも同じスクリプトを実行するため、この手順は再実行しても安全。
 ZDOTDIR を設定していない標準環境では `~/.zprezto` にクローンされる。
 
-## 5. ホスト固有設定を生成・編集
+## 5. Generate and Edit Host-Specific Settings
 
 ```bash
 make init
@@ -99,7 +99,7 @@ vi ~/.zshrc.local   # DOTFILES_DIR=~/src/github.com/y-marui/dotfiles を設定
 vi ./host/$(hostname -s).zsh
 ```
 
-## 6. プライベート設定を取得
+## 6. Fetch Private Settings
 
 gitconfig（user.name / user.email / signingkey 等）は `dotfiles-private` で管理している。
 `make private` は `gh` CLI を使用するため、事前にインストールと認証が必要:
@@ -118,7 +118,7 @@ make private
 # 記入後に再度 make private を実行する
 ```
 
-## 7. dotfiles をインストール
+## 7. Install dotfiles
 
 `make install-macos` は `make private` 済みであれば `dotfiles-private/setup.sh` も自動適用する。
 
@@ -133,11 +133,11 @@ make install-macos
 make check
 ```
 
-## 8. iTerm2 Shell Integration をインストール
+## 8. Install iTerm2 Shell Integration
 
 iTerm2 メニュー → **iTerm2 > Install Shell Integration** を実行する。
 
-## 9. iTerm2 設定を dotfiles 内に保存・読み込む
+## 9. Save and Load iTerm2 Settings in dotfiles
 
 iTerm2 の設定ファイル（plist）を dotfiles 内で管理し、複数 Mac 間で共有する。
 
@@ -158,7 +158,7 @@ iTerm2 の設定ファイル（plist）を dotfiles 内で管理し、複数 Mac
 
 同様に "Load preferences from a custom folder or URL" を有効にして、上記のパスを指定するだけでよい（dotfiles 取得後に実施）。
 
-## 10. クラウドストレージのセットアップ
+## 10. Set Up Cloud Storage
 
 Brewfile でインストール済みの場合はサインインのみ行う。手動でインストールする場合は以下:
 
@@ -172,7 +172,7 @@ brew install --cask google-drive
 
 > Dropbox は Alfred の設定同期に使用するため、他のサービスより先にセットアップしておく。
 
-## 11. Alfred 設定を Dropbox に同期
+## 11. Sync Alfred Settings to Dropbox
 
 Alfred の設定を Dropbox 経由で複数 Mac に同期する。
 
@@ -186,7 +186,7 @@ Alfred の設定を Dropbox 経由で複数 Mac に同期する。
 
 別の Mac で同じ Dropbox フォルダを指定すると設定が共有される。
 
-## 12. Tailscale をセットアップ
+## 12. Set Up Tailscale
 
 VPN メッシュネットワークで複数デバイスを接続する。
 
@@ -198,7 +198,7 @@ brew install --cask tailscale
 
 起動後、メニューバーの Tailscale アイコンから **Log in** を選択してアカウント認証する。
 
-## 13. macOS 共有設定（任意）
+## 13. macOS Sharing Settings (Optional)
 
 必要に応じて **システム設定 > 一般 > 共有** を開き、以下を有効にする:
 
@@ -210,7 +210,7 @@ brew install --cask tailscale
 
 Tailscale 経由でアクセスする場合は、ファイアウォールの例外設定が不要なことが多い。
 
-## 参考: make install-macos が行うこと
+## Reference: What make install-macos Does
 
 | ステップ | 内容 |
 |---------|------|

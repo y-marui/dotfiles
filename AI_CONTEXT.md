@@ -1,11 +1,41 @@
 # dotfiles — AI Context
 
-## このリポジトリの目的
+## Reference Order
+
+AI はタスク開始時に以下の順で参照する:
+
+1. [README.md](README.md)（概要・セットアップ）
+2. [DEVELOPING.md](DEVELOPING.md)（ビルド・実装規約・命名規則）
+
+必要に応じて以下を参照する（順不同）:
+- [CONTRIBUTING.md](CONTRIBUTING.md)（PR・Issue ルール）
+- [docs/architecture.md](docs/architecture.md)（モジュール・コンポーネント構造）
+- [docs/file-map.md](docs/file-map.md)（ファイルレベルの依存関係 ※情報が足りない・古い場合は適宜探索し、追記・更新する）
+- [docs/specification.md](docs/specification.md)（コマンドの動作定義）
+- [docs/ui-design.md](docs/ui-design.md)（UI 設計。本リポジトリは該当なし）
+
+## Applied Charter Principles
+
+憲章参照: [docs/dev-charter/CHARTER_INDEX.md](docs/dev-charter/CHARTER_INDEX.md) でトピックを特定してから該当ファイルのみ読む（`docs/dev-charter/` は `git subtree` 導入、直接編集禁止）。
+
+このプロジェクトの開発・運用フローに直接影響する原則は、以下の各セクションに実装済み（重複転記しない）:
+- ドキュメント構成（README/DEVELOPING/CONTRIBUTING/docs/）: [DOCS_STRUCTURE.md](docs/dev-charter/DOCS_STRUCTURE.md)
+- AI コンテキストファイルの構成: [AI_TOOL_SETUP.md](docs/dev-charter/AI_TOOL_SETUP.md)
+- Issue/Project運用: [topics/GITHUB_PROJECT_MANAGEMENT.md](docs/dev-charter/topics/GITHUB_PROJECT_MANAGEMENT.md)（→「ドキュメントとタスクの管理」節）
+- セキュリティ・pre-commit: [SECURITY_POLICY.md](docs/dev-charter/SECURITY_POLICY.md)（→ `.pre-commit-config.yaml`）
+
+## AI Tool Assignments
+
+- **使用ツール**：Claude Code、Codex、GitHub Copilot、Gemini CLI
+- **標準担当の正本**：`docs/dev-charter/AI_COLLABORATION_RULES.md` の「AI Tool Responsibilities」と「Rules for Multi-AI Usage」
+- **プロジェクト固有の上書き**：なし
+
+## Purpose of This Repository
 
 macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エディタ・ターミナル）を一元管理し、
 シンボリックリンクを通じて設定を共有するための dotfiles リポジトリ。
 
-## 環境
+## Environment
 
 - OS: macOS（メイン）、Raspberry Pi OS（Linux / サブ）、Windows（サブ）
 - Shell: zsh（zprezto + Powerlevel10k）— macOS / Raspberry Pi
@@ -18,7 +48,7 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 - Editor: Vim, VSCode
 - AI: Codex、Claude Code、GitHub Copilot、Gemini CLI
 
-## プラットフォーム別セットアップ
+## Platform-Specific Setup
 
 | プラットフォーム | インストール方法 |
 |---|---|
@@ -29,7 +59,7 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.sh` を実行する
 （`Makefile` 内で分岐）。
 
-## OS 別実装の方針
+## OS-Specific Implementation Policy
 
 - macOS / Raspberry Pi 向けスクリプトは zsh / bash / sh でネイティブに実装する
 - Windows 向けスクリプトは PowerShell でネイティブに実装する（Windows で zsh は使わない）
@@ -55,7 +85,7 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   `scripts/check-sh-ps1-parity.sh` が pre-commit でこの対応関係を検証する。
   片方専用にする場合はスクリプト内の `EXCEPTIONS` に理由を追記する
 
-## Zellij 自動アタッチ条件
+## Zellij Auto-Attach Conditions
 
 | プラットフォーム | シェル | 起動条件 |
 |---|---|---|
@@ -72,7 +102,7 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
 - Windows専用Zellij設定は`terminal/zellij/windows/config.kdl`を使用し、`default_shell "pwsh.exe"`を明示する
 - ZellijはmacOS/Raspberry Piで`0.43.1`、ネイティブWindowsで`0.44.3`を固定する
 
-## SSH ラッパー（zsh / bash / pwsh 共通）
+## SSH Wrapper (Common to zsh / bash / pwsh)
 
 Zellij セッション内で `ssh` を実行すると、新しいペインを作成して SSH を起動する。
 接続先ではデフォルトで zellij auto-attach（`NO_ZELLIJ=''` を渡す）。
@@ -83,7 +113,7 @@ Zellij セッション内で `ssh` を実行すると、新しいペインを作
 | `--same` | 現在のタブに縦分割ペインで SSH |
 | `--no-zellij` | 接続先の zellij auto-attach を無効化（`NO_ZELLIJ=1` を渡す） |
 
-## ディレクトリ構成と責務
+## Directory Structure and Responsibilities
 
 ```
 dotfiles/
@@ -109,19 +139,20 @@ dotfiles/
 └── .github/        # GitHub / Copilot 設定
 ```
 
-## ドキュメントとタスクの管理
+## Documentation and Task Management
 
 このリポジトリでは、完成後も参照する設計・運用・確認・復旧・rollbackを `docs/` に残し、
 進捗、期限、ブロッカー、調査途中の候補、実装チェックリストはGitHub Issue・sub-issue・Projectで
 管理する。一時的な計画ファイルや完了済みTODOをリポジトリへ残さない。
 
-タスク中に確定した知識は同じ作業内で恒久ドキュメントへ要点を反映し、Issueとdocsへ同じ
-チェックリストを重複させない。公開リポジトリのため、実機固有のホスト名、IPアドレス、鍵情報、
-不要なサービス構成はIssue・Project・docsに記載しない。
+仕様・ルール・構成に変更が生じたとき、変更と同じ作業内で関連ドキュメントを更新する。対象は
+`docs/` 内のファイルに限らず、`AI_CONTEXT.md`・`README.md` 等のルートファイルも含む。Issueと
+docsへ同じチェックリストを重複させない。公開リポジトリのため、実機固有のホスト名、IPアドレス、
+鍵情報、不要なサービス構成はIssue・Project・docsに記載しない。
 
 詳細な責務境界、引用元、整合性確認条件は `docs/project-management.md` を参照する。
 
-## シェルファイルの責務分離ルール
+## Shell File Responsibility Separation Rules
 
 | ファイル | 書くもの | 書かないもの |
 |---------|---------|------------|
@@ -135,14 +166,14 @@ dotfiles/
 | `shell/bashrc` | bash 対話設定、`source ~/.profile` | zsh 固有構文 |
 | `shell/bash_profile` | `source ~/.bashrc` のみ | それ以外 |
 
-## シークレット管理ルール
+## Secret Management Rules
 
 - シークレットは絶対にコミットしない
 - ローカル専用設定は `~/.zshrc.local` または `host/<hostname>.zsh` に書く
 - Git の user 情報等は Private Gist で管理（`~/.gitconfig.d/` にシンボリックリンク）
 - `make private` で Gist から取得・リンクを自動設定
 
-## よく使うコマンド
+## Frequently Used Commands
 
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
 - `make links`    : シンボリックリンクだけを再適用
@@ -159,14 +190,14 @@ dotfiles/
 - `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
 - `dots check`    : 全 AI Agent (claude, codex, gemini, copilot) の MCP・plugin・skill 差分を一括確認
 
-## zprezto について
+## About zprezto
 
 `~/.zprezto` 本体はこのリポジトリに含めず、外部 Git リポジトリとして管理する。
 `scripts/setup-prezto.sh` が初回 clone、`scripts/update-prezto.sh` が fast-forward 更新と
 サブモジュール同期を担当する。Powerlevel10k は Prezto のサブモジュールを使用し、
 単独ではインストール・更新しない。設定ファイルは `shell/zpreztorc` のみリンク対象。
 
-## 変更時の注意
+## Notes When Making Changes
 
 - このリポジトリは `main` に直接 push 可能。作業前にブランチを切る必要はない
   （切ってもよいが必須ではない）

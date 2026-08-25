@@ -106,7 +106,7 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - GitHub Actions の CI が `recent account payments have failed or your spending limit needs to be increased` 等の課金エラーで失敗している場合、コード側の問題ではないため無視してよい（マージ判断を妨げない）
 - `y-marui/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する
 
-## アカウント情報
+## Account Information
 
 GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
 

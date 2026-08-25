@@ -4,7 +4,7 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 
 ---
 
-## 設計方針：シンボリックリンク方式
+## Design Policy: Symlink Approach
 
 `~/.zshrc` 等をリポジトリへのシンボリックリンクにすることで、
 ファイルを編集すれば即座にリポジトリに反映される仕組みを採用している。
@@ -18,7 +18,7 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 
 ---
 
-## 3層管理の考え方
+## Three-Layer Management Concept
 
 | 層 | 場所 | 内容 |
 |----|------|------|
@@ -31,7 +31,7 @@ AI がこのリポジトリを改修する際の「なぜこうなっている�
 
 ---
 
-## AI agent の skill / plugin / MCP 管理境界
+## AI Agent skill / plugin / MCP Management Boundary
 
 ツール非依存の Agent Skills は `ai/skills/<skill-name>/` を正本とし、同じ実体を
 Codex の公式個人配置 `~/.agents/skills/<skill-name>/` と Claude Code の個人配置
@@ -76,7 +76,7 @@ Ollama 用の独自 bridge は作らない。
 
 ---
 
-## シェルファイルの責務分離ルール
+## Shell File Responsibility Separation Rules
 
 zsh の起動フローに合わせて責務を分離することで、設定の重複・競合を防ぐ。
 
@@ -97,7 +97,7 @@ bash から `source ~/.profile` した際に構文エラーになるため。
 
 ---
 
-## zprezto との共存方針
+## Coexistence Policy with zprezto
 
 `~/.zprezto` 本体はこのリポジトリで管理しない。理由：
 
@@ -112,7 +112,7 @@ Powerlevel10k は Prezto が固定するサブモジュールを使い、単独 
 
 ---
 
-## ホスト差分管理の仕組み
+## Host-Specific Configuration Mechanism
 
 複数台の Mac でホスト名が異なることを利用する：
 
@@ -130,7 +130,7 @@ host/
 
 ---
 
-## git/gitconfig の includeIf 設計
+## git/gitconfig includeIf Design
 
 組織ごとに異なるメールアドレス・署名キーを使い分けるため、
 `gitdir:` 条件でリポジトリのパスに応じて設定ファイルを切り替える。
