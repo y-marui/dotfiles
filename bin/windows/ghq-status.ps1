@@ -5,12 +5,17 @@
 #   ghq-status [options]
 #
 # オプション:
-#   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -a, --all              branch が保護ブランチ（リポジトリの .gitattributes の
-#                          git-sweep-protected、未設定なら main のみ）かつ git status が
-#                          clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
-#                          リポジトリも表示する（デフォルトでは非表示）
-#   -h, --help             ヘルプを表示
+#   -f, --filter PATTERN          リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -a, --all                     branch が保護ブランチ（リポジトリの .gitattributes の
+#                                 git-sweep-protected、未設定なら main のみ）かつ git status が
+#                                 clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
+#                                 リポジトリも表示する（デフォルトでは非表示）
+#   --ignore-charter-outdated     DEV-CHARTER が古いことによるハイライト・強制表示を無視する
+#   --no-ignore-charter-outdated  DEV-CHARTER が古い場合にハイライト・強制表示する（無視しない）
+#   -h, --help                    ヘルプを表示
+#
+# --ignore-charter-outdated / --no-ignore-charter-outdated を省略した場合のデフォルトは
+# git config local.status-ignore-charter-outdated（true/false）に従う。
 #
 # git config:
 #   local.status-allowed-remote-branch PATTERN
@@ -19,6 +24,13 @@
 #       （git config --add local.status-allowed-remote-branch gemini）。
 #       BRANCHES 列でベース比率から除外し +N 側に計上する（複数登録時は合算して +N）。
 #       git-sweep 等の削除処理には影響しない（表示専用の設定）。
+#   local.status-ignore-charter-outdated true/false
+#       DEV-CHARTER 列が古い（charter_latest より古い）場合の赤色ハイライトと、
+#       -a 無指定時の強制表示（quiet row 扱いにしない挙動）を無視するかどうかの
+#       デフォルト値。CLI の --ignore-charter-outdated / --no-ignore-charter-outdated
+#       で都度上書きできる。git config が一切未設定の場合のスクリプト側フォールバックは
+#       false（従来通りハイライト・強制表示する）だが、dotfiles 配布の
+#       git/gitconfig（[local] セクション）でデフォルト true（無視する）を設定済み。
 #
 # BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
 # 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
@@ -96,11 +108,11 @@ function Get-TerminalWidth {
 # branch が保護ブランチ（main+develop 運用なら develop も含む）かつ git status が
 # clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
 # 行かどうかを判定する
-function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [string]$ExpectedBr, [string]$Charter, [string]$CharterLatest) {
+function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [string]$ExpectedBr, [string]$Charter, [string]$CharterLatest, [bool]$IgnoreCharter) {
     if (-not $IsProtected) { return $false }
     if ($StatusVal -ne '✓') { return $false }
     if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { return $false }
-    if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { return $false }
+    if (-not $IgnoreCharter -and $CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { return $false }
     return $true
 }
 
@@ -111,9 +123,9 @@ function Write-StatusHeader([string[]]$Cells, [int[]]$Widths) {
     Write-Host ("│ " + ($parts -join " │ ") + " │")
 }
 
-function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr) {
+function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr, [bool]$IgnoreCharter) {
     $bc = if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { "`e[31m" } else { '' }
-    $cc = if ($CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
+    $cc = if (-not $IgnoreCharter -and $CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
     $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[31m" } default { '' } }
 
     $line = "│ " + (Format-TablePad $Repo $Widths[0])
@@ -128,6 +140,7 @@ function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [st
 # ---------- 引数解析 ----------
 $FILTER = ''
 $SHOW_ALL = $false
+$IGNORE_CHARTER_ARG = $null
 
 $i = 0
 while ($i -lt $args.Count) {
@@ -139,6 +152,12 @@ while ($i -lt $args.Count) {
     } elseif ($arg -eq '-a' -or $arg -eq '--all') {
         $SHOW_ALL = $true
         $i++
+    } elseif ($arg -eq '--ignore-charter-outdated') {
+        $IGNORE_CHARTER_ARG = $true
+        $i++
+    } elseif ($arg -eq '--no-ignore-charter-outdated') {
+        $IGNORE_CHARTER_ARG = $false
+        $i++
     } elseif ($arg -eq '-h' -or $arg -eq '--help') {
         Show-Help
         exit 0
@@ -146,6 +165,14 @@ while ($i -lt $args.Count) {
         Write-StatusStderr "error: unknown option: $arg"
         exit 1
     }
+}
+
+if ($null -ne $IGNORE_CHARTER_ARG) {
+    $IGNORE_CHARTER = $IGNORE_CHARTER_ARG
+} else {
+    $global:LASTEXITCODE = $null
+    $ignoreCharterRaw = (& git config --bool local.status-ignore-charter-outdated 2>$null)
+    $IGNORE_CHARTER = ($ignoreCharterRaw -eq 'true')
 }
 
 # ---------- リポジトリ一覧取得 ----------
@@ -314,7 +341,7 @@ for ($idx = 0; $idx -lt $allGroups.Count; $idx++) { $activeIdxList.Add($idx) }
 $activeIdx = @($activeIdxList)
 if (-not $SHOW_ALL) {
     $activeIdx = @($activeIdx | Where-Object {
-        -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allCharters[$_] $charterLatest)
+        -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allCharters[$_] $charterLatest $IGNORE_CHARTER)
     })
 }
 
@@ -359,7 +386,7 @@ foreach ($group in $seenGroups) {
 
     for ($j = 0; $j -lt $idxInGroup.Count; $j++) {
         $idx = $idxInGroup[$j]
-        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx]
+        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx] $IGNORE_CHARTER
         if ($j -lt $idxInGroup.Count - 1) {
             Write-Host "├$r1┼$r2┼$r3┼$r4┼$r5┼$r6┤"
         }

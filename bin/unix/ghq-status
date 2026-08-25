@@ -6,12 +6,17 @@
 #   ghq-status [options]
 #
 # オプション:
-#   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
-#   -a, --all              branch が保護ブランチ（リポジトリの .gitattributes の
-#                          git-sweep-protected、未設定なら main のみ）かつ git status が
-#                          clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
-#                          リポジトリも表示する（デフォルトでは非表示）
-#   -h, --help             ヘルプを表示
+#   -f, --filter PATTERN          リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -a, --all                     branch が保護ブランチ（リポジトリの .gitattributes の
+#                                 git-sweep-protected、未設定なら main のみ）かつ git status が
+#                                 clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
+#                                 リポジトリも表示する（デフォルトでは非表示）
+#   --ignore-charter-outdated     DEV-CHARTER が古いことによるハイライト・強制表示を無視する
+#   --no-ignore-charter-outdated  DEV-CHARTER が古い場合にハイライト・強制表示する（無視しない）
+#   -h, --help                    ヘルプを表示
+#
+# --ignore-charter-outdated / --no-ignore-charter-outdated を省略した場合のデフォルトは
+# git config local.status-ignore-charter-outdated（true/false）に従う。
 #
 # git config:
 #   local.status-allowed-remote-branch PATTERN
@@ -21,6 +26,13 @@
 #       BRANCHES 列の origin 側カウントに合算したうえで、想定値(expected)側も同数
 #       引き上げることでハイライト対象から除外する（別セグメントには分けない）。
 #       git-sweep 等の削除処理には影響しない（表示専用の設定）。
+#   local.status-ignore-charter-outdated true/false
+#       DEV-CHARTER 列が古い（charter_latest より古い）場合の赤色ハイライトと、
+#       -a 無指定時の強制表示（quiet row 扱いにしない挙動）を無視するかどうかの
+#       デフォルト値。CLI の --ignore-charter-outdated / --no-ignore-charter-outdated
+#       で都度上書きできる。git config が一切未設定の場合のスクリプト側フォールバックは
+#       false（従来通りハイライト・強制表示する）だが、dotfiles 配布の
+#       git/gitconfig（[local] セクション）でデフォルト true（無視する）を設定済み。
 #
 # BRANCHES 列は常に "(main+通常ブランチ)/(main+通常ブランチ)" の2数で表示する
 # （想定内の追加リモートブランチも同じ枠に合算し、3つ目のセグメントは作らない）。
@@ -54,7 +66,7 @@ _is_quiet_row() {
   [[ "$is_protected" != 1 ]] && return 1
   [[ "$status_val" != "✓" ]] && return 1
   [[ ! "$br" =~ ^${expected_br}$ ]] && return 1
-  [[ -n "$charter_latest" && "$charter" != "-" && "$charter" < "$charter_latest" ]] && return 1
+  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$charter" != "-" && "$charter" < "$charter_latest" ]] && return 1
   return 0
 }
 
@@ -66,7 +78,7 @@ _row() {
   [[ ! "$4" =~ ^${7}$ ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
-  [[ -n "$charter_latest" && "$5" != "-" && "$5" < "$charter_latest" ]] && _cc=$'\033[31m'
+  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$5" != "-" && "$5" < "$charter_latest" ]] && _cc=$'\033[31m'
   printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
   case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
@@ -86,8 +98,16 @@ _header() {
 main() {
   local filter="$1"
   local show_all="$2"
+  local ignore_charter_arg="$3"
   local root
   root="$(ghq root)"
+
+  if [[ -n "$ignore_charter_arg" ]]; then
+    ignore_charter="$ignore_charter_arg"
+  else
+    ignore_charter=0
+    [[ "$(git config --bool local.status-ignore-charter-outdated 2>/dev/null)" == "true" ]] && ignore_charter=1
+  fi
 
   local charter_repo
   charter_repo="$(ghq list -p 2>/dev/null | grep -iE '/dev-charter$' | head -1)"
@@ -291,15 +311,18 @@ main() {
 
 FILTER=''
 SHOW_ALL=0
+IGNORE_CHARTER=''
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--filter)
       (( $# < 2 )) && { print -u2 "error: --filter requires an argument"; exit 1; }
       FILTER="$2"; shift 2 ;;
     -a|--all)  SHOW_ALL=1; shift ;;
+    --ignore-charter-outdated)    IGNORE_CHARTER=1; shift ;;
+    --no-ignore-charter-outdated) IGNORE_CHARTER=0; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         print -u2 "error: unknown option: $1"; exit 1 ;;
   esac
 done
 
-main "$FILTER" "$SHOW_ALL"
+main "$FILTER" "$SHOW_ALL" "$IGNORE_CHARTER"

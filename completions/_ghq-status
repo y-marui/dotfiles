@@ -4,6 +4,8 @@ _ghq-status() {
   _arguments \
     '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
     '(-a --all)'{-a,--all}'[変化のないリポジトリ(main/clean/非ハイライト)も表示する]' \
+    '(--ignore-charter-outdated --no-ignore-charter-outdated)--ignore-charter-outdated[DEV-CHARTERが古いことによるハイライト・強制表示を無視する]' \
+    '(--ignore-charter-outdated --no-ignore-charter-outdated)--no-ignore-charter-outdated[DEV-CHARTERが古い場合にハイライト・強制表示する]' \
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }
 

@@ -60,6 +60,7 @@
 
 [local]
 	keep-up-to-date = false
+	status-ignore-charter-outdated = true
 
 [push]
 	autoSetupRemote = true
