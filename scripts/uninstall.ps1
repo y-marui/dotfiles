@@ -15,21 +15,61 @@ $ErrorActionPreference = 'Stop'
 
 . "$PSScriptRoot\_links.ps1"
 
-function Test-DotfilesTarget([string]$Target) {
+function Test-ManagedTarget([string]$Target, [string]$SourceRoot) {
     $resolved = $Target
     if (-not [System.IO.Path]::IsPathRooted($resolved)) {
-        $resolved = Join-Path $DOTFILES_DIR $resolved
+        $resolved = [System.IO.Path]::GetFullPath((Join-Path $HOME $resolved))
     }
-    return $resolved.StartsWith($DOTFILES_DIR, [System.StringComparison]::OrdinalIgnoreCase)
+    return $resolved.Equals($SourceRoot, [System.StringComparison]::OrdinalIgnoreCase) -or
+        $resolved.StartsWith("$SourceRoot\", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Show-ManagedLinks {
+    param(
+        [Parameter(Mandatory)] [string]$SourceRoot,
+        [Parameter(Mandatory)] [array]$LinkEntries
+    )
+
+    foreach ($link in $LinkEntries) {
+        $item = Get-Item -LiteralPath $link.Dest -ErrorAction SilentlyContinue -Force
+        if ($item -and $item.LinkType -eq 'SymbolicLink' -and
+            (Test-ManagedTarget -Target ([string]$item.Target) -SourceRoot $SourceRoot)) {
+            Write-Host "  $($link.Dest)"
+        }
+    }
+}
+
+function Remove-LinkSet {
+    param(
+        [Parameter(Mandatory)] [string]$SourceRoot,
+        [Parameter(Mandatory)] [array]$LinkEntries
+    )
+
+    foreach ($link in $LinkEntries) {
+        $dest = $link.Dest
+        $item = Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue -Force
+
+        if ($item -and $item.LinkType -eq 'SymbolicLink') {
+            if (Test-ManagedTarget -Target ([string]$item.Target) -SourceRoot $SourceRoot) {
+                Remove-Item -LiteralPath $dest -Force
+                Write-Host "  REMOVED $dest"
+                $script:countRemoved++
+            } else {
+                Write-Host "  SKIP    $dest (管理対象外を指すリンク)"
+                $script:countSkip++
+            }
+        } else {
+            $script:countSkip++
+        }
+    }
 }
 
 if (-not $Yes) {
-    Write-Host "以下のシンボリックリンクを削除します（dotfiles を指すもののみ）:"
-    foreach ($link in $Links) {
-        $item = Get-Item -LiteralPath $link.Dest -ErrorAction SilentlyContinue -Force
-        if ($item -and $item.LinkType -eq 'SymbolicLink' -and (Test-DotfilesTarget([string]$item.Target))) {
-            Write-Host "  $($link.Dest)"
-        }
+    Write-Host "以下のシンボリックリンクを削除します（dotfiles / dotfiles-private を指すもののみ）:"
+    Show-ManagedLinks -SourceRoot $DOTFILES_DIR -LinkEntries $Links
+    if (Test-Path -LiteralPath $PrivateLinksFile -PathType Leaf) {
+        $allPrivateLinks = @($PrivateLinks) + @($InactivePrivateLinks)
+        Show-ManagedLinks -SourceRoot $PRIVATE_DIR -LinkEntries $allPrivateLinks
     }
     Write-Host ""
     $answer = Read-Host "続けますか？ [y/N]"
@@ -42,22 +82,10 @@ if (-not $Yes) {
 $countRemoved = 0
 $countSkip    = 0
 
-foreach ($link in $Links) {
-    $dest = $link.Dest
-    $item = Get-Item -LiteralPath $dest -ErrorAction SilentlyContinue -Force
-
-    if ($item -and $item.LinkType -eq 'SymbolicLink') {
-        if (Test-DotfilesTarget([string]$item.Target)) {
-            Remove-Item -LiteralPath $dest -Force
-            Write-Host "  REMOVED $dest"
-            $countRemoved++
-        } else {
-            Write-Host "  SKIP    $dest (dotfiles 以外を指すリンク)"
-            $countSkip++
-        }
-    } else {
-        $countSkip++
-    }
+Remove-LinkSet -SourceRoot $DOTFILES_DIR -LinkEntries $Links
+if (Test-Path -LiteralPath $PrivateLinksFile -PathType Leaf) {
+    $allPrivateLinks = @($PrivateLinks) + @($InactivePrivateLinks)
+    Remove-LinkSet -SourceRoot $PRIVATE_DIR -LinkEntries $allPrivateLinks
 }
 
 Write-Host ""

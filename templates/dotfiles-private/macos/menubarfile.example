@@ -1,0 +1,4 @@
+controlcenter	BentoBox-0	1	143
+controlcenter	Clock	1
+systemuiserver	com.apple.menuextra.TimeMachine	1	342
+menuextra	/System/Library/CoreServices/Menu Extras/TimeMachine.menu

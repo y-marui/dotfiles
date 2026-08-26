@@ -8,6 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $DOTFILES_DIR = Split-Path -Parent $PSScriptRoot
+$PRIVATE_DIR = "$DOTFILES_DIR-private"
 
 $Links = @(
     [pscustomobject]@{
@@ -117,6 +118,71 @@ foreach ($agent in @("codex", "claude")) {
                 Src  = $skillSource
                 Dest = Join-Path $skillHome $skillName
             }
+        }
+    }
+}
+
+# dotfiles-private は設定データとリンク対応表だけを保持する。
+# links.conf は実行せず、platform|source|destination の3列として厳格に読む。
+$PrivateLinks = @()
+$InactivePrivateLinks = @()
+$PrivateLinksFile = Join-Path $PRIVATE_DIR 'links.conf'
+
+function Test-PrivateRelativePath([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $false }
+    if ($Path -match '^[\\/~]') { return $false }
+    if ($Path -match '(^|/)\.\.?(/|$)') { return $false }
+    if ($Path -match '[\\:]') { return $false }
+    return $true
+}
+
+if (Test-Path -LiteralPath $PRIVATE_DIR -PathType Container) {
+    if (-not (Test-Path -LiteralPath $PrivateLinksFile -PathType Leaf)) {
+        throw "$PrivateLinksFile が見つかりません。dotfiles-private を更新してください。"
+    }
+
+    $lineNumber = 0
+    foreach ($line in Get-Content -LiteralPath $PrivateLinksFile) {
+        $lineNumber++
+        $trimmed = $line.Trim()
+        if ($trimmed.Length -eq 0 -or $trimmed.StartsWith('#')) { continue }
+
+        $parts = $line.Split('|')
+        if ($parts.Count -ne 3) {
+            throw "${PrivateLinksFile}:${lineNumber}: platform|source|destination の3列ではありません。"
+        }
+
+        $platform = $parts[0].Trim()
+        $sourceRelative = $parts[1].Trim()
+        $destinationRelative = $parts[2].Trim()
+        if ($platform -notin @('all', 'unix', 'darwin', 'windows')) {
+            throw "${PrivateLinksFile}:${lineNumber}: 未対応platform: $platform"
+        }
+        if (-not (Test-PrivateRelativePath $sourceRelative) -or
+            -not (Test-PrivateRelativePath $destinationRelative)) {
+            throw "${PrivateLinksFile}:${lineNumber}: 相対パスが不正です。"
+        }
+
+        $source = Join-Path $PRIVATE_DIR ($sourceRelative.Replace('/', '\'))
+        if (-not (Test-Path -LiteralPath $source)) {
+            throw "${PrivateLinksFile}:${lineNumber}: sourceが存在しません: $sourceRelative"
+        }
+        $destination = Join-Path $HOME ($destinationRelative.Replace('/', '\'))
+        $knownDestinations = @($Links | ForEach-Object { $_.Dest }) +
+            @($PrivateLinks | ForEach-Object { $_.Dest }) +
+            @($InactivePrivateLinks | ForEach-Object { $_.Dest })
+        if ($knownDestinations | Where-Object { $_ -ieq $destination }) {
+            throw "${PrivateLinksFile}:${lineNumber}: destinationが重複しています: $destinationRelative"
+        }
+
+        $link = [pscustomobject]@{
+            Src  = $sourceRelative.Replace('/', '\')
+            Dest = $destination
+        }
+        if ($platform -in @('all', 'windows')) {
+            $PrivateLinks += $link
+        } else {
+            $InactivePrivateLinks += $link
         }
     }
 }

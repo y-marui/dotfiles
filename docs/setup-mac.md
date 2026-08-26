@@ -120,7 +120,8 @@ make private
 
 ## 7. Install dotfiles
 
-`make install-macos` は `make private` 済みであれば `dotfiles-private/setup.sh` も自動適用する。
+`make install-macos` は `make private` 済みであれば `dotfiles-private/links.conf` の
+対応表も読み込み、公開・非公開設定のリンクをまとめて適用する。
 
 ```bash
 make install-macos
@@ -218,7 +219,7 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 | `make install` | Unix向けシンボリックリンクをホームへ展開 |
 | LaunchAgent setup | `dots check`をログイン時と1時間ごとに実行し、状態変化時だけ通知 |
 | Zellij setup | 互換性を確認した固定版を `~/.local/bin/zellij` へインストール |
-| private setup | `dotfiles-private/setup.sh` を適用（`make private` 済みの場合） |
+| private setup | `dotfiles-private/links.conf` に宣言されたリンクを適用（`make private` 済みの場合） |
 | `macos/defaults.sh` | macOS システム設定（Dock・Finder・キーボード等） |
 | `dots brew apply` | Brewfileとの差分パッケージをインストール |
 | `dots dock apply` | Dock アプリ・Finder サイドバーを設定 |

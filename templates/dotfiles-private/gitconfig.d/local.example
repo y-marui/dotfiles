@@ -1,0 +1,4 @@
+# Optional local-only Git configuration. Keep gitconfig.d/local untracked.
+[user]
+	name = Local Example
+	email = local@example.com

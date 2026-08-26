@@ -57,7 +57,8 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 
 `make links` / `make check` / `make uninstall` も同様に `$(OS)` を見て
 Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.sh` を実行する
-（`Makefile` 内で分岐）。
+（`Makefile` 内で分岐）。隣接する `dotfiles-private` があれば、同リポジトリの
+`links.conf` に宣言されたリンクも扱う。
 
 ## OS-Specific Implementation Policy
 
@@ -171,15 +172,17 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - シークレットは絶対にコミットしない
 - ローカル専用設定は `~/.zshrc.local` または `host/<hostname>.zsh` に書く
 - Git の user 情報等は Private Gist で管理（`~/.gitconfig.d/` にシンボリックリンク）
-- `make private` で Gist から取得・リンクを自動設定
+- `make private` でprivateリポジトリを取得・更新し、`links.conf` のリンクを自動設定
 
 ## Frequently Used Commands
 
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
-- `make links`    : シンボリックリンクだけを再適用
-- `make check`    : リンク整合性確認
+- `make links`    : public/privateのシンボリックリンクだけを再適用
+- `make check`    : public/privateのリンク整合性確認
 - `make launchagent`: macOSの`dots check`定期監視LaunchAgentを再登録
 - `make init`     : ホスト固有設定テンプレートを生成
+- `make private-scaffold`: `.example` 付きの未有効化 dotfiles-private 雛形を新規生成
+- `make private-validate`: 隣接する dotfiles-private の雛形・必須構造を検証
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
 - `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
 - `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用）

@@ -23,12 +23,16 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | コマンド | 説明 |
 |---------|------|
 | `make install` | OS別のフルセットアップを実行（Zellijの固定版を含む） |
-| `make links` | シンボリックリンクだけを再適用 |
-| `make uninstall` | シンボリックリンクを削除 |
-| `make check` | リンク整合性確認 |
+| `make links` | public/privateのシンボリックリンクだけを再適用 |
+| `make uninstall` | public/privateの管理リンクを削除 |
+| `make check` | public/privateのリンク整合性確認 |
 | `make launchagent` | macOSの`dots check`定期監視を再登録 |
 | `make init` | ホスト固有設定テンプレートを生成 |
-| `make private` | dotfiles-private を GitHub からクローン・更新 |
+| `make private` | dotfiles-private をクローン・更新し、`links.conf` のリンクを適用 |
+| `make private-scaffold` | `.example` 付きの安全な dotfiles-private 雛形を新規生成 |
+| `make private-validate` | 隣接する dotfiles-private の雛形・必須構造を検証 |
+| `make private-lint` | dotfiles-private のpre-commitを全ファイルに実行 |
+| `make update-private-charter` | dotfiles-private のdev-charter subtreeを更新 |
 
 初回セットアップ後の日常操作は、カレントディレクトリに依存しない `dots` を使用する。
 
@@ -197,7 +201,7 @@ MCP と plugin の管理ファイルは公開可能な宣言だけを保持し�
 各CLI経由で追加・更新・削除する。トークン値は管理対象外とする。
 
 将来、シークレットを含む Codex 設定を再現する必要が出た場合は、公開 repo ではなく
-`dotfiles-private/ai/codex/` に置き、`dotfiles-private/setup.sh` から個別リンクする。
+`dotfiles-private/ai/codex/` に置き、同リポジトリの `links.conf` にリンク対応を宣言する。
 
 参照: [Codex skills](https://learn.chatgpt.com/docs/build-skills)、[Codex MCP](https://learn.chatgpt.com/docs/extend/mcp)、[Codex plugins](https://learn.chatgpt.com/docs/build-plugins)
 
@@ -273,6 +277,13 @@ Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の�
 ## Managing Private Settings
 
 Git の user 情報・SSH config・Dock 設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
+private側は設定データと `links.conf` の対応表だけを保持し、リンク操作はこのリポジトリの
+`install` / `links` / `check` / `uninstall` が行う。
+
+新しい private repository は `make private-scaffold` で `.example` 付きの安全な雛形を
+生成できる。既存パスは上書きせず、設定完了までリンクを有効化しない。ファイル一覧、
+有効化手順、public側pre-commitによる条件付き検証は
+[dotfiles-private Repository](docs/private-repository.md) を参照。
 
 ```bash
 # リポジトリを設定

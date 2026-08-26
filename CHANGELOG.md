@@ -7,3 +7,5 @@
 ## Unreleased
 
 - dev-charter lite 版を `docs/dev-charter/` に subtree で導入し、LICENSE・DEVELOPING.md・CONTRIBUTING.md・docs/architecture.md 等を追加
+- dotfiles-privateのリンク操作を本リポジトリへ統合し、private側の`links.conf`をBash/PowerShell共通の宣言として扱う構成へ変更
+- `.example`付きの未有効化private雛形を作る`make private-scaffold`と、隣接repoだけを条件付き検証する構造契約を追加

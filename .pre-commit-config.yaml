@@ -199,6 +199,17 @@ repos:
         pass_filenames: false
         files: \.(sh|ps1)$
 
+  # dotfiles-private が同じ親ディレクトリに checkout されている場合だけ、
+  # 公開側の雛形・構造契約との一致を検証する。public 単独のCIでは成功扱いでskipする。
+  - repo: local
+    hooks:
+      - id: check-private-contract
+        name: "dotfiles-private 雛形・構造契約チェック"
+        language: system
+        entry: bash scripts/check-private-contract.sh
+        pass_filenames: false
+        always_run: true
+
   # ============================================================
   # dev-charter 憲章準拠チェック（docs/dev-charter/ に subtree 導入した
   # dev-charter lite 版が要求する自動チェック。各フックの詳細は

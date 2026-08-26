@@ -1,0 +1,10 @@
+accounts:
+  - id: public
+    github: example-public
+    name: Public Example
+    bmc: example-public
+
+  - id: private
+    github: example-private
+    name: Private Example
+    bmc: example-private

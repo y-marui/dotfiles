@@ -1,0 +1,4 @@
+# macOS OpenSSH: use the keychain for passphrases.
+Host *
+	UseKeychain yes
+	AddKeysToAgent yes

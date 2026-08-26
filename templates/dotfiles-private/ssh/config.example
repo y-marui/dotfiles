@@ -1,0 +1,6 @@
+Include ~/.ssh/config.d/*.conf
+
+Host example-host
+	HostName example.com
+	User example-user
+	IdentityFile ~/.ssh/example-host

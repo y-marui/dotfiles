@@ -1,0 +1,16 @@
+# kind|path
+#
+# file: the configured repository must contain this file.
+# glob: the configured repository must contain at least one matching file.
+file|links.conf
+file|gitconfig.d/includes
+file|gitconfig.d/private
+file|gitconfig.d/public
+file|gitconfig.d/overleaf
+file|ssh/config
+file|ssh/config.d/keychain.conf
+file|ssh/config.d/windows.conf
+file|identity/accounts.yaml
+file|macos/dockfile
+file|macos/menubarfile
+glob|labpc/jobs.d/*.conf

@@ -60,46 +60,78 @@ for entry in "${legacy_windows_links[@]}"; do
   (( count_backup++ )) || true
 done
 
-for entry in "${LINKS[@]}"; do
-  src="${DOTFILES_DIR}/${entry%%|*}"
-  dest="${entry##*|}"
+install_link_set() {
+  local source_root="$1"
+  shift
+  local entry src dest dest_dir
 
-  # ソースファイルが存在しない場合はスキップ
-  if [[ ! -e "${src}" ]]; then
-    echo "  SKIP    ${src} (ファイルが存在しません)"
-    (( count_skip++ )) || true
-    continue
+  for entry in "$@"; do
+    src="${source_root}/${entry%%|*}"
+    dest="${entry##*|}"
+
+    # ソースファイルが存在しない場合はスキップ
+    if [[ ! -e "${src}" ]]; then
+      echo "  SKIP    ${src} (ファイルが存在しません)"
+      (( count_skip++ )) || true
+      continue
+    fi
+
+    # リンク先のディレクトリを作成
+    dest_dir="$(dirname "${dest}")"
+    if [[ ! -d "${dest_dir}" ]]; then
+      mkdir -p "${dest_dir}"
+    fi
+
+    # リンク先がすでにシンボリックリンクの場合: 上書き
+    if [[ -L "${dest}" ]]; then
+      ln -sfn "${src}" "${dest}"
+      echo "  LINK    ${dest} -> ${src}"
+      (( count_ok++ )) || true
+
+    # リンク先が実ファイルの場合: バックアップして置換
+    elif [[ -e "${dest}" ]]; then
+      mkdir -p "${BACKUP_DIR}"
+      mv "${dest}" "${BACKUP_DIR}/"
+      ln -sfn "${src}" "${dest}"
+      echo "  BACKUP  ${dest} -> ${BACKUP_DIR}/$(basename "${dest}")"
+      echo "  LINK    ${dest} -> ${src}"
+      (( count_backup++ )) || true
+      (( count_ok++ )) || true
+
+    # リンク先が存在しない場合: 新規作成
+    else
+      ln -sfn "${src}" "${dest}"
+      echo "  LINK    ${dest} -> ${src}"
+      (( count_ok++ )) || true
+    fi
+  done
+}
+
+remove_inactive_private_links() {
+  local entry expected dest current_target
+
+  for entry in "${PRIVATE_INACTIVE_LINKS[@]}"; do
+    expected="${PRIVATE_DIR}/${entry%%|*}"
+    dest="${entry##*|}"
+    [[ -L "${dest}" ]] || continue
+    current_target="$(readlink "${dest}")"
+    if [[ "${current_target}" == "${expected}" ]]; then
+      rm "${dest}"
+      echo "  REMOVED ${dest} (このOSでは使用しません)"
+    fi
+  done
+}
+
+install_link_set "${DOTFILES_DIR}" "${LINKS[@]}"
+if [[ -f "${PRIVATE_LINKS_FILE}" ]]; then
+  remove_inactive_private_links
+  install_link_set "${PRIVATE_DIR}" "${PRIVATE_LINKS[@]}"
+  mkdir -p "${HOME}/.gitconfig.d"
+  if [[ ! -e "${HOME}/.gitconfig.d/local" && ! -L "${HOME}/.gitconfig.d/local" ]]; then
+    touch "${HOME}/.gitconfig.d/local"
+    echo "  CREATE  ${HOME}/.gitconfig.d/local"
   fi
-
-  # リンク先のディレクトリを作成
-  dest_dir="$(dirname "${dest}")"
-  if [[ ! -d "${dest_dir}" ]]; then
-    mkdir -p "${dest_dir}"
-  fi
-
-  # リンク先がすでにシンボリックリンクの場合: 上書き
-  if [[ -L "${dest}" ]]; then
-    ln -sfn "${src}" "${dest}"
-    echo "  LINK    ${dest} -> ${src}"
-    (( count_ok++ )) || true
-
-  # リンク先が実ファイルの場合: バックアップして置換
-  elif [[ -e "${dest}" ]]; then
-    mkdir -p "${BACKUP_DIR}"
-    mv "${dest}" "${BACKUP_DIR}/"
-    ln -sfn "${src}" "${dest}"
-    echo "  BACKUP  ${dest} -> ${BACKUP_DIR}/$(basename "${dest}")"
-    echo "  LINK    ${dest} -> ${src}"
-    (( count_backup++ )) || true
-    (( count_ok++ )) || true
-
-  # リンク先が存在しない場合: 新規作成
-  else
-    ln -sfn "${src}" "${dest}"
-    echo "  LINK    ${dest} -> ${src}"
-    (( count_ok++ )) || true
-  fi
-done
+fi
 
 echo ""
 echo "完了: リンク=${count_ok}  スキップ=${count_skip}  バックアップ=${count_backup}"
@@ -113,7 +145,6 @@ chmod +x "$DOTFILES_DIR/git/hooks-dotfiles/"*
 echo "  HOOKS   git/hooks-dotfiles → dotfiles repo"
 
 # dotfiles-private のフックパスを設定（存在する場合）
-PRIVATE_DIR="${DOTFILES_DIR}-private"
 if [[ -d "${PRIVATE_DIR}/.git" ]]; then
   git -C "$PRIVATE_DIR" config core.hooksPath "${DOTFILES_DIR}/git/hooks-private"
   echo "  HOOKS   git/hooks-private → dotfiles-private repo"

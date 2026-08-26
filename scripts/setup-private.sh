@@ -54,10 +54,5 @@ else
   gh repo clone "${PRIVATE_REPO}" "${PRIVATE_DIR}"
 fi
 
-# setup.sh を実行してシンボリックリンクを作成
-if [[ -f "${PRIVATE_DIR}/setup.sh" ]]; then
-  bash "${PRIVATE_DIR}/setup.sh"
-else
-  echo "警告: ${PRIVATE_DIR}/setup.sh が見つかりません。"
-  echo "シンボリックリンクは手動で作成してください。"
-fi
+# dotfiles 側の共通リンク処理で、公開・非公開設定をまとめて適用する。
+bash "${DOTFILES_DIR}/scripts/install.sh"

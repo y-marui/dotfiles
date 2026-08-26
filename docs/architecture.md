@@ -1,10 +1,10 @@
 # Architecture
 
 ## Overview
-macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリンクで一元管理する dotfiles。`make install`（Unix）/ `mingw32-make install`（Windows）が `scripts/*.sh` または `scripts/*.ps1` を呼び分けてリンクを展開する。
+macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリンクで一元管理する dotfiles。`make install`（Unix）/ `mingw32-make install`（Windows）が `scripts/*.sh` または `scripts/*.ps1` を呼び分け、公開設定と `dotfiles-private/links.conf` の非公開設定を展開する。
 
 ## Entry Points
-- `Makefile` — `install` / `links` / `check` / `uninstall` / `init` タスクの統一インターフェース（`$(OS)` で OS 別スクリプトへ分岐）
+- `Makefile` — `install` / `links` / `check` / `uninstall` / `init` / `private-scaffold` / `private-validate` タスクの統一インターフェース（`$(OS)` で OS 別スクリプトへ分岐）
 - `bin/unix/dots` / `bin/windows/dots.ps1` — 日常運用コマンド（`status` / `update` / `brew` / `claude` / `codex` / `gemini` / `check` 等のサブコマンド群）
 - `bin/unix/ghq-status` — ghq 管理下の全リポジトリの git 状態・dev-charter 追従状況を一覧表示
 
@@ -21,6 +21,7 @@ macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリン�
 | `macos/` | Brewfile、macOS defaults スクリプト |
 | `windows/` | WingetPin（winget一時pin宣言） |
 | `scripts/` | install / uninstall / check / init スクリプトおよび pre-commit フック |
+| `templates/dotfiles-private/` | private repository の安全な `.example` 付き雛形 |
 | `docs/` | 設計ドキュメント（本ファイルを含む） |
 
 詳細は [AI_CONTEXT.md](../AI_CONTEXT.md) の「ディレクトリ構成と責務」を参照。

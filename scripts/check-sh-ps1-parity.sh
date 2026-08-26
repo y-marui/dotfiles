@@ -92,7 +92,6 @@ EXCEPTIONS=(
   "pipx/diff_pipxfile.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
   "pipx/sync_pipxfile.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
   "pipx/update_pipxcache.sh:TODO: dots.ps1がpipxサブコマンド未実装のため未移植"
-  "scripts/link-private.ps1:dotfiles-private/setup.ps1（別リポジトリ、Windows専用）を呼ぶだけの薄いグルー。install-macos/install-rpiのbash \$(PRIVATE_DIR)/setup.sh呼び出しに相当し対のunix実装は不要"
   "scripts/setup-gsudo.ps1:gsudoはWindows専用ツールのセットアップ"
   "scripts/setup-jq.ps1:jqの導入はWindowsのみ自動化（macOSはBrewfileでbrewが管理）"
   "scripts/update-windows.ps1:Windows専用の追加更新処理。役割の異なるOS別スクリプト（update-rpi-homebridge.sh等）に相当するため対のunix実装なし"

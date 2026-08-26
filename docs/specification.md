@@ -5,10 +5,22 @@
 ## Install / Link
 
 - `make install` / `make links` はシンボリックリンクの作成のみを行う（べき等。既存のリンクが正しい参照先を指していれば何もしない）
-- リンク先が dotfiles 管理外の実ファイルとして既に存在する場合は上書きしない（`make check` で検知）
+- 隣接する `dotfiles-private` が存在する場合は、同リポジトリの `links.conf` も読み込む
+- `links.conf` は `platform|source|destination` の3列とし、未対応platform、絶対パス、`.` / `..`、存在しないsource、重複destinationを拒否する。設定ファイルをコードとして実行しない
+- リンク先が管理外の実ファイルとして既に存在する場合は、`~/.dotfiles-backup/<timestamp>/`へ退避してからリンクする
 - `make check` はリンク切れ・リンク先不一致・未リンクファイルを検出するが、修復はしない（`make links` を促す）
+- `make uninstall` はdotfilesまたはdotfiles-privateを指す管理リンクだけを削除する
 - macOSの`make install-macos`はリンク作成後に`dots check`監視用LaunchAgentを登録する
 - Windows では `mingw32-make install` が `pwsh scripts/install.ps1` を呼び、PowerShell ネイティブでシンボリックリンク（`New-Item -ItemType SymbolicLink`）を作成する
+
+## Private Repository Scaffold
+
+- `make private-scaffold` は既定で隣接する `../dotfiles-private` を生成する。生成先が存在する場合は上書きせず失敗する
+- `PRIVATE_SCAFFOLD_DIR` で生成先を変更できる
+- 生成物は `.example` と説明ファイルだけを持ち、`links.conf` を作らない未有効化状態とする
+- 設定完了後に `.dotfiles-private-scaffold` を削除すると、有効化済みrepositoryとして検証される
+- `make private-validate` は公開側雛形との一致、必須設定、リンク対応表、private側の実行ロジック不在を検証する
+- public側pre-commitは同じ検証を常時実行するが、隣接するprivate Git repositoryがない環境では成功扱いでスキップする
 
 ## dots update
 

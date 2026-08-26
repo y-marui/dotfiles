@@ -1,0 +1,6 @@
+[includeIf "gitdir:~/src/github.com/example-public/"]
+	path = ~/.gitconfig.d/public
+[includeIf "gitdir:~/src/github.com/example-private/"]
+	path = ~/.gitconfig.d/private
+[includeIf "gitdir:~/src/git.example.com/"]
+	path = ~/.gitconfig.d/overleaf

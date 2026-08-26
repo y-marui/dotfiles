@@ -4,6 +4,7 @@
 
 # shellcheck disable=SC2034  # sourced ファイルなので未使用扱いになるが意図的
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PRIVATE_DIR="${DOTFILES_DIR}-private"
 
 # shellcheck disable=SC2034
 LINKS=(
@@ -80,3 +81,120 @@ done
 
 # ~/.codex/skills は Codex 自身や skill-installer の管理領域。管理対象と同名の
 # skill がある場合だけ、~/.agents/skills との二重読み込みを避けるためバックアップする。
+
+# dotfiles-private は設定データとリンク対応表だけを保持し、リンク操作の実装は
+# dotfiles 側が所有する。対応表はシェルコードとして source せず、区切り形式として厳格に読む。
+PRIVATE_LINKS=()
+PRIVATE_INACTIVE_LINKS=()
+PRIVATE_LINKS_FILE="${PRIVATE_DIR}/links.conf"
+PRIVATE_LINK_DESTINATIONS=$'\n'
+
+_private_link_path_is_valid() {
+  local path="$1"
+
+  [[ -n "${path}" ]] || return 1
+  [[ "${path}" != /* && "${path}" != "~"* ]] || return 1
+  [[ "${path}" != *\\* && "${path}" != *:* ]] || return 1
+  [[ "/${path}/" != *"/../"* && "/${path}/" != *"/./"* ]] || return 1
+}
+
+_trim_private_link_field() {
+  local value="$1"
+
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "${value}"
+}
+
+_private_link_destination_is_unique() {
+  local destination="$1"
+  local entry existing_destination
+
+  for entry in "${LINKS[@]}"; do
+    existing_destination="${entry##*|}"
+    if [[ "${existing_destination}" == "${destination}" ]]; then
+      return 1
+    fi
+  done
+  [[ "${PRIVATE_LINK_DESTINATIONS}" != *$'\n'"${destination}"$'\n'* ]]
+}
+
+_load_private_links() {
+  local platform source_relative destination_relative extra source destination entry
+  local system_name current_platform line_number=0 active=false
+
+  [[ -d "${PRIVATE_DIR}" ]] || return 0
+  if [[ ! -f "${PRIVATE_LINKS_FILE}" ]]; then
+    echo "エラー: ${PRIVATE_LINKS_FILE} が見つかりません。dotfiles-private を更新してください。" >&2
+    return 1
+  fi
+
+  system_name="$(uname -s)"
+  case "${system_name}" in
+    Darwin) current_platform="darwin" ;;
+    MINGW*|MSYS*|CYGWIN*) current_platform="windows" ;;
+    *) current_platform="unix" ;;
+  esac
+
+  while IFS='|' read -r platform source_relative destination_relative extra || \
+    [[ -n "${platform}${source_relative}${destination_relative}${extra}" ]]; do
+    (( line_number++ )) || true
+    platform="${platform%$'\r'}"
+    source_relative="${source_relative%$'\r'}"
+    destination_relative="${destination_relative%$'\r'}"
+    extra="${extra%$'\r'}"
+    platform="$(_trim_private_link_field "${platform}")"
+    source_relative="$(_trim_private_link_field "${source_relative}")"
+    destination_relative="$(_trim_private_link_field "${destination_relative}")"
+    extra="$(_trim_private_link_field "${extra}")"
+
+    [[ -n "${platform}${source_relative}${destination_relative}${extra}" ]] || continue
+    [[ "${platform}" != \#* ]] || continue
+
+    if [[ -n "${extra}" || -z "${source_relative}" || -z "${destination_relative}" ]]; then
+      echo "エラー: ${PRIVATE_LINKS_FILE}:${line_number}: platform|source|destination の3列ではありません。" >&2
+      return 1
+    fi
+    case "${platform}" in
+      all|unix|darwin|windows) ;;
+      *)
+        echo "エラー: ${PRIVATE_LINKS_FILE}:${line_number}: 未対応platform: ${platform}" >&2
+        return 1
+        ;;
+    esac
+    if ! _private_link_path_is_valid "${source_relative}" || \
+      ! _private_link_path_is_valid "${destination_relative}"; then
+      echo "エラー: ${PRIVATE_LINKS_FILE}:${line_number}: 相対パスが不正です。" >&2
+      return 1
+    fi
+
+    source="${PRIVATE_DIR}/${source_relative}"
+    destination="${HOME}/${destination_relative}"
+    if [[ ! -e "${source}" && ! -L "${source}" ]]; then
+      echo "エラー: ${PRIVATE_LINKS_FILE}:${line_number}: sourceが存在しません: ${source_relative}" >&2
+      return 1
+    fi
+    if ! _private_link_destination_is_unique "${destination}"; then
+      echo "エラー: ${PRIVATE_LINKS_FILE}:${line_number}: destinationが重複しています: ${destination_relative}" >&2
+      return 1
+    fi
+    PRIVATE_LINK_DESTINATIONS+="${destination}"$'\n'
+
+    active=false
+    case "${platform}" in
+      all) active=true ;;
+      unix) [[ "${current_platform}" != "windows" ]] && active=true ;;
+      darwin) [[ "${current_platform}" == "darwin" ]] && active=true ;;
+      windows) [[ "${current_platform}" == "windows" ]] && active=true ;;
+    esac
+
+    entry="${source_relative}|${destination}"
+    if [[ "${active}" == true ]]; then
+      PRIVATE_LINKS+=("${entry}")
+    else
+      PRIVATE_INACTIVE_LINKS+=("${entry}")
+    fi
+  done < "${PRIVATE_LINKS_FILE}"
+}
+
+_load_private_links

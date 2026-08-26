@@ -1,0 +1,10 @@
+# platform|source|destination
+all|gitconfig.d/includes|.gitconfig.d/includes
+all|gitconfig.d/private|.gitconfig.d/private
+all|gitconfig.d/public|.gitconfig.d/public
+all|gitconfig.d/overleaf|.gitconfig.d/overleaf
+all|ssh/config|.ssh/config
+darwin|ssh/config.d/keychain.conf|.ssh/config.d/keychain.conf
+windows|ssh/config.d/windows.conf|.ssh/config.d/windows.conf
+all|identity/accounts.yaml|.identity/accounts.yaml
+unix|labpc|.config/labpc

@@ -1,0 +1,5 @@
+HOST="example.local"
+SHARE="ExampleShare"
+SMB_USER="guest"
+REMOTE_SUBPATH="path/to/source"
+DEST="$HOME/path/to/destination"

@@ -1,0 +1,9 @@
+[user]
+	name = Public Example
+	email = public@example.com
+[url "github-public:"]
+	InsteadOf = https://github.com/
+	InsteadOf = git@github.com:
+[url "gist-public:"]
+	InsteadOf = git@gist.github.com:
+	InsteadOf = https://gist.github.com/
