@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# bin/_ghq-lib.sh
+# bin/unix/_ghq-lib.sh
 # ghq-pull / ghq-update / ghq-sweep から source される共通関数。
 #
 # uv.lock・package-lock.json はローカルの `uv sync`/`npm update` 等で
