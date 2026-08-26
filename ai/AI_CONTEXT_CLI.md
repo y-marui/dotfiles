@@ -17,8 +17,11 @@ push ポリシーに関わらず、常に `git fetch` でリモートの最新�
 
 ## Branch Check Before Starting Work
 
-現在のブランチが `main`/`master` 等の直接 push が禁止されたブランチで、かつ clean な
-状態の場合は、fetch に続けて次の順で進める。
+現在のブランチが `main`/`master` 等のデフォルトブランチで、かつ clean な状態の場合は、
+push ポリシー（直接 push の可否）に関わらず、fetch に続けて次の順で進める。作業を
+main から隔離すること自体は、直接 push の可否とは別軸のため省略しない（直接 push
+可否が変えるのは完了後の統合方法だけで、完了後に PR を挟まずローカルで main へ
+merge & push してよいか、PR を経由するかの違いに過ぎない）。
 
 1. `git branch -a` 等で main 以外の既存ローカルブランチの有無を確認し、あればユーザーに
    「そのブランチで作業を続けるか」を尋ねる（勝手に新規ブランチを作らない）
@@ -26,8 +29,9 @@ push ポリシーに関わらず、常に `git fetch` でリモートの最新�
    （`work/<short-description>` 等）を作成してから編集を始める
 
 既に作業ブランチにチェックアウト済み、または main 以外にいる場合はこの手順（ブランチ
-作成の要否確認）の対象外。直接 push が許可されたリポジトリで、各プロジェクトの
-AI_CONTEXT.md/CLAUDE.md がブランチ作成不要と明記している場合はそれに従う（例: dotfiles）。
+作成の要否確認）の対象外。各プロジェクトの AI_CONTEXT.md/CLAUDE.md が「ブランチ作成
+不要」と明記している場合に限りそれに従う（例: dotfiles）。単に直接 push が許可されて
+いるだけでは、このスキップの理由にならない。
 
 ## Local CI Checks Before Creating a PR or Pushing
 
