@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# sync-labpc: 測定器室PCのデータをSMB経由でこのMacに一方向（読み取り専用）で
+# 同期する。macOS専用（mount_smbfsを使用）。
+#
+# 使い方:
+#   sync-labpc <job-name|host-ip|all>
+#
+# 例:
+#   sync-labpc A201_VSM_Wall
+#   sync-labpc 172.20.35.132
+#   sync-labpc all
+#
+# ジョブ定義:
+#   ~/.config/labpc/jobs.d/<job-name>.conf に HOST・SHARE・SMB_USER・
+#   REMOTE_SUBPATH・DEST を定義するシェルスニペットを置く（dotfiles-private の
+#   labpc/jobs.d/ をリンクする運用を想定）。
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=bin/unix/_sync-labpc-lib.sh
+source "${SCRIPT_DIR}/_sync-labpc-lib.sh"
+
+JOBS_DIR="${HOME}/.config/labpc/jobs.d"
+
+if [[ $# -eq 0 ]]; then
+  echo "使い方: sync-labpc <job-name|host-ip|all>" >&2
+  exit 1
+fi
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+if [[ $# -ne 1 ]]; then
+  echo "error: 引数は1つだけ指定してください" >&2
+  exit 1
+fi
+
+target="$1"
+
+if [[ ! -d "$JOBS_DIR" ]]; then
+  echo "error: ジョブ定義ディレクトリが見つかりません: ${JOBS_DIR}" >&2
+  exit 1
+fi
+
+job_files=()
+if [[ "$target" == "all" ]]; then
+  for f in "${JOBS_DIR}"/*.conf; do
+    [[ -e "$f" ]] && job_files+=("$f")
+  done
+elif [[ -f "${JOBS_DIR}/${target}.conf" ]]; then
+  job_files=("${JOBS_DIR}/${target}.conf")
+else
+  for f in "${JOBS_DIR}"/*.conf; do
+    [[ -e "$f" ]] || continue
+    grep -q "^HOST=\"${target}\"" "$f" && job_files+=("$f")
+  done
+fi
+
+if [[ ${#job_files[@]} -eq 0 ]]; then
+  echo "error: 該当するジョブが見つかりません: ${target}" >&2
+  echo "利用可能なジョブ: $(cd "$JOBS_DIR" && ls *.conf 2>/dev/null | sed 's/\.conf$//' | tr '\n' ' ')" >&2
+  exit 1
+fi
+
+status=0
+for f in "${job_files[@]}"; do
+  job_name="$(basename "$f" .conf)"
+  echo "=== ${job_name} ==="
+  if ! _labpc_sync_job "$f"; then
+    echo "error: ${job_name} の同期に失敗しました" >&2
+    status=1
+  fi
+done
+
+exit "$status"

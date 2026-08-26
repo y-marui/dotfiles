@@ -14,6 +14,7 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 # bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
 EXCEPTIONS=(
   "install-my-apps:macOS専用ツール（.appのDMGインストール）"
+  "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
 )
 
 _exception_key() {

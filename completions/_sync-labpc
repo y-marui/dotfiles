@@ -1,0 +1,21 @@
+#compdef sync-labpc
+
+_sync-labpc() {
+  local jobs_dir="${HOME}/.config/labpc/jobs.d"
+  local -a names hosts
+
+  if [[ -d "$jobs_dir" ]]; then
+    local f name host
+    for f in "$jobs_dir"/*.conf(N); do
+      name="${f:t:r}"
+      names+=("$name")
+      host="$(sed -n 's/^HOST="\(.*\)"/\1/p' "$f")"
+      [[ -n "$host" ]] && hosts+=("$host")
+    done
+  fi
+
+  local -a candidates=(all "${names[@]}" "${hosts[@]}")
+  _describe 'target' candidates
+}
+
+_sync-labpc "$@"
