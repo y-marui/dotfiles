@@ -7,11 +7,12 @@
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する
 #
-# 設定（2ブランチ恒久運用向け。リポジトリの .gitattributes に以下があれば使う）:
-#   * git-sweep-main=develop
-#   * git-sweep-protected=main,develop
-# 無ければ従来通り MAIN=main, PROTECTED=(main) のデフォルトのまま。
-# コマンドライン引数 [main-branch] は .gitattributes の値より優先する。
+# リポジトリのブランチ方針は .gitattributes に宣言する:
+#   * repo-main-branch=develop
+#   * repo-protected-branches=main,develop
+# 優先順位は、コマンドライン引数 [main-branch]、上記属性、ローカルGit config
+# (local.repo-main-branch / local.repo-protected-branches)、origin/HEAD、main。
+# 旧 git-sweep-main / git-sweep-protected 属性も互換fallbackとして読み取る。
 #
 # 動作:
 #   1. fetch --prune でリモートの削除済みブランチを反映
@@ -45,23 +46,67 @@ function Get-Attr([string]$Attr) {
     return $null
 }
 
+function Get-ConfigValue([string]$Key) {
+    $global:LASTEXITCODE = $null
+    $value = (& git config --get $Key 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $value) { return $value.Trim() }
+    return $null
+}
+
+function ConvertFrom-BranchCsv([string]$Csv) {
+    if (-not $Csv) { return @() }
+    return @($Csv -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
+}
+
 $ALL = $false
 $MAIN = $null
 $PROTECTED = @()
 
 & git rev-parse --git-dir *> $null
 if ($LASTEXITCODE -eq 0) {
-    $attrMain = Get-Attr 'git-sweep-main'
-    if ($attrMain -and $attrMain -ne 'unspecified') { $MAIN = $attrMain }
+    $attrMain = Get-Attr 'repo-main-branch'
+    if (-not $attrMain -or $attrMain -eq 'unspecified') {
+        $attrMain = Get-Attr 'git-sweep-main'
+    }
+    if ($attrMain -and $attrMain -ne 'unspecified') {
+        $MAIN = $attrMain
+    } else {
+        $MAIN = Get-ConfigValue 'local.repo-main-branch'
+    }
+    if (-not $MAIN) {
+        $originHead = (& git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $originHead) {
+            $originHead = $originHead -replace '^origin/', ''
+            & git show-ref --verify --quiet "refs/remotes/origin/$originHead"
+            if ($LASTEXITCODE -eq 0) { $MAIN = $originHead }
+        }
+    }
 
-    $attrProtected = Get-Attr 'git-sweep-protected'
+    $attrProtected = Get-Attr 'repo-protected-branches'
+    if (-not $attrProtected -or $attrProtected -eq 'unspecified') {
+        $attrProtected = Get-Attr 'git-sweep-protected'
+    }
     if ($attrProtected -and $attrProtected -ne 'unspecified') {
-        $PROTECTED = @($attrProtected -split ',')
+        $PROTECTED = @(ConvertFrom-BranchCsv $attrProtected)
+    } else {
+        $configProtected = Get-ConfigValue 'local.repo-protected-branches'
+        if ($configProtected) { $PROTECTED = @(ConvertFrom-BranchCsv $configProtected) }
     }
 }
 
 if (-not $MAIN) { $MAIN = 'main' }
-if ($PROTECTED.Count -eq 0) { $PROTECTED = @('main') }
+if ($PROTECTED.Count -eq 0) {
+    $PROTECTED = @($MAIN)
+    if ($MAIN -ne 'main') {
+        & git show-ref --verify --quiet refs/heads/main
+        $hasMain = ($LASTEXITCODE -eq 0)
+        if (-not $hasMain) {
+            & git show-ref --verify --quiet refs/remotes/origin/main
+            $hasMain = ($LASTEXITCODE -eq 0)
+        }
+        if ($hasMain) { $PROTECTED += 'main' }
+    }
+}
 
 foreach ($arg in $args) {
     if ($arg -eq '--all') {
@@ -73,6 +118,8 @@ foreach ($arg in $args) {
         $MAIN = $arg
     }
 }
+
+if ($PROTECTED -notcontains $MAIN) { $PROTECTED += $MAIN }
 
 & git rev-parse --git-dir *> $null
 if ($LASTEXITCODE -ne 0) {
@@ -133,14 +180,24 @@ function Sync-OtherProtected([string]$Current) {
     foreach ($b in $PROTECTED) {
         if ($b -eq $Current) { continue }
         & git rev-parse --verify -q $b *> $null
-        if ($LASTEXITCODE -ne 0) { continue }
-
-        $global:LASTEXITCODE = $null
-        & git fetch . "origin/${b}:${b}" --quiet *> $null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "Updated $b (fast-forward)."
+            $global:LASTEXITCODE = $null
+            & git fetch . "origin/${b}:${b}" --quiet *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Updated $b (fast-forward)."
+            } else {
+                Write-Stderr "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually."
+            }
         } else {
-            Write-Stderr "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually."
+            $global:LASTEXITCODE = $null
+            & git fetch origin "${b}:${b}" --quiet *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "Created local branch $b (tracking origin/$b)."
+                if ($b -eq $MAIN) {
+                    & git checkout $MAIN | Out-Null
+                    Write-Host "Switched to $MAIN."
+                }
+            }
         }
     }
 }

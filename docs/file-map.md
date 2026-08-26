@@ -8,9 +8,9 @@ _最終更新: 2026-08-26_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（git-sweep-protected）、`git config local.status-allowed-remote-branch`、`git config local.status-ignore-charter-outdated` |
+| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期 | `git config local.keep-up-to-date` |
-| `bin/unix/git-sweep` | マージ済みブランチの自動整理 | `.gitattributes`（git-sweep-protected、git-sweep-main） |
+| `bin/unix/git-sweep` | マージ済みブランチの自動整理 | `.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*` |
 
 ## dev-charter Installation
 

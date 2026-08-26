@@ -7,11 +7,12 @@
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する
 #
-# 設定（2ブランチ恒久運用向け。リポジトリの .gitattributes に以下があれば使う）:
-#   * git-sweep-main=develop
-#   * git-sweep-protected=main,develop
-# 無ければ従来通り MAIN=main, PROTECTED=(main) のデフォルトのまま。
-# コマンドライン引数 [main-branch] は .gitattributes の値より優先する。
+# リポジトリのブランチ方針は .gitattributes に宣言する:
+#   * repo-main-branch=develop
+#   * repo-protected-branches=main,develop
+# 優先順位は、コマンドライン引数 [main-branch]、上記属性、ローカルGit config
+# (local.repo-main-branch / local.repo-protected-branches)、origin/HEAD、main。
+# 旧 git-sweep-main / git-sweep-protected 属性も互換fallbackとして読み取る。
 #
 # 動作:
 #   1. fetch --prune でリモートの削除済みブランチを反映
@@ -43,18 +44,78 @@ _get_attr() {
   git check-attr "$attr" -- . 2>/dev/null | sed -n "s/.*: ${attr}: //p"
 }
 
-if git rev-parse --git-dir > /dev/null 2>&1; then
-  attr_main=$(_get_attr git-sweep-main)
-  [[ -n "$attr_main" && "$attr_main" != "unspecified" ]] && MAIN="$attr_main"
+_get_config() {
+  git config --get "$1" 2>/dev/null || true
+}
 
-  attr_protected=$(_get_attr git-sweep-protected)
+_set_protected_from_csv() {
+  local raw="$1" item existing
+  local -a parsed
+  PROTECTED=()
+  IFS=',' read -ra parsed <<< "$raw"
+  for item in "${parsed[@]}"; do
+    item="${item#"${item%%[![:space:]]*}"}"
+    item="${item%"${item##*[![:space:]]}"}"
+    [[ -n "$item" ]] || continue
+    if (( ${#PROTECTED[@]} > 0 )); then
+      for existing in "${PROTECTED[@]}"; do
+        [[ "$existing" == "$item" ]] && continue 2
+      done
+    fi
+    PROTECTED+=("$item")
+  done
+}
+
+_protect_main() {
+  local branch
+  if (( ${#PROTECTED[@]} > 0 )); then
+    for branch in "${PROTECTED[@]}"; do
+      [[ "$branch" == "$MAIN" ]] && return 0
+    done
+  fi
+  PROTECTED+=("$MAIN")
+}
+
+if git rev-parse --git-dir > /dev/null 2>&1; then
+  attr_main=$(_get_attr repo-main-branch)
+  if [[ -z "$attr_main" || "$attr_main" == "unspecified" ]]; then
+    attr_main=$(_get_attr git-sweep-main)
+  fi
+  if [[ -n "$attr_main" && "$attr_main" != "unspecified" ]]; then
+    MAIN="$attr_main"
+  else
+    MAIN=$(_get_config local.repo-main-branch)
+  fi
+  if [[ -z "$MAIN" ]]; then
+    MAIN="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+    MAIN="${MAIN#origin/}"
+    if [[ -n "$MAIN" ]] && ! git show-ref --verify --quiet "refs/remotes/origin/${MAIN}"; then
+      MAIN=""
+    fi
+  fi
+
+  attr_protected=$(_get_attr repo-protected-branches)
+  if [[ -z "$attr_protected" || "$attr_protected" == "unspecified" ]]; then
+    attr_protected=$(_get_attr git-sweep-protected)
+  fi
   if [[ -n "$attr_protected" && "$attr_protected" != "unspecified" ]]; then
-    IFS=',' read -ra PROTECTED <<< "$attr_protected"
+    _set_protected_from_csv "$attr_protected"
+  else
+    config_protected=$(_get_config local.repo-protected-branches)
+    [[ -n "$config_protected" ]] && _set_protected_from_csv "$config_protected"
   fi
 fi
 
 [[ -z "$MAIN" ]] && MAIN="main"
-[[ ${#PROTECTED[@]} -eq 0 ]] && PROTECTED=("main")
+if [[ ${#PROTECTED[@]} -eq 0 ]]; then
+  PROTECTED=("$MAIN")
+  if [[ "$MAIN" != main ]] && {
+    git show-ref --verify --quiet refs/heads/main ||
+      git show-ref --verify --quiet refs/remotes/origin/main
+  }; then
+    PROTECTED+=("main")
+  fi
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -63,6 +124,8 @@ while [[ $# -gt 0 ]]; do
     *)  MAIN="$1"; shift ;;
   esac
 done
+
+_protect_main
 
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
   echo "error: not a git repository" >&2

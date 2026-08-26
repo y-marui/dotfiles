@@ -7,7 +7,7 @@
 # オプション:
 #   -f, --filter PATTERN          リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
 #   -a, --all                     branch が保護ブランチ（リポジトリの .gitattributes の
-#                                 git-sweep-protected、未設定なら main のみ）かつ git status が
+#                                 repo-protected-branches）かつ git status が
 #                                 clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
 #                                 リポジトリも表示する（デフォルトでは非表示）
 #   --ignore-charter-outdated     DEV-CHARTER が古いことによるハイライト・強制表示を無視する
@@ -17,13 +17,17 @@
 # --ignore-charter-outdated / --no-ignore-charter-outdated を省略した場合のデフォルトは
 # git config local.status-ignore-charter-outdated（true/false）に従う。
 #
-# git config:
-#   local.status-allowed-remote-branch PATTERN
-#       ghq-status の表示上、想定内として扱う origin (remote) ブランチ名(glob可)。ローカル
-#       ブランチには適用されない。複数設定可
-#       （git config --add local.status-allowed-remote-branch gemini）。
-#       BRANCHES 列でベース比率から除外し +N 側に計上する（複数登録時は合算して +N）。
-#       git-sweep 等の削除処理には影響しない（表示専用の設定）。
+# ブランチ方針（.gitattributes）:
+#   * repo-main-branch=develop
+#   * repo-protected-branches=main,develop
+#   * repo-remote-only-branches=lite
+# repo-protected-branches はローカル・origin双方、repo-remote-only-branches はoriginだけに
+# 存在することを期待する。属性未設定時だけ local.repo-main-branch、
+# local.repo-protected-branches、local.repo-remote-only-branches をfallbackとして使う。
+# 旧 git-sweep-main / git-sweep-protected 属性と
+# local.status-allowed-remote-branch（glob・複数可）も互換fallbackとして読み取る。
+#
+# その他のgit config:
 #   local.status-ignore-charter-outdated true/false
 #       DEV-CHARTER 列が古い（charter_latest より古い）場合の赤色ハイライトと、
 #       -a 無指定時の強制表示（quiet row 扱いにしない挙動）を無視するかどうかの
@@ -32,11 +36,9 @@
 #       false（従来通りハイライト・強制表示する）だが、dotfiles 配布の
 #       git/gitconfig（[local] セクション）でデフォルト true（無視する）を設定済み。
 #
-# BRANCHES 列のベース比率は、リポジトリの .gitattributes の git-sweep-protected
-# 属性（git-sweep と共通、例: "main,develop"）で決まる。未設定なら 1/1（main のみ）、
-# main+develop の2ブランチ恒久運用なら 1+1/1+1 が正常値になる（左が main の基準、
-# 右の +1 が develop 分。ローカル・リモートそれぞれの実測値なので、develop が
-# 片方にしか無い等の不一致は 1+1/1+0 のような形で見える）。
+# BRANCHES 列はローカル/originの実測数を表示する。main+developがprotected、liteが
+# remote-onlyなら正常値は1+1/1+2。数だけでなくブランチ名と配置も検証するため、
+# liteがローカルにもある、または別名ブランチに置き換わった場合もハイライトする。
 
 Set-StrictMode -Version Latest
 
@@ -50,6 +52,25 @@ function Show-Help {
         if ($line -eq '') { break }
         Write-Host ($line -replace '^#\s?', '')
     }
+}
+
+function Get-RepoAttr([string]$Repo, [string]$Attr) {
+    $global:LASTEXITCODE = $null
+    $output = (& git -C $Repo check-attr $Attr -- . 2>$null)
+    if ($output -match ": ${Attr}: (.+)$") { return $Matches[1] }
+    return $null
+}
+
+function Get-RepoConfigValue([string]$Repo, [string]$Key) {
+    $global:LASTEXITCODE = $null
+    $value = (& git -C $Repo config --get $Key 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $value) { return $value.Trim() }
+    return $null
+}
+
+function ConvertFrom-BranchCsv([string]$Csv) {
+    if (-not $Csv) { return @() }
+    return @($Csv -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
 }
 
 # ---------- 表示幅（East Asian Width 概算） ----------
@@ -108,10 +129,11 @@ function Get-TerminalWidth {
 # branch が保護ブランチ（main+develop 運用なら develop も含む）かつ git status が
 # clean かつ BRANCHES/DEV-CHARTER がハイライト対象でない（=注目すべき情報がない）
 # 行かどうかを判定する
-function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [string]$ExpectedBr, [string]$Charter, [string]$CharterLatest, [bool]$IgnoreCharter) {
+function Test-QuietRow([bool]$IsProtected, [string]$StatusVal, [string]$Br, [string]$ExpectedBr, [bool]$PolicyOk, [string]$Charter, [string]$CharterLatest, [bool]$IgnoreCharter) {
     if (-not $IsProtected) { return $false }
     if ($StatusVal -ne '✓') { return $false }
-    if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { return $false }
+    if (-not $PolicyOk) { return $false }
+    if ($Br -notmatch "^${ExpectedBr}`$") { return $false }
     if (-not $IgnoreCharter -and $CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { return $false }
     return $true
 }
@@ -123,8 +145,8 @@ function Write-StatusHeader([string[]]$Cells, [int[]]$Widths) {
     Write-Host ("│ " + ($parts -join " │ ") + " │")
 }
 
-function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr, [bool]$IgnoreCharter) {
-    $bc = if ($Br -notmatch "^${ExpectedBr}([+][0-9]+)?`$") { "`e[31m" } else { '' }
+function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr, [bool]$PolicyOk, [bool]$IgnoreCharter) {
+    $bc = if (-not $PolicyOk -or $Br -notmatch "^${ExpectedBr}`$") { "`e[31m" } else { '' }
     $cc = if (-not $IgnoreCharter -and $CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
     $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[31m" } default { '' } }
 
@@ -208,6 +230,7 @@ $allCharters = New-Object System.Collections.Generic.List[string]
 $allKeeps = New-Object System.Collections.Generic.List[string]
 $allBases = New-Object System.Collections.Generic.List[string]
 $allProtected = New-Object System.Collections.Generic.List[bool]
+$allPolicyOk = New-Object System.Collections.Generic.List[bool]
 
 foreach ($repo in $repoList) {
     $rel = $repo
@@ -219,20 +242,57 @@ foreach ($repo in $repoList) {
     $branch = (& git -C $repo rev-parse --abbrev-ref HEAD 2>$null)
     if ($LASTEXITCODE -ne 0 -or -not $branch) { $branch = '?' }
 
-    # .gitattributes の git-sweep-protected 属性（git-sweep と共通）から、この
-    # リポジトリの保護ブランチ一覧と、正常時のローカル/リモートブランチ数の基準を
-    # 求める。未設定なら従来通り main のみ・基準 1 のまま
-    $global:LASTEXITCODE = $null
-    $attrOutput = (& git -C $repo check-attr git-sweep-protected -- . 2>$null)
-    $protectedRaw = $null
-    if ($attrOutput -match ': git-sweep-protected: (.+)$') { $protectedRaw = $Matches[1] }
-    # if/else の結果が要素数1の配列だと PowerShell が自動でスカラーに
-    # 展開してしまうため、外側を @() で囲んで配列を保証する
+    $mainBranch = Get-RepoAttr $repo 'repo-main-branch'
+    if (-not $mainBranch -or $mainBranch -eq 'unspecified') {
+        $mainBranch = Get-RepoAttr $repo 'git-sweep-main'
+    }
+    if (-not $mainBranch -or $mainBranch -eq 'unspecified') {
+        $mainBranch = Get-RepoConfigValue $repo 'local.repo-main-branch'
+    }
+    if (-not $mainBranch) {
+        $originHead = (& git -C $repo symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $originHead) {
+            $originHead = $originHead -replace '^origin/', ''
+            & git -C $repo show-ref --verify --quiet "refs/remotes/origin/$originHead"
+            if ($LASTEXITCODE -eq 0) { $mainBranch = $originHead }
+        }
+    }
+    if (-not $mainBranch) { $mainBranch = 'main' }
+
+    $protectedRaw = Get-RepoAttr $repo 'repo-protected-branches'
+    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') {
+        $protectedRaw = Get-RepoAttr $repo 'git-sweep-protected'
+    }
+    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') {
+        $protectedRaw = Get-RepoConfigValue $repo 'local.repo-protected-branches'
+    }
     $protectedList = @(if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
-        @($protectedRaw -split ',')
+        @(ConvertFrom-BranchCsv $protectedRaw)
     } else {
-        @('main')
+        @($mainBranch)
+        if ($mainBranch -ne 'main') {
+            & git -C $repo show-ref --verify --quiet refs/heads/main
+            $hasMain = ($LASTEXITCODE -eq 0)
+            if (-not $hasMain) {
+                & git -C $repo show-ref --verify --quiet refs/remotes/origin/main
+                $hasMain = ($LASTEXITCODE -eq 0)
+            }
+            if ($hasMain) { 'main' }
+        }
     })
+    if ($protectedList -notcontains $mainBranch) { $protectedList += $mainBranch }
+
+    $remoteOnlyRaw = Get-RepoAttr $repo 'repo-remote-only-branches'
+    if (-not $remoteOnlyRaw -or $remoteOnlyRaw -eq 'unspecified') {
+        $remoteOnlyRaw = Get-RepoConfigValue $repo 'local.repo-remote-only-branches'
+    }
+    $legacyRemotePatterns = @()
+    if ($remoteOnlyRaw -and $remoteOnlyRaw -ne 'unspecified') {
+        $remoteOnlyList = @(ConvertFrom-BranchCsv $remoteOnlyRaw)
+    } else {
+        $remoteOnlyList = @()
+        $legacyRemotePatterns = @(& git -C $repo config --get-all local.status-allowed-remote-branch 2>$null)
+    }
     $base = $protectedList.Count
     $isProtected = $protectedList -contains $branch
 
@@ -257,30 +317,40 @@ foreach ($repo in $repoList) {
     if ($behind -gt 0) { $statusParts += "⇣$behind" }
     $statusStr = if ($statusParts.Count -gt 0) { $statusParts -join ' ' } else { '✓' }
 
-    $localBr = @(& git -C $repo branch 2>$null).Count
-
     $branchRLines = @(& git -C $repo branch -r 2>$null)
-    $devCharterBr = @($branchRLines | Where-Object { $_ -match '  dev-charter/' -and $_ -notmatch ' -> ' }).Count
-
-    # git config local.status-allowed-remote-branch (複数可) に登録されたパターンに一致する
-    # origin (remote) ブランチは ghq-status の表示上「想定内」とみなし、ベース比率(1/1)から
-    # 除外して +N 側に計上する（git-sweep 等の削除処理には影響しない、表示専用の設定）
-    $allowedRemotePatterns = @(& git -C $repo config --get-all local.status-allowed-remote-branch 2>$null)
+    $localBranchNames = @(& git -C $repo branch --format='%(refname:short)' 2>$null)
     $originBranchNames = @($branchRLines | Where-Object { $_ -match '  origin/' -and $_ -notmatch ' -> ' } | ForEach-Object {
         $_ -replace '.*origin/', ''
     })
 
-    $originBr = 0
-    $allowedRemoteExtra = 0
+    $localBr = $localBranchNames.Count
+    $originBr = $originBranchNames.Count
+    $policyOk = $true
+    $legacyRemoteExtra = 0
+    foreach ($expected in $protectedList) {
+        if ($localBranchNames -notcontains $expected -or $originBranchNames -notcontains $expected) { $policyOk = $false }
+    }
+    foreach ($expected in $remoteOnlyList) {
+        if ($localBranchNames -contains $expected -or $originBranchNames -notcontains $expected) { $policyOk = $false }
+    }
+    foreach ($brName in $localBranchNames) {
+        if ($protectedList -notcontains $brName) { $policyOk = $false }
+    }
     foreach ($brName in $originBranchNames) {
-        $matched = $false
-        foreach ($pat in $allowedRemotePatterns) {
-            if ($brName -like $pat) { $matched = $true; break }
+        $matched = ($protectedList -contains $brName -or $remoteOnlyList -contains $brName)
+        if (-not $matched) {
+            foreach ($pat in $legacyRemotePatterns) {
+                if ($brName -like $pat) {
+                    $matched = $true
+                    $legacyRemoteExtra++
+                    break
+                }
+            }
         }
-        if ($matched) { $allowedRemoteExtra++ } else { $originBr++ }
+        if (-not $matched) { $policyOk = $false }
     }
 
-    $extraBr = $devCharterBr + $allowedRemoteExtra
+    $remoteOnlyExpected = $remoteOnlyList.Count + $legacyRemoteExtra
 
     # baseExtra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら
     # 従来通りの "local/origin[+N]" 表示のまま。1 以上（main+develop 等の複数
@@ -291,15 +361,11 @@ foreach ($repo in $repoList) {
     if ($baseExtra -gt 0) {
         $localExtraActual = $localBr - 1
         $originExtraActual = $originBr - 1
-        $brStr = if ($extraBr -gt 0) {
-            "1+$localExtraActual/1+$originExtraActual+$extraBr"
-        } else {
-            "1+$localExtraActual/1+$originExtraActual"
-        }
-        $expectedBr = "1\+$baseExtra/1\+$baseExtra"
+        $brStr = "1+$localExtraActual/1+$originExtraActual"
+        $expectedBr = "1\+$baseExtra/1\+$($baseExtra + $remoteOnlyExpected)"
     } else {
-        $brStr = if ($extraBr -gt 0) { "$localBr/$originBr+$extraBr" } else { "$localBr/$originBr" }
-        $expectedBr = '1/1'
+        $brStr = "$localBr/$originBr"
+        $expectedBr = "1/$($base + $remoteOnlyExpected)"
     }
 
     $charterVerFile = Join-Path $repo 'docs\dev-charter\VERSION'
@@ -334,6 +400,7 @@ foreach ($repo in $repoList) {
     $allKeeps.Add($keepVal)
     $allBases.Add($expectedBr)
     $allProtected.Add($isProtected)
+    $allPolicyOk.Add($policyOk)
 }
 
 $activeIdxList = New-Object System.Collections.Generic.List[int]
@@ -341,7 +408,7 @@ for ($idx = 0; $idx -lt $allGroups.Count; $idx++) { $activeIdxList.Add($idx) }
 $activeIdx = @($activeIdxList)
 if (-not $SHOW_ALL) {
     $activeIdx = @($activeIdx | Where-Object {
-        -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allCharters[$_] $charterLatest $IGNORE_CHARTER)
+        -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allPolicyOk[$_] $allCharters[$_] $charterLatest $IGNORE_CHARTER)
     })
 }
 
@@ -386,7 +453,7 @@ foreach ($group in $seenGroups) {
 
     for ($j = 0; $j -lt $idxInGroup.Count; $j++) {
         $idx = $idxInGroup[$j]
-        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx] $IGNORE_CHARTER
+        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx] $allPolicyOk[$idx] $IGNORE_CHARTER
         if ($j -lt $idxInGroup.Count - 1) {
             Write-Host "├$r1┼$r2┼$r3┼$r4┼$r5┼$r6┤"
         }

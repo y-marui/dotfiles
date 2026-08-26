@@ -96,3 +96,8 @@ LaunchAgentいずれも）、キーチェーンの値がプロンプトなしで
 ## ghq-status
 
 `bin/unix/ghq-status` の BRANCHES 列・DEV-CHARTER 列・keep-up-to-date 判定ロジックは [ghq-status](../bin/unix/ghq-status) 冒頭のコメントと [DEVELOPING.md](../DEVELOPING.md) を参照。
+
+BRANCHES列は`.gitattributes`の`repo-protected-branches`をローカル・origin双方、
+`repo-remote-only-branches`をoriginだけの期待ブランチとして検証する。総数だけでなく
+ブランチ名と配置も比較し、欠落・余分・remote-onlyのローカル作成をハイライトする。
+Unix版とWindows版は同じ判定規則を使う。
