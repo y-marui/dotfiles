@@ -34,6 +34,7 @@ Usage:
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
+  dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots copilot {apply|diff|prune} [--mcp-only]
   dots check [--verbose]
@@ -46,6 +47,7 @@ Commands:
   dock    Dock・Finderサイドバー設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
+  ai      Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理
   claude  Claude Code の MCP・plugin・skill を宣言的に管理
   codex   Codex の MCP・plugin・skill を宣言的に管理
   gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
@@ -357,6 +359,23 @@ _ai_agent() {
   fi
 }
 
+_ai() {
+  local action="${1:-}"
+  [[ -n "${action}" ]] || \
+    _error "usage: dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]"
+  shift
+
+  [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
+    _error "unknown ai action: ${action} (apply/diff/prune are supported)"
+
+  local agent
+  for agent in claude codex gemini; do
+    printf '=== %s ===\n' "${agent}"
+    _ai_agent "${agent}" "${action}" "$@"
+    printf '\n'
+  done
+}
+
 _copilot() {
   local action="${1:-}"
   [[ -n "${action}" ]] || _error "usage: dots copilot {apply|diff|prune} [--mcp-only]"
@@ -530,6 +549,7 @@ case "${command_name}" in
   brew) _brew "$@" ;;
   dock) _dock "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
+  ai) _ai "$@" ;;
   claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
   copilot) _copilot "$@" ;;
   check) _check "$@" ;;

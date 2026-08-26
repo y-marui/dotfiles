@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-08-25_
+_最終更新: 2026-08-26_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -19,3 +19,9 @@ _最終更新: 2026-08-25_
 | `docs/dev-charter/` | dev-charter lite 版（`git subtree`、直接編集禁止） | `docs/dev-charter/VERSION` |
 | `.pre-commit-config.yaml` | pre-commit フック定義（独自フック + dev-charter 準拠フック） | `scripts/check-*.sh` |
 | `scripts/check-*.sh`（dev-charter系12本） | dev-charter の各憲章ルールを機械的に検証 | `docs/dev-charter/SECURITY_POLICY.md` |
+
+## dots AI Management
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作 | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/` |

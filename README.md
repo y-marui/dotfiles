@@ -44,6 +44,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
+| `dots ai {apply\|diff\|prune}` | Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理 |
 
 `dots status` は両リポジトリを `git fetch --prune` してから確認し、要対応の状態が
 1つでもあれば終了コード1を返す。ネットワークへ接続せず、既存のremote-tracking refだけで
@@ -161,6 +162,11 @@ GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使�
 ### Batch-Check All Agents (`dots check`)
 
 `dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+
+Claude Code・Codex・Gemini の宣言をまとめて同期する場合は
+`dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、
+`--skill-only` は3エージェントすべてへ渡される。Copilot は管理対象が user scope MCP
+のみで引数体系が異なるため、`dots ai` には含めず `dots copilot` で個別に操作する。
 
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization
