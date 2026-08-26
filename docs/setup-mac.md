@@ -124,7 +124,7 @@ make private
 
 ```bash
 make install-macos
-# install（シンボリックリンク）+ macos（defaults）+ brew（Brewfile）+ dock を一括適用
+# install（シンボリックリンク）+ dots check監視 + macos（defaults）+ brew（Brewfile）+ dock を一括適用
 ```
 
 整合性を確認:
@@ -216,6 +216,7 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 |---------|------|
 | Prezto setup | 未導入なら `~/.zprezto` へ clone、既存環境ではサブモジュールを整合 |
 | `make install` | Unix向けシンボリックリンクをホームへ展開 |
+| LaunchAgent setup | `dots check`をログイン時と1時間ごとに実行し、状態変化時だけ通知 |
 | Zellij setup | 互換性を確認した固定版を `~/.local/bin/zellij` へインストール |
 | private setup | `dotfiles-private/setup.sh` を適用（`make private` 済みの場合） |
 | `macos/defaults.sh` | macOS システム設定（Dock・Finder・キーボード等） |

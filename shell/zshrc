@@ -460,186 +460,19 @@ fi
   source "$DOTFILES_DIR/host/$(hostname -s).zsh"
 
 # --------------------------------------------------------
-# 14. dotfiles の未コミット・未プッシュを確認
-# p10k は quiet モードにして、意図した起動メッセージを警告扱いにしない。
+# 14. dots check のLaunchAgentキャッシュを表示
+# 外部コマンドを実行せず、シェル起動をブロックしない。
 # --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -d "$DOTFILES_DIR/.git" ]]; then
-  _df_msg=()
-  if ! git -C "$DOTFILES_DIR" diff --quiet 2>/dev/null || \
-     ! git -C "$DOTFILES_DIR" diff --cached --quiet 2>/dev/null; then
-    _df_msg+=("未コミットの変更あり")
-  fi
-  _df_unpushed=$(git -C "$DOTFILES_DIR" log '@{u}..' --oneline 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "${_df_unpushed}" -gt 0 ]]; then
-    _df_msg+=("${_df_unpushed} commits unpushed")
-  fi
-  if [[ ${#_df_msg[@]} -gt 0 ]]; then
-    print -P "%F{yellow}⚠ dotfiles: ${(j: / :)_df_msg}%f"
-  fi
-  unset _df_msg _df_unpushed
+_dots_check_summary="${XDG_CACHE_HOME:-$HOME/.cache}/dots/check-summary"
+if [[ -s "${_dots_check_summary}" ]]; then
+  while IFS= read -r _dots_check_line; do
+    print -r -- $'\e[33m'"${_dots_check_line}"$'\e[39m'
+  done < "${_dots_check_summary}"
 fi
+unset _dots_check_summary _dots_check_line
 
 # --------------------------------------------------------
-# 15. dotfiles-private の未コミット・未プッシュを確認
-# --------------------------------------------------------
-_dfp_dir="${DOTFILES_DIR}-private"
-if [[ -d "${_dfp_dir}/.git" ]]; then
-  _dfp_msg=()
-  if ! git -C "$_dfp_dir" diff --quiet 2>/dev/null || \
-     ! git -C "$_dfp_dir" diff --cached --quiet 2>/dev/null; then
-    _dfp_msg+=("未コミットの変更あり")
-  fi
-  _dfp_unpushed=$(git -C "$_dfp_dir" log '@{u}..' --oneline 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "${_dfp_unpushed}" -gt 0 ]]; then
-    _dfp_msg+=("${_dfp_unpushed} commits unpushed")
-  fi
-  if [[ ${#_dfp_msg[@]} -gt 0 ]]; then
-    print -P "%F{yellow}⚠ dotfiles-private: ${(j: / :)_dfp_msg}%f"
-  fi
-  unset _dfp_msg _dfp_unpushed
-fi
-unset _dfp_dir
-
-# --------------------------------------------------------
-# 16. Brewfile.cache と Brewfile の乖離確認（ファイル比較のみ・brew 実行なし）
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile.cache" ]]; then
-  _brew_diff=$(bash "$DOTFILES_DIR/macos/diff_brewfile.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_brew_diff" ]]; then
-    print -P "%F{yellow}⚠ brew: $_brew_diff (dots brew diff で確認)%f"
-  fi
-  unset _brew_diff
-fi
-
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/macos/Brewfile-pin.cache" ]]; then
-  _brew_pin_diff=$(bash "$DOTFILES_DIR/macos/diff_brewpin.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_brew_pin_diff" ]]; then
-    print -P "%F{yellow}⚠ brew pin: $_brew_pin_diff (dots brew diff で確認)%f"
-  fi
-  unset _brew_pin_diff
-fi
-
-# --------------------------------------------------------
-# 17. npmfile.cache と npmfile の乖離確認（ファイル比較のみ・npm 実行なし）
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/npm/npmfile.cache" ]]; then
-  _npm_diff=$(bash "$DOTFILES_DIR/npm/diff_npmfile.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_npm_diff" ]]; then
-    print -P "%F{yellow}⚠ npm: $_npm_diff (dots npm diff で確認)%f"
-  fi
-  unset _npm_diff
-fi
-
-# --------------------------------------------------------
-# 18. pipxfile.cache と pipxfile の乖離確認（ファイル比較のみ・pipx 実行なし）
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/pipx/pipxfile.cache" ]]; then
-  _pipx_diff=$(bash "$DOTFILES_DIR/pipx/diff_pipxfile.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_pipx_diff" ]]; then
-    print -P "%F{yellow}⚠ pipx: $_pipx_diff (dots pipx diff で確認)%f"
-  fi
-  unset _pipx_diff
-fi
-
-# --------------------------------------------------------
-# 19. dock の乖離確認（cache とファイルのテキスト比較のみ）
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" ]]; then
-  _dock_diff=$(bash "$DOTFILES_DIR/macos/diff_dockfile.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_dock_diff" ]]; then
-    print -P "%F{yellow}⚠ dock: $_dock_diff (dots dock diff で確認)%f"
-  fi
-  unset _dock_diff
-fi
-
-# --------------------------------------------------------
-# 19b. Claude Code の MCP サーバー / plugin / skill の乖離確認
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/claude/mcp/servers.json" ]]; then
-  _claude_mcp_diff=$(bash "$DOTFILES_DIR/ai/claude/mcp/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_claude_mcp_diff" ]]; then
-    print -P "%F{yellow}⚠ claude mcp: $_claude_mcp_diff (dots claude diff --mcp-only で確認)%f"
-  fi
-  unset _claude_mcp_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/claude/plugin/plugins.json" ]]; then
-  _claude_plugin_diff=$(bash "$DOTFILES_DIR/ai/claude/plugin/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_claude_plugin_diff" ]]; then
-    print -P "%F{yellow}⚠ claude plugin: $_claude_plugin_diff (dots claude diff --plugin-only で確認)%f"
-  fi
-  unset _claude_plugin_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
-  _claude_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" claude --summary 2>/dev/null || true)
-  if [[ -n "$_claude_skill_diff" ]]; then
-    print -P "%F{yellow}⚠ claude skill: $_claude_skill_diff (dots claude diff --skill-only で確認)%f"
-  fi
-  unset _claude_skill_diff
-fi
-
-# --------------------------------------------------------
-# 19c. Codex の MCP サーバー / plugin / skill の乖離確認
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/mcp/servers.json" ]] && (( ${+commands[codex]} )); then
-  _codex_mcp_diff=$(bash "$DOTFILES_DIR/ai/codex/mcp/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_codex_mcp_diff" ]]; then
-    print -P "%F{yellow}⚠ codex mcp: $_codex_mcp_diff (dots codex diff --mcp-only で確認)%f"
-  fi
-  unset _codex_mcp_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/codex/plugin/plugins.json" ]] && (( ${+commands[codex]} )); then
-  _codex_plugin_diff=$(bash "$DOTFILES_DIR/ai/codex/plugin/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_codex_plugin_diff" ]]; then
-    print -P "%F{yellow}⚠ codex plugin: $_codex_plugin_diff (dots codex diff --plugin-only で確認)%f"
-  fi
-  unset _codex_plugin_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
-  _codex_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" codex --summary 2>/dev/null || true)
-  if [[ -n "$_codex_skill_diff" ]]; then
-    print -P "%F{yellow}⚠ codex skill: $_codex_skill_diff (dots codex diff --skill-only で確認)%f"
-  fi
-  unset _codex_skill_diff
-fi
-
-# --------------------------------------------------------
-# 19d. Gemini / Antigravity の MCP サーバー / plugin / skill の乖離確認
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/gemini/mcp/servers.json" ]]; then
-  _gemini_mcp_diff=$(bash "$DOTFILES_DIR/ai/gemini/mcp/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_gemini_mcp_diff" ]]; then
-    print -P "%F{yellow}⚠ gemini mcp: $_gemini_mcp_diff (dots gemini diff --mcp-only で確認)%f"
-  fi
-  unset _gemini_mcp_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/gemini/plugin/plugins.json" ]]; then
-  _gemini_plugin_diff=$(bash "$DOTFILES_DIR/ai/gemini/plugin/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_gemini_plugin_diff" ]]; then
-    print -P "%F{yellow}⚠ gemini plugin: $_gemini_plugin_diff (dots gemini diff --plugin-only で確認)%f"
-  fi
-  unset _gemini_plugin_diff
-fi
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/skills/external.json" ]]; then
-  _gemini_skill_diff=$(bash "$DOTFILES_DIR/ai/skills/diff.sh" gemini --summary 2>/dev/null || true)
-  if [[ -n "$_gemini_skill_diff" ]]; then
-    print -P "%F{yellow}⚠ gemini skill: $_gemini_skill_diff (dots gemini diff --skill-only で確認)%f"
-  fi
-  unset _gemini_skill_diff
-fi
-
-# --------------------------------------------------------
-# 19e. GitHub Copilot CLI の user scope MCP サーバーの乖離確認
-# --------------------------------------------------------
-if [[ -n "${DOTFILES_DIR:-}" && -f "$DOTFILES_DIR/ai/copilot/mcp/servers.json" ]] && (( ${+commands[copilot]} )); then
-  _copilot_mcp_diff=$(bash "$DOTFILES_DIR/ai/copilot/mcp/diff.sh" --summary 2>/dev/null || true)
-  if [[ -n "$_copilot_mcp_diff" ]]; then
-    print -P "%F{yellow}⚠ copilot mcp: $_copilot_mcp_diff (dots copilot diff で確認)%f"
-  fi
-  unset _copilot_mcp_diff
-fi
-
-# --------------------------------------------------------
-# 20. iTerm2 Shell Integration
+# 15. iTerm2 Shell Integration
 # --------------------------------------------------------
 # iTerm2 Shell Integration は iTerm2 直下のシェルだけで読み込む。
 # Zellij 内では Zellij と Powerlevel10k が端末描画を管理するため、iTerm2 の

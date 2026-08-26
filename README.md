@@ -26,6 +26,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `make links` | シンボリックリンクだけを再適用 |
 | `make uninstall` | シンボリックリンクを削除 |
 | `make check` | リンク整合性確認 |
+| `make launchagent` | macOSの`dots check`定期監視を再登録 |
 | `make init` | ホスト固有設定テンプレートを生成 |
 | `make private` | dotfiles-private を GitHub からクローン・更新 |
 
@@ -162,6 +163,12 @@ GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使�
 ### Batch-Check All Agents (`dots check`)
 
 `dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+
+macOSでは、`make install-macos` がLaunchAgentを登録し、ログイン時と1時間ごとに
+`dots check`をバックグラウンド実行する。結果は`~/.cache/dots/check-summary`へ保存し、
+内容が変わった場合だけシステム通知する。zsh起動時はこのキャッシュを読むだけなので、
+`dots check`の完了を待たない。LaunchAgentのplistと実行スクリプトはdotfilesで共有し、
+既存Macでも`dots update`時に再リンク・再登録する。手動確認の`dots check`は従来どおり利用できる。
 
 Claude Code・Codex・Gemini の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、

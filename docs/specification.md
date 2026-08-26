@@ -7,6 +7,7 @@
 - `make install` / `make links` はシンボリックリンクの作成のみを行う（べき等。既存のリンクが正しい参照先を指していれば何もしない）
 - リンク先が dotfiles 管理外の実ファイルとして既に存在する場合は上書きしない（`make check` で検知）
 - `make check` はリンク切れ・リンク先不一致・未リンクファイルを検出するが、修復はしない（`make links` を促す）
+- macOSの`make install-macos`はリンク作成後に`dots check`監視用LaunchAgentを登録する
 - Windows では `mingw32-make install` が `pwsh scripts/install.ps1` を呼び、PowerShell ネイティブでシンボリックリンク（`New-Item -ItemType SymbolicLink`）を作成する
 
 ## dots update
@@ -14,9 +15,20 @@
 以下を順に実行する（失敗しても後続は継続し、最後にまとめて結果を報告する）:
 
 1. dotfiles / dotfiles-private を fast-forward 更新
-2. `make links` でリンクを再適用
+2. インストーラーでリンクを再適用し、macOSでは`dots check`監視用LaunchAgentを再登録
 3. zprezto をサブモジュール込みで更新
 4. OS 別パッケージマネージャー（Homebrew / winget）の更新
+
+## dots check Monitor (macOS)
+
+- `com.y-marui.dotfiles-check`をユーザーLaunchAgentとして、ログイン時と1時間ごとに実行する
+- plistとrunnerはdotfiles内で管理し、`~/Library/LaunchAgents/`と`~/.local/bin/`へリンクする
+- `make install-macos`と`dots update`が各Macで自動登録し、`make launchagent`で手動再登録できる
+- `dots check`の結果は`~/.cache/dots/check-summary`へ原子的に保存する
+- 警告内容のハッシュが変わった場合と、警告が解消した場合だけmacOS通知を出す
+- zsh起動時はキャッシュを読み取るだけで、チェック処理を同期実行しない
+- 自動修復は行わない。詳細確認と手動再実行には`dots check`を使う
+- `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 
 ## dots {claude|codex|gemini} diff / apply / prune
 

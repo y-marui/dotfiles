@@ -25,3 +25,12 @@ _最終更新: 2026-08-26_
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作 | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/` |
+
+## dots check Monitor (macOS)
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `macos/com.y-marui.dotfiles-check.plist` | ログイン時・1時間ごとの`dots check`実行を定義 | `~/.local/bin/dots-check-monitor` |
+| `macos/dots-check-monitor.sh` | 結果キャッシュ更新と状態変化時のmacOS通知 | `~/.local/bin/dotfiles/dots`、`~/.cache/dots/` |
+| `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
+| `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |

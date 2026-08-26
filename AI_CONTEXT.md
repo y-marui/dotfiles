@@ -178,6 +178,7 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
 - `make links`    : シンボリックリンクだけを再適用
 - `make check`    : リンク整合性確認
+- `make launchagent`: macOSの`dots check`定期監視LaunchAgentを再登録
 - `make init`     : ホスト固有設定テンプレートを生成
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
 - `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
@@ -190,6 +191,8 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
 - `dots ai {diff|apply|prune}`: Claude Code・Codex・Gemini の同じ操作を順番に一括実行
 - `dots check`    : 全 AI Agent (claude, codex, gemini, copilot) の MCP・plugin・skill 差分を一括確認
+  macOSではLaunchAgentがログイン時と1時間ごとに実行し、状態変化時だけ通知する。zshは
+  `~/.cache/dots/check-summary`を表示するだけで、チェック完了を待たない
 
 ## About zprezto
 

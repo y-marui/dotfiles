@@ -20,3 +20,7 @@ fi
 # Existing links reflect file edits immediately, but rerunning the installer also
 # applies links that were added by the update.
 bash "${dotfiles_dir}/scripts/install.sh"
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
+  bash "${dotfiles_dir}/macos/setup_dots_check_launchagent.sh" install
+fi

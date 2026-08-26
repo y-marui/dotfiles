@@ -5,7 +5,7 @@ BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills init private
+.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills launchagent init private
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -26,6 +26,7 @@ endif
 install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリックリンク + macos + brew + dock）
 	@bash scripts/setup-prezto.sh
 	@bash scripts/install.sh
+	@bash macos/setup_dots_check_launchagent.sh install
 	@bash scripts/setup-zellij.sh
 	@if [[ -f "$(PRIVATE_DIR)/setup.sh" ]]; then \
 	   bash $(PRIVATE_DIR)/setup.sh; \
@@ -83,6 +84,9 @@ endif
 
 check-skills: ## uv で全 Agent Skill の構造と同梱テストを検証
 	@bash scripts/check-skills.sh
+
+launchagent: ## macOSのdots check定期監視LaunchAgentを再登録
+	@bash macos/setup_dots_check_launchagent.sh install
 
 init: ## このマシン用のホスト固有設定テンプレートを生成
 	@bash scripts/init-host.sh
