@@ -14,7 +14,7 @@ _sync-labpc() {
     done
   fi
 
-  local -a candidates=(all "${names[@]}" "${hosts[@]}")
+  local -a candidates=(all list "${names[@]}" "${hosts[@]}")
   _describe 'target' candidates
 }
 

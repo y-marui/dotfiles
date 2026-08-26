@@ -73,7 +73,7 @@ pre-commitで両者の対応関係を検証する。
 | `ghq-sweep` | ghq管理リポジトリ全件に`git-sweep --all`を実行 |
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
-| `sync-labpc <job-name\|host-ip\|all>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`） |
+| `sync-labpc <job-name\|host-ip\|all\|list>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`。`list`でジョブ一覧表示） |
 
 ## File Structure
 

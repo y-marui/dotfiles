@@ -3,12 +3,13 @@
 # 同期する。macOS専用（mount_smbfsを使用）。
 #
 # 使い方:
-#   sync-labpc <job-name|host-ip|all>
+#   sync-labpc <job-name|host-ip|all|list>
 #
 # 例:
 #   sync-labpc A201_VSM_Wall
 #   sync-labpc 172.20.35.132
 #   sync-labpc all
+#   sync-labpc list
 #
 # ジョブ定義:
 #   ~/.config/labpc/jobs.d/<job-name>.conf に HOST・SHARE・SMB_USER・
@@ -43,6 +44,23 @@ target="$1"
 if [[ ! -d "$JOBS_DIR" ]]; then
   echo "error: ジョブ定義ディレクトリが見つかりません: ${JOBS_DIR}" >&2
   exit 1
+fi
+
+if [[ "$target" == "list" ]]; then
+  {
+    printf 'JOB\tHOST\tSHARE\tSMB_USER\tREMOTE_SUBPATH\tDEST\n'
+    for f in "${JOBS_DIR}"/*.conf; do
+      [[ -e "$f" ]] || continue
+      (
+        HOST="" SHARE="" SMB_USER="" REMOTE_SUBPATH="" DEST=""
+        # shellcheck source=/dev/null
+        source "$f"
+        printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+          "$(basename "$f" .conf)" "$HOST" "$SHARE" "$SMB_USER" "$REMOTE_SUBPATH" "$DEST"
+      )
+    done
+  } | column -t -s $'\t'
+  exit 0
 fi
 
 job_files=()
