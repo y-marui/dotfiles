@@ -106,3 +106,10 @@ Unix版とWindows版は同じ判定規則を使う。
 BRANCHESの方針違反、古いDEV-CHARTER）で示す。KEEPは更新対象の`keep`を緑、
 更新対象外の`skip`をグレーで示し、`local.keep-up-to-date`が未設定の場合も
 実際の更新動作に合わせて`skip`と表示する。
+
+各リポジトリの状態取得では、status・branch・upstream差分・stashを
+`git status --porcelain=v2 --branch --show-stash --ahead-behind --untracked-files=all`で
+一括取得する。属性、fallback設定、
+ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単位では並列に処理する。
+並列数は環境変数`GHQ_STATUS_JOBS`で変更でき、未設定時は8とする。収集完了後に
+元のリポジトリ順へ並べ直すため、並列数によって表示順は変わらない。

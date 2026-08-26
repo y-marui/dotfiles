@@ -28,7 +28,7 @@
 # 旧 git-sweep-main / git-sweep-protected 属性と
 # local.status-allowed-remote-branch（glob・複数可）も互換fallbackとして読み取る。
 #
-# その他のgit config:
+# その他のgit config / 環境変数:
 #   local.status-ignore-charter-outdated true/false
 #       DEV-CHARTER 列が古い（charter_latest より古い）場合の赤色ハイライトと、
 #       -a 無指定時の強制表示（quiet row 扱いにしない挙動）を無視するかどうかの
@@ -36,6 +36,8 @@
 #       で都度上書きできる。git config が一切未設定の場合のスクリプト側フォールバックは
 #       false（従来通りハイライト・強制表示する）だが、dotfiles 配布の
 #       git/gitconfig（[local] セクション）でデフォルト true（無視する）を設定済み。
+#   GHQ_STATUS_JOBS
+#       リポジトリ情報を並列取得するワーカー数。デフォルトは8。
 #
 # BRANCHES 列はローカル/originの実測数を表示する。main+developがprotected、liteが
 # remote-onlyなら正常値は1+1/1+2。数だけでなくブランチ名と配置も検証するため、
@@ -45,13 +47,200 @@
 # shellcheck disable=SC2053  # ${~pat} は zsh の glob 展開フラグで意図的に unquote している
 # shellcheck disable=SC2034  # ${~br_pat} 内で参照されるが shellcheck(bash) は検出できない
 
-_repo_attr() {
-  local repo="$1" attr="$2"
-  git -C "$repo" check-attr "$attr" -- . 2>/dev/null | sed -n "s/.*: ${attr}: //p"
+unsetopt BG_NICE
+
+_GHQ_STATUS_TMP_DIR=''
+_GHQ_STATUS_TMP_PREFIX=''
+
+_cleanup_status_tmp() {
+  [[ -n "$_GHQ_STATUS_TMP_DIR" && -n "$_GHQ_STATUS_TMP_PREFIX" &&
+     "$_GHQ_STATUS_TMP_DIR" == "$_GHQ_STATUS_TMP_PREFIX"* ]] || return 0
+  command rm -rf -- "$_GHQ_STATUS_TMP_DIR"
+  _GHQ_STATUS_TMP_DIR=''
 }
 
-_repo_config() {
-  git -C "$1" config --get "$2" 2>/dev/null || true
+_collect_repo() {
+  local repo="$1" root="$2"
+  local rel branch staged=0 unstaged=0 untracked=0 stashed=0 ahead=0 behind=0 status_str
+  local main_branch protected_raw remote_only_raw base is_protected p
+  local status_output attrs_output config_output refs_output line key value xy ref sym origin_head='' main_name=main
+  local br_name br_pat expected policy_ok=1 legacy_remote_extra=0 matched
+  local local_br origin_br br_str charter_ver keep_val expected_br
+  typeset -A attrs config_values
+  typeset -a protected_list remote_only_list legacy_remote_patterns local_branch_names origin_branch_names
+
+  rel="${repo#"$root/"}"
+
+  # status、branch、upstream差分、stashを1回の走査で取得する。
+  status_output="$(git -C "$repo" status --porcelain=v2 --branch --show-stash \
+    --ahead-behind --untracked-files=all 2>/dev/null || true)"
+  while IFS= read -r line; do
+    case "$line" in
+      '# branch.head '*)
+        branch="${line#\# branch.head }"
+        [[ "$branch" == '(detached)' ]] && branch=HEAD
+        ;;
+      '# branch.ab +'*)
+        value="${line#\# branch.ab +}"
+        ahead="${value%% *}"
+        behind="${value##* -}"
+        ;;
+      '# stash '*)
+        stashed="${line#\# stash }"
+        ;;
+      '1 '*|'2 '*|'u '*)
+        xy="${line[3,4]}"
+        [[ "${xy[1]}" != . ]] && (( staged++ ))
+        [[ "${xy[2]}" != . ]] && (( unstaged++ ))
+        ;;
+      '? '*) (( untracked++ )) ;;
+    esac
+  done <<< "$status_output"
+  [[ -n "$branch" ]] || branch='?'
+
+  # リポジトリ属性は属性ごとではなく1回のGit呼び出しで取得する。
+  attrs_output="$(git -C "$repo" check-attr \
+    repo-main-branch git-sweep-main repo-protected-branches git-sweep-protected \
+    repo-remote-only-branches -- . 2>/dev/null || true)"
+  while IFS= read -r line; do
+    [[ "$line" == *': '*': '* ]] || continue
+    value="${line##*: }"
+    key="${line#*: }"
+    key="${key%%:*}"
+    attrs[$key]="$value"
+  done <<< "$attrs_output"
+
+  # fallback設定も1回で取得し、同じキーが複数あれば従来通り最後の値を使う。
+  config_output="$(git -C "$repo" config --get-regexp \
+    '^local\.(repo-main-branch|repo-protected-branches|repo-remote-only-branches|status-allowed-remote-branch|keep-up-to-date)$' \
+    2>/dev/null || true)"
+  while IFS= read -r line; do
+    [[ "$line" == *' '* ]] || continue
+    key="${line%% *}"
+    value="${line#* }"
+    if [[ "$key" == local.status-allowed-remote-branch ]]; then
+      legacy_remote_patterns+=("$value")
+    else
+      config_values[$key]="$value"
+    fi
+  done <<< "$config_output"
+
+  # ローカル・originブランチとorigin/HEADを1回で取得する。
+  refs_output="$(git -C "$repo" for-each-ref --format='%(refname)%09%(symref)' \
+    refs/heads refs/remotes/origin 2>/dev/null || true)"
+  while IFS= read -r line; do
+    [[ "$line" == *$'\t'* ]] || continue
+    ref="${line%%$'\t'*}"
+    sym="${line#*$'\t'}"
+    case "$ref" in
+      refs/heads/*) local_branch_names+=("${ref#refs/heads/}") ;;
+      refs/remotes/origin/HEAD)
+        [[ -n "$sym" ]] && origin_head="${sym#refs/remotes/origin/}"
+        ;;
+      refs/remotes/origin/*) origin_branch_names+=("${ref#refs/remotes/origin/}") ;;
+    esac
+  done <<< "$refs_output"
+
+  main_branch="${attrs[repo-main-branch]:-}"
+  [[ -n "$main_branch" && "$main_branch" != unspecified ]] || main_branch="${attrs[git-sweep-main]:-}"
+  [[ -n "$main_branch" && "$main_branch" != unspecified ]] || main_branch="${config_values[local.repo-main-branch]:-}"
+  if [[ -z "$main_branch" && -n "$origin_head" && ${origin_branch_names[(Ie)$origin_head]} -gt 0 ]]; then
+    main_branch="$origin_head"
+  fi
+  [[ -n "$main_branch" ]] || main_branch=main
+
+  protected_raw="${attrs[repo-protected-branches]:-}"
+  [[ -n "$protected_raw" && "$protected_raw" != unspecified ]] || protected_raw="${attrs[git-sweep-protected]:-}"
+  [[ -n "$protected_raw" && "$protected_raw" != unspecified ]] || protected_raw="${config_values[local.repo-protected-branches]:-}"
+  if [[ -n "$protected_raw" && "$protected_raw" != unspecified ]]; then
+    protected_list=("${(@s:,:)protected_raw}")
+  else
+    protected_list=("$main_branch")
+    if [[ "$main_branch" != main ]] && {
+      (( ${local_branch_names[(Ie)$main_name]} )) || (( ${origin_branch_names[(Ie)$main_name]} ))
+    }; then
+      protected_list+=(main)
+    fi
+  fi
+  protected_list=("${(u)protected_list[@]}")
+  (( ${protected_list[(Ie)$main_branch]} )) || protected_list+=("$main_branch")
+
+  remote_only_raw="${attrs[repo-remote-only-branches]:-}"
+  [[ -n "$remote_only_raw" && "$remote_only_raw" != unspecified ]] || remote_only_raw="${config_values[local.repo-remote-only-branches]:-}"
+  if [[ -n "$remote_only_raw" && "$remote_only_raw" != unspecified ]]; then
+    remote_only_list=("${(@s:,:)remote_only_raw}")
+    remote_only_list=("${(u)remote_only_list[@]}")
+    legacy_remote_patterns=()
+  else
+    remote_only_list=()
+  fi
+
+  base=${#protected_list}
+  is_protected=0
+  for p in "${protected_list[@]}"; do
+    [[ "$branch" == "$p" ]] && { is_protected=1; break; }
+  done
+
+  status_str=''
+  (( staged    > 0 )) && status_str+=" +${staged}"
+  (( unstaged  > 0 )) && status_str+=" !${unstaged}"
+  (( untracked > 0 )) && status_str+=" ?${untracked}"
+  (( stashed   > 0 )) && status_str+=" *${stashed}"
+  (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
+  (( behind    > 0 )) && status_str+=" ⇣${behind}"
+  status_str="${status_str# }"
+  [[ -n "$status_str" ]] || status_str='✓'
+
+  local_br=${#local_branch_names[@]}
+  origin_br=${#origin_branch_names[@]}
+  for expected in "${protected_list[@]}"; do
+    (( ${local_branch_names[(Ie)$expected]} )) || policy_ok=0
+    (( ${origin_branch_names[(Ie)$expected]} )) || policy_ok=0
+  done
+  for expected in "${remote_only_list[@]}"; do
+    (( ${local_branch_names[(Ie)$expected]} )) && policy_ok=0
+    (( ${origin_branch_names[(Ie)$expected]} )) || policy_ok=0
+  done
+  for br_name in "${local_branch_names[@]}"; do
+    (( ${protected_list[(Ie)$br_name]} )) || policy_ok=0
+  done
+  for br_name in "${origin_branch_names[@]}"; do
+    matched=0
+    (( ${protected_list[(Ie)$br_name]} || ${remote_only_list[(Ie)$br_name]} )) && matched=1
+    if (( ! matched )); then
+      for br_pat in "${legacy_remote_patterns[@]}"; do
+        if [[ "$br_name" == ${~br_pat} ]]; then
+          matched=1
+          (( legacy_remote_extra++ ))
+          break
+        fi
+      done
+    fi
+    (( matched )) || policy_ok=0
+  done
+
+  local remote_only_expected=$(( ${#remote_only_list[@]} + legacy_remote_extra ))
+  local base_extra=$(( base - 1 ))
+  local local_extra_actual=$(( local_br - 1 ))
+  local origin_extra_actual=$(( origin_br - 1 ))
+  if (( base_extra > 0 )); then
+    br_str="1+${local_extra_actual}/1+${origin_extra_actual}"
+    expected_br="1\+${base_extra}/1\+$(( base_extra + remote_only_expected ))"
+  else
+    br_str="${local_br}/${origin_br}"
+    expected_br="1/$(( 1 + remote_only_expected ))"
+  fi
+
+  if [[ -r "$repo/docs/dev-charter/VERSION" ]]; then
+    charter_ver="$(<"$repo/docs/dev-charter/VERSION")"
+  fi
+  [[ -n "$charter_ver" ]] || charter_ver='-'
+
+  keep_val="${config_values[local.keep-up-to-date]:-}"
+  [[ "$keep_val" == true ]] && keep_val=keep || keep_val=skip
+
+  printf '%s\0' "${rel%/*}" "${rel##*/}" "$branch" "$status_str" "$br_str" \
+    "$charter_ver" "$keep_val" "$expected_br" "$is_protected" "$policy_ok"
 }
 
 _pad() {
@@ -133,153 +322,47 @@ main() {
   # （その場合は要更新ではないので赤くしない、単純な不一致判定にはしない）
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected all_policy_ok
+  typeset -a repo_list worker_pids
+  repo_list=("${(@f)$(ghq list -p | sort -fV | grep -iE -- "$filter")}")
 
-  while IFS= read -r repo; do
-    local rel branch staged unstaged untracked stashed ahead behind status_str local_br origin_br br_str charter_ver keep_val
-    rel="${repo#"$root/"}"
+  local jobs="${GHQ_STATUS_JOBS:-8}"
+  [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { print -u2 "error: GHQ_STATUS_JOBS must be a positive integer"; return 1; }
 
-    branch="$(git -C "$repo" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  local tmp_base="${TMPDIR:-/tmp}"
+  tmp_base="${tmp_base%/}"
+  _GHQ_STATUS_TMP_PREFIX="$tmp_base/ghq-status."
+  _GHQ_STATUS_TMP_DIR="$(mktemp -d "${_GHQ_STATUS_TMP_PREFIX}XXXXXX")" || return 1
+  trap '_cleanup_status_tmp; exit 130' HUP INT TERM
+  trap _cleanup_status_tmp EXIT
 
-    local main_branch protected_raw remote_only_raw base is_protected p
-    main_branch="$(_repo_attr "$repo" repo-main-branch)"
-    if [[ -z "$main_branch" || "$main_branch" == unspecified ]]; then
-      main_branch="$(_repo_attr "$repo" git-sweep-main)"
+  local i repo pid
+  for (( i = 1; i <= ${#repo_list}; i++ )); do
+    repo="${repo_list[$i]}"
+    _collect_repo "$repo" "$root" > "$_GHQ_STATUS_TMP_DIR/$i" &
+    worker_pids+=("$!")
+    if (( ${#worker_pids} >= jobs )); then
+      for pid in "${worker_pids[@]}"; do wait "$pid" || return 1; done
+      worker_pids=()
     fi
-    if [[ -z "$main_branch" || "$main_branch" == unspecified ]]; then
-      main_branch="$(_repo_config "$repo" local.repo-main-branch)"
-    fi
-    if [[ -z "$main_branch" ]]; then
-      main_branch="$(git -C "$repo" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)"
-      main_branch="${main_branch#origin/}"
-      if [[ -n "$main_branch" ]] && ! git -C "$repo" show-ref --verify --quiet "refs/remotes/origin/${main_branch}"; then
-        main_branch=""
-      fi
-    fi
-    [[ -n "$main_branch" ]] || main_branch=main
+  done
+  for pid in "${worker_pids[@]}"; do wait "$pid" || return 1; done
 
-    protected_raw="$(_repo_attr "$repo" repo-protected-branches)"
-    if [[ -z "$protected_raw" || "$protected_raw" == unspecified ]]; then
-      protected_raw="$(_repo_attr "$repo" git-sweep-protected)"
-    fi
-    if [[ -z "$protected_raw" || "$protected_raw" == unspecified ]]; then
-      protected_raw="$(_repo_config "$repo" local.repo-protected-branches)"
-    fi
-    typeset -a protected_list remote_only_list legacy_remote_patterns
-    if [[ -n "$protected_raw" && "$protected_raw" != "unspecified" ]]; then
-      protected_list=("${(@s:,:)protected_raw}")
-    else
-      protected_list=("$main_branch")
-      if [[ "$main_branch" != main ]] && {
-        git -C "$repo" show-ref --verify --quiet refs/heads/main ||
-          git -C "$repo" show-ref --verify --quiet refs/remotes/origin/main
-      }; then
-        protected_list+=("main")
-      fi
-    fi
-    protected_list=("${(u)protected_list[@]}")
-    (( ${protected_list[(Ie)$main_branch]} )) || protected_list+=("$main_branch")
-
-    remote_only_raw="$(_repo_attr "$repo" repo-remote-only-branches)"
-    if [[ -z "$remote_only_raw" || "$remote_only_raw" == unspecified ]]; then
-      remote_only_raw="$(_repo_config "$repo" local.repo-remote-only-branches)"
-    fi
-    if [[ -n "$remote_only_raw" && "$remote_only_raw" != unspecified ]]; then
-      remote_only_list=("${(@s:,:)remote_only_raw}")
-      remote_only_list=("${(u)remote_only_list[@]}")
-    else
-      remote_only_list=()
-      legacy_remote_patterns=("${(@f)$(git -C "$repo" config --get-all local.status-allowed-remote-branch 2>/dev/null)}")
-    fi
-    base=${#protected_list}
-    is_protected=0
-    for p in "${protected_list[@]}"; do
-      [[ "$branch" == "$p" ]] && { is_protected=1; break; }
-    done
-
-    staged=$(git -C "$repo" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
-    unstaged=$(git -C "$repo" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
-    untracked=$(git -C "$repo" ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-    stashed=$(git -C "$repo" stash list 2>/dev/null | wc -l | tr -d ' ')
-    # shellcheck disable=SC1083
-    ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null || echo 0)
-    # shellcheck disable=SC1083
-    behind=$(git -C "$repo" rev-list --count HEAD..@{u} 2>/dev/null || echo 0)
-
-    status_str=""
-    (( staged    > 0 )) && status_str+=" +${staged}"
-    (( unstaged  > 0 )) && status_str+=" !${unstaged}"
-    (( untracked > 0 )) && status_str+=" ?${untracked}"
-    (( stashed   > 0 )) && status_str+=" *${stashed}"
-    (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
-    (( behind    > 0 )) && status_str+=" ⇣${behind}"
-    status_str="${status_str# }"
-    [[ -z "$status_str" ]] && status_str="✓"
-
-    typeset -a local_branch_names origin_branch_names
-    local_branch_names=("${(@f)$(git -C "$repo" branch --format='%(refname:short)' 2>/dev/null)}")
-    origin_branch_names=("${(@f)$(git -C "$repo" branch -r 2>/dev/null | awk '/  origin\// && !/ -> /{sub(/.*origin\//,""); print}')}")
-
-    local br_name br_pat expected policy_ok=1 legacy_remote_extra=0 matched
-    local_br=${#local_branch_names[@]}
-    origin_br=${#origin_branch_names[@]}
-
-    for expected in "${protected_list[@]}"; do
-      (( ${local_branch_names[(Ie)$expected]} )) || policy_ok=0
-      (( ${origin_branch_names[(Ie)$expected]} )) || policy_ok=0
-    done
-    for expected in "${remote_only_list[@]}"; do
-      (( ${local_branch_names[(Ie)$expected]} )) && policy_ok=0
-      (( ${origin_branch_names[(Ie)$expected]} )) || policy_ok=0
-    done
-    for br_name in "${local_branch_names[@]}"; do
-      (( ${protected_list[(Ie)$br_name]} )) || policy_ok=0
-    done
-    for br_name in "${origin_branch_names[@]}"; do
-      matched=0
-      (( ${protected_list[(Ie)$br_name]} || ${remote_only_list[(Ie)$br_name]} )) && matched=1
-      if (( ! matched )); then
-        for br_pat in "${legacy_remote_patterns[@]}"; do
-          if [[ "$br_name" == ${~br_pat} ]]; then
-            matched=1
-            (( legacy_remote_extra++ ))
-            break
-          fi
-        done
-      fi
-      (( matched )) || policy_ok=0
-    done
-
-    local remote_only_expected=$(( ${#remote_only_list[@]} + legacy_remote_extra ))
-
-    # BRANCHES 列は常に "(main+通常ブランチ)/(main+通常ブランチ)" の2数のみで表示する。
-    # base_extra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら従来通り
-    # "local/origin" の実測値表示、1 以上（main+develop 等の複数ブランチ恒久運用）なら
-    # "1" の基準と実測の追加分を "1+N" の形に分解して表示する。origin 側の想定値には
-    # remote-onlyブランチ数を合算し、想定外のブランチだけが
-    # ハイライト対象になるようにする
-    local base_extra=$(( base - 1 ))
-    local local_extra_actual=$(( local_br - 1 ))
-    local origin_extra_actual=$(( origin_br - 1 ))
-    local expected_br
-    if (( base_extra > 0 )); then
-      br_str="1+${local_extra_actual}/1+${origin_extra_actual}"
-      expected_br="1\+${base_extra}/1\+$(( base_extra + remote_only_expected ))"
-    else
-      br_str="${local_br}/${origin_br}"
-      expected_br="1/$(( 1 + remote_only_expected ))"
-    fi
-
-    charter_ver="$(cat "$repo/docs/dev-charter/VERSION" 2>/dev/null)"
-    [[ -z "$charter_ver" ]] && charter_ver="-"
-
-    keep_val="$(git -C "$repo" config local.keep-up-to-date 2>/dev/null || true)"
-    case "$keep_val" in
-      true) keep_val="keep" ;;
-      *)    keep_val="skip" ;;
-    esac
-
-    all_groups+=("${rel%/*}")
-    all_repo_names+=("${rel##*/}")
+  local group repo_name branch status_str br_str charter_ver keep_val expected_br is_protected policy_ok
+  for (( i = 1; i <= ${#repo_list}; i++ )); do
+    {
+      IFS= read -r -d $'\0' group
+      IFS= read -r -d $'\0' repo_name
+      IFS= read -r -d $'\0' branch
+      IFS= read -r -d $'\0' status_str
+      IFS= read -r -d $'\0' br_str
+      IFS= read -r -d $'\0' charter_ver
+      IFS= read -r -d $'\0' keep_val
+      IFS= read -r -d $'\0' expected_br
+      IFS= read -r -d $'\0' is_protected
+      IFS= read -r -d $'\0' policy_ok
+    } < "$_GHQ_STATUS_TMP_DIR/$i"
+    all_groups+=("$group")
+    all_repo_names+=("$repo_name")
     all_branches+=("$branch")
     all_statuses+=("$status_str")
     all_brs+=("$br_str")
@@ -288,9 +371,9 @@ main() {
     all_bases+=("$expected_br")
     all_protected+=("$is_protected")
     all_policy_ok+=("$policy_ok")
-  done < <(ghq list -p | sort -fV | grep -iE -- "$filter") > /dev/null
-
-  local i
+  done
+  _cleanup_status_tmp
+  trap - EXIT HUP INT TERM
 
   if [[ "$show_all" != 1 ]]; then
     typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps q_bases q_protected q_policy_ok

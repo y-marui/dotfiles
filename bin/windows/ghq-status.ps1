@@ -27,7 +27,7 @@
 # 旧 git-sweep-main / git-sweep-protected 属性と
 # local.status-allowed-remote-branch（glob・複数可）も互換fallbackとして読み取る。
 #
-# その他のgit config:
+# その他のgit config / 環境変数:
 #   local.status-ignore-charter-outdated true/false
 #       DEV-CHARTER 列が古い（charter_latest より古い）場合の赤色ハイライトと、
 #       -a 無指定時の強制表示（quiet row 扱いにしない挙動）を無視するかどうかの
@@ -35,6 +35,8 @@
 #       で都度上書きできる。git config が一切未設定の場合のスクリプト側フォールバックは
 #       false（従来通りハイライト・強制表示する）だが、dotfiles 配布の
 #       git/gitconfig（[local] セクション）でデフォルト true（無視する）を設定済み。
+#   GHQ_STATUS_JOBS
+#       リポジトリ情報を並列取得するワーカー数。デフォルトは8。
 #
 # BRANCHES 列はローカル/originの実測数を表示する。main+developがprotected、liteが
 # remote-onlyなら正常値は1+1/1+2。数だけでなくブランチ名と配置も検証するため、
@@ -52,25 +54,6 @@ function Show-Help {
         if ($line -eq '') { break }
         Write-Host ($line -replace '^#\s?', '')
     }
-}
-
-function Get-RepoAttr([string]$Repo, [string]$Attr) {
-    $global:LASTEXITCODE = $null
-    $output = (& git -C $Repo check-attr $Attr -- . 2>$null)
-    if ($output -match ": ${Attr}: (.+)$") { return $Matches[1] }
-    return $null
-}
-
-function Get-RepoConfigValue([string]$Repo, [string]$Key) {
-    $global:LASTEXITCODE = $null
-    $value = (& git -C $Repo config --get $Key 2>$null)
-    if ($LASTEXITCODE -eq 0 -and $value) { return $value.Trim() }
-    return $null
-}
-
-function ConvertFrom-BranchCsv([string]$Csv) {
-    if (-not $Csv) { return @() }
-    return @($Csv -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
 }
 
 # ---------- 表示幅（East Asian Width 概算） ----------
@@ -234,81 +217,122 @@ $allBases = New-Object System.Collections.Generic.List[string]
 $allProtected = New-Object System.Collections.Generic.List[bool]
 $allPolicyOk = New-Object System.Collections.Generic.List[bool]
 
-foreach ($repo in $repoList) {
+$jobs = 8
+if ($env:GHQ_STATUS_JOBS) {
+    $parsedJobs = 0
+    if (-not [int]::TryParse($env:GHQ_STATUS_JOBS, [ref]$parsedJobs) -or $parsedJobs -lt 1) {
+        Write-StatusStderr 'error: GHQ_STATUS_JOBS must be a positive integer'
+        exit 1
+    }
+    $jobs = $parsedJobs
+}
+
+$workItems = @(for ($repoIndex = 0; $repoIndex -lt $repoList.Count; $repoIndex++) {
+    [PSCustomObject]@{ Index = $repoIndex; Repo = $repoList[$repoIndex] }
+})
+
+$repoData = @($workItems | ForEach-Object -Parallel {
+    $item = $_
+    $repo = $item.Repo
+    $repoRoot = $using:root
     $rel = $repo
-    if ($root -and $repo.StartsWith($root)) {
-        $rel = $repo.Substring($root.Length).TrimStart('\', '/')
+    if ($repoRoot -and $repo.StartsWith($repoRoot)) {
+        $rel = $repo.Substring($repoRoot.Length).TrimStart('\', '/')
     }
 
-    $global:LASTEXITCODE = $null
-    $branch = (& git -C $repo rev-parse --abbrev-ref HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0 -or -not $branch) { $branch = '?' }
-
-    $mainBranch = Get-RepoAttr $repo 'repo-main-branch'
-    if (-not $mainBranch -or $mainBranch -eq 'unspecified') {
-        $mainBranch = Get-RepoAttr $repo 'git-sweep-main'
-    }
-    if (-not $mainBranch -or $mainBranch -eq 'unspecified') {
-        $mainBranch = Get-RepoConfigValue $repo 'local.repo-main-branch'
-    }
-    if (-not $mainBranch) {
-        $originHead = (& git -C $repo symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
-        if ($LASTEXITCODE -eq 0 -and $originHead) {
-            $originHead = $originHead -replace '^origin/', ''
-            & git -C $repo show-ref --verify --quiet "refs/remotes/origin/$originHead"
-            if ($LASTEXITCODE -eq 0) { $mainBranch = $originHead }
+    # status、branch、upstream差分、stashを1回の走査で取得する。
+    $statusLines = @(& git -C $repo status --porcelain=v2 --branch --show-stash --ahead-behind --untracked-files=all 2>$null)
+    $branch = '?'
+    $staged = 0; $unstaged = 0; $untracked = 0; $stashed = 0; $ahead = 0; $behind = 0
+    foreach ($line in $statusLines) {
+        if ($line.StartsWith('# branch.head ')) {
+            $branch = $line.Substring(14)
+            if ($branch -eq '(detached)') { $branch = 'HEAD' }
+        } elseif ($line -match '^# branch\.ab \+(\d+) -(\d+)$') {
+            $ahead = [int]$Matches[1]
+            $behind = [int]$Matches[2]
+        } elseif ($line -match '^# stash (\d+)$') {
+            $stashed = [int]$Matches[1]
+        } elseif ($line -match '^[12u] (..)' ) {
+            $xy = $Matches[1]
+            if ($xy[0] -ne '.') { $staged++ }
+            if ($xy[1] -ne '.') { $unstaged++ }
+        } elseif ($line.StartsWith('? ')) {
+            $untracked++
         }
     }
+
+    # リポジトリ属性は属性ごとではなく1回のGit呼び出しで取得する。
+    $attrArgs = @(
+        '-C', $repo, 'check-attr',
+        'repo-main-branch', 'git-sweep-main', 'repo-protected-branches',
+        'git-sweep-protected', 'repo-remote-only-branches', '--', '.'
+    )
+    $attrs = @{}
+    foreach ($line in @(& git @attrArgs 2>$null)) {
+        if ($line -match '^.*: ([^:]+): (.*)$') { $attrs[$Matches[1]] = $Matches[2] }
+    }
+
+    # fallback設定も1回で取得し、同じキーが複数あれば従来通り最後の値を使う。
+    $configValues = @{}
+    $legacyRemotePatterns = @()
+    $configPattern = '^local\.(repo-main-branch|repo-protected-branches|repo-remote-only-branches|status-allowed-remote-branch|keep-up-to-date)$'
+    foreach ($line in @(& git -C $repo config --get-regexp $configPattern 2>$null)) {
+        if ($line -notmatch '^(\S+)\s(.*)$') { continue }
+        if ($Matches[1] -eq 'local.status-allowed-remote-branch') {
+            $legacyRemotePatterns += $Matches[2]
+        } else {
+            $configValues[$Matches[1]] = $Matches[2]
+        }
+    }
+
+    # ローカル・originブランチとorigin/HEADを1回で取得する。
+    $localBranchNames = @()
+    $originBranchNames = @()
+    $originHead = ''
+    foreach ($line in @(& git -C $repo for-each-ref '--format=%(refname)%09%(symref)' refs/heads refs/remotes/origin 2>$null)) {
+        $parts = @($line -split "`t", 2)
+        $ref = $parts[0]
+        $sym = if ($parts.Count -gt 1) { $parts[1] } else { '' }
+        if ($ref.StartsWith('refs/heads/')) {
+            $localBranchNames += $ref.Substring(11)
+        } elseif ($ref -eq 'refs/remotes/origin/HEAD') {
+            if ($sym.StartsWith('refs/remotes/origin/')) { $originHead = $sym.Substring(20) }
+        } elseif ($ref.StartsWith('refs/remotes/origin/')) {
+            $originBranchNames += $ref.Substring(20)
+        }
+    }
+
+    $mainBranch = $attrs['repo-main-branch']
+    if (-not $mainBranch -or $mainBranch -eq 'unspecified') { $mainBranch = $attrs['git-sweep-main'] }
+    if (-not $mainBranch -or $mainBranch -eq 'unspecified') { $mainBranch = $configValues['local.repo-main-branch'] }
+    if (-not $mainBranch -and $originHead -and $originBranchNames -contains $originHead) { $mainBranch = $originHead }
     if (-not $mainBranch) { $mainBranch = 'main' }
 
-    $protectedRaw = Get-RepoAttr $repo 'repo-protected-branches'
-    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') {
-        $protectedRaw = Get-RepoAttr $repo 'git-sweep-protected'
-    }
-    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') {
-        $protectedRaw = Get-RepoConfigValue $repo 'local.repo-protected-branches'
-    }
-    $protectedList = @(if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
-        @(ConvertFrom-BranchCsv $protectedRaw)
+    $protectedRaw = $attrs['repo-protected-branches']
+    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') { $protectedRaw = $attrs['git-sweep-protected'] }
+    if (-not $protectedRaw -or $protectedRaw -eq 'unspecified') { $protectedRaw = $configValues['local.repo-protected-branches'] }
+    if ($protectedRaw -and $protectedRaw -ne 'unspecified') {
+        $protectedList = @($protectedRaw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
     } else {
-        @($mainBranch)
-        if ($mainBranch -ne 'main') {
-            & git -C $repo show-ref --verify --quiet refs/heads/main
-            $hasMain = ($LASTEXITCODE -eq 0)
-            if (-not $hasMain) {
-                & git -C $repo show-ref --verify --quiet refs/remotes/origin/main
-                $hasMain = ($LASTEXITCODE -eq 0)
-            }
-            if ($hasMain) { 'main' }
+        $protectedList = @($mainBranch)
+        if ($mainBranch -ne 'main' -and ($localBranchNames -contains 'main' -or $originBranchNames -contains 'main')) {
+            $protectedList += 'main'
         }
-    })
+    }
     if ($protectedList -notcontains $mainBranch) { $protectedList += $mainBranch }
 
-    $remoteOnlyRaw = Get-RepoAttr $repo 'repo-remote-only-branches'
-    if (-not $remoteOnlyRaw -or $remoteOnlyRaw -eq 'unspecified') {
-        $remoteOnlyRaw = Get-RepoConfigValue $repo 'local.repo-remote-only-branches'
-    }
-    $legacyRemotePatterns = @()
+    $remoteOnlyRaw = $attrs['repo-remote-only-branches']
+    if (-not $remoteOnlyRaw -or $remoteOnlyRaw -eq 'unspecified') { $remoteOnlyRaw = $configValues['local.repo-remote-only-branches'] }
     if ($remoteOnlyRaw -and $remoteOnlyRaw -ne 'unspecified') {
-        $remoteOnlyList = @(ConvertFrom-BranchCsv $remoteOnlyRaw)
+        $remoteOnlyList = @($remoteOnlyRaw -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
+        $legacyRemotePatterns = @()
     } else {
         $remoteOnlyList = @()
-        $legacyRemotePatterns = @(& git -C $repo config --get-all local.status-allowed-remote-branch 2>$null)
     }
+
     $base = $protectedList.Count
     $isProtected = $protectedList -contains $branch
-
-    $staged = @(& git -C $repo diff --cached --name-only 2>$null).Count
-    $unstaged = @(& git -C $repo diff --name-only 2>$null).Count
-    $untracked = @(& git -C $repo ls-files --others --exclude-standard 2>$null).Count
-    $stashed = @(& git -C $repo stash list 2>$null).Count
-
-    $global:LASTEXITCODE = $null
-    $aheadRaw = (& git -C $repo rev-list --count '@{u}..HEAD' 2>$null)
-    $ahead = if ($LASTEXITCODE -eq 0 -and $aheadRaw) { [int]$aheadRaw } else { 0 }
-    $global:LASTEXITCODE = $null
-    $behindRaw = (& git -C $repo rev-list --count 'HEAD..@{u}' 2>$null)
-    $behind = if ($LASTEXITCODE -eq 0 -and $behindRaw) { [int]$behindRaw } else { 0 }
 
     $statusParts = @()
     if ($staged -gt 0) { $statusParts += "+$staged" }
@@ -318,12 +342,6 @@ foreach ($repo in $repoList) {
     if ($ahead -gt 0) { $statusParts += "⇡$ahead" }
     if ($behind -gt 0) { $statusParts += "⇣$behind" }
     $statusStr = if ($statusParts.Count -gt 0) { $statusParts -join ' ' } else { '✓' }
-
-    $branchRLines = @(& git -C $repo branch -r 2>$null)
-    $localBranchNames = @(& git -C $repo branch --format='%(refname:short)' 2>$null)
-    $originBranchNames = @($branchRLines | Where-Object { $_ -match '  origin/' -and $_ -notmatch ' -> ' } | ForEach-Object {
-        $_ -replace '.*origin/', ''
-    })
 
     $localBr = $localBranchNames.Count
     $originBr = $originBranchNames.Count
@@ -353,17 +371,9 @@ foreach ($repo in $repoList) {
     }
 
     $remoteOnlyExpected = $remoteOnlyList.Count + $legacyRemoteExtra
-
-    # baseExtra（PROTECTED のうち main 以外の数、develop 運用なら 1）が 0 なら
-    # 従来通りの "local/origin[+N]" 表示のまま。1 以上（main+develop 等の複数
-    # ブランチ恒久運用）なら "1" の基準と実測の追加分を "1+N" の形に分解して
-    # 表示する。ローカル・リモートそれぞれの N が独立して見えるので、develop が
-    # 片方にしか無い異常（例: "1+1/1+0"）も判別できる
     $baseExtra = $base - 1
     if ($baseExtra -gt 0) {
-        $localExtraActual = $localBr - 1
-        $originExtraActual = $originBr - 1
-        $brStr = "1+$localExtraActual/1+$originExtraActual"
+        $brStr = "1+$($localBr - 1)/1+$($originBr - 1)"
         $expectedBr = "1\+$baseExtra/1\+$($baseExtra + $remoteOnlyExpected)"
     } else {
         $brStr = "$localBr/$originBr"
@@ -372,16 +382,11 @@ foreach ($repo in $repoList) {
 
     $charterVerFile = Join-Path $repo 'docs\dev-charter\VERSION'
     $charterVer = if (Test-Path -LiteralPath $charterVerFile) {
-        (Get-Content -LiteralPath $charterVerFile -Raw -ErrorAction SilentlyContinue).Trim()
+        [IO.File]::ReadAllText($charterVerFile).Trim()
     } else { '-' }
     if (-not $charterVer) { $charterVer = '-' }
 
-    $global:LASTEXITCODE = $null
-    $keepRaw = (& git -C $repo config local.keep-up-to-date 2>$null)
-    $keepVal = switch ($keepRaw) {
-        'true' { 'keep' }
-        default { 'skip' }
-    }
+    $keepVal = if ($configValues['local.keep-up-to-date'] -eq 'true') { 'keep' } else { 'skip' }
 
     $sepIdx = [Math]::Max($rel.LastIndexOf('\'), $rel.LastIndexOf('/'))
     if ($sepIdx -ge 0) {
@@ -392,16 +397,24 @@ foreach ($repo in $repoList) {
         $repoName = $rel
     }
 
-    $allGroups.Add($groupName)
-    $allRepoNames.Add($repoName)
-    $allBranches.Add($branch)
-    $allStatuses.Add($statusStr)
-    $allBrs.Add($brStr)
-    $allCharters.Add($charterVer)
-    $allKeeps.Add($keepVal)
-    $allBases.Add($expectedBr)
-    $allProtected.Add($isProtected)
-    $allPolicyOk.Add($policyOk)
+    [PSCustomObject]@{
+        Index = $item.Index; Group = $groupName; RepoName = $repoName; Branch = $branch
+        Status = $statusStr; Branches = $brStr; Charter = $charterVer; Keep = $keepVal
+        ExpectedBranches = $expectedBr; IsProtected = $isProtected; PolicyOk = $policyOk
+    }
+} -ThrottleLimit $jobs | Sort-Object Index)
+
+foreach ($data in $repoData) {
+    $allGroups.Add($data.Group)
+    $allRepoNames.Add($data.RepoName)
+    $allBranches.Add($data.Branch)
+    $allStatuses.Add($data.Status)
+    $allBrs.Add($data.Branches)
+    $allCharters.Add($data.Charter)
+    $allKeeps.Add($data.Keep)
+    $allBases.Add($data.ExpectedBranches)
+    $allProtected.Add($data.IsProtected)
+    $allPolicyOk.Add($data.PolicyOk)
 }
 
 $activeIdxList = New-Object System.Collections.Generic.List[int]
