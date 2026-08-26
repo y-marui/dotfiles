@@ -80,9 +80,13 @@ _is_quiet_row() {
 }
 
 _row() {
+  local _branch_color=''
+  [[ "$9" != 1 ]] && _branch_color=$'\033[31m'
+  local _status_color=''
+  [[ "$3" != "✓" ]] && _status_color=$'\033[31m'
   printf '│ '; _pad "$1" "$w_repo"
-  printf ' │ '; _pad "$2" "$w_branch"
-  printf ' │ '; _pad "$3" "$w_status"
+  printf ' │ %s' "$_branch_color"; _pad "$2" "$w_branch"; printf '\033[0m'
+  printf ' │ %s' "$_status_color"; _pad "$3" "$w_status"; printf '\033[0m'
   local _bc=''
   [[ ! "$4" =~ ^${7}$ || "$8" != 1 ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
@@ -90,7 +94,7 @@ _row() {
   [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$5" != "-" && "$5" < "$charter_latest" ]] && _cc=$'\033[31m'
   printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
-  case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[31m' ;; esac
+  case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[90m' ;; esac
   printf ' │ %s' "$_kc"; _pad "$6" "$w_keep"; printf '\033[0m │\n'
 }
 
@@ -270,9 +274,8 @@ main() {
 
     keep_val="$(git -C "$repo" config local.keep-up-to-date 2>/dev/null || true)"
     case "$keep_val" in
-      true)  keep_val="keep" ;;
-      false) keep_val="skip" ;;
-      *)     keep_val="-" ;;
+      true) keep_val="keep" ;;
+      *)    keep_val="skip" ;;
     esac
 
     all_groups+=("${rel%/*}")
@@ -323,12 +326,12 @@ main() {
     (( ${seen_groups[(Ie)${all_groups[$i]}]} )) || seen_groups+=("${all_groups[$i]}")
   done
 
-  typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps g_bases g_policy_ok
+  typeset -a g_names g_branches g_statuses g_brs g_charters g_keeps g_bases g_policy_ok g_protected
   local w_repo w_repo_max w_branch w_status w_br w_charter w_keep w_repo_expanded
   local r1 r2 r3 r4 r5 r6 g j
 
   for g in "${seen_groups[@]}"; do
-    g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=(); g_bases=(); g_policy_ok=()
+    g_names=(); g_branches=(); g_statuses=(); g_brs=(); g_charters=(); g_keeps=(); g_bases=(); g_policy_ok=(); g_protected=()
     w_repo=4; w_branch=6; w_status=10; w_br=8; w_charter=11; w_keep=4
 
     for (( i = 1; i <= ${#all_groups}; i++ )); do
@@ -341,6 +344,7 @@ main() {
       g_keeps+=("${all_keeps[$i]}")
       g_bases+=("${all_bases[$i]}")
       g_policy_ok+=("${all_policy_ok[$i]}")
+      g_protected+=("${all_protected[$i]}")
       (( ${(m)#all_repo_names[$i]} > w_repo    )) && w_repo=${(m)#all_repo_names[$i]}
       (( ${(m)#all_branches[$i]}   > w_branch  )) && w_branch=${(m)#all_branches[$i]}
       (( ${(m)#all_statuses[$i]}   > w_status  )) && w_status=${(m)#all_statuses[$i]}
@@ -366,7 +370,7 @@ main() {
     printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
 
     for (( j = 1; j <= ${#g_names}; j++ )); do
-      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}" "${g_bases[$j]}" "${g_policy_ok[$j]}"
+      _row "${g_names[$j]}" "${g_branches[$j]}" "${g_statuses[$j]}" "${g_brs[$j]}" "${g_charters[$j]}" "${g_keeps[$j]}" "${g_bases[$j]}" "${g_policy_ok[$j]}" "${g_protected[$j]}"
       if (( j < ${#g_names} )); then
         printf '├%s┼%s┼%s┼%s┼%s┼%s┤\n' "$r1" "$r2" "$r3" "$r4" "$r5" "$r6"
       fi

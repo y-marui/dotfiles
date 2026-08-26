@@ -145,14 +145,16 @@ function Write-StatusHeader([string[]]$Cells, [int[]]$Widths) {
     Write-Host ("│ " + ($parts -join " │ ") + " │")
 }
 
-function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr, [bool]$PolicyOk, [bool]$IgnoreCharter) {
+function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [string]$Br, [string]$Charter, [string]$Keep, [int[]]$Widths, [string]$CharterLatest, [string]$ExpectedBr, [bool]$PolicyOk, [bool]$IsProtected, [bool]$IgnoreCharter) {
+    $branchColor = if (-not $IsProtected) { "`e[31m" } else { '' }
+    $statusColor = if ($StatusVal -ne '✓') { "`e[31m" } else { '' }
     $bc = if (-not $PolicyOk -or $Br -notmatch "^${ExpectedBr}`$") { "`e[31m" } else { '' }
     $cc = if (-not $IgnoreCharter -and $CharterLatest -and $Charter -ne '-' -and $Charter -ne $CharterLatest) { "`e[31m" } else { '' }
-    $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[31m" } default { '' } }
+    $kc = switch ($Keep) { 'keep' { "`e[32m" } 'skip' { "`e[90m" } default { '' } }
 
     $line = "│ " + (Format-TablePad $Repo $Widths[0])
-    $line += " │ " + (Format-TablePad $Branch $Widths[1])
-    $line += " │ " + (Format-TablePad $StatusVal $Widths[2])
+    $line += " │ $branchColor" + (Format-TablePad $Branch $Widths[1]) + "`e[0m"
+    $line += " │ $statusColor" + (Format-TablePad $StatusVal $Widths[2]) + "`e[0m"
     $line += " │ $bc" + (Format-TablePad $Br $Widths[3]) + "`e[0m"
     $line += " │ $cc" + (Format-TablePad $Charter $Widths[4]) + "`e[0m"
     $line += " │ $kc" + (Format-TablePad $Keep $Widths[5]) + "`e[0m │"
@@ -378,8 +380,7 @@ foreach ($repo in $repoList) {
     $keepRaw = (& git -C $repo config local.keep-up-to-date 2>$null)
     $keepVal = switch ($keepRaw) {
         'true' { 'keep' }
-        'false' { 'skip' }
-        default { '-' }
+        default { 'skip' }
     }
 
     $sepIdx = [Math]::Max($rel.LastIndexOf('\'), $rel.LastIndexOf('/'))
@@ -453,7 +454,7 @@ foreach ($group in $seenGroups) {
 
     for ($j = 0; $j -lt $idxInGroup.Count; $j++) {
         $idx = $idxInGroup[$j]
-        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx] $allPolicyOk[$idx] $IGNORE_CHARTER
+        Write-StatusRow $allRepoNames[$idx] $allBranches[$idx] $allStatuses[$idx] $allBrs[$idx] $allCharters[$idx] $allKeeps[$idx] $widths $charterLatest $allBases[$idx] $allPolicyOk[$idx] $allProtected[$idx] $IGNORE_CHARTER
         if ($j -lt $idxInGroup.Count - 1) {
             Write-Host "├$r1┼$r2┼$r3┼$r4┼$r5┼$r6┤"
         }

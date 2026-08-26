@@ -101,3 +101,8 @@ BRANCHES列は`.gitattributes`の`repo-protected-branches`をローカル・orig
 `repo-remote-only-branches`をoriginだけの期待ブランチとして検証する。総数だけでなく
 ブランチ名と配置も比較し、欠落・余分・remote-onlyのローカル作成をハイライトする。
 Unix版とWindows版は同じ判定規則を使う。
+
+配色は、対応が必要な状態を赤（保護対象外のBRANCH、cleanでないGIT STATUS、
+BRANCHESの方針違反、古いDEV-CHARTER）で示す。KEEPは更新対象の`keep`を緑、
+更新対象外の`skip`をグレーで示し、`local.keep-up-to-date`が未設定の場合も
+実際の更新動作に合わせて`skip`と表示する。
