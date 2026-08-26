@@ -33,7 +33,6 @@ case "${ACTION}" in
     fi
     launchctl bootstrap "${DOMAIN}" "${PLIST}"
     launchctl enable "${SERVICE}"
-    launchctl kickstart -k "${SERVICE}"
     printf '  LOAD    %s (1時間ごと・ログイン時)\n' "${LABEL}"
     ;;
   uninstall)
