@@ -42,6 +42,8 @@ GitHub上のタスク情報と恒久ドキュメントに同じ進捗やチェ�
 - [`topics/GITHUB_SETTINGS.md`](https://github.com/y-marui/dev-charter/blob/main/topics/GITHUB_SETTINGS.md):
   GitHub上の設定とIssue自動アサイン
 
-dev-charterのsubtree導入やfull適用は行わない。引用元の関連ファイルが変更されたとき、このrepoの
-文書・タスク運用を変更するとき、または活発な開発中は少なくとも四半期ごとに整合性を確認する。
-差分があってもfull適用へ拡張せず、このrepoとグローバルAI指示に必要な変更だけを反映する。
+`docs/dev-charter/` には参照用のlite版をsubtreeで取り込んでいるが、本節の運用ルールは上記4文書
+からの選択的な引用・一般化であり、dev-charterのfull適用ではない。引用元の関連ファイルが変更
+されたとき、このrepoの文書・タスク運用を変更するとき、または活発な開発中は少なくとも四半期
+ごとに整合性を確認する。差分があってもfull適用へ拡張せず、このrepoとグローバルAI指示に必要な
+変更だけを反映する。
