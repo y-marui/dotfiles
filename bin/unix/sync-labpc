@@ -79,7 +79,7 @@ fi
 
 if [[ ${#job_files[@]} -eq 0 ]]; then
   echo "error: 該当するジョブが見つかりません: ${target}" >&2
-  echo "利用可能なジョブ: $(cd "$JOBS_DIR" && ls *.conf 2>/dev/null | sed 's/\.conf$//' | tr '\n' ' ')" >&2
+  echo "利用可能なジョブ: $(find "$JOBS_DIR" -maxdepth 1 -type f -name '*.conf' -exec basename {} .conf \; | tr '\n' ' ')" >&2
   exit 1
 fi
 
