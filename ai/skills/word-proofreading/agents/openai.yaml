@@ -1,0 +1,4 @@
+interface:
+  display_name: "Word Proofreading"
+  short_description: "Proofread multilingual Word documents and text safely"
+  default_prompt: "Use $word-proofreading to proofread this text or Word document in Standard mode."
