@@ -427,6 +427,19 @@ _check_links_summary() {
   return 1
 }
 
+# scripts/install.sh が make install / dots update のたびに、シンボリンク化
+# できない既存ファイルを ~/.dotfiles-backup/<timestamp>/ へ退避する。放置すると
+# 無期限に増え続けるため、溜まっている件数を知らせる（削除は破壊的操作の
+# ため対象外。ユーザー自身が中身を確認して rm -rf すること）。
+_check_backup_summary() {
+  local backup_dir="${HOME}/.dotfiles-backup" count
+  [[ -d "${backup_dir}" ]] || return 0
+  count="$(find "${backup_dir}" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+  [[ "${count:-0}" -gt 0 ]] || return 0
+  printf '⚠ backup: %s件が %s に蓄積（中身を確認し、不要なら rm -rf で削除）\n' "${count}" "${backup_dir}"
+  return 1
+}
+
 _check_script_summary() {
   local label="$1" hint="$2"
   shift 2
@@ -441,6 +454,7 @@ _check_summary() {
   local found=0
 
   _check_links_summary || found=1
+  _check_backup_summary || found=1
   _check_repo_summary "dotfiles" "${DOTFILES_DIR}" || found=1
   _check_repo_summary "dotfiles-private" "${PRIVATE_DIR}" || found=1
 
@@ -493,6 +507,12 @@ _check_verbose() {
   echo " Checking dotfiles / dotfiles-private status ..."
   echo "=========================================="
   _status || true
+  echo ""
+
+  echo "=========================================="
+  echo " Checking ~/.dotfiles-backup accumulation ..."
+  echo "=========================================="
+  _check_backup_summary || true
   echo ""
 
   echo "=========================================="
