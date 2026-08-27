@@ -26,9 +26,9 @@ brew "cliclick"
 brew "displayplacer"
 brew "dockutil"
 brew "duti"
-cask "karabiner-elements"
 brew "lsusb"
 brew "switchaudio-osx"
+cask "karabiner-elements"
 
 # ── PDF / LaTeX ──────────────────────────────────────────────────────────────
 brew "diff-pdf"
@@ -59,7 +59,7 @@ brew "uv"
 brew "cmake"
 brew "colormake"
 brew "flyctl"
-brew "ollama"
+brew "ollama", restart_service: :changed
 brew "postgresql@14"
 brew "pre-commit"
 brew "pyright"
@@ -212,3 +212,7 @@ vscode "redhat.vscode-yaml"
 vscode "shuworks.vscode-table-formatter"
 vscode "tomoki1207.vscode-input-sequence"
 vscode "ziyasal.vscode-open-in-github"
+
+# ── 未分類 ────────────────────────────────────────────────────────────────────
+brew "go"
+cask "macshot"
