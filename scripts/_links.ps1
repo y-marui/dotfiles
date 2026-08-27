@@ -96,8 +96,14 @@ $Links = @(
 
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを
 # 個別リンクする。scripts/_links.sh の同名ロジックと揃える。
-foreach ($agent in @("codex", "claude")) {
-    $skillHome = if ($agent -eq "codex") { Join-Path $HOME ".agents\skills" } else { Join-Path $HOME ".claude\skills" }
+# gemini は Antigravity と Gemini CLI 本体で参照先ディレクトリが異なるため、
+# agent 1つにつき複数の配置先を持てるよう skillHomes を配列にしている。
+foreach ($agent in @("codex", "claude", "gemini")) {
+    $skillHomes = switch ($agent) {
+        "codex" { @(Join-Path $HOME ".agents\skills") }
+        "claude" { @(Join-Path $HOME ".claude\skills") }
+        "gemini" { @((Join-Path $HOME ".gemini\skills"), (Join-Path $HOME ".gemini\config\skills")) }
+    }
 
     $seenSkillNames = @{}
     foreach ($sourceHome in @((Join-Path $DOTFILES_DIR "ai\skills"), (Join-Path $DOTFILES_DIR "ai\$agent\skills"))) {
@@ -114,9 +120,11 @@ foreach ($agent in @("codex", "claude")) {
             $seenSkillNames[$skillName] = $true
 
             $skillSource = $_.FullName.Substring($DOTFILES_DIR.Length + 1)
-            $Links += [pscustomobject]@{
-                Src  = $skillSource
-                Dest = Join-Path $skillHome $skillName
+            foreach ($skillHome in $skillHomes) {
+                $Links += [pscustomobject]@{
+                    Src  = $skillSource
+                    Dest = Join-Path $skillHome $skillName
+                }
             }
         }
     }

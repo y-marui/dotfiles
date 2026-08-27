@@ -51,11 +51,14 @@ fi
 
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを
 # 個別リンクする。これにより、アプリや CLI が追加した未管理 skill と所有範囲が衝突しない。
+# gemini は Antigravity と Gemini CLI 本体で参照先ディレクトリが異なるため、
+# agent 1つにつき複数の配置先を持てるよう skill_homes を配列にしている。
 CODEX_LEGACY_SKILLS=()
-for agent in codex claude; do
+for agent in codex claude gemini; do
   case "${agent}" in
-    codex) skill_home="${HOME}/.agents/skills" ;;
-    claude) skill_home="${HOME}/.claude/skills" ;;
+    codex) skill_homes=("${HOME}/.agents/skills") ;;
+    claude) skill_homes=("${HOME}/.claude/skills") ;;
+    gemini) skill_homes=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   esac
 
   seen_skill_names="|"
@@ -71,7 +74,9 @@ for agent in codex claude; do
       fi
       seen_skill_names="${seen_skill_names}${skill_name}|"
       skill_source="${skill_dir#"${DOTFILES_DIR}/"}"
-      LINKS+=("${skill_source}|${skill_home}/${skill_name}")
+      for skill_home in "${skill_homes[@]}"; do
+        LINKS+=("${skill_source}|${skill_home}/${skill_name}")
+      done
       if [[ "${agent}" == codex ]]; then
         CODEX_LEGACY_SKILLS+=("${skill_name}")
       fi
