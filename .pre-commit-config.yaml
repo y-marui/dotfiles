@@ -299,12 +299,18 @@ repos:
         always_run: true
 
   # [16] ローカルの ../dev-charter チェックアウトとの VERSION 差分をチェック
+  # dotfiles は lite 版を導入しているが、check-local-charter-version.sh は
+  # デフォルトで sibling の main ブランチと比較する（dev-charter側の既知の
+  # 不整合: https://github.com/y-marui/dev-charter/issues/85）。main は lite
+  # より頻繁に更新されるため、デフォルトのままだと lite 側に取り込むべき
+  # 実際の更新が無くても常に「古い」と誤検知してブロックされる。
+  # CHARTER_LOCAL_REF=lite で比較対象を実際に導入している lite 自身に合わせる。
   - repo: local
     hooks:
       - id: check-local-charter-version
         name: "dev-charter: VERSION 追従チェック"
         language: system
-        entry: bash scripts/check-local-charter-version.sh
+        entry: env CHARTER_LOCAL_REF=lite bash scripts/check-local-charter-version.sh
         pass_filenames: false
         always_run: true
 

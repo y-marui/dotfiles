@@ -54,8 +54,12 @@ log ghq-update --pull-all
 
 echo ""
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') Warnings ==="
-if grep -iE "warn|deprecat" "${LOG_FILE}" > /dev/null 2>&1; then
-  grep -iE "warn|deprecat" "${LOG_FILE}"
+# ghq-pull/ghq-update/ghq-sweep は問題を "  [skip ...]"/"[warn]"/"[conflict]"/
+# "[failed]" のタグ付き行で報告する（_ghq-lib.sh 参照）。"warn|deprecat" だけを
+# 拾うと、これらタグ行の大半（[skip auto-pr] 等）が本節から漏れてしまうため、
+# タグそのものにもマッチさせる。
+if grep -iE "warn|deprecat|\[skip|\[conflict|\[failed" "${LOG_FILE}" > /dev/null 2>&1; then
+  grep -iE "warn|deprecat|\[skip|\[conflict|\[failed" "${LOG_FILE}"
 else
   echo "(none)"
 fi

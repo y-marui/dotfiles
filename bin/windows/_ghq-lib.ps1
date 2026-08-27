@@ -108,12 +108,12 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
     $allStatus = @(& git -C $Repo status --porcelain 2>$null)
     $other = @($allStatus | Where-Object { $_ -notmatch " $escapedLockfile$" })
     if ($other.Count -gt 0) {
-        Write-GhqStderr "  [skip auto-pr] ${Lockfile} 以外にも dirty な変更があります"
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) ${Lockfile} 以外にも dirty な変更があります"
         return
     }
 
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-        Write-GhqStderr "  [skip auto-pr] 'gh' が見つかりません（${Lockfile} の変更はローカルに残しています）"
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) 'gh' が見つかりません（${Lockfile} の変更はローカルに残しています）"
         return
     }
 
@@ -122,7 +122,7 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
         $global:LASTEXITCODE = $null
         & gh auth status *> $null
         if ($LASTEXITCODE -ne 0) {
-            Write-GhqStderr "  [skip auto-pr] gh が未認証です（${Lockfile} の変更はローカルに残しています）"
+            Write-GhqStderr "  [skip auto-pr] (${Repo}) gh が未認証です（${Lockfile} の変更はローカルに残しています）"
             return
         }
     } finally {
@@ -144,20 +144,22 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
         }
     }
     if (-not $ghRepo) {
-        Write-GhqStderr "  [skip auto-pr] origin リポジトリを解決できませんでした"
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) origin リポジトリを解決できませんでした"
         return
     }
 
     $global:LASTEXITCODE = $null
     & git -C $Repo checkout -B $branch *> $null
     if ($LASTEXITCODE -ne 0) {
-        Write-GhqStderr "  [skip auto-pr] ブランチ作成に失敗しました"
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) ブランチ作成に失敗しました"
         return
     }
     $global:LASTEXITCODE = $null
-    & git -C $Repo commit -m $Title -- $Lockfile *> $null
+    $commitOutput = (& git -C $Repo commit -m $Title -- $Lockfile 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0) {
-        Write-GhqStderr "  [skip auto-pr] commit に失敗しました"
+        $commitSummary = ($commitOutput -replace "`r?`n", ' ').Trim()
+        if ($commitSummary.Length -gt 500) { $commitSummary = $commitSummary.Substring(0, 500) }
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) commit に失敗しました: ${commitSummary}"
         & git -C $Repo checkout $BaseBranch *> $null
         return
     }

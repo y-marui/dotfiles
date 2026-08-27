@@ -97,19 +97,19 @@ _GHQ_NPM_LOCK_PR_BRANCH='chore/npm-lock-update'
 # PR があれば push だけでその PR に反映される）。作業ツリーは base_branch
 # に戻した状態で返す。失敗時も呼び出し元の処理は継続できるよう常に 0 を返す。
 _ghq_auto_pr_lockfile() {
-  local repo="$1" base_branch="$2" lockfile="$3" branch="$4" title="$5" body="$6" other pr_count gh_repo pr_output
+  local repo="$1" base_branch="$2" lockfile="$3" branch="$4" title="$5" body="$6" other pr_count gh_repo pr_output commit_err
 
   [[ -z "$(git -C "$repo" status --porcelain -- "$lockfile" 2>/dev/null || true)" ]] && return 0
 
   other="$(git -C "$repo" status --porcelain 2>/dev/null | grep -v -E " ${lockfile//./\\.}\$" || true)"
-  [[ -n "${other}" ]] && { echo "  [skip auto-pr] ${lockfile} 以外にも dirty な変更があります" >&2; return 0; }
+  [[ -n "${other}" ]] && { echo "  [skip auto-pr] (${repo}) ${lockfile} 以外にも dirty な変更があります" >&2; return 0; }
 
   if ! command -v gh >/dev/null 2>&1; then
-    echo "  [skip auto-pr] 'gh' が見つかりません（${lockfile} の変更はローカルに残しています）" >&2
+    echo "  [skip auto-pr] (${repo}) 'gh' が見つかりません（${lockfile} の変更はローカルに残しています）" >&2
     return 0
   fi
   if ! (cd "$repo" && gh auth status) >/dev/null 2>&1; then
-    echo "  [skip auto-pr] gh が未認証です（${lockfile} の変更はローカルに残しています）" >&2
+    echo "  [skip auto-pr] (${repo}) gh が未認証です（${lockfile} の変更はローカルに残しています）" >&2
     return 0
   fi
 
@@ -123,16 +123,16 @@ _ghq_auto_pr_lockfile() {
   gh_repo="$(git -C "$repo" remote get-url origin 2>/dev/null \
     | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#')"
   if [[ -z "${gh_repo}" ]]; then
-    echo "  [skip auto-pr] origin リポジトリを解決できませんでした" >&2
+    echo "  [skip auto-pr] (${repo}) origin リポジトリを解決できませんでした" >&2
     return 0
   fi
 
   if ! git -C "$repo" checkout -B "$branch" >/dev/null 2>&1; then
-    echo "  [skip auto-pr] ブランチ作成に失敗しました" >&2
+    echo "  [skip auto-pr] (${repo}) ブランチ作成に失敗しました" >&2
     return 0
   fi
-  if ! git -C "$repo" commit -m "$title" -- "$lockfile" >/dev/null 2>&1; then
-    echo "  [skip auto-pr] commit に失敗しました" >&2
+  if ! commit_err="$(git -C "$repo" commit -m "$title" -- "$lockfile" 2>&1)"; then
+    echo "  [skip auto-pr] (${repo}) commit に失敗しました: $(printf '%s' "${commit_err}" | tr '\n' ' ' | cut -c1-500)" >&2
     git -C "$repo" checkout "$base_branch" >/dev/null 2>&1 || true
     return 0
   fi
