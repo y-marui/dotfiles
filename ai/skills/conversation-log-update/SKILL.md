@@ -50,7 +50,7 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 - **タスクと本文の重複回避（タスクへの統合）**: タスクの項目と本文の内容が重複する場合、**詳細をタスクの記述に統合し、本文側のセクションは削除すること**。タスクセクションを活動報告の主たる場所とし、情報の分散を防ぐ。
 
 ### B. For Other Files (`-MJ.md`, `-(topic).md`)
-- **校正 and 最適化**: 誤字脱字の修正に加え、より論理的で読みやすいセクション構成への再構成案を適用する。
+- **校正と最適化**: 誤字脱字の修正に加え、より論理的で読みやすいセクション構成への再構成案を適用する。
 - **現状の尊重**: すでに完成度が高い部分は維持し、構造的な改善が見込める場合のみ再構成を行う。
 
 ### C. Rules Common to All Files (Important)
@@ -63,8 +63,7 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 - **自動生成の禁止**: AIが主観的に作成する「まとめ」「考察」「（指示にない）追記」といった新たな定型セクションの自動生成は一切禁止する。
 
 ## 4. Executing Git Operations
-- **Commit**: `YYYY-MM-DD HH:MM:SS - Proofread and rewrite conversation logs`
-- **Hook Bypass**: `git config hooks.skip-policy-check true` を実行。
-- **Push**:
+- **コミットメッセージ**: `YYYY-MM-DD HH:MM:SS - Proofread and rewrite conversation logs`
+- **プッシュ**:
     - **個別指定時**: `upstream` (main) にのみプッシュし、**`origin/ai/review` にはプッシュしない**。これにより、他の未校正ファイルが「校正済み」として扱われるのを防ぐ。
     - **自動抽出時**: `upstream` および `origin/ai/review` の両方にプッシュする。

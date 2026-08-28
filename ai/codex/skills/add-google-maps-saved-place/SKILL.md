@@ -5,36 +5,36 @@ description: Search Google Maps from place information supplied as text or an im
 
 # Add a Google Maps Saved Place
 
-Use the user's signed-in external browser state. Open a new tab, search with Google Maps account `authuser=2`, and add the verified place to exactly the intended list. After recording the result details, close a completed tab unless it must remain open for user handoff.
+ユーザーがサインイン済みの外部ブラウザ状態を使う。新しいタブを開き、Google Mapsの `authuser=2` アカウントで検索し、確認済みの場所を意図したリストだけへ追加する。結果詳細を記録後、ユーザーへの引き継ぎで開いたままにする必要がない限り、完了タブを閉じる。
 
 ## Extract and verify the place
 
-1. Read the place name and location from the supplied text or image. Use image understanding when the source is an image.
-2. If the information does not uniquely identify a place, ask for the missing name, city, address, or branch before changing Google Maps.
-3. Use the Chrome/browser-control skill because this workflow depends on the user's signed-in Google Maps state. Before browser work, check for a purpose-built Google Maps connector; use the browser when no connector can edit saved lists.
-4. Create a new browser tab. Do not claim, reuse, or navigate an existing user tab.
-5. Search in Google Maps with `authuser=2` explicitly present in the URL, for example `https://www.google.com/maps/search/<encoded query>?authuser=2`.
-6. Verify the result against the supplied name and address or locality. Do not save a merely similar branch or namesake.
+1. 渡されたテキストまたは画像から、場所の名前と位置を読む。画像の場合は画像理解を使う。
+2. 場所を一意に特定できない場合は、Google Mapsを変更する前に、不足する名前、都市、住所、支店名を質問する。
+3. この手順はユーザーがサインイン済みのGoogle Maps状態に依存するため、Chrome/browser-control skillを使う。ブラウザ操作前に専用のGoogle Mapsコネクタを確認し、保存リストを編集できるコネクタがなければブラウザを使う。
+4. 新しいブラウザタブを作る。既存のユーザータブを取得、再利用、移動しない。
+5. たとえば `https://www.google.com/maps/search/<encoded query>?authuser=2` のように、URLへ `authuser=2` を明示してGoogle Mapsで検索する。
+6. 結果を、渡された名前と住所または地域名に照合する。単に似ている支店や同名店を保存しない。
 
 ## Choose the destination list
 
-First decide whether the place is a dining place or a scenic/retail place. Use the user's wording when explicit; otherwise use the verified Maps category, overview, hours, and official site if needed.
+まず、場所が飲食店か観光・小売施設かを決める。ユーザーが明示していればその表現を使い、そうでなければ、確認済みのMapsカテゴリ、概要、営業時間、必要に応じて公式サイトを使う。
 
-- Treat restaurants, cafes, bars, and other places primarily offering on-site food or drink as dining places.
-- Treat scenic places, attractions, museums, parks, temples, shrines, viewpoints, and retail shops primarily selling goods as scenic/retail places. Save these to `行ってみたい`.
-- Treat a food retailer without on-site dining as retail. Save it to `行ってみたい`.
-- If the category remains genuinely ambiguous and would change the destination, ask the user before saving.
+- レストラン、カフェ、バー、その他店内での飲食提供を主とする場所は飲食店として扱う。
+- 景勝地、観光施設、美術館、公園、寺社、展望地、物販を主とする小売店は観光・小売施設として扱い、`行ってみたい` へ保存する。
+- 店内飲食のない食品小売店は小売として扱い、`行ってみたい` へ保存する。
+- カテゴリが真に曖昧で保存先が変わる場合は、保存前にユーザーへ質問する。
 
-For a dining place, inspect the full weekly business hours before choosing a regional list:
+飲食店では、地域別リストを選ぶ前に週全体の営業時間を確認する。
 
-- Save to `食べたいけど夜のみ` only when every day on which the business opens has no daytime service and every opening interval starts at 17:00 or later.
-- If any day has an opening interval before 17:00, use the regional `食べたい` list.
-- Ignore closed days when applying the every-open-day test.
-- If weekly hours are missing, temporary, or too ambiguous to establish night-only operation, use the regional list unless the user explicitly identifies the place as night-only.
+- 営業日のすべてに昼営業がなく、すべての営業時間帯が17:00以降に始まる場合だけ `食べたいけど夜のみ` へ保存する。
+- いずれかの日に17:00より前から始まる営業時間帯があれば、地域別の `食べたい` リストを使う。
+- 全営業日の判定では定休日を無視する。
+- 週の営業時間が欠けている、一時的、または夜のみ営業と確定できないほど曖昧な場合は、ユーザーが夜のみと明示しない限り地域別リストを使う。
 
-Choose the regional list from the verified address:
+確認済み住所から地域別リストを選ぶ。
 
-| List | Prefectures |
+| リスト | 都道府県 |
 |---|---|
 | `北海道の食べたい` | 北海道 |
 | `東北の食べたい` | 青森、岩手、宮城、秋田、山形、福島 |
@@ -45,34 +45,34 @@ Choose the regional list from the verified address:
 | `四国の食べたい` | 徳島、香川、愛媛、高知 |
 | `九州の食べたい` | 福岡、佐賀、長崎、熊本、大分、宮崎、鹿児島、沖縄 |
 
-Do not infer a region from the user's current location or search viewport.
+ユーザーの現在地や検索画面の表示範囲から地域を推測しない。
 
 ## Save without changing other lists
 
-1. Open the place's `保存` or `保存済み` list picker.
-2. Before inspecting the destination list, inspect the checked state of the exact system lists `スター付き` and `お気に入り` when present.
-3. If either `スター付き` or `お気に入り` is checked, stop without changing any list. Report which of those lists already contains the place and that the requested save was skipped. Do not continue to the destination-list checks.
-4. Locate the exact destination list name. Do not substitute a similarly named list.
-5. If the exact destination list is absent, stop without changing anything. Never create a replacement list. Keep the new Maps tab open as a handoff and ask the user to confirm that Google Maps is showing the correct `authuser=2` account, naming the missing destination list in the message.
-6. If more than one exact match appears, stop without changing anything and ask the user to verify the account and duplicate lists.
-7. Inspect the checked state of the single exact destination list.
-8. If the destination is already checked, make no change and report that it was already saved.
-9. If it is unchecked, click only that destination list.
-10. Never uncheck, toggle, or otherwise modify any other list, even if the place is already saved elsewhere.
-11. Do not add a note, create a list, edit list metadata, or alter sharing.
-12. Confirm success from the authoritative Maps alert or saved-place region naming the exact destination list.
+1. 場所の `保存` または `保存済み` リスト選択画面を開く。
+2. 保存先リストを調べる前に、存在する場合はシステムリスト `スター付き` と `お気に入り` の正確なチェック状態を調べる。
+3. `スター付き` または `お気に入り` のどちらかにチェックがあれば、どのリストも変更せず停止する。いずれのリストにすでに入っているため依頼された保存をスキップしたかを報告する。保存先リストの確認へ進まない。
+4. 正確な保存先リスト名を探す。似た名前のリストで代用しない。
+5. 正確な保存先リストがなければ、何も変更せず停止する。代替リストを作成しない。新しいMapsタブを引き継ぎのため開いたままにし、不足している保存先リスト名を示して、Google Mapsが正しい `authuser=2` アカウントを表示しているかユーザーに確認を求める。
+6. 完全一致の候補が複数あれば、何も変更せず停止し、アカウントと重複リストの確認をユーザーに求める。
+7. 1件に確定した保存先リストのチェック状態を調べる。
+8. 保存先がすでにチェック済みなら変更せず、すでに保存済みと報告する。
+9. 未チェックなら、その保存先リストだけをクリックする。
+10. すでに別リストへ保存されていても、他のリストをチェック解除、切り替え、その他変更しない。
+11. メモの追加、リスト作成、リストメタデータの編集、共有設定の変更をしない。
+12. 正確な保存先リスト名を示すMapsの公式アラートまたは保存済み領域から成功を確認する。
 
 ## Close completed tabs and report
 
-For each verified place, record these details before closing its tab:
+確認した各場所について、タブを閉じる前に次を記録する。
 
-- The exact place name shown by Google Maps.
-- The full verified address shown by Google Maps.
-- The Google Maps place-page URL. Use the current canonical place URL, not a search-results URL, and preserve `authuser=2` when present.
-- The outcome and exact list name: newly added, already present in the destination list, or skipped because it was already in `スター付き` or `お気に入り`.
+- Google Mapsに表示される正確な場所名
+- Google Mapsに表示される完全な確認済み住所
+- Google Mapsの場所ページURL。検索結果URLではなく現在の正規URLを使い、存在する `authuser=2` を保持する。
+- 結果と正確なリスト名: 新規追加、保存先にすでに存在、または `スター付き` もしくは `お気に入り` にすでに存在したためスキップ
 
-After success, an already-present destination result, or a skip caused by `スター付き` or `お気に入り`, make no further page interaction except recording the details above and closing the newly created tab. When processing multiple places, close every completed tab.
+成功、保存先にすでに存在、または `スター付き` / `お気に入り` によるスキップの後は、上記の記録と新規作成タブを閉じること以外のページ操作をしない。複数の場所を処理する場合は、完了したタブをすべて閉じる。
 
-In the final response, report every place in a compact table or list containing the exact place name, full address, linked Google Maps place page, and outcome with the exact list name. Clearly distinguish `追加` from `登録済みのため変更なし` and `スター付き` or `お気に入り`によるスキップ.
+最終回答では、正確な場所名、完全な住所、リンク付きGoogle Maps場所ページ、正確なリスト名を伴う結果を含む簡潔な表またはリストで、すべての場所を報告する。`追加`、`登録済みのため変更なし`、`スター付き` または `お気に入り` によるスキップを明確に区別する。
 
-If saving stops because the destination list is missing or duplicated, do not close that tab. Preserve it as a handoff, clearly state that no list was changed or created, include the same place name, address, and Google Maps link when available, and prompt the user to confirm the active Google Maps account before continuing.
+保存先リストがない、または重複しているため保存を停止した場合は、そのタブを閉じない。引き継ぎとして保持し、リストを変更も作成もしていないことを明確に伝え、可能なら同じ場所名、住所、Google Mapsリンクを含めて、続行前に使用中のGoogle Mapsアカウントを確認するようユーザーへ求める。

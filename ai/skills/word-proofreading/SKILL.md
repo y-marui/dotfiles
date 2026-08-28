@@ -5,134 +5,109 @@ description: Proofread multilingual text or Microsoft Word (.docx) documents for
 
 # Word Proofreading
 
-Proofread single-language or multilingual material while preserving the
-author's meaning and technical intent. Prefer the smallest edit that clearly
-improves correctness or readability.
+単一言語または多言語の文章を、著者の意味と技術的意図を保ちながら校正する。正確さまたは読みやすさを明確に改善する、最小限の編集を優先する。
+
+## Local proofreading instructions
+
+ファイルを対象とする校正では、レビューや編集の前に同階層の `PROOFREADING.md` を探す。この手順で、文書がGitリポジトリ内にある必要はない。
+
+- 同階層のファイルは、そのフォルダ内のすべての文書に適用する。文書へ追加する本文ではなく、レビュー方針として扱う。
+- 指示は、skillの既定、同階層の `PROOFREADING.md`、今回のユーザー依頼の順に適用する。競合時は今回のユーザー依頼を優先する。
+- 明示されたローカルの対象範囲、組版、用語方針に従う。ローカルルールが未検証の科学的または実質的な判断を要求する場合は、本文を保持して代わりにアンカー付きコメントを付ける。
+- 納品時にローカルの `PROOFREADING.md` を適用したかを明記する。存在しない場合は、このskillの既定手順で進める。
+
+## Word document safeguards
+
+`.docx` の校正では、次を守る。
+
+- 原本を保持する。タイムスタンプ付きの校正コピーを同じ場所に保存し、原本を上書きしない。
+- 既存のコメントと変更履歴を保持する。今回の依頼で明示的に許可されない限り、承諾、却下、解決、削除を行わない。
+- 本文の各修正は、最小かつ安全なWordの変更履歴として記録する。著者の判断が必要な科学的、事実的、構成上の問題には、本文を書き換えずアンカー付きコメントを使う。
+- 作業でローカルの補助スクリプトを新規作成または実質的に変更した場合、検証成功後は `<source-directory>/.proofreading/scripts/<source-document-stem>/` 以下のスクリプトだけを保持する。importの相対構造を維持する。ユーザーが明示的に求めない限り、原本、校正出力、レンダリングページ、キャッシュ、一時ファイルをアーカイブしない。
+
+## Retain durable proofreading knowledge
+
+校正作業の最後に、作業中に得た永続的で判断に関わる知識だけを記録する。
+
+- 新たな安全な編集不変条件や再利用可能なレビュー手順など、文書横断の作業規則はこの `SKILL.md` に追加する。
+- 文書またはフォルダ固有の用語、対象範囲、レイアウト、組版規則は同階層の `PROOFREADING.md` に追加する。
+- 一回限りの文書内容、一時的な作業状態、推測的な結論、今回だけに限定されたユーザー指示を永続化しない。
+- 明示的なユーザー判断と推論を区別する。ユーザーが推論の保持を求めない限り、前者だけを記録する。
 
 ## Select the mode
 
-Use the mode named by the user. If none is specified, use `Standard` and say so
-briefly in the result.
+ユーザーが指定したモードを使う。指定がなければ `Standard` を使い、結果で簡潔に明記する。
 
-- `Light`: Correct typos, grammar, punctuation, and only clearly awkward
-  phrasing. Do not make optional stylistic rewrites.
-- `Standard`: Apply Light corrections plus improvements to clarity,
-  concision, natural phrasing, and terminology consistency. This is the
-  default.
-- `Deep`: Apply Standard corrections and also review logical connections,
-  ambiguity, paragraph organization, academic style, and likely reader
-  misunderstandings. Treat issues that require a change in meaning,
-  reasoning, evidence, or structure as comments rather than edits.
+- `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
+- `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。既定値はこれである。
+- `Deep`: Standardの修正に加え、論理のつながり、曖昧さ、段落構成、学術文体、読者が誤解しやすい点を確認する。意味、論拠、根拠、構成の変更を要する問題は、編集ではなくコメントとして扱う。
 
 ## Detect language and conventions
 
-- Detect the language of each paragraph or list item independently. In a mixed
-  paragraph, treat each sentence or phrase according to its language while
-  preserving intentional code-switching.
-- Apply the grammar, orthography, punctuation, register, script, and regional
-  convention of the detected language. Do not translate material into another
-  language unless the user separately requests translation.
-- Preserve the original Japanese register (`です・ます` or `である`) and make
-  it internally consistent unless the user requests a different register.
-- Preserve American or British English according to the document's dominant
-  existing convention. When there is no clear signal, avoid changing words
-  solely to impose one variety.
-- For other languages, preserve the document's dominant regional variety and
-  formality level rather than imposing a default variety.
-- Preserve the document's established terminology and discipline-specific
-  style unless it is demonstrably inconsistent.
-- If language or locale detection is uncertain, or reliable proofreading in a
-  detected language cannot be assured, leave the affected text unchanged and
-  identify the limitation instead of guessing.
+- 段落またはリスト項目ごとに言語を独立して判定する。混在段落では、意図的なコードスイッチングを保ちながら、文または句ごとの言語に応じて扱う。
+- 判定した言語の文法、正書法、句読点、文体、文字体系、地域慣習を適用する。ユーザーが別途翻訳を依頼しない限り、他言語へ翻訳しない。
+- 異なる文体を依頼されない限り、元の日本語の文体（`です・ます` または `である`）を保持して、文書内で一貫させる。
+- 文書に優勢な既存の慣習に従い、アメリカ英語またはイギリス英語を保持する。明確な手掛かりがない場合は、一方を強制するためだけに語を変更しない。
+- その他の言語では、既定の変種を強制せず、文書で優勢な地域変種とフォーマルさを維持する。
+- 明らかな不整合がない限り、文書で確立された用語と専門分野固有の文体を維持する。
+- 言語または地域の判定が不確か、または判定言語を確実に校正できない場合は、推測せず該当箇所を変更せずに制約を示す。
 
 ## Protect meaning and document anchors
 
-Do not silently change any of the following:
+次の項目を黙って変更してはならない。
 
-- meaning, claim strength, conclusions, causal or correlational relationships,
-  scope, certainty, or scientific interpretation;
-- numbers, signs, units, ranges, statistical notation, equations, variable
-  names, chemical formulas, or code;
-- quotations, citations, URLs, identifiers, figure/table/equation references,
-  footnotes, endnotes, bibliography entries, or reference ordering;
-- proper nouns, product names, organization names, abbreviations, or technical
-  terms, except to fix an unmistakable typo or an unambiguous inconsistency;
-- existing comments, tracked revisions, or review decisions.
+- 意味、主張の強さ、結論、因果・相関関係、対象範囲、確実性、科学的解釈
+- 数値、符号、単位、範囲、統計表記、方程式、変数名、化学式、コード
+- 引用、出典、URL、識別子、図表・式の参照、脚注、文末脚注、参考文献項目、参考文献の順序
+- 明白な誤字または明確な不整合の修正を除く、固有名詞、製品名、組織名、略語、技術用語
+- 既存のコメント、変更履歴、レビュー判断
 
-Before editing, identify protected spans and the document's conventions. After
-editing, compare protected content against the source. If a correction could
-change meaning or requires subject-matter judgment, leave the text unchanged
-and add a comment or issue note.
+編集前に保護対象の範囲と文書の慣習を特定する。編集後に保護対象を原本と比較する。修正が意味を変え得る、または専門判断を必要とする場合は、本文を変更せずコメントまたは指摘を追加する。
 
 ## Japanese review
 
-Correct, as allowed by the selected mode:
+選択モードの範囲で、次を修正する。
 
 - 誤字脱字、助詞、係り受け、主語述語の対応、句読点;
 - 表記ゆれ、冗長表現、重複、曖昧または不自然な論理接続;
 - 不自然な直訳調、機械的な定型句、過度に均質なAI調の表現。
 
-Keep specialized writing appropriately technical. Do not over-simplify
-research, academic, legal, or professional language merely to make it sound
-more conversational.
+専門的な文章は適切な専門性を保つ。会話的に見せるためだけに、研究、学術、法律、業務の文章を過度に単純化しない。
 
 ## English review
 
-Correct, as allowed by the selected mode:
+選択モードの範囲で、次を修正する。
 
-- grammar, syntax, articles, prepositions, tense, subject-verb agreement,
-  number agreement, and punctuation;
-- word choice, collocation, concision, academic tone, and terminology
-  consistency;
-- unnecessary nominalization, redundancy, and awkward phrasing when the
-  improvement is clear and meaning-preserving.
+- 文法、構文、冠詞、前置詞、時制、主語と動詞の一致、数の一致、句読点
+- 語の選択、連語、簡潔さ、学術的な調子、用語の一貫性
+- 改善が明確で意味を保てる場合の、不必要な名詞化、冗長さ、不自然な表現
 
-Avoid strong paraphrases that could alter scientific meaning, emphasis,
-modality, or claim strength.
+科学的意味、強調、モダリティ、主張の強さを変え得る大幅な言い換えは避ける。
 
 ## Other-language review
 
-For languages other than Japanese and English:
+日本語と英語以外の言語では、次を守る。
 
-- correct language-specific grammar, agreement, inflection, word order,
-  spelling, diacritics, punctuation, collocation, redundancy, and register as
-  allowed by the selected mode;
-- preserve the original script, regional variety, technical vocabulary, and
-  established style;
-- avoid calquing Japanese or English preferences onto the language;
-- use the same meaning, claim-strength, citation, number, and terminology
-  protections defined above.
+- 選択モードの範囲で、その言語固有の文法、一致、活用、語順、綴り、ダイアクリティカルマーク、句読点、連語、冗長さ、文体を修正する。
+- 元の文字体系、地域変種、専門用語、確立された文体を保持する。
+- 日本語または英語の好みを、その言語へ直訳的に持ち込まない。
+- 上記と同じ意味、主張の強さ、引用、数値、用語の保護を適用する。
 
 ## Handle comments and uncertain issues
 
-- Do not edit factual, scientific, methodological, or logical concerns into
-  the author's prose.
-- Anchor each comment to a specific passage or location. State the concern
-  briefly and distinguish a definite language error from a possible content
-  issue.
-- In `Deep` mode, comment on ambiguous references, unsupported transitions,
-  paragraph-order concerns, and plausible reader misinterpretations without
-  inventing facts or evidence.
-- Do not create a comment for every minor edit. Reserve comments for decisions
-  the author should review.
+- 事実、科学、方法論、論理に関する懸念を、著者の本文として書き込まない。
+- 各コメントは具体的な箇所または位置にアンカーする。懸念を簡潔に述べ、確定した言語上の誤りと、内容上の可能性のある問題を区別する。
+- `Deep` モードでは、事実や根拠を創作せず、曖昧な参照、裏付けのない接続、段落順の懸念、読者がもっともらしく誤解する点をコメントする。
+- 軽微な修正ごとにコメントを作成しない。著者がレビューすべき判断のためにコメントを残す。
 
 ## Produce the result
 
-For pasted text or plain-text files:
+貼り付けテキストまたはプレーンテキストファイルでは、次を行う。
 
-1. Return the corrected text first, preserving paragraph and list structure.
-2. Add a concise `Comments / 指摘` section only when author decisions or
-   content concerns remain.
-3. Show a detailed change list or side-by-side comparison only if the user asks
-   for it.
+1. 段落とリスト構造を保った校正後テキストを先に返す。
+2. 著者の判断または内容上の懸念が残るときだけ、簡潔な `Comments / 指摘` セクションを追加する。
+3. 詳細な変更一覧または左右比較は、ユーザーが求めた場合だけ示す。
 
-For `.docx` or Word documents, read
-[references/word-docx.md](references/word-docx.md) before editing. Use a safe
-tracked-change and comment workflow when available, preserve the original, and
-follow the installed document-artifact instructions for rendering and
-verification.
+`.docx` またはWord文書では、編集前に [references/word-docx.md](references/word-docx.md) を読む。利用できる場合は安全な変更履歴・コメント手順を使い、原本を保持して、インストール済みの文書アーティファクト手順に従いレンダリングと検証を行う。
 
-At delivery, state the mode used and any unresolved limitations. For Word
-documents, also state whether revisions are genuine Word Track Changes, which
-editing route was used, and whether existing revisions and comments were
-preserved.
+納品時に、使用したモードと未解決の制約を明記する。Word文書では、変更が実際のWord変更履歴か、使用した編集経路、既存の変更履歴とコメントを保持したかも明記する。

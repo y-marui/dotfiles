@@ -5,31 +5,31 @@ description: "Add a new exhibition task to Glance Task's 「美術展: 関東」
 
 # Add a Glance Task Museum Event
 
-Use the bundled CLI to create exactly one new exhibition through Glance Task's AppleScript commands. Treat `task position`, never `fetch tasks` array order, as display order.
+同梱CLIとGlance TaskのAppleScriptコマンドを使い、新しい美術展を必ず1件だけ作成する。表示順には `fetch tasks` の配列順ではなく、必ず `task position` を使う。
 
 ## Collect the Event
 
-- Resolve the target group to exactly `美術展: 関東` or `美術展: 東北`. Ask if the region is unclear.
-- Require an exhibition title, start date, end date, and venue. Treat an omitted end date as a one-day event only when that is clearly intended.
-- Do not invent a status emoji.
-- Check for an exact-title duplicate. If one exists, do not add another task; hand the request to the `format-glance-task-museum-events` skill with the existing stable task ID.
+- 対象グループは必ず `美術展: 関東` または `美術展: 東北` に確定する。地域が不明なら質問する。
+- 展示名、開始日、終了日、会場を必須とする。終了日がない場合は、1日開催であることが明確なときだけそう扱う。
+- ステータス絵文字を推測して追加しない。
+- 完全一致する展示名の重複を確認する。存在する場合は新規追加せず、既存の安定したタスクIDとともに `format-glance-task-museum-events` skill へ引き継ぐ。
 
 ## Format
 
-Put the exhibition name in the title. Put exactly `<period> <venue>` in notes, using one ASCII space and two-digit month/day values.
+タイトルには展示名を入れる。メモには半角スペース1つと月日2桁表記を使い、厳密に `<period> <venue>` を入れる。
 
 ```text
-one day         YYYY/MM/DD 会場
-same month      YYYY/MM/DD-DD 会場
-same year       YYYY/MM/DD-MM/DD 会場
-different years YYYY/MM/DD-YYYY/MM/DD 会場
+1日開催         YYYY/MM/DD 会場
+同月開催        YYYY/MM/DD-DD 会場
+同年開催        YYYY/MM/DD-MM/DD 会場
+年またぎ開催    YYYY/MM/DD-YYYY/MM/DD 会場
 ```
 
-Reject an end date before its start date. Ask when a date or venue is ambiguous.
+終了日が開始日より前なら受け付けない。日付または会場が曖昧なら質問する。
 
 ## Add
 
-Resolve the script relative to this `SKILL.md`. Run the preview first:
+スクリプトはこの `SKILL.md` からの相対パスで解決する。まずプレビューを実行する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py add \
@@ -38,7 +38,7 @@ python3 <skill-dir>/scripts/museum_events.py add \
   --venue "根津美術館"
 ```
 
-Review the canonical notes and desired order. If the user has authorized creation and the preview is unambiguous, apply the identical command with `--apply`:
+正規化後のメモと希望する順序を確認する。ユーザーが作成を許可しており、プレビュー結果が曖昧でなければ、同一コマンドに `--apply` を付けて適用する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py add \
@@ -47,16 +47,16 @@ python3 <skill-dir>/scripts/museum_events.py add \
   --venue "根津美術館" --apply
 ```
 
-The CLI preflights every unfinished top-level task before writing. If existing notes are unparseable or the group is already out of position order, stop without creating the new task and use the formatting skill to repair it first.
+CLIは書き込み前に未完了の最上位タスクをすべて事前確認する。既存メモを解析できない、またはグループの順序がすでに不正な場合は、新規タスクを作成せず、先に整形skillで修復する。
 
 ## Position the Event
 
-- Sort unfinished top-level tasks by end date, then start date, ascending.
-- Preserve existing relative order for equal dates using `task position` as the tie-breaker, placing the new task after existing equal-date tasks.
-- Determine the stable ID of the unfinished task immediately preceding the new event in desired order.
-- Create once with `add task ... after <previous-task-id>`. Omit `after` when the new event belongs at the beginning.
-- Do not call `reorder task` after creation. Fetch again and verify the complete unfinished order by lexically sorting `task position`.
-- Leave completed tasks and subtasks unedited.
-- Stop if `task position` is unavailable; never fall back to fetch order.
+- 未完了の最上位タスクを、終了日、開始日の昇順で並べる。
+- 同日のタスクは `task position` をタイブレーカーとして既存の相対順を維持し、新規タスクは既存の同日タスクの後ろに置く。
+- 希望順で新規イベントの直前にある未完了タスクの安定IDを特定する。
+- `add task ... after <previous-task-id>` で一度だけ作成する。先頭に置く場合は `after` を省略する。
+- 作成後に `reorder task` を呼ばない。再取得して `task position` を辞書順に並べ、未完了タスク全体の順序を検証する。
+- 完了済みタスクとサブタスクは編集しない。
+- `task position` を取得できない場合は停止し、取得順へフォールバックしない。
 
-Report the created task ID, final title and notes, the preceding task ID or beginning placement, and the verified final position.
+作成したタスクID、最終タイトルとメモ、直前タスクIDまたは先頭配置、検証済みの最終位置を報告する。

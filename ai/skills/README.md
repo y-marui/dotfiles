@@ -1,5 +1,9 @@
 # Shared agent skills
 
+## Writing Policy
+
+各 `SKILL.md` は、トリガー用の frontmatter `name` / `description` とMarkdown見出しを英語で書き、本文の説明・手順・判断基準は日本語で書く。コード、パス、コマンド、実際のUI文言は変えない。UI用の `agents/openai.yaml` では、`display_name` と `short_description` を日本語で書く。
+
 Claude Code と Codex の両方で使える skill は `ai/skills/<skill-name>/SKILL.md` として追加する。
 
 `dots claude apply --skill-only` は `~/.claude/skills/<skill-name>`、

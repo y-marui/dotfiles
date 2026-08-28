@@ -5,63 +5,63 @@ description: "Audit, format, normalize, or reorder existing exhibition tasks in 
 
 # Format Glance Task Museum Events
 
-Use the bundled CLI to audit and format existing exhibitions through Glance Task's AppleScript commands. Identify tasks by stable ID and treat `task position`, never `fetch tasks` array order, as display order.
+同梱CLIとGlance TaskのAppleScriptコマンドで、既存の美術展を監査・整形する。タスクは安定IDで識別し、表示順には `fetch tasks` の配列順ではなく `task position` を使う。
 
 ## Proceed Without Confirmation
 
-- Treat a request to format, normalize, repair, or reorder as authorization to apply the requested changes. Do not pause for confirmation after the preflight or preview.
-- When the user invokes this skill without specifying a task or narrower scope, repair every unambiguous format and order finding in both groups.
-- Always run the non-applying preview internally, then continue directly with the identical `--apply` command when the result is unambiguous.
-- If the user explicitly asks only to audit, inspect, check, or preview, do not apply changes.
-- Ask only when required data is missing or ambiguous, such as malformed notes that do not determine complete dates and venue, duplicate exact titles, or a missing stable ID. Never guess.
-- A task-specific request authorizes only that task and its group's order repair. Do not repair unrelated format findings unless the request covers all findings.
+- 整形、正規化、修復、並べ替えの依頼は、要求された変更を適用する許可として扱う。事前確認やプレビュー後に確認待ちで止めない。
+- タスクやより狭い対象が指定されない場合は、両グループで見つかった曖昧でない書式・順序の問題をすべて修復する。
+- 必ず適用しないプレビューを内部で実行し、結果が曖昧でなければ同一の `--apply` コマンドを直接続けて実行する。
+- ユーザーが監査、確認、チェック、プレビューのみを明示した場合は変更しない。
+- 完全な日付と会場を特定できない不正なメモ、完全一致タイトルの重複、安定IDの欠落など、必須データが不足または曖昧な場合だけ質問する。推測しない。
+- タスク指定の依頼が許可するのは、そのタスクと同一グループの順序修復だけである。依頼が全件対象でない限り、無関係な書式問題は修復しない。
 
 ## Start With Both-Group Preflight
 
-Before selecting or formatting a task, always fetch and audit both exhibition groups:
+タスクを選択または整形する前に、必ず両方の美術展グループを取得・監査する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py preflight
 ```
 
-- Check every unfinished top-level task in `美術展: 関東`, then `美術展: 東北`.
-- Check notes against the canonical period-and-venue format.
-- Check order by lexically sorting `task position`, then comparing against end date and start date order.
-- Report format changes, format errors, and reorder requirements while continuing the authorized workflow; do not stop merely to request confirmation.
-- For a task-specific request, treat problems in the other group as informative and do not mutate them. For an invocation without a target, repair all unambiguous findings in both groups.
-- Stop if either group cannot be fetched or does not expose `task position`; never skip the failed group.
+- `美術展: 関東`、次に `美術展: 東北` の未完了最上位タスクをすべて確認する。
+- メモが正規の期間・会場書式に従うか確認する。
+- `task position` を辞書順に並べ、終了日・開始日の順序と比較して並びを確認する。
+- 許可済みの作業を続けながら、書式変更、書式エラー、並べ替えの必要性を報告する。確認を求めるためだけに停止しない。
+- タスク指定の依頼では、別グループの問題は参考情報として扱い、変更しない。対象未指定なら、両グループの曖昧でない問題をすべて修復する。
+- いずれかのグループを取得できない、または `task position` がない場合は停止する。失敗したグループをスキップしない。
 
-The `format` command performs this same two-group preflight internally and includes it in the preview and apply result. Do not bypass it by calling AppleScript directly.
+`format` コマンドは同じ両グループ事前確認を内部で行い、プレビューと適用結果に含める。AppleScriptを直接呼び出して回避しない。
 
 ## Resolve the Existing Task
 
-After preflight, list the target group in real position order when needed to resolve the stable ID:
+事前確認後、安定IDを特定する必要があれば、対象グループを実際の位置順で一覧する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py list --group "美術展: 東北"
 ```
 
-- Restrict mutations to `美術展: 関東` and `美術展: 東北`.
-- Resolve an exact title to its stable task ID. Never use a partial title match. Ask if exact titles are duplicated.
-- Preserve omitted fields and any existing trailing status emoji unless the user asks to change them.
-- Refuse to format a subtask as a museum event.
+- 変更対象は `美術展: 関東` と `美術展: 東北` に限定する。
+- 完全一致のタイトルから安定タスクIDを特定する。部分一致は使わない。完全一致タイトルが重複する場合は質問する。
+- ユーザーが変更を求めない限り、省略された項目と末尾の既存ステータス絵文字を保持する。
+- サブタスクを美術展として整形しない。
 
 ## Format
 
-Put the exhibition name in the title. Put exactly `<period> <venue>` in notes, using one ASCII space and two-digit month/day values.
+タイトルには展示名を入れる。メモには半角スペース1つと月日2桁表記を使い、厳密に `<period> <venue>` を入れる。
 
 ```text
-one day         YYYY/MM/DD 会場
-same month      YYYY/MM/DD-DD 会場
-same year       YYYY/MM/DD-MM/DD 会場
-different years YYYY/MM/DD-YYYY/MM/DD 会場
+1日開催         YYYY/MM/DD 会場
+同月開催        YYYY/MM/DD-DD 会場
+同年開催        YYYY/MM/DD-MM/DD 会場
+年またぎ開催    YYYY/MM/DD-YYYY/MM/DD 会場
 ```
 
-Reject an end date before its start date. If existing notes are malformed, require the complete start date, end date, and venue instead of guessing missing fields.
+終了日が開始日より前なら受け付けない。既存メモが不正なら、不足項目を推測せず、完全な開始日、終了日、会場を要求する。
 
 ## Format a Selected Task
 
-Run the intended command without `--apply` first:
+まず `--apply` を付けずに対象コマンドを実行する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py format \
@@ -70,38 +70,38 @@ python3 <skill-dir>/scripts/museum_events.py format \
   --venue "せんだいメディアテーク"
 ```
 
-Review the exact before/after values and desired order internally. Unless the user requested audit or preview only, rerun the identical command with `--apply` immediately when the result is unambiguous; do not ask for confirmation. Omit unchanged fields. Supplying no field changes canonicalizes the selected task's existing notes and repairs order.
+変更前後の正確な値と希望順を内部で確認する。ユーザーが監査またはプレビューのみを依頼していない限り、結果が曖昧でなければ同一コマンドに `--apply` を付けて直ちに再実行し、確認を求めない。変更しない項目は省略する。項目を一切指定しない場合は、選択タスクの既存メモを正規化して順序を修復する。
 
 ## Format Every Finding
 
-When no target is specified:
+対象が指定されない場合:
 
-1. Run the mandatory preflight and collect every entry in `format_changes` for both groups.
-2. For each stable task ID, run `format` without `--apply`, verify the exact before/after values, then run the identical command with `--apply` without pausing. Process mutations sequentially.
-3. If a group still reports `needs_reorder`, run `sort --group <group> --apply`.
-4. Run `preflight` again. Finish only when both groups have no `format_changes`, no `format_errors`, and `needs_reorder` is false, or report the exact ambiguous blocker.
+1. 必須の事前確認を実行し、両グループの `format_changes` にある全項目を収集する。
+2. 各安定タスクIDについて、`--apply` なしで `format` を実行し、変更前後の正確な値を確認してから、同一コマンドに `--apply` を付けて停止せずに実行する。変更は順番に処理する。
+3. グループが引き続き `needs_reorder` を返す場合は、`sort --group <group> --apply` を実行する。
+4. 再度 `preflight` を実行する。両グループで `format_changes` と `format_errors` がなく、`needs_reorder` が false になった時点で完了する。そうでなければ、正確な曖昧なブロッカーを報告する。
 
-Glance Task may expose updated `task position` values shortly after a reorder. If immediate verification reports a mismatch, fetch the group again before treating it as a failure; retry `sort` once if the refreshed audit still requires reordering.
+Glance Taskは、並べ替え直後に更新済みの `task position` を返すことがある。直後の検証で不一致が出た場合は、失敗と判断する前にグループを再取得する。再取得した監査でも並べ替えが必要なら、`sort` は1回だけ再試行する。
 
 ## Audit or Repair One Group
 
-Use a one-group audit only after the mandatory two-group preflight when investigating a specific finding:
+特定の問題を調査する場合に限り、必須の両グループ事前確認後に1グループのみを監査する。
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py audit --group "美術展: 関東"
 ```
 
-Repair only order:
+順序のみを修復する場合:
 
 ```bash
 python3 <skill-dir>/scripts/museum_events.py sort \
   --group "美術展: 関東" --apply
 ```
 
-- Sort unfinished top-level tasks by end date, then start date, ascending.
-- Preserve existing relative order for equal dates using `task position` as the tie-breaker.
-- Leave completed tasks and subtasks unedited.
-- Reorder through `reorder task ... after ...` and verify by fetching again and lexically sorting `task position`.
-- Stop if any unfinished task is unparseable or `task position` is unavailable; never fall back to fetch order.
+- 未完了の最上位タスクを、終了日、開始日の昇順で並べる。
+- 同日のタスクは `task position` をタイブレーカーとして既存の相対順を保持する。
+- 完了済みタスクとサブタスクは編集しない。
+- `reorder task ... after ...` で並べ替え、再取得して `task position` を辞書順に並べて検証する。
+- 未完了タスクを解析できない、または `task position` を取得できない場合は停止し、取得順へフォールバックしない。
 
-Report the task ID, exact before/after title and notes, and whether reordering occurred. Never create a new task from this skill; hand creation requests to the `add-glance-task-museum-event` skill.
+タスクID、タイトルとメモの正確な変更前後、および並べ替えの有無を報告する。このskillで新規タスクを作成しない。作成依頼は `add-glance-task-museum-event` skill へ引き継ぐ。

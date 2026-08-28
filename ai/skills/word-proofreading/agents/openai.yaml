@@ -1,4 +1,4 @@
 interface:
-  display_name: "Word Proofreading"
-  short_description: "Proofread multilingual Word documents and text safely"
+  display_name: "Word 文書校正"
+  short_description: "多言語のWord文書とテキストを安全に校正"
   default_prompt: "Use $word-proofreading to proofread this text or Word document in Standard mode."

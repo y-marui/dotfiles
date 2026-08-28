@@ -5,46 +5,46 @@ description: "Audit the timestamped subdirectories under ~/.dotfiles-backup (the
 
 # Review dotfiles backup
 
-`scripts/install.sh` (and its PowerShell counterpart) creates `~/.dotfiles-backup/YYYYMMDDHHMMSS/` every time it needs to move a real file out of the way before replacing it with a symlink, or when it migrates something to a new dotfiles-managed location. Nobody deletes these afterward, so they accumulate for months. Your job is to look at what's actually in there and make a real decision per entry — not just report the file list back to the user.
+`scripts/install.sh`（および対応するPowerShellスクリプト）は、実ファイルをシンボリックリンクに置き換える前に退避する場合、またはdotfiles管理下の新しい場所へ移行する場合に、`~/.dotfiles-backup/YYYYMMDDHHMMSS/` を作成する。これらは通常削除されないため、数か月分が蓄積する。単にファイル一覧を報告するのではなく、実際の内容を確認してエントリごとに判断する。
 
 ## Why content review matters here
 
-A file's *name* tells you almost nothing about whether it's safe to discard. `config.json` could be irreplaceable user configuration or it could be disposable app telemetry that regenerates on next launch. The only way to know is to compare it against the current dotfiles repo and the current live system. Don't skip this step even when a directory looks boringly repetitive (dozens of near-identical `Brewfile` snapshots, say) — confirm the pattern instead of assuming it from the first one or two.
+ファイルの*名前*だけでは、安全に破棄できるかはほとんど分からない。`config.json` は代えの利かないユーザー設定かもしれないし、次回起動時に再生成されるアプリのテレメトリかもしれない。確認する唯一の方法は、現在のdotfilesリポジトリとライブのシステム状態を比較することである。似たようなディレクトリが大量にある場合（たとえばほぼ同一の `Brewfile` スナップショットが数十件）でも、この手順を省略しない。最初の1、2件から推測せず、パターンを確認する。
 
 ## Step 1: Inventory
 
-List every `~/.dotfiles-backup/YYYYMMDDHHMMSS/` directory and what each contains (`find ~/.dotfiles-backup -mindepth 2 | sort` is enough to start). Note the date range — if entries span many months, that's a sign this has never been cleaned up and the older ones almost certainly no longer matter.
+すべての `~/.dotfiles-backup/YYYYMMDDHHMMSS/` ディレクトリと内容を一覧する（開始時には `find ~/.dotfiles-backup -mindepth 2 | sort` で十分）。日付範囲も確認する。数か月に及ぶ場合は一度も整理されていない可能性が高く、古いものほど不要になっている可能性が高い。
 
 ## Step 2: Classify each entry, then verify the classification
 
-Most entries fall into one of these buckets. State which bucket you think an entry is in, then actually check it before moving on — the check is the point, not the guess.
+ほとんどのエントリはいずれかの分類に当てはまる。エントリの分類を明示し、次へ進む前に実際に確認する。重要なのは推測ではなく確認である。
 
-- **Stale snapshot of continuously-evolving state.** Homebrew `Brewfile` dumps, macOS Dock config (`dock-apps.txt`, `dock-sidebar.txt`, `dockfile.cache`), app state/telemetry files (`~/.claude.json`, `~/.codex/config.toml`), and similar. These files change on essentially every run by design, and the *current* live file or the version tracked in the dotfiles repo is authoritative — a backup is by definition older and gets superseded. Confirm this by diffing the backup against the current tracked/live equivalent rather than assuming; if it turns out the backup has something the current version lacks, it's not actually stale and needs a closer look.
-- **Migration leftover, already landed.** A file or directory that was moved aside during a restructuring (e.g. an agent skill relocated into `ai/skills/`). Check whether the equivalent now exists correctly in the dotfiles repo, or as a working symlink from it. If so, the backup copy is a redundant leftover from a successful migration.
-- **Migration leftover, deliberately excluded.** Sometimes what got moved aside was never meant to be dotfiles-managed in the first place — e.g. a third-party or marketplace-installed skill that isn't part of this repo's own `ai/skills/`. Confirm it's genuinely absent from the repo (not just absent from where you expected it) before calling it correctly-excluded rather than lost.
-- **Genuinely obsolete artifact.** Regenerable caches (shell completion dumps, etc.) or symlinks that point at a dotfiles path which no longer exists (renamed/restructured since). Safe to discard once confirmed the target really is gone or superseded.
+- **継続的に変化する状態の古いスナップショット。** Homebrewの `Brewfile` ダンプ、macOS Dock設定（`dock-apps.txt`、`dock-sidebar.txt`、`dockfile.cache`）、アプリの状態・テレメトリファイル（`~/.claude.json`、`~/.codex/config.toml`）など。これらは設計上ほぼ毎回変化し、現在のライブファイルまたはdotfilesリポジトリで追跡される版が正本である。バックアップは定義上古く、置き換え済みである。推測せず、バックアップと現在の追跡対象・ライブ対象をdiffして確認する。バックアップにしかない内容があれば古いスナップショットではないため、詳しく調査する。
+- **移行済みの残存物。** 構成変更中に退避されたファイルやディレクトリ（例: `ai/skills/` へ移したagent skill）。同等物がdotfilesリポジトリ、またはそこからの有効なシンボリックリンクとして正しく存在するか確認する。存在すれば、バックアップは成功した移行による冗長な残存物である。
+- **意図的に管理外とした移行残存物。** 退避されたものが、そもそもdotfiles管理対象ではない場合がある。たとえば、このリポジトリの `ai/skills/` に属さないサードパーティまたはマーケットプレイス由来のskillである。消失ではなく適切な管理外と判断する前に、想定した場所だけでなくリポジトリ全体に本当に存在しないことを確認する。
+- **実際に不要になった成果物。** 再生成可能なキャッシュ（シェル補完ダンプなど）、またはすでに存在しないdotfilesパス（改名・再構成済み）を指すシンボリックリンク。対象が本当に消滅または置換済みだと確認できれば、安全に破棄できる。
 
 ## Step 3: Handle credentials carefully
 
-Config files for AI tools and other apps (`~/.claude.json`, `~/.codex/config.toml`, and similar) routinely embed live OAuth bearer tokens, API keys, or other secrets for MCP servers and integrations — right next to the harmless preference data. **Never `cat` or otherwise dump the full contents of a file like this into your output.** Use targeted comparisons instead:
+AIツールその他のアプリの設定ファイル（`~/.claude.json`、`~/.codex/config.toml` など）には、無害な設定値に混じって、MCPサーバーや連携のライブOAuth bearer token、APIキー、その他のシークレットが含まれることが多い。**このようなファイルを `cat` するなど、完全な内容を出力へ出してはならない。** 代わりに対象を限定した比較を使う。
 
-- `diff` the backup against the current live file, or a JSON-parsed key comparison (e.g. `python3 -c "import json; ..."` to check specific keys like `mcpServers` without printing the whole structure)
-- `grep` for the specific field you care about
-- Compare key lists (`.keys()`) before comparing values
+- バックアップと現在のライブファイルを `diff` する、またはJSONを解析してキーだけを比較する（例: 構造全体を出力せず `mcpServers` のような特定キーを確認する `python3 -c "import json; ..."`）
+- 確認対象のフィールドだけを `grep` する
+- 値を比較する前にキー一覧（`.keys()`）を比較する
 
-If you do accidentally print something that looks like a live token or credential, stop and tell the user immediately so they can rotate it — don't just quietly move on.
+ライブトークンや認証情報らしきものを誤って出力した場合は、そこで停止して直ちにユーザーへ伝え、ローテーションできるようにする。黙って作業を続けない。
 
 ## Step 4: Decide and act
 
-- **If something is genuinely unique and worth keeping**: incorporate it into the dotfiles repo the normal way — edit the relevant tracked file, or explain clearly why it doesn't actually belong there if it turns out to be host-specific or otherwise out of scope. Don't just copy the raw backup file back into place without understanding what it represents.
-- **If everything checked out as redundant or obsolete**: summarize what you checked and why each category was safe to discard. Then give the user the exact command to run themselves:
+- **本当に固有で残す価値があるものが見つかった場合**: 通常の方法でdotfilesリポジトリへ取り込む。該当する追跡ファイルを編集するか、ホスト固有などの理由で対象外と判明したなら、その理由を明確に説明する。意味を理解しないまま、生のバックアップファイルを元の場所へコピーしない。
+- **すべてが冗長または不要と確認できた場合**: 確認した内容と、各分類を安全に破棄できる理由を要約する。そのうえで、ユーザー自身が実行する正確なコマンドを渡す。
 
   ```bash
   rm -rf ~/.dotfiles-backup
   ```
 
-  Do not run this yourself. Permanently deleting data is something only the user does, regardless of how confident the analysis is or whether they've already said "just delete it" — state the rule and hand them the command.
+  このコマンドを自分で実行しない。データの恒久的な削除は、分析にどれほど確信があっても、またユーザーが「削除して」と言っていても、ユーザー自身が行う。ルールを明示してコマンドを渡す。
 
 ## Reporting back
 
-Tell the user, per category, roughly how many entries fell into it and what you concluded — not a blow-by-blow of every `find`/`diff` command. If you found something worth keeping, say specifically what you did with it (which file you edited, and why).
+分類ごとに、おおよそ何件が該当し何を結論づけたかをユーザーに伝える。すべての `find` / `diff` コマンドを逐一報告する必要はない。残す価値のあるものが見つかった場合は、どのファイルをなぜ編集したかを具体的に伝える。

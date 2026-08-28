@@ -3,7 +3,7 @@ name: reorder-spotify-playlist-by-key
 description: Reorder an existing Spotify playlist in-place into Camelot Wheel (harmonic-mixing) order using the local python-spotify-tools `reorder-by-key` command, sourcing each track's Camelot key from the user since Spotify's public Web API no longer exposes track key data to new apps. Use when the user asks to sort/reorder/DJ-mix a playlist by musical key, Camelot code, or harmonic compatibility. Do not use for classifying or distributing Liked Songs (see distribute-spotify-liked-songs), and do not use browser automation or computer-use to control Spotify itself.
 ---
 
-# Spotify プレイリストのキー順並べ替え
+# Reorder Spotify Playlist by Key
 
 Spotifyの既存プレイリストを、1曲目のキーを起点にCamelot Wheel(ハーモニックミキシング)順へin-placeで並べ替える。プレイリストの選択・具体的な曲順・キー値はこのスキルに固定せず、毎回ライブのSpotifyデータとユーザー提供のキー情報から組み立てる。
 
