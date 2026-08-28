@@ -45,5 +45,7 @@ _最終更新: 2026-08-27_
 |---|---|---|
 | `macos/com.y-marui.dotfiles-check.plist` | ログイン時・1時間ごとの`dots check`実行を定義 | `~/.local/bin/dots-check-monitor` |
 | `macos/dots-check-monitor.sh` | 結果キャッシュ更新と状態変化時のmacOS通知 | `~/.local/bin/dotfiles/dots`、`~/.cache/dots/` |
+| `macos/*_keyboard_shortcuts.sh` | アプリケーションショートカットの適用・差分・同期・キャッシュ更新 | `macos/keyboard_shortcuts.py`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
+| `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理項目だけを安全にマージ | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |

@@ -32,6 +32,7 @@ Usage:
   dots brew apply [--full] [--backup-dir DIR]
   dots brew {diff|sync|cache}
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
+  dots shortcuts {apply|diff|sync|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
   dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
@@ -45,6 +46,7 @@ Commands:
   update  dotfilesを更新・再リンク後、OS別の更新を実行
   brew    Homebrewパッケージ設定を操作
   dock    Dock・Finderサイドバー設定を操作
+  shortcuts  macOSのアプリケーションショートカット設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
   ai      Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理
@@ -282,6 +284,43 @@ _dock() {
   esac
 }
 
+_shortcuts() {
+  local action="${1:-}" backup_dir
+  [[ "$(uname -s)" == "Darwin" ]] || _error "shortcuts is supported on macOS only"
+  [[ -n "${action}" ]] || _error "usage: dots shortcuts {apply|diff|sync|cache}"
+  shift
+
+  case "${action}" in
+    apply)
+      backup_dir="$(_backup_dir_arg "$@")"
+      if bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh"; then
+        printf '差分なし: アプリケーションショートカットはすでに適用済みです。\n'
+        return 0
+      fi
+      if [[ -n "${backup_dir}" ]]; then
+        mkdir -p "${backup_dir}"
+        python3 "${DOTFILES_DIR}/macos/keyboard_shortcuts.py" capture \
+          --output "${backup_dir}/keyboard-shortcuts.plist"
+        printf '  BACKUP  %s\n' "${backup_dir}/keyboard-shortcuts.plist"
+      fi
+      bash "${DOTFILES_DIR}/macos/apply_keyboard_shortcuts.sh"
+      ;;
+    diff)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh" || true
+      ;;
+    sync)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/sync_keyboard_shortcuts.sh"
+      ;;
+    cache)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/update_keyboard_shortcuts_cache.sh"
+      ;;
+    *) _error "unknown shortcuts action: ${action}" ;;
+  esac
+}
+
 _package_file() {
   local package="$1" action="${2:-}"
   [[ -n "${action}" ]] || _error "usage: dots ${package} {apply|diff|sync|cache}"
@@ -468,6 +507,8 @@ _check_summary() {
     bash "${DOTFILES_DIR}/pipx/diff_pipxfile.sh" || found=1
   _check_script_summary "dock" "dots dock diff で確認" \
     bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" || found=1
+  _check_script_summary "application shortcuts" "dots shortcuts diff で確認" \
+    bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh" || found=1
 
   local agent
   for agent in claude codex gemini; do
@@ -516,12 +557,13 @@ _check_verbose() {
   echo ""
 
   echo "=========================================="
-  echo " Checking brew / npm / pipx / dock ..."
+  echo " Checking brew / npm / pipx / dock / application shortcuts ..."
   echo "=========================================="
   _brew diff
   _package_file npm diff
   _package_file pipx diff
   _dock diff
+  _shortcuts diff
   echo ""
 
   local agent
@@ -568,6 +610,7 @@ case "${command_name}" in
   update) _update "$@" ;;
   brew) _brew "$@" ;;
   dock) _dock "$@" ;;
+  shortcuts) _shortcuts "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
   ai) _ai "$@" ;;
   claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;

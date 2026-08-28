@@ -47,6 +47,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots dock apply` | Dock・Finderサイドバーを適用 |
 | `dots dock diff` | Dock・Finderサイドバーの差分を表示 |
 | `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
+| `dots shortcuts {apply\|diff\|sync\|cache}` | macOSのアプリケーションショートカットを管理 |
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
 | `dots ai {apply\|diff\|prune}` | Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理 |
@@ -276,7 +277,7 @@ Zellij内で `ssh` を実行するとZellijが二重になるため、iTerm2の�
 
 ## Managing Private Settings
 
-Git の user 情報・SSH config・Dock 設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
+Git の user 情報・SSH config・Dock・アプリケーションショートカット設定は `dotfiles-private`（GitHub プライベートリポジトリ）で管理する。
 private側は設定データと `links.conf` の対応表だけを保持し、リンク操作はこのリポジトリの
 `install` / `links` / `check` / `uninstall` が行う。
 

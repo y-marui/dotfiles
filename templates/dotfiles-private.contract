@@ -12,5 +12,6 @@ file|ssh/config.d/keychain.conf
 file|ssh/config.d/windows.conf
 file|identity/accounts.yaml
 file|macos/dockfile
+file|macos/keyboard-shortcuts.plist
 file|macos/menubarfile
 glob|labpc/jobs.d/*.conf

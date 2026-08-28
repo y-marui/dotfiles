@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>schemaVersion</key>
+	<integer>1</integer>
+	<key>shortcuts</key>
+	<dict>
+		<key>com.example.App</key>
+		<dict>
+			<key>Example menu item</key>
+			<string>@$E</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

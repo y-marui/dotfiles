@@ -36,8 +36,24 @@ main ブランチの空の Git リポジトリを初期化する。生成直後�
 | `ssh/config.d/*.example` | 同名から `.example` を除いたファイル | OS 別 SSH 設定 |
 | `identity/accounts.yaml.example` | `identity/accounts.yaml` | GitHub・著者名等の対応表。認証情報は保存しない |
 | `macos/dockfile.example` | `macos/dockfile` | Dock・Finder sidebar の宣言 |
+| `macos/keyboard-shortcuts.plist.example` | `macos/keyboard-shortcuts.plist` | アプリケーションショートカットの宣言 |
 | `macos/menubarfile.example` | `macos/menubarfile` | メニューバーの宣言 |
 | `labpc/jobs.d/job.conf.example` | `labpc/jobs.d/<job-name>.conf` | `sync-labpc` のジョブ設定 |
+
+## Application Shortcuts
+
+`macos/keyboard-shortcuts.plist` は「システム設定 → キーボード →
+キーボードショートカット → アプリのショートカット」の管理データである。
+日常操作は隣接する `dotfiles` の `dots shortcuts` を使用する。
+
+- `dots shortcuts sync`: このMacの現在値を管理ファイルへ取り込む。
+- `dots shortcuts diff`: 管理ファイルと現在値を比較する。定期の `dots check` にも含まれる。
+- `dots shortcuts apply`: 管理ファイルの項目だけを `NSUserKeyEquivalents` に追加または更新する。
+- `dots shortcuts cache`: 現在値の診断用スナップショットを更新する。
+
+`apply` は管理ファイルにないショートカットを削除しない。削除はシステム設定で行ってから
+`sync` を実行する。`sync` は実行したMacの設定を正とするため、別のMacから取り込む前には
+まず `diff` で差分を確認する。
 
 実設定を作成・編集し、リンク元がすべて存在することを確認してから、最後に次を行う。
 

@@ -24,7 +24,7 @@ else
 	 esac
 endif
 
-install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリックリンク + macos + brew + dock）
+install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリックリンク + macos + brew + dock + shortcuts）
 	@bash scripts/setup-prezto.sh
 	@bash scripts/install.sh
 	@bash macos/setup_dots_check_launchagent.sh install
@@ -32,6 +32,7 @@ install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリ�
 	@bash macos/defaults.sh
 	@bash bin/unix/dots brew apply --backup-dir "$(BACKUP_DIR)"
 	@bash bin/unix/dots dock apply --backup-dir "$(BACKUP_DIR)"
+	@bash bin/unix/dots shortcuts apply --backup-dir "$(BACKUP_DIR)"
 
 install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリンク + apt パッケージ + claude-code/homebridge/tailscale + zsh化 + gpg-agent永続化）
 	@bash scripts/install.sh
