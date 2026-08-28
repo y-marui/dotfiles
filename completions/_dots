@@ -1,7 +1,7 @@
 #compdef dots
 
 _dots() {
-  local -a commands actions ai_actions expl
+  local -a commands actions shortcuts_actions ai_actions expl
   commands=(
     'status:dotfiles・dotfiles-privateのGit状態を確認'
     'update:dotfilesとOS別パッケージを更新'
@@ -21,6 +21,13 @@ _dots() {
     'apply:設定を適用'
     'diff:差分を表示'
     'sync:現在の状態を管理ファイルへ同期'
+    'cache:現在の状態をキャッシュ'
+  )
+  shortcuts_actions=(
+    'apply:設定を適用'
+    'diff:差分を表示'
+    'sync:現在の状態を管理ファイルへ同期'
+    'merge:現在の状態を管理ファイルへ追加・更新（既存分は保持）'
     'cache:現在の状態をキャッシュ'
   )
   ai_actions=(
@@ -46,7 +53,11 @@ _dots() {
       ;;
     brew|dock|shortcuts)
       if (( CURRENT == 3 )); then
-        _describe 'action' actions
+        if [[ "${words[2]}" == shortcuts ]]; then
+          _describe 'action' shortcuts_actions
+        else
+          _describe 'action' actions
+        fi
       elif [[ "${words[3]}" == apply ]] && (( CURRENT == 4 )); then
         if [[ "${words[2]}" == brew ]]; then
           _wanted options expl 'option' compadd -- --full --backup-dir

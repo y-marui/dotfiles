@@ -32,7 +32,7 @@ Usage:
   dots brew apply [--full] [--backup-dir DIR]
   dots brew {diff|sync|cache}
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
-  dots shortcuts {apply|diff|sync|cache} [--backup-dir DIR]
+  dots shortcuts {apply|diff|sync|merge|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
   dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
@@ -287,7 +287,7 @@ _dock() {
 _shortcuts() {
   local action="${1:-}" backup_dir
   [[ "$(uname -s)" == "Darwin" ]] || _error "shortcuts is supported on macOS only"
-  [[ -n "${action}" ]] || _error "usage: dots shortcuts {apply|diff|sync|cache}"
+  [[ -n "${action}" ]] || _error "usage: dots shortcuts {apply|diff|sync|merge|cache}"
   shift
 
   case "${action}" in
@@ -312,6 +312,10 @@ _shortcuts() {
     sync)
       _require_no_args "$@"
       bash "${DOTFILES_DIR}/macos/sync_keyboard_shortcuts.sh"
+      ;;
+    merge)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/merge_keyboard_shortcuts.sh"
       ;;
     cache)
       _require_no_args "$@"

@@ -65,6 +65,18 @@ def export_domain(domain: str) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+# CoreFoundation pseudo-domain identifiers. Sandboxed apps sometimes surface a
+# container-local file literally named after one of these (e.g.
+# .../com.apple.SiriNCService/.../kCFPreferencesAnyApplication.plist), which
+# mirrors NSGlobalDomain rather than being a distinct real domain.
+CF_PSEUDO_DOMAINS = {
+    "kCFPreferencesAnyApplication",
+    "kCFPreferencesCurrentApplication",
+    "kCFPreferencesAnyHost",
+    "kCFPreferencesCurrentHost",
+}
+
+
 def preference_domains() -> list[str]:
     result = run_defaults("domains")
     domains = {GLOBAL_DOMAIN}
@@ -81,7 +93,7 @@ def preference_domains() -> list[str]:
         if not directory.is_dir():
             continue
         for plist in directory.glob("*.plist"):
-            if plist.stem != ".GlobalPreferences":
+            if plist.stem != ".GlobalPreferences" and plist.stem not in CF_PSEUDO_DOMAINS:
                 domains.add(plist.stem)
     return sorted(domains)
 
@@ -198,6 +210,23 @@ def command_sync() -> int:
     return 0
 
 
+def merge_shortcuts(
+    managed: dict[str, dict[str, str]], current: dict[str, dict[str, str]]
+) -> dict[str, dict[str, str]]:
+    merged = {domain: dict(entries) for domain, entries in managed.items()}
+    for domain, entries in current.items():
+        merged.setdefault(domain, {}).update(entries)
+    return {domain: dict(sorted(entries.items())) for domain, entries in sorted(merged.items())}
+
+
+def command_merge() -> int:
+    managed = load_shortcuts(managed_path())
+    merged = merge_shortcuts(managed, current_shortcuts())
+    write_shortcuts(managed_path(), merged)
+    print(f"keyboard shortcuts merged into {managed_path()}")
+    return 0
+
+
 def command_diff(summary: bool) -> int:
     managed = load_shortcuts(managed_path())
     result = print_diff(managed, current_shortcuts(), summary)
@@ -230,6 +259,7 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("apply")
     subparsers.add_parser("sync")
+    subparsers.add_parser("merge")
     subparsers.add_parser("cache")
     diff_parser = subparsers.add_parser("diff")
     diff_parser.add_argument("--summary", action="store_true")
@@ -242,6 +272,8 @@ def main() -> int:
             return command_apply()
         if arguments.command == "sync":
             return command_sync()
+        if arguments.command == "merge":
+            return command_merge()
         if arguments.command == "cache":
             return command_cache()
         if arguments.command == "diff":

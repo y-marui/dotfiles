@@ -26,6 +26,7 @@ EXCEPTIONS=(
   "macos/diff_dockfile.sh:macOS専用（Dock）"
   "macos/diff_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/dots-check-monitor.sh:macOS専用（LaunchAgent・通知）"
+  "macos/merge_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/sync_brewfile.sh:macOS専用（Homebrew）"
   "macos/sync_dockfile.sh:macOS専用（Dock）"
   "macos/sync_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
