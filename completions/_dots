@@ -7,6 +7,7 @@ _dots() {
     'update:dotfilesとOS別パッケージを更新'
     'brew:Homebrewパッケージ設定を操作'
     'dock:Dock・Finderサイドバー設定を操作'
+    'shortcuts:macOSのアプリケーションショートカット設定を操作'
     'npm:npmグローバルパッケージ設定を操作'
     'pipx:pipxパッケージ設定を操作'
     'claude:Claude CodeのMCP・plugin・skillを操作'
@@ -43,7 +44,7 @@ _dots() {
         _wanted options expl 'option' compadd -- --verbose --help -h
       fi
       ;;
-    brew|dock)
+    brew|dock|shortcuts)
       if (( CURRENT == 3 )); then
         _describe 'action' actions
       elif [[ "${words[3]}" == apply ]] && (( CURRENT == 4 )); then
