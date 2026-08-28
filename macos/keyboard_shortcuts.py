@@ -57,7 +57,10 @@ def export_domain(domain: str) -> dict[str, Any] | None:
         return None
     try:
         value = plistlib.loads(result.stdout)
-    except plistlib.InvalidFileException:
+    except (plistlib.InvalidFileException, ValueError):
+        # Some domains contain malformed sentinel dates (e.g. year 0000, seen in
+        # com.apple.stocks.widget / com.microsoft.autoupdate2) that plistlib
+        # cannot parse; treat those domains as unreadable rather than aborting.
         return None
     return value if isinstance(value, dict) else None
 
