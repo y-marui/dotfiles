@@ -61,3 +61,11 @@ bash <skill-dir>/scripts/list-memories.sh
 ## Phase 6 — Report
 
 最後に短く要約する。どの内容をどの指示ファイルへ加え、どのmemoryファイルを退役させたか、すでに記載済みとして何件の冗長コピーを削除したか、スコープに指示ファイルがないため残したmemory、ユーザーによる手動解決が必要な矛盾を示す。
+
+## Phase 7 — Sweep `~/.dotfiles-backup`
+
+このユーザーの定期的な棚卸しには `~/.dotfiles-backup` の確認も含む（`dots check` の
+`⚠ backup` 警告に対応）。memoryの棚卸しと合わせて `review-dotfiles-backup` skillを
+呼び出し、その手順（内容確認・分類・必要ならdotfilesへの反映）に従う。すべて冗長だと
+確認できた場合も、そのskillの指示どおり `rm -rf ~/.dotfiles-backup` を自分で実行せず、
+ユーザー自身が実行するコマンドとして渡す。Phase 6の要約にこのスイープの結果も含める。
