@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# docx-redline: Word (.docx) の校閲を最小差分の変更履歴(Track Changes)として
+# 編集するCLI。実体は別リポジトリ y-marui/python-docx-redline で管理し、
+# uvx 経由で都度取得・キャッシュして実行する(このリポジトリにPython依存を
+# 持ち込まないため)。
+#
+# 使い方:
+#   docx-redline --help
+#   docx-redline replace draft.docx "旧い表現" "新しい表現" --out draft-fix1.docx
+
+set -euo pipefail
+
+exec uvx --from git+https://github.com/y-marui/python-docx-redline docx-redline "$@"

@@ -1,6 +1,6 @@
 ---
 name: word-proofreading
-description: Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits, Light/Standard/Deep modes, detailed Japanese and English guidance, and Word tracked-change safeguards. Use for proofreading or copyediting; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions.
+description: "Modes: Light / Standard / Deep / Deep-Auto. Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits (Deep-Auto also applies Deep's clarity/structure fixes as tracked changes instead of leaving them as comments), detailed Japanese and English guidance, and Word tracked-change safeguards. Use for proofreading or copyediting; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions."
 ---
 
 # Word Proofreading
@@ -26,7 +26,9 @@ description: Proofread multilingual text or Microsoft Word (.docx) documents for
 - 本文の各修正は、最小かつ安全な実際のWord変更履歴として記録する。周辺の書式、リンク、フィールド、ブックマーク、文書構造を保持し、分離した修正を段落全体の置換にまとめない。互換しないrun、保護されたアンカー、複雑なフィールド、数式、文献オブジェクト、コンテンツコントロールを安全に編集できない場合は変更しない。
 - OOXMLで変更履歴を作る場合は、非衝突のIDと `w:ins` / `w:del` を使い、削除文字は `w:delText` に入れる。コメントを追加する場合は、既存のコメント著者になりすまさず `Codex Proofreading` を用いる。
 - 科学的・事実的・方法論的な判断、主張の変更、根拠の不足、大きな再構成、解釈の曖昧さには未記録の本文編集をせず、必要に応じてアンカー付きコメントを使う。
-- 作業で作成・実行した補助スクリプト、インラインコード、ワンショットの修復・変換コードは、検証成功後にすべて保存する。ユーザー提供または既存のツールは複製しない。作業用に複数の断片がある場合は、実行したコードをそのまま保存するか、同じ動作を再現する最終スクリプトに統合し、元の断片と対応を分かるようにする。保存先は `<source-directory>/.proofreading/scripts/<source-document-stem>/` とし、importの相対構造を維持する。原本、校正出力、レンダリングページ、キャッシュ、一時データは、ユーザーが明示的に求めない限り保存しない。
+- `.docx` への実際の変更履歴・コメントの追加は、その場でPythonスクリプトを書かず `docx-redline` コマンド（`bin/unix/docx-redline`、実体は [y-marui/python-docx-redline](https://github.com/y-marui/python-docx-redline) を `uvx` 経由で実行）のサブコマンドで行う。`docx-redline inspect` で編集前の段落・既存コメント・変更履歴を確認し、`replace`（一致1件が既定、複数箇所は `--occurrence`/`--all`）、`replace-batch`（複数の置換をJSONでまとめて適用）、`replace-paragraph`、`insert-paragraph`、`add-comment`、`strip-comments`、`strip-format-revisions` を用いて編集し、納品前に `validate` で安全確認する。コメント・変更履歴の著者名は、指示がない限り `Codex Proofreading` を用いる（`--author` オプションで指定。既存のコメント著者になりすまさない）。
+- `docx-redline` のサブコマンドで安全に表現できない編集（数式・コンテンツコントロール・フィールドをまたぐ置換など）だけ、その場限りの補助スクリプトを書いてよい。実行して検証に成功したコードは保存する。保存先は `<source-directory>/.proofreading/scripts/<source-document-stem>/` とし、importの相対構造を維持する。同じ種類の欠落に繰り返し遭遇する場合は、使い捨てスクリプトを積み上げる代わりに `docx-redline` 側への機能追加（Issue・PR）を検討する。
+- 上記のように補助スクリプトを書いてコーディングで対応した場合は、そのスクリプトが生成した一時ファイル・中間出力（レンダリングページ、デバッグ用の途中生成物、検証に使った一時DOCX等）も後から再現・検証できるよう `<source-directory>/.proofreading/scripts/<source-document-stem>/` 配下に保存する（例: 同階層の `tmp/` サブディレクトリ）。この保存は明示的に求められなくても常に行う。`docx-redline` のサブコマンドのみで完結した場合は、原本・校正出力以外の一時データを、ユーザーが明示的に求めない限り保存しない。
 - 納品前に、出力が開けてレンダリングできること、今回の編集がWordの変更履歴として表示・受諾・却下可能なこと、既存のレビュー状態が依頼どおり保持または処理されたこと、保護対象が原本と一致すること、原本が未変更であることを確認する。確認できない項目は成功として扱わず、制約を明記する。
 
 ## Retain durable proofreading knowledge
@@ -45,6 +47,7 @@ description: Proofread multilingual text or Microsoft Word (.docx) documents for
 - `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
 - `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。既定値はこれである。
 - `Deep`: Standardの修正に加え、論理のつながり、曖昧さ、段落構成、学術文体、読者が誤解しやすい点を確認する。意味、論拠、根拠、構成の変更を要する問題は、編集ではなくコメントとして扱う。
+- `Deep-Auto`: `Deep` と同じ観点を確認するが、著者の判断を必要とせず意味を変えずに一意に直せるもの（曖昧な指示語の解消、接続の補強、段落の入れ替えなど）は、コメントに留めず実際のWord変更履歴として直接適用する。事実・科学的主張・論拠の当否・根拠の十分性・大きな再構成の要否など、著者の判断が必要な問題は `Deep` と同様に本文を変更せずコメントのまま残す（[Protect meaning and document anchors](#protect-meaning-and-document-anchors) の不変条件はモードによらず常に適用する）。
 
 ## Detect language and conventions
 
@@ -102,6 +105,7 @@ description: Proofread multilingual text or Microsoft Word (.docx) documents for
 - 事実、科学、方法論、論理に関する懸念を、著者の本文として書き込まない。
 - 各コメントは具体的な箇所または位置にアンカーする。懸念を簡潔に述べ、確定した言語上の誤りと、内容上の可能性のある問題を区別する。
 - `Deep` モードでは、事実や根拠を創作せず、曖昧な参照、裏付けのない接続、段落順の懸念、読者がもっともらしく誤解する点をコメントする。
+- `Deep-Auto` モードでは、同じ観点のうち意味を変えずに一意に解決できるもの（曖昧な参照の明確化、接続の補強、段落の並べ替えなど）は編集として適用し、著者の判断が必要なものだけコメントに残す。事実の追加・訂正や論拠・根拠の当否は、他モードと同様に編集せずコメントにする。
 - 軽微な修正ごとにコメントを作成しない。著者がレビューすべき判断のためにコメントを残す。
 
 ## Produce the result
@@ -114,4 +118,4 @@ description: Proofread multilingual text or Microsoft Word (.docx) documents for
 
 `.docx` またはWord文書では、上記のWord文書保護策に従い、利用可能な安全な変更履歴・コメント手順とインストール済みの文書アーティファクト手順で、レンダリングと検証を行う。
 
-納品時に、使用したモードと未解決の制約を明記する。Word文書では、変更が実際のWord変更履歴か、使用した編集経路、既存の変更履歴とコメントを保持したかも明記する。
+納品時に、使用したモードと未解決の制約を明記する。Word文書では、変更が実際のWord変更履歴か、使用した編集経路、既存の変更履歴とコメントを保持したかも明記する。`Deep-Auto` では、どの指摘を編集として自動適用し、どれを著者判断のためコメントに残したかも簡潔に明記する。

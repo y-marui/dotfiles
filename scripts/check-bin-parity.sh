@@ -15,6 +15,7 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 EXCEPTIONS=(
   "install-my-apps:macOS専用ツール（.appのDMGインストール）"
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
+  "docx-redline:uvx経由のPythonツールラッパー。Windows版はpwsh+uv対応が必要になり次第追加"
 )
 
 _exception_key() {
