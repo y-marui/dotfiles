@@ -10,7 +10,7 @@ import sys
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 
 APP_PATH = Path("/Applications/Glance Task.app")
@@ -18,6 +18,21 @@ SKILL_NAME = Path(__file__).resolve().parents[1].name
 ALLOWED_GROUPS = ("美術展: 関東", "美術展: 東北")
 RECORD_SEPARATOR = "\x1e"
 FIELD_SEPARATOR = "\x1f"
+
+# Trailing status emoji appended to a museum-event task title. ONGOING/BEFORE/ENDED
+# are derived from today's date against the parsed period; FORMAT_ERROR marks a
+# task whose notes could not be parsed. Order matters for stripping: longer or
+# more specific matches are not a concern here since these are single emoji.
+STATUS_EMOJI_ONGOING = "🎟️"
+STATUS_EMOJI_BEFORE = "⏳"
+STATUS_EMOJI_ENDED = "🏁"
+STATUS_EMOJI_FORMAT_ERROR = "❌"
+STATUS_EMOJIS = (
+    STATUS_EMOJI_ONGOING,
+    STATUS_EMOJI_BEFORE,
+    STATUS_EMOJI_ENDED,
+    STATUS_EMOJI_FORMAT_ERROR,
+)
 
 
 class MuseumEventError(RuntimeError):
@@ -137,6 +152,12 @@ end run
 end using terms from
 '''
 
+NOTIFY_SCRIPT = r'''
+on run argv
+    display notification (item 2 of argv) with title (item 1 of argv)
+end run
+'''
+
 
 def run_applescript(source: str, arguments: Sequence[str]) -> str:
     if not APP_PATH.is_dir():
@@ -158,6 +179,19 @@ def run_applescript(source: str, arguments: Sequence[str]) -> str:
         message = result.stderr.strip() or result.stdout.strip() or "Unknown AppleScript error."
         raise MuseumEventError(message)
     return result.stdout.rstrip("\n")
+
+
+def notify(title: str, message: str) -> None:
+    """Best-effort macOS notification; failures here must not fail the caller."""
+    try:
+        subprocess.run(
+            ["osascript", "-e", NOTIFY_SCRIPT, "--", title, message],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        pass
 
 
 def fetch_tasks(group: str) -> list[TaskRecord]:
@@ -273,6 +307,22 @@ def parse_notes(notes: str | None) -> EventPeriod:
     return EventPeriod(start=start, end=end, venue=venue)
 
 
+def strip_status_emoji(title: str) -> str:
+    stripped = title.rstrip()
+    for emoji in STATUS_EMOJIS:
+        if stripped.endswith(emoji):
+            return stripped[: -len(emoji)].rstrip()
+    return stripped
+
+
+def status_emoji_for(period: EventPeriod, today: date) -> str:
+    if today < period.start:
+        return STATUS_EMOJI_BEFORE
+    if today > period.end:
+        return STATUS_EMOJI_ENDED
+    return STATUS_EMOJI_ONGOING
+
+
 def position_sorted(tasks: Iterable[TaskRecord]) -> tuple[TaskRecord, ...]:
     tasks_tuple = tuple(tasks)
     missing = [task.task_id for task in tasks_tuple if task.position is None]
@@ -341,6 +391,29 @@ def build_sort_plan(tasks: Iterable[TaskRecord]) -> SortPlan:
     return SortPlan(current=current, desired=desired)
 
 
+def build_sort_plan_tolerant(tasks: Iterable[TaskRecord]) -> tuple[SortPlan, tuple[str, ...]]:
+    """Like build_sort_plan, but tasks with unparsable notes sort last instead of
+    blocking the whole plan. Returns the plan plus the task IDs that failed to parse."""
+    unfinished = [task for task in tasks if not task.completed and task.parent_id is None]
+    current = position_sorted(unfinished)
+    parsed: dict[str, EventPeriod] = {}
+    error_ids: list[str] = []
+    for task in unfinished:
+        try:
+            parsed[task.task_id] = parse_notes(task.notes)
+        except MuseumEventError:
+            error_ids.append(task.task_id)
+
+    def sort_key(task: TaskRecord) -> tuple:
+        if task.task_id in parsed:
+            period = parsed[task.task_id]
+            return (0, period.end, period.start, task.position or "", task.task_id)
+        return (1, date.max, date.max, task.position or "", task.task_id)
+
+    desired = tuple(sorted(unfinished, key=sort_key))
+    return SortPlan(current=current, desired=desired), tuple(error_ids)
+
+
 def sort_payload(plan: SortPlan) -> dict[str, object]:
     def task_value(task: TaskRecord) -> dict[str, str]:
         period = parse_notes(task.notes)
@@ -358,7 +431,11 @@ def sort_payload(plan: SortPlan) -> dict[str, object]:
     }
 
 
-def apply_sort(group: str, plan: SortPlan) -> bool:
+def apply_sort(
+    group: str,
+    plan: SortPlan,
+    rebuild_plan: Callable[[str], SortPlan] = lambda group: build_sort_plan(fetch_tasks(group)),
+) -> bool:
     if not plan.needs_reorder:
         return False
     previous_task_id = ""
@@ -368,7 +445,7 @@ def apply_sort(group: str, plan: SortPlan) -> bool:
             [group, task.task_id, previous_task_id],
         )
         previous_task_id = task.task_id
-    verified = build_sort_plan(fetch_tasks(group))
+    verified = rebuild_plan(group)
     desired_ids = tuple(task.task_id for task in plan.desired)
     verified_ids = tuple(task.task_id for task in verified.current)
     if verified_ids != desired_ids:
@@ -591,6 +668,111 @@ def command_format(args: argparse.Namespace) -> dict[str, object]:
     return payload
 
 
+@dataclass(frozen=True)
+class FormatErrorInfo:
+    task_id: str
+    title: str
+    error: str
+
+
+@dataclass(frozen=True)
+class GroupRefreshResult:
+    group: str
+    apply: bool
+    retitled: tuple[tuple[str, str], ...]
+    format_errors: tuple[FormatErrorInfo, ...]
+    needs_reorder: bool
+    reordered: bool
+
+
+def refresh_group(group: str, today: date, apply: bool) -> GroupRefreshResult:
+    """Non-interactive status-emoji refresh + reorder for one group.
+
+    Unlike command_format/command_sort, this never blocks on unparsable notes:
+    the offending task is marked with STATUS_EMOJI_FORMAT_ERROR and sorted last
+    so the LaunchAgent-driven weekly run can keep going unattended."""
+    tasks = fetch_tasks(group)
+    top_level = [task for task in tasks if task.parent_id is None and not task.completed]
+
+    retitled: dict[str, str] = {}
+    format_errors: list[FormatErrorInfo] = []
+    for task in top_level:
+        base_title = strip_status_emoji(task.title)
+        try:
+            emoji = status_emoji_for(parse_notes(task.notes), today)
+        except MuseumEventError as error:
+            emoji = STATUS_EMOJI_FORMAT_ERROR
+            format_errors.append(FormatErrorInfo(task.task_id, task.title, str(error)))
+        new_title = f"{base_title} {emoji}"
+        if new_title != task.title:
+            retitled[task.task_id] = new_title
+
+    if apply:
+        for task in top_level:
+            new_title = retitled.get(task.task_id)
+            if new_title is not None:
+                run_applescript(
+                    UPDATE_TASK_SCRIPT,
+                    [group, task.task_id, new_title, task.notes or ""],
+                )
+        tasks = fetch_tasks(group)
+
+    plan, _ = build_sort_plan_tolerant(tasks)
+    reordered = False
+    if apply:
+        reordered = apply_sort(
+            group,
+            plan,
+            rebuild_plan=lambda g: build_sort_plan_tolerant(fetch_tasks(g))[0],
+        )
+
+    return GroupRefreshResult(
+        group=group,
+        apply=apply,
+        retitled=tuple(retitled.items()),
+        format_errors=tuple(format_errors),
+        needs_reorder=plan.needs_reorder,
+        reordered=reordered,
+    )
+
+
+def command_refresh(args: argparse.Namespace) -> dict[str, object]:
+    today = date.today()
+    results = [refresh_group(group, today, args.apply) for group in ALLOWED_GROUPS]
+    format_errors = [
+        {"group": result.group, "task_id": error.task_id, "title": error.title, "error": error.error}
+        for result in results
+        for error in result.format_errors
+    ]
+    if args.apply and format_errors:
+        first = format_errors[0]
+        summary = f"{first['group']}: {first['title']}"
+        if len(format_errors) > 1:
+            summary += f" ほか{len(format_errors) - 1}件"
+        notify("美術展タスク: 書式エラーを検出", summary)
+    return {
+        "today": today.isoformat(),
+        "groups": [
+            {
+                "group": result.group,
+                "apply": result.apply,
+                "retitled": [
+                    {"task_id": task_id, "new_title": new_title}
+                    for task_id, new_title in result.retitled
+                ],
+                "format_errors": [
+                    {"task_id": error.task_id, "title": error.title, "error": error.error}
+                    for error in result.format_errors
+                ],
+                "needs_reorder": result.needs_reorder,
+                "reordered": result.reordered,
+            }
+            for result in results
+        ],
+        "format_errors": format_errors,
+    }
+
+
 def add_group_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--group", required=True, choices=ALLOWED_GROUPS)
 
@@ -639,6 +821,17 @@ def build_parser() -> argparse.ArgumentParser:
         format_parser.add_argument("--venue")
         format_parser.add_argument("--apply", action="store_true")
         format_parser.set_defaults(handler=command_format)
+
+        refresh_parser = subparsers.add_parser(
+            "refresh",
+            help=(
+                "Non-interactive: update status emoji for both groups from today's "
+                "date and reorder. Used by the museum-status-refresh LaunchAgent; "
+                "not part of the interactive skill workflow."
+            ),
+        )
+        refresh_parser.add_argument("--apply", action="store_true")
+        refresh_parser.set_defaults(handler=command_refresh)
 
     return parser
 

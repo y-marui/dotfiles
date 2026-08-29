@@ -49,3 +49,17 @@ _最終更新: 2026-08-27_
 | `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理項目だけを安全にマージ | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
+
+## Museum Status Refresh (macOS)
+
+Glance Task の「美術展: 関東」「美術展: 東北」タスクを、AIを使わず毎週月曜8時に非対話で
+ステータス絵文字更新・並べ替えする LaunchAgent。ステータス絵文字（🎟️開催中 / ⏳開催前 /
+🏁開催終了 / ❌書式エラー）の判定ロジックは `format-glance-task-museum-events` skill の
+`museum_events.py` に同居し、AI主導の `refresh` 以外のサブコマンドとは独立している。
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `macos/com.y-marui.museum-status-refresh.plist` | 毎週月曜8時の `museum-status-refresh` 実行を定義 | `~/.local/bin/museum-status-refresh` |
+| `macos/museum-status-refresh.sh` | ステータス更新スクリプトを非対話で起動 | `~/.claude/skills/format-glance-task-museum-events/scripts/museum_events.py` |
+| `macos/setup_museum_status_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.museum-status-refresh.plist` |
+| `ai/skills/format-glance-task-museum-events/scripts/museum_events.py` (`refresh` サブコマンド) | 日付からのステータス絵文字判定・書式エラーの末尾送り・書式エラー時のmacOS通知 | Glance Task.app（AppleScript） |

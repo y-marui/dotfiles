@@ -6,7 +6,7 @@ BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills launchagent init private private-scaffold private-validate private-lint update-private-charter
+.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills launchagent launchagent-museum-status init private private-scaffold private-validate private-lint update-private-charter
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -28,6 +28,7 @@ install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリ�
 	@bash scripts/setup-prezto.sh
 	@bash scripts/install.sh
 	@bash macos/setup_dots_check_launchagent.sh install
+	@bash macos/setup_museum_status_launchagent.sh install
 	@bash scripts/setup-zellij.sh
 	@bash macos/defaults.sh
 	@bash bin/unix/dots brew apply --backup-dir "$(BACKUP_DIR)"
@@ -78,6 +79,9 @@ check-skills: ## uv で全 Agent Skill の構造と同梱テストを検証
 
 launchagent: ## macOSのdots check定期監視LaunchAgentを再登録
 	@bash macos/setup_dots_check_launchagent.sh install
+
+launchagent-museum-status: ## 美術展タスクのステータス更新LaunchAgent（毎週月曜8時）を再登録
+	@bash macos/setup_museum_status_launchagent.sh install
 
 init: ## このマシン用のホスト固有設定テンプレートを生成
 	@bash scripts/init-host.sh

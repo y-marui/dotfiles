@@ -10,7 +10,7 @@
 - リンク先が管理外の実ファイルとして既に存在する場合は、`~/.dotfiles-backup/<timestamp>/`へ退避してからリンクする
 - `make check` はリンク切れ・リンク先不一致・未リンクファイルを検出するが、修復はしない（`make links` を促す）
 - `make uninstall` はdotfilesまたはdotfiles-privateを指す管理リンクだけを削除する
-- macOSの`make install-macos`はリンク作成後に`dots check`監視用LaunchAgentを登録する
+- macOSの`make install-macos`はリンク作成後に`dots check`監視用LaunchAgentと、美術展タスクのステータス更新用LaunchAgentを登録する
 - Windows では `mingw32-make install` が `pwsh scripts/install.ps1` を呼び、PowerShell ネイティブでシンボリックリンク（`New-Item -ItemType SymbolicLink`）を作成する
 
 ## Private Repository Scaffold
@@ -27,7 +27,7 @@
 以下を順に実行する（失敗しても後続は継続し、最後にまとめて結果を報告する）:
 
 1. dotfiles / dotfiles-private を fast-forward 更新
-2. インストーラーでリンクを再適用し、macOSでは`dots check`監視用LaunchAgentを再登録
+2. インストーラーでリンクを再適用し、macOSでは`dots check`監視用LaunchAgentと美術展タスクのステータス更新用LaunchAgentを再登録
 3. zprezto をサブモジュール込みで更新
 4. OS 別パッケージマネージャー（Homebrew / winget）の更新
 
@@ -40,6 +40,17 @@
 - 警告内容のハッシュが変わった場合と、警告が解消した場合だけmacOS通知を出す
 - zsh起動時はキャッシュを読み取るだけで、チェック処理を同期実行しない
 - 自動修復は行わない。詳細確認と手動再実行には`dots check`を使う
+- `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
+
+## Museum Status Refresh (macOS)
+
+- `com.y-marui.museum-status-refresh`をユーザーLaunchAgentとして、毎週月曜8時に実行する
+- plistとrunnerはdotfiles内で管理し、`~/Library/LaunchAgents/`と`~/.local/bin/`へリンクする
+- `make install-macos`と`dots update`が各Macで自動登録し、`make launchagent-museum-status`で手動再登録できる
+- 実行対象は`format-glance-task-museum-events` skillの`museum_events.py refresh --apply`で、AIを一切呼び出さない
+- 各グループの未完了タスクについて、今日の日付と会期からステータス絵文字（🎟️開催中 / ⏳開催前 / 🏁開催終了）をタイトル末尾に反映し、期間・開始日順に並べ替える
+- メモの期間が解析できないタスクは❌を付けてリスト最後尾に送り、他タスクの更新・並べ替えはブロックしない
+- ❌が1件以上あった実行ではmacOS通知を1回出す（該当タスク名と件数を含む）
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 
 ## dots {claude|codex|gemini} diff / apply / prune

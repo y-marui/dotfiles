@@ -71,6 +71,7 @@ fi
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
   bash "${DOTFILES_DIR}/macos/setup_dots_check_launchagent.sh" uninstall
+  bash "${DOTFILES_DIR}/macos/setup_museum_status_launchagent.sh" uninstall
 fi
 
 count_removed=0

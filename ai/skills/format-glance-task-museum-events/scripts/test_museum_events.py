@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import importlib.util
 import subprocess
 import sys
@@ -114,12 +115,148 @@ class MuseumEventsTests(unittest.TestCase):
             ["美術展: 関東", "美術展: 東北"],
         )
 
+    def test_strip_status_emoji_removes_known_trailing_emoji(self):
+        for emoji in museum_events.STATUS_EMOJIS:
+            with self.subTest(emoji=emoji):
+                self.assertEqual(
+                    museum_events.strip_status_emoji(f"タイトル {emoji}"), "タイトル"
+                )
+        self.assertEqual(museum_events.strip_status_emoji("タイトル"), "タイトル")
+
+    def test_status_emoji_for_reflects_todays_date(self):
+        period = museum_events.EventPeriod(
+            start=date(2026, 7, 1), end=date(2026, 7, 10), venue="会場"
+        )
+        self.assertEqual(
+            museum_events.status_emoji_for(period, date(2026, 6, 30)),
+            museum_events.STATUS_EMOJI_BEFORE,
+        )
+        self.assertEqual(
+            museum_events.status_emoji_for(period, date(2026, 7, 5)),
+            museum_events.STATUS_EMOJI_ONGOING,
+        )
+        self.assertEqual(
+            museum_events.status_emoji_for(period, date(2026, 7, 11)),
+            museum_events.STATUS_EMOJI_ENDED,
+        )
+
+    def test_build_sort_plan_tolerant_sorts_format_errors_last(self):
+        records = [
+            self.task("bad", "not a period", "0000"),
+            self.task("late", "2026/08/23 late", "0001"),
+            self.task("early", "2026/07/10 early", "0002"),
+        ]
+        plan, error_ids = museum_events.build_sort_plan_tolerant(records)
+        self.assertEqual(
+            [task.task_id for task in plan.desired], ["early", "late", "bad"]
+        )
+        self.assertEqual(error_ids, ("bad",))
+
+    def test_refresh_group_retitles_from_todays_date_without_reordering(self):
+        today = date(2026, 7, 5)
+        tasks = [
+            museum_events.TaskRecord(
+                task_id="a",
+                title="展示A ⏳",
+                notes="2026/07/01-10 会場A",
+                completed=False,
+                parent_id=None,
+                position="0000",
+            ),
+            museum_events.TaskRecord(
+                task_id="b",
+                title="展示B ⏳",
+                notes="2026/07/20-30 会場B",
+                completed=False,
+                parent_id=None,
+                position="0001",
+            ),
+        ]
+        with mock.patch.object(
+            museum_events, "fetch_tasks", side_effect=lambda _group: tasks
+        ) as fetch, mock.patch.object(
+            museum_events, "run_applescript"
+        ) as run_applescript:
+            result = museum_events.refresh_group("美術展: 関東", today, apply=True)
+
+        self.assertEqual(result.retitled, (("a", "展示A 🎟️"),))
+        self.assertEqual(result.format_errors, ())
+        self.assertFalse(result.needs_reorder)
+        self.assertFalse(result.reordered)
+        run_applescript.assert_called_once_with(
+            museum_events.UPDATE_TASK_SCRIPT,
+            ["美術展: 関東", "a", "展示A 🎟️", "2026/07/01-10 会場A"],
+        )
+        self.assertEqual(fetch.call_count, 2)
+
+    def test_refresh_group_flags_format_error_without_applescript_call(self):
+        today = date(2026, 7, 5)
+        tasks = [
+            museum_events.TaskRecord(
+                task_id="bad",
+                title="壊れたタスク",
+                notes="not a period",
+                completed=False,
+                parent_id=None,
+                position="0000",
+            )
+        ]
+        with mock.patch.object(
+            museum_events, "fetch_tasks", side_effect=lambda _group: tasks
+        ), mock.patch.object(museum_events, "run_applescript") as run_applescript:
+            result = museum_events.refresh_group("美術展: 関東", today, apply=True)
+
+        self.assertEqual(
+            result.retitled, (("bad", f"壊れたタスク {museum_events.STATUS_EMOJI_FORMAT_ERROR}"),)
+        )
+        self.assertEqual(len(result.format_errors), 1)
+        self.assertEqual(result.format_errors[0].task_id, "bad")
+        run_applescript.assert_called_once_with(
+            museum_events.UPDATE_TASK_SCRIPT,
+            ["美術展: 関東", "bad", f"壊れたタスク {museum_events.STATUS_EMOJI_FORMAT_ERROR}", "not a period"],
+        )
+
+    def test_command_refresh_notifies_once_on_format_errors(self):
+        kanto_error = museum_events.FormatErrorInfo("k1", "関東タスク", "bad notes")
+        tohoku_error = museum_events.FormatErrorInfo("t1", "東北タスク", "bad notes")
+        results = {
+            "美術展: 関東": museum_events.GroupRefreshResult(
+                group="美術展: 関東",
+                apply=True,
+                retitled=(),
+                format_errors=(kanto_error,),
+                needs_reorder=False,
+                reordered=False,
+            ),
+            "美術展: 東北": museum_events.GroupRefreshResult(
+                group="美術展: 東北",
+                apply=True,
+                retitled=(),
+                format_errors=(tohoku_error,),
+                needs_reorder=False,
+                reordered=False,
+            ),
+        }
+        with mock.patch.object(
+            museum_events, "refresh_group", side_effect=lambda group, _today, _apply: results[group]
+        ), mock.patch.object(museum_events, "notify") as notify:
+            args = argparse.Namespace(apply=True)
+            payload = museum_events.command_refresh(args)
+
+        self.assertEqual(len(payload["format_errors"]), 2)
+        notify.assert_called_once()
+        title, message = notify.call_args.args
+        self.assertIn("書式エラー", title)
+        self.assertIn("関東タスク", message)
+        self.assertIn("ほか1件", message)
+
     def test_applescript_sources_compile(self):
         sources = (
             museum_events.FETCH_TASKS_SCRIPT,
             museum_events.ADD_TASK_SCRIPT,
             museum_events.UPDATE_TASK_SCRIPT,
             museum_events.REORDER_TASK_SCRIPT,
+            museum_events.NOTIFY_SCRIPT,
         )
         with tempfile.TemporaryDirectory() as directory:
             for index, source in enumerate(sources):

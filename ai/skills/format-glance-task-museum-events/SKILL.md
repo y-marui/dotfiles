@@ -7,6 +7,11 @@ description: "Audit, format, normalize, or reorder existing exhibition tasks in 
 
 同梱CLIとGlance TaskのAppleScriptコマンドで、既存の美術展を監査・整形する。タスクは安定IDで識別し、表示順には `fetch tasks` の配列順ではなく `task position` を使う。
 
+タイトル末尾のステータス絵文字（🎟️開催中 / ⏳開催前 / 🏁開催終了 / ❌書式エラー）は、
+このskill内の`museum_events.py refresh`を毎週月曜8時に実行する`com.y-marui.museum-status-refresh`
+LaunchAgent（AIを使わない）が今日の日付から自動更新する。このskillの`preflight`/`audit`/
+`sort`/`format`コマンドはこの絵文字を変更しない（省略された項目として保持するのみ）。
+
 ## Proceed Without Confirmation
 
 - 整形、正規化、修復、並べ替えの依頼は、要求された変更を適用する許可として扱う。事前確認やプレビュー後に確認待ちで止めない。

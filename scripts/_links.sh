@@ -46,6 +46,8 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     "karabiner/complex_modifications/rdp-jis.json|${HOME}/.config/karabiner/assets/complex_modifications/rdp-jis.json"
     "macos/dots-check-monitor.sh|${HOME}/.local/bin/dots-check-monitor"
     "macos/com.y-marui.dotfiles-check.plist|${HOME}/Library/LaunchAgents/com.y-marui.dotfiles-check.plist"
+    "macos/museum-status-refresh.sh|${HOME}/.local/bin/museum-status-refresh"
+    "macos/com.y-marui.museum-status-refresh.plist|${HOME}/Library/LaunchAgents/com.y-marui.museum-status-refresh.plist"
   )
 fi
 
