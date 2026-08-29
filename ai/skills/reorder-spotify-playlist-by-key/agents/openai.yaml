@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spotify キー順並べ替え"
+  short_description: "プレイリストをCamelot Wheel順に安全に並べ替え"
+  default_prompt: "Use $reorder-spotify-playlist-by-key to reorder this Spotify playlist into Camelot Wheel order."

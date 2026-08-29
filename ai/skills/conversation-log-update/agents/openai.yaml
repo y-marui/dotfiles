@@ -1,0 +1,4 @@
+interface:
+  display_name: "会話ログ更新"
+  short_description: "Obsidianの会話ログを校正・再構成して更新"
+  default_prompt: "Use $conversation-log-update to proofread and update the requested conversation log."

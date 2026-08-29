@@ -1,0 +1,4 @@
+interface:
+  display_name: "グローバルメモリー統合"
+  short_description: "全プロジェクトのClaudeメモリーを指示ファイルへ統合"
+  default_prompt: "Use $consolidate-global-memory to consolidate all Claude memory stores into their appropriate instruction files."

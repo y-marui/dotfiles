@@ -1,0 +1,4 @@
+interface:
+  display_name: "dotfiles バックアップ確認"
+  short_description: "退避済みdotfilesを実体と比較して安全に棚卸し"
+  default_prompt: "Use $review-dotfiles-backup to audit my dotfiles backups and identify any files that need to be preserved."
