@@ -39,6 +39,8 @@ Usage:
   dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots copilot {apply|diff|prune} [--mcp-only]
   dots check [--verbose]
+  dots commit
+  dots push [--no-fetch]
   dots help
 
 Commands:
@@ -56,6 +58,10 @@ Commands:
   copilot GitHub Copilot CLI の user scope MCP を宣言的に管理
   check   シンボリックリンク・dotfiles状態・パッケージ管理・全 AI Agent の差分を一括検査
           （デフォルトは差分がある項目のみ1行で表示。--verbose で詳細表示）
+  commit  sync系コマンドが書き換えたファイルのみの変更を自動検知してcommit
+          （対象外ファイルが混在する場合は何もコミットせず、手動commitを促す）
+  push    未pushのcommitが全て dots commit によるファイルだけならpush、
+          対象外ファイルを含むcommitが混じっていれば手動pushを促す
 EOF
 }
 
@@ -149,6 +155,163 @@ _status() {
 
   _status_repo "dotfiles" "${DOTFILES_DIR}" "${fetch}" || result=1
   _status_repo "dotfiles-private" "${PRIVATE_DIR}" "${fetch}" || result=1
+  return "${result}"
+}
+
+# dots commit / dots push が「システムの実態を機械的に書き写しただけ」と
+# みなすファイル一覧。ここに載っているファイルだけで構成された変更・commit
+# であれば自動commit・自動pushの対象にする。判断・記述内容を伴う変更（AI宣言
+# ファイルの手編集や Brewfile-pin の一時pin宣言等）はここに含めない。
+_commit_targets_dotfiles() {
+  cat <<'EOF'
+macos/Brewfile
+macos/Brewfile.local
+npm/npmfile
+pipx/pipxfile
+EOF
+}
+
+_commit_targets_private() {
+  cat <<'EOF'
+macos/dockfile
+macos/keyboard-shortcuts.plist
+EOF
+}
+
+_commit_label_for_file() {
+  case "$1" in
+    macos/Brewfile|macos/Brewfile.local) printf 'Brewfile' ;;
+    npm/npmfile) printf 'npmfile' ;;
+    pipx/pipxfile) printf 'pipxfile' ;;
+    macos/dockfile) printf 'dockfile' ;;
+    macos/keyboard-shortcuts.plist) printf 'アプリケーションショートカット' ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+_path_in_list() {
+  local path="$1" list="$2" line
+  while IFS= read -r line; do
+    [[ -n "${line}" && "${path}" == "${line}" ]] && return 0
+  done <<< "${list}"
+  return 1
+}
+
+_commit_repo() {
+  local label="$1" repo_dir="$2" targets="$3"
+  [[ -d "${repo_dir}/.git" ]] || return 0
+
+  local status_lines
+  status_lines="$(git -C "${repo_dir}" status --porcelain)"
+  if [[ -z "${status_lines}" ]]; then
+    printf '%s: 変更なし\n' "${label}"
+    return 0
+  fi
+
+  local matched=() blocked=() line path
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] || continue
+    path="${line:3}"
+    [[ "${path}" == *' -> '* ]] && path="${path##*' -> '}"
+    if _path_in_list "${path}" "${targets}"; then
+      matched+=("${path}")
+    else
+      blocked+=("${path}")
+    fi
+  done <<< "${status_lines}"
+
+  if (( ${#blocked[@]} > 0 )); then
+    printf '%s: 自動commit対象外の変更があるためスキップ（手動でcommitしてください）\n' "${label}"
+    printf '    %s\n' "${blocked[@]}"
+    return 1
+  fi
+
+  local labels="" f lbl
+  for f in "${matched[@]}"; do
+    lbl="$(_commit_label_for_file "${f}")"
+    case " ${labels} " in
+      *" ${lbl} "*) ;;
+      *) labels="${labels} ${lbl}" ;;
+    esac
+  done
+  labels="${labels# }"
+  local joined="${labels// /・}"
+
+  git -C "${repo_dir}" add -- "${matched[@]}"
+
+  local body
+  body="$(printf -- '- %s\n' "${matched[@]}")"
+  git -C "${repo_dir}" commit -m "chore: ${joined}を実態に同期" -m "${body}"
+  printf '%s: commit しました (chore: %sを実態に同期)\n' "${label}" "${joined}"
+}
+
+_commit() {
+  _require_no_args "$@"
+  local result=0
+  _commit_repo "dotfiles" "${DOTFILES_DIR}" "$(_commit_targets_dotfiles)" || result=1
+  _commit_repo "dotfiles-private" "${PRIVATE_DIR}" "$(_commit_targets_private)" || result=1
+  return "${result}"
+}
+
+_push_repo() {
+  local label="$1" repo_dir="$2" targets="$3" fetch="$4"
+  [[ -d "${repo_dir}/.git" ]] || return 0
+
+  if [[ "${fetch}" == true ]]; then
+    git -C "${repo_dir}" fetch --quiet --prune || \
+      printf '%s: fetch失敗（キャッシュされたリモート情報で判定します）\n' "${label}"
+  fi
+
+  local upstream
+  if ! upstream="$(git -C "${repo_dir}" rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)"; then
+    printf '%s: upstream未設定のためスキップ\n' "${label}"
+    return 0
+  fi
+
+  local ahead
+  ahead="$(git -C "${repo_dir}" rev-list --count "${upstream}..HEAD")"
+  if [[ "${ahead}" -eq 0 ]]; then
+    printf '%s: pushする変更なし\n' "${label}"
+    return 0
+  fi
+
+  local changed blocked=() line
+  changed="$(git -C "${repo_dir}" diff --name-only "${upstream}..HEAD")"
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] || continue
+    _path_in_list "${line}" "${targets}" || blocked+=("${line}")
+  done <<< "${changed}"
+
+  if (( ${#blocked[@]} > 0 )); then
+    printf '%s: 自動commit対象外のファイルを含む %s 件のcommitがあるため push しません\n' \
+      "${label}" "${ahead}"
+    printf '    %s\n' "${blocked[@]}"
+    printf '  手動で確認して push してください（git -C %s push）\n' "${repo_dir}"
+    return 1
+  fi
+
+  git -C "${repo_dir}" push
+  printf '%s: %s commit(s) を push しました\n' "${label}" "${ahead}"
+}
+
+_push() {
+  local fetch=true
+
+  while (( $# > 0 )); do
+    case "$1" in
+      --no-fetch) fetch=false ;;
+      -h|--help)
+        printf 'Usage: dots push [--no-fetch]\n'
+        return 0
+        ;;
+      *) _error "unknown push option: $1" ;;
+    esac
+    shift
+  done
+
+  local result=0
+  _push_repo "dotfiles" "${DOTFILES_DIR}" "$(_commit_targets_dotfiles)" "${fetch}" || result=1
+  _push_repo "dotfiles-private" "${PRIVATE_DIR}" "$(_commit_targets_private)" "${fetch}" || result=1
   return "${result}"
 }
 
@@ -620,6 +783,8 @@ case "${command_name}" in
   claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
   copilot) _copilot "$@" ;;
   check) _check "$@" ;;
+  commit) _commit "$@" ;;
+  push) _push "$@" ;;
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;
 esac

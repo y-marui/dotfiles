@@ -71,6 +71,36 @@ Claude Code、Codex、Gemini の順に、各エージェントの同じ操作を
 Copilot は user scope MCP のみを管理し、対応する対象種別とオプションが異なるため含めない。
 個別の `dots {claude|codex|gemini}` コマンドは引き続き利用できる。
 
+## dots commit / dots push
+
+`sync` 系コマンド（`dots brew sync` / `dots npm sync` / `dots pipx sync` /
+`dots dock sync` / `dots shortcuts sync`）は、システムの実態をそのまま管理ファイルへ
+書き写すだけで、記述内容に人間の判断を伴わない。この種の変更を都度手動commitする
+手間を省くためのコマンド。
+
+**自動commit対象ファイル**（これ以外のファイルは対象外）:
+
+- dotfiles: `macos/Brewfile`, `macos/Brewfile.local`, `npm/npmfile`, `pipx/pipxfile`
+- dotfiles-private: `macos/dockfile`, `macos/keyboard-shortcuts.plist`
+
+`dots commit`:
+- dotfiles / dotfiles-private それぞれのworking treeを確認する
+- 変更ファイルが全て上記の対象ファイルであれば、変更されたファイル名から
+  Conventional Commits形式のメッセージ（例: `chore: Brewfile・npmfileを実態に同期`）を
+  自動生成してcommitする
+- 対象外のファイルが1つでも変更に含まれる場合は、対象ファイルも含めて一切commitせず
+  （部分commitはしない）、対象外ファイルの一覧を表示して手動commitを促す
+- `Brewfile-pin` やAI（claude/codex/gemini/copilot）のMCP・plugin・skill宣言ファイルは
+  人間が意図して編集するため対象外
+
+`dots push [--no-fetch]`:
+- 既定では各リポジトリを`git fetch --prune`してから、upstreamに対してunpushedな
+  commit群の変更ファイルをまとめて調べる
+- 変更ファイルが全て自動commit対象ファイルであれば`git push`する
+- 対象外ファイルを含むcommitが1つでも混在する場合はpushせず、該当ファイルと
+  リポジトリパスを提示して手動pushを促す
+- upstream未設定のリポジトリはスキップする
+
 ## sync-labpc
 
 - ジョブ定義（`~/.config/labpc/jobs.d/<job-name>.conf`）に基づき、SMB共有からこのMacへ

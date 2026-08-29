@@ -51,10 +51,23 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
 | `dots ai {apply\|diff\|prune}` | Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理 |
+| `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
+| `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |
 
 `dots status` は両リポジトリを `git fetch --prune` してから確認し、要対応の状態が
 1つでもあれば終了コード1を返す。ネットワークへ接続せず、既存のremote-tracking refだけで
 確認する場合は `dots status --no-fetch` を使用する。
+
+`dots commit` は dotfiles / dotfiles-private それぞれの working tree を確認し、
+`macos/Brewfile` / `macos/Brewfile.local` / `npm/npmfile` / `pipx/pipxfile`
+（dotfiles-private側は `macos/dockfile` / `macos/keyboard-shortcuts.plist`）
+だけが変更されている場合に限り、自動生成した Conventional Commits 形式のメッセージで
+commitする。これら以外のファイルが1つでも変更に含まれる場合は何もcommitせず、
+手動でのcommitを促す（自動commit対象のファイルだけを部分的にcommitすることはしない）。
+
+`dots push` は各リポジトリでunpushedなcommit群の変更ファイルを調べ、全て上記の
+自動commit対象ファイルだけであればpushする。対象外ファイルを含むcommitが1つでも
+混在する場合はpushせず、該当ファイルを提示して手動pushを促す。
 
 ZellijはOS別に互換性を確認したバージョンを固定する。macOS/Raspberry Piは
 `scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
