@@ -1,12 +1,14 @@
-# ~/.claude/memory（global）と ~/.claude/projects/*/memory（project別）の
-# 全メモリファイルを一覧化する。各行は TSV:
+# Claude Code と Codex local のmemory候補を一覧化する。各行は TSV:
 #   scope<TAB>type<TAB>name<TAB>description<TAB>path
-# scope は "global" または "project:<project-dir-name>"。
-# MEMORY.md（frontmatterを持たないインデックスファイル）は name/type/description が空欄で出力する。
+# Claudeのscope は "global" または "project:<project-dir-name>"、Codexは
+# "codex:local" または "codex:rollout"。frontmatterがないファイルは
+# name/type/description を空欄で出力する。
 
 $ClaudeDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
 $GlobalMemoryDir = Join-Path $ClaudeDir 'memory'
 $ProjectsDir = Join-Path $ClaudeDir 'projects'
+$CodexDir = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+$CodexMemoryDir = Join-Path $CodexDir 'memories'
 
 function Get-Frontmatter {
     param([string]$Path)
@@ -57,3 +59,6 @@ if (Test-Path -LiteralPath $ProjectsDir -PathType Container) {
         }
     }
 }
+
+Write-MemoryDir -Scope 'codex:local' -Dir $CodexMemoryDir
+Write-MemoryDir -Scope 'codex:rollout' -Dir (Join-Path $CodexMemoryDir 'rollout_summaries')

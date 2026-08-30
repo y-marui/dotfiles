@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# ~/.claude/memory（global）と ~/.claude/projects/*/memory（project別）の
-# 全メモリファイルを一覧化する。各行は TSV:
+# Claude Code と Codex local のmemory候補を一覧化する。各行は TSV:
 #   scope<TAB>type<TAB>name<TAB>description<TAB>path
-# scope は "global" または "project:<project-dir-name>"。
-# MEMORY.md（frontmatterを持たないインデックスファイル）は name/type/description が空欄で出力する。
+# Claudeのscope は "global" または "project:<project-dir-name>"、Codexは
+# "codex:local" または "codex:rollout"。frontmatterがないファイルは
+# name/type/description を空欄で出力する。
 set -euo pipefail
 
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
 GLOBAL_MEMORY_DIR="${CLAUDE_DIR}/memory"
 PROJECTS_DIR="${CLAUDE_DIR}/projects"
+CODEX_DIR="${CODEX_HOME:-${HOME}/.codex}"
+CODEX_MEMORY_DIR="${CODEX_DIR}/memories"
 
 list_dir() {
   local scope="$1" dir="$2"
@@ -45,3 +47,6 @@ if [[ -d "${PROJECTS_DIR}" ]]; then
     list_dir "project:$(basename "${proj_dir}")" "${mem_dir}"
   done
 fi
+
+list_dir "codex:local" "${CODEX_MEMORY_DIR}"
+list_dir "codex:rollout" "${CODEX_MEMORY_DIR}/rollout_summaries"

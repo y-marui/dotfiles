@@ -1,6 +1,6 @@
 ---
 name: filmarks-add-want-to-watch
-description: "画像またはテキストで示された映画をFilmarksで照合し、未登録なら「観たい」に追加する。FilmarksのMarks／観たいの確認・登録を依頼されたときに使う。"
+description: "Identify a movie from an image or text, check its Filmarks status, and add it to Want to Watch only when neither Marks nor Want to Watch is active. Use when the user asks to check or add a movie to Filmarks."
 ---
 
 # Add to Filmarks Want-to-Watch
@@ -16,8 +16,8 @@ description: "画像またはテキストで示された映画をFilmarksで照�
 
 - ユーザーがログイン済みのブラウザを使う。ログインしていなければ、ユーザーにログインを依頼して停止する。認証情報は扱わない。
 - Filmarks内の映画検索で作品を開き、正しい作品の検索結果カードを対象にする。
-- 各カードの左下はMarks、右下は観たい（クリップ）。数字は作品ごとの全体件数であり、登録状態を表さない。
-- 登録状態はアクション領域のハイライトで判定する。Webのカードでは、`p-content-cassette__action--marks` または `p-content-cassette__action--clips` に `is-active` が付いていることを確認する。
+- 左下はMarks、右下は観たい（クリップ）。数字は登録状態ではない。
+- アクション領域のハイライトで判定する。Webでは `p-content-cassette__action--marks` または `p-content-cassette__action--clips` の `is-active` を確認する。
 
 ## Process
 
@@ -25,7 +25,7 @@ description: "画像またはテキストで示された映画をFilmarksで照�
 2. Marksまたは観たいのいずれか一方が登録済みなら、状態を報告して何も変更しない。
 3. Marksと観たいの両方が登録済みなら、状態を報告し、そのFilmarks作品ページのURLを添える。何も変更しない。
 
-状態を判定できない、作品ページの操作が失敗した、または追加後のハイライトを確認できない場合は、変更完了とは報告しない。
+状態を判定できない、操作が失敗した、または追加後のハイライトを確認できない場合は完了と報告しない。
 
 ## Report
 

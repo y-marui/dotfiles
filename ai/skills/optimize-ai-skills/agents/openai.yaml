@@ -1,0 +1,4 @@
+interface:
+  display_name: "AIスキル最適化"
+  short_description: "既存のSKILL.mdを挙動を保ったまま簡潔・明確に整理"
+  default_prompt: "Use $optimize-ai-skills to optimize the specified existing agent skill without changing its behavior."
