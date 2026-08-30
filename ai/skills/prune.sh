@@ -19,10 +19,7 @@ case "${AGENT}" in
     ;;
 esac
 
-PYTHON_BIN="$(command -v python3 || echo "python3")"
-if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
-  PYTHON_BIN="/usr/bin/python3"
-fi
+PYTHON_BIN="python3"
 
 declared_file="$(mktemp)"
 trap 'rm -f "${declared_file}"' EXIT

@@ -8,10 +8,7 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/../../.." && pwd)}"
 SERVERS_FILE="${DOTFILES_DIR}/ai/gemini/mcp/servers.json"
 GEMINI_CONFIG="${HOME}/.gemini/config/mcp_config.json"
 
-PYTHON_BIN="$(command -v python3 || echo "python3")"
-if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
-  PYTHON_BIN="/usr/bin/python3"
-fi
+PYTHON_BIN="python3"
 
 if [[ ! -f "${GEMINI_CONFIG}" ]]; then
   echo "No Gemini MCP configuration file found."

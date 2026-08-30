@@ -9,10 +9,7 @@ SERVERS_FILE="${DOTFILES_DIR}/ai/gemini/mcp/servers.json"
 GEMINI_CONFIG_DIR="${HOME}/.gemini/config"
 GEMINI_CONFIG="${GEMINI_CONFIG_DIR}/mcp_config.json"
 
-PYTHON_BIN="$(command -v python3 || echo "python3")"
-if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
-  PYTHON_BIN="/usr/bin/python3"
-fi
+PYTHON_BIN="python3"
 
 if [[ ! -f "${SERVERS_FILE}" ]]; then
   echo "Error: ${SERVERS_FILE} not found." >&2

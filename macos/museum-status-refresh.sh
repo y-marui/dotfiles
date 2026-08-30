@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-export PATH="${HOME}/.local/bin:${HOME}/.local/bin/dotfiles:${HOME}/.nodebrew/current/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="${HOME}/.local/bin:${HOME}/.local/bin/dotfiles:${HOME}/.pyenv/shims:${HOME}/.nodebrew/current/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
 export LANG="${LANG:-ja_JP.UTF-8}"
 
 SCRIPT="${HOME}/.claude/skills/glance-task-format-museum-events/scripts/museum_events.py"

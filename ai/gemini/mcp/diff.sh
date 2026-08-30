@@ -10,10 +10,7 @@ GEMINI_CONFIG="${HOME}/.gemini/config/mcp_config.json"
 SUMMARY_MODE=0
 [[ "${1:-}" == "--summary" ]] && SUMMARY_MODE=1
 
-PYTHON_BIN="$(command -v python3 || echo "python3")"
-if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
-  PYTHON_BIN="/usr/bin/python3"
-fi
+PYTHON_BIN="python3"
 
 if [[ ! -f "${SERVERS_FILE}" ]]; then
   echo "Error: ${SERVERS_FILE} not found." >&2

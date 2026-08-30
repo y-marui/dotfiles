@@ -9,10 +9,7 @@ SOURCE_HOME="${DOTFILES_DIR}/ai/gemini/plugin/plugins"
 PLUGIN_HOME="${HOME}/.gemini/config/plugins"
 SUMMARY_MODE=0
 [[ "${1:-}" == "--summary" ]] && SUMMARY_MODE=1
-PYTHON_BIN="$(command -v python3 || echo "python3")"
-if [[ "${PYTHON_BIN}" == *".pyenv"* && -x "/usr/bin/python3" ]]; then
-  PYTHON_BIN="/usr/bin/python3"
-fi
+PYTHON_BIN="python3"
 
 "${PYTHON_BIN}" - "${PLUGINS_FILE}" "${SOURCE_HOME}" "${PLUGIN_HOME}" "${SUMMARY_MODE}" <<'PYEOF'
 import json
