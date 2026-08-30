@@ -52,15 +52,23 @@ printf '%s\n' "${state}" > "${STATE_FILE}"
 printf '%s\n' "${digest}" > "${DIGEST_FILE}"
 
 _notify() {
-  local title="$1" message="$2"
+  local title="$1" message="$2" with_popup="${3:-0}"
   [[ "${DOTS_MONITOR_DISABLE_NOTIFICATION:-0}" != 1 ]] || return 0
   [[ "$(uname -s)" == "Darwin" ]] || return 0
 
-  /usr/bin/osascript - "${title}" "${message}" <<'APPLESCRIPT' >/dev/null
+  # osascript の display notification はクリック時の送信元がScript Editorに固定され、
+  # クリックすると空の新規スクリプトが開いてしまう。terminal-notifierがあれば
+  # -executeでポップアップ表示スクリプトを起動し、それ以外の場合のみフォールバックする。
+  if [[ "${with_popup}" == 1 ]] && command -v terminal-notifier >/dev/null 2>&1; then
+    terminal-notifier -title "${title}" -message "${message}" \
+      -execute "${HOME}/.local/bin/dots-check-monitor-popup" >/dev/null 2>&1 || true
+  else
+    /usr/bin/osascript - "${title}" "${message}" <<'APPLESCRIPT' >/dev/null
 on run argv
   display notification (item 2 of argv) with title (item 1 of argv)
 end run
 APPLESCRIPT
+  fi
 }
 
 if [[ "${digest}" != "${previous_digest}" ]]; then
@@ -72,7 +80,7 @@ if [[ "${digest}" != "${previous_digest}" ]]; then
       ;;
     warning|error)
       first_line="$(printf '%s\n' "${summary}" | sed -n '1p')"
-      _notify "dotfiles check: 要確認" "${first_line}  dots check で確認してください。" || true
+      _notify "dotfiles check: 要確認" "${first_line}  クリックで詳細を確認できます。" 1 || true
       ;;
   esac
 fi

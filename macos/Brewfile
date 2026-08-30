@@ -28,6 +28,7 @@ brew "dockutil"
 brew "duti"
 brew "lsusb"
 brew "switchaudio-osx"
+brew "terminal-notifier"
 cask "karabiner-elements"
 
 # ── PDF / LaTeX ──────────────────────────────────────────────────────────────

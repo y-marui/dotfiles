@@ -26,6 +26,7 @@ EXCEPTIONS=(
   "macos/diff_dockfile.sh:macOS専用（Dock）"
   "macos/diff_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/dots-check-monitor.sh:macOS専用（LaunchAgent・通知）"
+  "macos/dots-check-monitor-popup.sh:macOS専用（LaunchAgent・通知）"
   "macos/merge_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/museum-status-refresh.sh:macOS専用（LaunchAgent・Glance Task AppleScript連携）"
   "macos/sync_brewfile.sh:macOS専用（Homebrew）"

@@ -38,6 +38,10 @@
 - `make install-macos`と`dots update`が各Macで自動登録し、`make launchagent`で手動再登録できる
 - `dots check`の結果は`~/.cache/dots/check-summary`へ原子的に保存する
 - 警告内容のハッシュが変わった場合と、警告が解消した場合だけmacOS通知を出す
+- 警告・エラー通知はterminal-notifier経由で出し、クリックすると`dots-check-monitor-popup`が
+  `check-summary`全文をダイアログ表示する（コピー/閉じるを選択可能）。osascriptの
+  `display notification`はクリック時の送信元がScript Editorに固定され空の新規スクリプトが
+  開いてしまうため、terminal-notifier未導入時のみそちらへフォールバックする
 - zsh起動時はキャッシュを読み取るだけで、チェック処理を同期実行しない
 - 自動修復は行わない。詳細確認と手動再実行には`dots check`を使う
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
