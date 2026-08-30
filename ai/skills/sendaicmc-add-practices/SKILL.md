@@ -1,5 +1,5 @@
 ---
-name: add-sendai-chamber-practices
+name: sendaicmc-add-practices
 description: Add one or more 仙台室内楽の会 practice bookings to the correct Google Calendar while matching existing event formatting. Use when the user pastes booking confirmations, reservation rows, practice dates, venues, rooms, or times and asks to register, add, or schedule them in 「仙台室内楽の会 練習」 or 「仙台室内楽の会 練習 (ピアノなし)」. Validate weekdays, detect duplicates, reuse venue metadata from precedent events, and create confirmed events in bulk.
 ---
 

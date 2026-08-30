@@ -1,4 +1,4 @@
 interface:
   display_name: "仙台室内楽の会 練習予定登録"
   short_description: "予約一覧を既存形式に合わせて練習カレンダーへ一括登録"
-  default_prompt: "Use $add-sendai-chamber-practices to add confirmed practice bookings to the correct Sendai Chamber Music Club calendar."
+  default_prompt: "Use $sendaicmc-add-practices to add confirmed practice bookings to the correct Sendai Chamber Music Club calendar."
