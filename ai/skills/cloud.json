@@ -2,7 +2,7 @@
   "skills": [
     {
       "name": "weather-check",
-      "synced_hash": "63200989575bd493ad2cf89bd18eee23ce7af76c7e944b5a7f1824cd04d8103c",
+      "synced_hash": "729e1c48254ce5e8ab9252fb00d0f9bc4c343199440f0b4ae4f50bdc495cbfea",
       "scheduled_tasks": ["Daily Weather Check"]
     },
     {
