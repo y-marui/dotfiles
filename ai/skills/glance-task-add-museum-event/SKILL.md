@@ -1,6 +1,6 @@
 ---
-name: add-glance-task-museum-event
-description: "Add a new exhibition task to Glance Task's 「美術展: 関東」 or 「美術展: 東北」 group through AppleScript, format its period and venue, and create it directly in unfinished-task position order with add task's optional after parameter. Use only for creating a new museum or art exhibition task; use format-glance-task-museum-events for existing-task formatting and order repair."
+name: glance-task-add-museum-event
+description: "Add a new exhibition task to Glance Task's 「美術展: 関東」 or 「美術展: 東北」 group through AppleScript, format its period and venue, and create it directly in unfinished-task position order with add task's optional after parameter. Use only for creating a new museum or art exhibition task; use glance-task-format-museum-events for existing-task formatting and order repair."
 ---
 
 # Add a Glance Task Museum Event
@@ -12,7 +12,7 @@ description: "Add a new exhibition task to Glance Task's 「美術展: 関東」
 - 対象グループは必ず `美術展: 関東` または `美術展: 東北` に確定する。地域が不明なら質問する。
 - 展示名、開始日、終了日、会場を必須とする。終了日がない場合は、1日開催であることが明確なときだけそう扱う。
 - ステータス絵文字を推測して追加しない。
-- 完全一致する展示名の重複を確認する。存在する場合は新規追加せず、既存の安定したタスクIDとともに `format-glance-task-museum-events` skill へ引き継ぐ。
+- 完全一致する展示名の重複を確認する。存在する場合は新規追加せず、既存の安定したタスクIDとともに `glance-task-format-museum-events` skill へ引き継ぐ。
 
 ## Format
 

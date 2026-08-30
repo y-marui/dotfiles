@@ -1,5 +1,5 @@
 ---
-name: create-jmty-ensemble-post
+name: jimoty-create-ensemble-post
 description: Create a new Jimoty recruitment post for 仙台室内楽の会 by reading upcoming practices from its Google Calendars, checking existing posts to choose the next unadvertised leading practice date, copying the most recent matching post with a fixed fallback, and replacing only its title-leading date and schedule block. Use when the user asks to make, draft, prepare, or post the next ジモティー募集文, メンバー募集, アンサンブル募集, or 練習日更新 based on the existing Jimoty article. Also update the existing article only when the user explicitly asks to edit it instead of creating a new post.
 ---
 

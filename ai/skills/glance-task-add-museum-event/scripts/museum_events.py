@@ -559,7 +559,7 @@ def command_add(args: argparse.Namespace) -> dict[str, object]:
     if existing_plan.needs_reorder:
         raise MuseumEventError(
             "Existing unfinished tasks are out of position order; repair the group with "
-            "$format-glance-task-museum-events before adding a new event."
+            "$glance-task-format-museum-events before adding a new event."
         )
     title = clean_single_line(args.title, "Title")
     duplicate_ids = [task.task_id for task in tasks if task.title == title]
@@ -661,7 +661,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_group_argument(list_parser)
     list_parser.set_defaults(handler=command_list)
 
-    if SKILL_NAME == "add-glance-task-museum-event":
+    if SKILL_NAME == "glance-task-add-museum-event":
         add_parser = subparsers.add_parser("add", help="Add and position a museum event.")
         add_group_argument(add_parser)
         add_parser.add_argument("--title", required=True)

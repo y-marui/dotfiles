@@ -16,3 +16,14 @@ Claude Code と Codex の両方で使える skill は `ai/skills/<skill-name>/SK
 `targets` を宣言する。`apply --skill-only` は公式skill-installerでdotfiles専用キャッシュへ
 取得し、両agentから同じ実体を参照する。宣言を削除した後に両agentで
 `prune --skill-only` を実行すると、管理リンクと参照されなくなったキャッシュを退避する。
+
+## Naming
+
+特定のサービス・アプリと連携する skill は `<service>-<verb>-<object>` の順にし、
+サービス名を先頭に置く（例: `spotify-distribute-liked-songs`、`glance-task-add-museum-event`）。
+関連するskill同士が名前順で並ぶようにするため。コロン区切り（`service:verb`）は
+plugin skillの表記（`plugin:skill`）と紛らわしいため使わない。
+
+特定のサービス・アプリに紐づかない汎用skill（`consolidate-global-memory`、
+`word-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める
+従来通りの命名でよい。

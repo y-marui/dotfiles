@@ -785,7 +785,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_group_argument(list_parser)
     list_parser.set_defaults(handler=command_list)
 
-    if SKILL_NAME == "add-glance-task-museum-event":
+    if SKILL_NAME == "glance-task-add-museum-event":
         add_parser = subparsers.add_parser("add", help="Add and position a museum event.")
         add_group_argument(add_parser)
         add_parser.add_argument("--title", required=True)

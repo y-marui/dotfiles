@@ -1,5 +1,5 @@
 ---
-name: add-google-maps-saved-place
+name: google-maps-add-saved-place
 description: Search Google Maps from place information supplied as text or an image, classify the result, and add it to the user's appropriate saved list. Use when the user asks to save, add, or register a restaurant, cafe, bar, scenic spot, attraction, or retail shop in Google Maps; route dining places to the regional 食べたい list or 食べたいけど夜のみ, and route scenic or retail places to 行ってみたい.
 ---
 

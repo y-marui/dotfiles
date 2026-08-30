@@ -1,5 +1,5 @@
 ---
-name: distribute-spotify-liked-songs
+name: spotify-distribute-liked-songs
 description: Distribute Spotify Liked Songs into existing user-owned playlists using the local python-spotify-tools workflow, Obsidian playlist metadata, mutation guards, and post-write verification. Use when the user asks to classify, move, sort, or clean up Spotify favorites; do not use for browser-based Spotify control or for defining the playlist taxonomy itself.
 ---
 

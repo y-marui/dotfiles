@@ -1,4 +1,4 @@
 interface:
   display_name: "Google Maps リスト追加"
   short_description: "店や場所を判定してGoogle Mapsの適切な保存リストへ追加"
-  default_prompt: "Use $add-google-maps-saved-place to search this place and add it to the appropriate Google Maps saved list."
+  default_prompt: "Use $google-maps-add-saved-place to search this place and add it to the appropriate Google Maps saved list."

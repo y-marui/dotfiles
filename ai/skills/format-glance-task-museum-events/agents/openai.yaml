@@ -1,4 +1,0 @@
-interface:
-  display_name: "Glance Task 美術展整形"
-  short_description: "関東・東北の未完了美術展を監査し書式とposition順を整形"
-  default_prompt: "Use $format-glance-task-museum-events to audit both exhibition groups, automatically repair all unambiguous unfinished-task formatting and position-order findings without asking for confirmation, and verify the result."

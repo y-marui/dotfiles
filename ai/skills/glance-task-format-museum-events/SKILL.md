@@ -1,5 +1,5 @@
 ---
-name: format-glance-task-museum-events
+name: glance-task-format-museum-events
 description: "Audit, format, normalize, or reorder existing exhibition tasks in Glance Task's 「美術展: 関東」 and 「美術展: 東北」 groups through AppleScript, always checking unfinished tasks in both groups first. Use for canonicalizing exhibition titles, periods, or venues; finding format deviations; or restoring unfinished tasks to position order. When invoked without a target, repair every unambiguous finding in both groups without asking for confirmation. Do not use for creating a new exhibition task."
 ---
 
@@ -109,4 +109,4 @@ python3 <skill-dir>/scripts/museum_events.py sort \
 - `reorder task ... after ...` で並べ替え、再取得して `task position` を辞書順に並べて検証する。
 - 未完了タスクを解析できない、または `task position` を取得できない場合は停止し、取得順へフォールバックしない。
 
-タスクID、タイトルとメモの正確な変更前後、および並べ替えの有無を報告する。このskillで新規タスクを作成しない。作成依頼は `add-glance-task-museum-event` skill へ引き継ぐ。
+タスクID、タイトルとメモの正確な変更前後、および並べ替えの有無を報告する。このskillで新規タスクを作成しない。作成依頼は `glance-task-add-museum-event` skill へ引き継ぐ。

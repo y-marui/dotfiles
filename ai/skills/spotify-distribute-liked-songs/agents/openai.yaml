@@ -1,4 +1,4 @@
 interface:
   display_name: "Spotify お気に入り振り分け"
   short_description: "お気に入り曲を既存プレイリストへ安全に振り分け"
-  default_prompt: "Use $distribute-spotify-liked-songs to distribute my Spotify Liked Songs into the appropriate existing playlists."
+  default_prompt: "Use $spotify-distribute-liked-songs to distribute my Spotify Liked Songs into the appropriate existing playlists."

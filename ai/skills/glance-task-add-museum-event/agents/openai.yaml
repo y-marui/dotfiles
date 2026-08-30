@@ -1,4 +1,4 @@
 interface:
   display_name: "Glance Task 美術展追加"
   short_description: "関東・東北の美術展を正しい書式とposition順で新規追加"
-  default_prompt: "Use $add-glance-task-museum-event to add a new exhibition directly at the correct Glance Task position in one create operation."
+  default_prompt: "Use $glance-task-add-museum-event to add a new exhibition directly at the correct Glance Task position in one create operation."

@@ -1,4 +1,4 @@
 interface:
   display_name: "ジモティー演奏メンバー募集"
   short_description: "Google Calendarから練習日を取得して募集投稿を作成"
-  default_prompt: "Use $create-jmty-ensemble-post to create the next Jimoty ensemble recruitment draft from the practice calendars."
+  default_prompt: "Use $jimoty-create-ensemble-post to create the next Jimoty ensemble recruitment draft from the practice calendars."

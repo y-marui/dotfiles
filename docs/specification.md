@@ -51,7 +51,7 @@
 - `com.y-marui.museum-status-refresh`をユーザーLaunchAgentとして、毎週月曜8時に実行する
 - plistとrunnerはdotfiles内で管理し、`~/Library/LaunchAgents/`と`~/.local/bin/`へリンクする
 - `make install-macos`と`dots update`が各Macで自動登録し、`make launchagent-museum-status`で手動再登録できる
-- 実行対象は`format-glance-task-museum-events` skillの`museum_events.py refresh --apply`で、AIを一切呼び出さない
+- 実行対象は`glance-task-format-museum-events` skillの`museum_events.py refresh --apply`で、AIを一切呼び出さない
 - 各グループの未完了タスクについて、今日の日付と会期からステータス絵文字（🎟️開催中 / ⏳開催前 / 🏁開催終了）をタイトル末尾に反映し、期間・開始日順に並べ替える
 - メモの期間が解析できないタスクは❌を付けてリスト最後尾に送り、他タスクの更新・並べ替えはブロックしない
 - ❌が1件以上あった実行ではmacOS通知を1回出す（該当タスク名と件数を含む）
