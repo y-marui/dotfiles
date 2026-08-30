@@ -1,0 +1,3 @@
+interface:
+  display_name: "Filmarksの観たいに追加"
+  short_description: "Filmarksの登録状態を確認し、未登録なら観たいに追加"
