@@ -54,6 +54,7 @@ EXCEPTIONS=(
   "scripts/check-ai-context-reference.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-charter-ci-template.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-charter-subtree-edit.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
+  "scripts/check-cloud-skill-schedule-removal.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-conventional-commit.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-dotenv-gitignore.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-language-pair-footer.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"

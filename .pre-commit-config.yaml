@@ -151,6 +151,21 @@ repos:
         name: "ファイル名の大文字小文字衝突チェック"
 
   # ============================================================
+  # ai/skills/cloud.json: Scheduled Task参照skillの削除ガード
+  #     claude.aiのScheduled Taskから参照されているskillを、cloud.jsonの
+  #     エントリ削除やsynced_hashの削除でうっかりcloud側から切り離せなく
+  #     するためのチェック（今後も同種のskillが増える前提）。
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: check-cloud-skill-schedule-removal
+        name: "cloud.json: Scheduled Task参照skill削除ガード"
+        language: system
+        entry: bash scripts/check-cloud-skill-schedule-removal.sh
+        pass_filenames: false
+        files: ^ai/skills/cloud\.json$
+
+  # ============================================================
   # [5] ShellCheck — シェルスクリプト静的解析
   #     CLAUDE.md の必須ルールに準拠
   # ============================================================
