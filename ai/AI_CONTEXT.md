@@ -119,6 +119,7 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   いずれも Web UI から直接作成・更新・マージしない（[Tool Selection](#tool-selection) 参照）
 - `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
 - PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
+- 関連する issue がある場合、PR 本文に `Fixes #123`/`Closes #123`（マージ時に自動クローズしたい場合）または `Refs #123`（クローズせず関連付けのみの場合）等のキーワードでリンクする
 - PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
 - ブランチまたは PR をマージした直後は、対象リポジトリで `git-sweep` を実行する
 - GitHub Actions の CI が `recent account payments have failed or your spending limit needs to be increased` 等の課金エラーで失敗している場合、コード側の問題ではないため無視してよい（マージ判断を妨げない）
