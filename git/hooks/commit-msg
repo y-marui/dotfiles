@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SKIP_MSG="他人管理のリポジトリの場合はスキップできます: git config hooks.skip-policy-check true"
+
+# --- 他人管理リポジトリのスキップ ---
+if [[ "$(git config --local hooks.skip-policy-check 2>/dev/null)" == "true" ]]; then
+  exit 0
+fi
+
+# --- .pre-commit-config.yaml が無いリポジトリはチェック対象外（pre-commit フック側で必須化済み） ---
+if [[ ! -f ".pre-commit-config.yaml" ]]; then
+  exit 0
+fi
+
+# pre-commit run（core.hooksPath 経由なので直接実行。commit-msg ステージのフックが
+# 無いリポジトリでは何も検査せず成功するだけなので無条件で実行してよい）
+if command -v pre-commit &>/dev/null; then
+  pre-commit run --hook-stage commit-msg --commit-msg-filename "$1"
+else
+  echo "エラー: pre-commit コマンドが見つかりません。" >&2
+  echo "  pip install pre-commit  または  brew install pre-commit" >&2
+  echo "${SKIP_MSG}" >&2
+  exit 1
+fi
