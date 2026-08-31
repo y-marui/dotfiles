@@ -1,8 +1,12 @@
 # Charter Index (lite)
 
-dev-charter lite 版のドキュメント索引。プロジェクト種別を問わず
-普遍的に価値がある部分だけを収録している。full 版の全体像は
-https://github.com/y-marui/dev-charter を参照。
+dev-charter の各ドキュメントへのインデックス。
+憲章を参照する際はこのファイルでトピックを特定し、該当ファイルのみを読む（全ファイル検索不要）。
+
+## How to Use
+
+1. 下のテーブルでキーワードを探す
+2. 対応するファイルのみを読む
 
 ## Index
 
