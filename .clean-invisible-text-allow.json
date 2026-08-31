@@ -1,0 +1,7 @@
+[
+  {
+    "codepoint": "U+E235,U+E718",
+    "reason": "Nerd Font icon glyph (Powerline prompt segment icons)",
+    "paths": ["p10k-lean.json"]
+  }
+]
