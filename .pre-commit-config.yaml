@@ -108,6 +108,23 @@ repos:
           )$
 
   # ============================================================
+  # 不可視 Unicode 文字（ゼロ幅スペース等）の検知・除去
+  #     プロンプトインジェクション等に悪用され得る不可視文字をコミット前に
+  #     自動除去し、変更をレビューできるよう一旦失敗させる（trailing-whitespace
+  #     等の既存 auto-fix フックと同じ方針）。
+  #     --keep-warnings: terminal/ 配下の Powerline/Nerd Font 設定は private-use
+  #     領域のアイコングリフ（Warn 分類）を意図的に含むため誤除去を防ぐ。
+  #     危険な Block 分類（ゼロ幅スペース、bidi 制御文字等）は付けても除去される。
+  #     https://github.com/y-marui/go-clean-invisible-text
+  # ============================================================
+  - repo: https://github.com/y-marui/go-clean-invisible-text
+    rev: v1.0.0
+    hooks:
+      - id: clean-invisible-text-fix
+        name: "不可視 Unicode 文字の検知・除去"
+        args: ["--keep-warnings"]
+
+  # ============================================================
   # [4] pre-commit 標準フック — 基本的なファイル品質チェック
   # ============================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
