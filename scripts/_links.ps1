@@ -69,7 +69,7 @@ $Links = @(
         Dest = Join-Path $HOME ".ai\AI_CONTEXT_CLI.md"
     }
     [pscustomobject]@{
-        Src  = "ai\AI_CONTEXT.md"
+        Src  = "ai\codex\AGENTS.md"
         Dest = Join-Path $HOME ".codex\AGENTS.md"
     }
     [pscustomobject]@{

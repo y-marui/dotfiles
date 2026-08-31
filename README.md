@@ -138,7 +138,7 @@ IDE/app と local/project scope のMCPは検出するが `prune` の対象外と
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
-| [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.codex/AGENTS.md` | 全リポジトリで使うグローバル指示 |
+| [`ai/codex/AGENTS.md`](ai/codex/AGENTS.md) | `~/.codex/AGENTS.md` | グローバル指示の読み込み指示（`~/.ai/AI_CONTEXT.md`、`~/.ai/AI_CONTEXT_CLI.md` を順に参照） |
 | [`ai/skills/`](ai/skills/) | `~/.agents/skills/<skill-name>/` | Claude Code と共有する個人 skill |
 | [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | Codex 専用の個人 skill |
 | [`ai/codex/mcp/`](ai/codex/mcp/) | `~/.codex/config.toml` 内の MCP 設定 | 公式 MCP の宣言と実態との差分・追加 |

@@ -24,7 +24,7 @@ LINKS=(
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
   "ai/AI_CONTEXT.md|${HOME}/.ai/AI_CONTEXT.md"
   "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
-  "ai/AI_CONTEXT.md|${HOME}/.codex/AGENTS.md"
+  "ai/codex/AGENTS.md|${HOME}/.codex/AGENTS.md"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"

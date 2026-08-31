@@ -4,6 +4,12 @@
 
 ユーザーから明示的に指示された時だけコミットする。作業完了後に自動でコミットしない。
 
+## Concise Command Output
+
+ビルド・テスト・lint・pre-commit など出力が多いコマンドは `run-quiet` でラップして実行する。
+エラーがなければ1行サマリーのみを確認し、warning / deprecated / note 行は必要に応じて確認する。
+原因の特定に十分な情報が得られない場合は、`run-quiet` を外してフル出力で再実行する。
+
 ## Fetch Before Starting Work
 
 git リポジトリでコード変更を伴うタスクに着手する前は、ブランチの保護有無やリポジトリの
