@@ -313,9 +313,21 @@ make private
 マシン固有の設定は以下のファイルに書く（git 管理外）：
 
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
-- `~/.zshrc.local` — zsh: 自動的に読み込まれる追加設定
+- `~/.profile.local` — zsh / bash 共通。このMacだけの設定や、privateにも置かない機密値（`shell/profile.local.example` をコピー）
+- `~/.zshrc.local` — zsh専用の追加設定（`shell/zshrc.local.example` をコピー）
 - `~/.bashrc.local` — bash: 自動的に読み込まれる追加設定
 - `macos/Brewfile.local` — Homebrew: このマシン固有のパッケージ（`make init` で空ファイルを生成）
+
+### Profile Settings Layers
+
+`~/.profile` は、後の層で前の層を上書きできる順に設定を読む。
+
+1. `shell/profile` — OS共通の公開設定
+2. macOSのみ `macos/profile`（`~/.profile.macos` へリンク）
+3. dotfiles-private の `shell/profile.private`（`~/.profile.private` へリンク）
+4. 未管理の `~/.profile.local`
+
+複数の自分のマシンで共有する個人用パスは dotfiles-private へ、このMacだけの値とトークン等の認証情報は `~/.profile.local` へ置く。zshだけに関わる設定は `~/.zshrc.local`、bashだけに関わる設定は `~/.bashrc.local` を使う。
 
 ### Brewfile.local — Machine-Specific Homebrew Packages
 
@@ -356,7 +368,7 @@ vscode "publisher.extension" # VS Code 拡張
 
 ### Environment Variables That Need Configuring
 
-以下の変数は `host/$(hostname -s).zsh` または `~/.zshrc.local` に設定する。
+以下の変数は `~/.profile.local` に設定する。
 
 | 変数 | タイミング | 説明 |
 |------|-----------|------|

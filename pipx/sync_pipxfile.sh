@@ -22,7 +22,7 @@ PIPXFILE_CACHE="$DOTFILES_DIR/pipx/pipxfile.cache"
 bash "$DOTFILES_DIR/pipx/update_pipxcache.sh"
 
 load_names() {
-  grep -v '^\s*#' "$1" | grep -v '^\s*$' | sort
+  awk '!/^[[:space:]]*(#|$)/ { print $1 }' "$1" | sort
 }
 
 to_add=$(comm -23 <(load_names "$PIPXFILE_CACHE") <(load_names "$PIPXFILE"))
@@ -32,19 +32,19 @@ if [[ -n "$to_add"    ]]; then while IFS= read -r p; do echo "[add]    $p"; done
 if [[ -n "$to_remove" ]]; then while IFS= read -r p; do echo "[remove] $p"; done <<< "$to_remove"; fi
 
 # ── pipxfile を書き戻す ───────────────────────────────────────────────────────
-# コメント行・空行を保持しつつ、削除対象を除去、追加分を末尾に加えてソート
+# コメント行・空行を保持しつつ、削除対象を除去、追加分を末尾に加えてソート。
+# 既存の「仮想環境名 インストール元」行は、インストール元を失わずに保持する。
+# コメント・空行は順序を保ち、パッケージ行だけをソートする。
+grep -E '^\s*(#|$)' "$PIPXFILE" > "$PIPXFILE.tmp" || true
 {
-  # コメント・空行はそのまま残す
-  grep -E '^\s*(#|$)' "$PIPXFILE" || true
+  while IFS= read -r entry; do
+    [[ "$entry" =~ ^[[:space:]]*(#|$) ]] && continue
+    name="${entry%%[[:space:]]*}"
+    grep -Fqx "$name" <<< "$to_remove" || printf '%s\n' "$entry"
+  done < "$PIPXFILE"
 
-  # パッケージ行：削除対象を除いたうえで追加分とまとめてソート
-  {
-    grep -v '^\s*#' "$PIPXFILE" | grep -v '^\s*$' || true
-    echo "$to_add"
-  } | grep -v '^\s*$' \
-    | grep -vFf <(echo "$to_remove" | grep -v '^\s*$' || true) \
-    | sort -f
-} > "$PIPXFILE.tmp"
+  [[ -n "$to_add" ]] && printf '%s\n' "$to_add"
+} | sort -f >> "$PIPXFILE.tmp"
 
 mv "$PIPXFILE.tmp" "$PIPXFILE"
 

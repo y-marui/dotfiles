@@ -9,9 +9,11 @@ public installer cannot apply placeholder settings.
 1. Replace every required `.example` with a same-path file without the suffix.
    Keep the `.example` files as safe documentation.
 2. Add one or more real `labpc/jobs.d/*.conf` files if `sync-labpc` is used.
-3. Copy `links.conf.example` to `links.conf` only after every linked source exists.
-4. Remove `.dotfiles-private-scaffold` when configuration is complete.
-5. From the sibling `dotfiles`, run `make private-validate` and then `make links`.
+3. Copy `shell/profile.private.example` to `shell/profile.private` before enabling links, then add only personal settings shared across your machines.
+4. Copy `spotify-tools/groups.toml.example` to `spotify-tools/groups.toml` before using Spotify write commands, then classify editable and protected playlists by ID.
+5. Copy `links.conf.example` to `links.conf` only after every linked source exists.
+6. Remove `.dotfiles-private-scaffold` when configuration is complete.
+7. From the sibling `dotfiles`, run `make private-validate` and then `make links`.
 
 The public contract is `dotfiles/templates/dotfiles-private.contract`. The
 validator accepts either this untouched scaffold state or a fully configured

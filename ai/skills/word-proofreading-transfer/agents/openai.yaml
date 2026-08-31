@@ -1,0 +1,3 @@
+interface:
+  display_name: "校閲コンテキスト引き継ぎ"
+  short_description: "校閲ルールと再開用の状況を適切な正本へ移す"

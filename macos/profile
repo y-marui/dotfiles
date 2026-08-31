@@ -1,0 +1,21 @@
+# ~/.profile.macos / macos/profile
+# macOS共通のPOSIX shell設定。shell/profileから読み込まれる。
+# shellcheck shell=sh
+
+if [ "$(uname)" = Darwin ]; then
+  export BROWSER='open'
+
+  if [ -d '/opt/homebrew' ]; then
+    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+  fi
+  export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
+
+  if [ -d '/opt/homebrew/opt/openssl@3' ]; then
+    export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
+  fi
+
+  export PATH="/Library/TeX/texbin:$PATH"
+  export XML_CATALOG_FILES='/opt/homebrew/etc/xml/catalog'
+  export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include${CPPFLAGS:+ $CPPFLAGS}"
+  export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+fi

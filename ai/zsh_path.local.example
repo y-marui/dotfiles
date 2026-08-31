@@ -1,0 +1,5 @@
+# Machine-local paths used by AI skills. Copy this file to ~/.ai/zsh_path.local
+# and adjust it for this machine. Do not add that local file to dotfiles or
+# dotfiles-private.
+
+export OBSIDIAN_ROOT="$(ghq root)/github.com/y-marui/obsidian-vault"

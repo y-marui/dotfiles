@@ -1,0 +1,6 @@
+# This-Mac-only or sensitive POSIX shell settings. Copy to ~/.profile.local.
+# This file is read after the public macOS and private settings, and is never
+# managed by either dotfiles repository.
+
+# export DOTFILES_DIR="/path/to/dotfiles"
+# export HOMEBREW_GITHUB_API_TOKEN=""

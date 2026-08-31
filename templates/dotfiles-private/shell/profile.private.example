@@ -1,0 +1,9 @@
+# Personal POSIX shell settings shared across your machines.
+# This file is sourced by ~/.profile after the public defaults.
+# Do not add credentials or machine-specific absolute paths.
+
+export GOOGLEDRIVE_ROOT="$HOME/Public/GoogleDrive"
+export DROPBOX_ROOT="$HOME/Public/Dropbox"
+export ICLOUD_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+export ZOTERO_ROOT="$HOME/Library/Mobile Documents/<app-group>/Documents/Zotero Library"
+export DICTIONARY='en_US'

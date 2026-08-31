@@ -1,5 +1,14 @@
 # pipxfile
 # pipx install で管理するパッケージ一覧
 # dots pipx apply で適用、dots pipx sync で現在の状態を同期
+#
+# 各行は `pipx の仮想環境名 [インストール元]`。インストール元を省略した場合は
+# 仮想環境名をそのまま `pipx install` に渡す。VCS URL を使う場合は、仮想環境名を
+# 明示して導入元を追跡する。
+# 開発中にローカル checkout を使うときは、対象リポジトリで
+# `pipx install --force --editable .` を実行する。これはこの正本を変更しない
+# ローカルの開発用オーバーライドである。
 
+docx-redline git+https://github.com/y-marui/python-docx-redline
 pre-commit
+spotify-tools git+https://github.com/y-marui/python-spotify-tools

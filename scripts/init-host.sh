@@ -72,22 +72,27 @@ _append_if_missing() {
   echo "追記: ${target_file} に ${var_name} を追加"
 }
 
-# ~/.zshrc.local — 変数が未設定の場合のみコメントアウトで追記
-ZSHRC_LOCAL="${HOME}/.zshrc.local"
-
-if [[ ! -f "${ZSHRC_LOCAL}" ]]; then
-  touch "${ZSHRC_LOCAL}"
-  echo "作成: ${ZSHRC_LOCAL}"
+# ~/.profile.local — このMacだけの設定・機密値
+PROFILE_LOCAL="${HOME}/.profile.local"
+if [[ ! -f "${PROFILE_LOCAL}" ]]; then
+  cp "${DOTFILES_DIR}/shell/profile.local.example" "${PROFILE_LOCAL}"
+  echo "作成: ${PROFILE_LOCAL}"
 fi
 
-_append_if_missing "${ZSHRC_LOCAL}" "DOTFILES_DIR" \
+_append_if_missing "${PROFILE_LOCAL}" "DOTFILES_DIR" \
   "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
   "/path/to/dotfiles"
 
-
-_append_if_missing "${ZSHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
+_append_if_missing "${PROFILE_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
   "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
   ""
+
+# ~/.zshrc.local — zsh専用の追加設定
+ZSHRC_LOCAL="${HOME}/.zshrc.local"
+if [[ ! -f "${ZSHRC_LOCAL}" ]]; then
+  cp "${DOTFILES_DIR}/shell/zshrc.local.example" "${ZSHRC_LOCAL}"
+  echo "作成: ${ZSHRC_LOCAL}"
+fi
 
 # ~/.bashrc.local — 変数が未設定の場合のみコメントアウトで追記
 BASHRC_LOCAL="${HOME}/.bashrc.local"
@@ -96,15 +101,6 @@ if [[ ! -f "${BASHRC_LOCAL}" ]]; then
   touch "${BASHRC_LOCAL}"
   echo "作成: ${BASHRC_LOCAL}"
 fi
-
-_append_if_missing "${BASHRC_LOCAL}" "DOTFILES_DIR" \
-  "dotfiles のクローン先（~/dotfiles 以外にクローンした場合は設定する）" \
-  "/path/to/dotfiles"
-
-
-_append_if_missing "${BASHRC_LOCAL}" "HOMEBREW_GITHUB_API_TOKEN" \
-  "brew search 等で GitHub API レート制限に当たる場合に設定（任意）" \
-  ""
 
 # macos/Brewfile.local テンプレート（存在しない場合のみ）
 BREWFILE_LOCAL="${DOTFILES_DIR}/macos/Brewfile.local"

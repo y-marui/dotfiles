@@ -1,0 +1,10 @@
+# Playlist write-protection rules for python-spotify-tools.
+#
+# Configure actual playlists by stable ID whenever possible. Until a real rule
+# is added, keep the sentinel: it makes every real playlist unclassified and
+# therefore unavailable for write operations.
+
+[[playlists]]
+name = "__spotify_tools_unconfigured__"
+group = "protected"
+note = "Fail-closed sentinel; replace with real playlist rules."

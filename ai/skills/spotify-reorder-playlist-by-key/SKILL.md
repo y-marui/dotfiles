@@ -1,6 +1,6 @@
 ---
 name: spotify-reorder-playlist-by-key
-description: Reorder an existing Spotify playlist in-place into Camelot Wheel (harmonic-mixing) order using the local python-spotify-tools `reorder-by-key` command, sourcing each track's Camelot key from the user since Spotify's public Web API no longer exposes track key data to new apps. Use when the user asks to sort/reorder/DJ-mix a playlist by musical key, Camelot code, or harmonic compatibility. Do not use for classifying or distributing Liked Songs (see spotify-distribute-liked-songs), and do not use browser automation or computer-use to control Spotify itself.
+description: Reorder an existing Spotify playlist in-place into Camelot Wheel (harmonic-mixing) order using the installed python-spotify-tools `reorder-by-key` command, sourcing each track's Camelot key from the user since Spotify's public Web API no longer exposes track key data to new apps. Use when the user asks to sort/reorder/DJ-mix a playlist by musical key, Camelot code, or harmonic compatibility. Do not use for classifying or distributing Liked Songs (see spotify-distribute-liked-songs), and do not use browser automation or computer-use to control Spotify itself.
 ---
 
 # Reorder Spotify Playlist by Key
@@ -9,9 +9,8 @@ Spotifyの既存プレイリストを、1曲目のキーを起点にCamelot Whee
 
 ## Sources
 
-- 操作ツール: `/Users/yuki/src/github.com/y-marui/python-spotify-tools`(`reorder-by-key` コマンド、`camelot.py` / `reorder.py` のロジック)
+- 操作ツール: PATH上の `spotify-inventory` / `reorder-by-key` コマンド（dotfiles の `pipxfile` により [y-marui/python-spotify-tools](https://github.com/y-marui/python-spotify-tools) から導入）
 - キー情報: Spotify公式アプリの「Mix」機能(Premium限定)が表示するキー列。ユーザーにスクリーンショットで共有してもらう
-- ローカル保護設定: `~/.config/spotify-tools-groups.toml`(`reorder-by-key` が内部で参照する)
 
 ## Background / Constraint
 
@@ -27,7 +26,7 @@ Spotify Web APIは2024-11-27以降、新規アプリからAudio Features(曲の�
 
 ## Procedure
 
-1. リポジトリのREADMEで`reorder-by-key`の使い方(引数、キーファイル形式、`--yes`オプション)を確認する。
+1. PATH上の`reorder-by-key --help`で、使い方(引数、キーファイル形式、`--yes`オプション)を確認する。
 2. 読み取り専用の`spotify-inventory playlists`で対象プレイリストのIDを特定する。
 3. 読み取り専用の`spotify-inventory tracks <playlist-id>`で現在の曲順・総曲数を取得する。これが以後のキー入力の基準順序になる。
 4. ユーザーに、Spotify公式アプリで対象プレイリストの「Mix」機能を有効にしてキー列を表示し、全曲分をスクロールしながらスクリーンショットで共有してもらうよう依頼する。曲順と対応が取れるよう、手順3で取得した曲順・曲数と突き合わせる。
@@ -40,6 +39,7 @@ Spotify Web APIは2024-11-27以降、新規アプリからAudio Features(曲の�
 ## Failure Handling
 
 - キー取得元サイトがbot対策で止まった場合、別サイトへの自動アクセスを次々試さない。ユーザーへスクリーンショット提供を依頼する経路に切り替える。
+- 必要なコマンドがPATHにない場合は処理を始めず、`python-spotify-tools` の導入をユーザーに依頼する。ローカルcheckoutの探索や、別の実装への置き換えはしない。
 - `reorder-by-key`実行後に`WARNING`が出た場合、同じ並べ替えを無条件に再実行しない。ライブの曲順を読み直し、実際の状態を確認してから復旧方針を決める。
 - 認証情報(`.env`、OAuthキャッシュ)を出力・文書化しない。
 - コマンドに必要な機能がなければ、`y-marui/python-spotify-tools`にIssueを作成し`y-marui`をassigneeにする。実装はSpotifyの実作業から切り離し、独立したコーディング用タスクで行う。

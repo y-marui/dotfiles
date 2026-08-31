@@ -7,4 +7,6 @@ all|ssh/config|.ssh/config
 darwin|ssh/config.d/keychain.conf|.ssh/config.d/keychain.conf
 windows|ssh/config.d/windows.conf|.ssh/config.d/windows.conf
 all|identity/accounts.yaml|.identity/accounts.yaml
+all|shell/profile.private|.profile.private
 unix|labpc|.config/labpc
+all|spotify-tools/groups.toml|.config/spotify-tools-groups.toml

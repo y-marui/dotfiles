@@ -23,7 +23,20 @@ for arg in "$@"; do
 done
 
 load_names() {
-  grep -v '^\s*#' "$1" | grep -v '^\s*$' | sort
+  awk '!/^[[:space:]]*(#|$)/ { print $1 }' "$1" | sort
+}
+
+package_spec_for() {
+  local name="$1"
+
+  awk -v name="$name" '
+    $1 == name {
+      $1 = ""
+      sub(/^[[:space:]]+/, "")
+      print length($0) ? $0 : name
+      exit
+    }
+  ' "$PIPXFILE"
 }
 
 # ── キャッシュ更新 ─────────────────────────────────────────────────────────────
@@ -40,8 +53,9 @@ if [[ -z "$to_install" ]]; then
   echo "  (already up to date)"
 else
   while IFS= read -r pkg; do
+    package_spec="$(package_spec_for "$pkg")"
     echo "  install  $pkg"
-    pipx install "$pkg"
+    pipx install "$package_spec"
   done <<< "$to_install"
 fi
 

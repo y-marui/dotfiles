@@ -49,6 +49,7 @@ _最終更新: 2026-08-27_
 | `macos/*_keyboard_shortcuts.sh` | アプリケーションショートカットの適用・差分・同期・キャッシュ更新 | `macos/keyboard_shortcuts.py`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理項目だけを安全にマージ | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
+| `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
 
 ## Museum Status Refresh (macOS)

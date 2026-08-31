@@ -1,0 +1,6 @@
+# zsh-only local settings. Copy to ~/.zshrc.local and adjust.
+# Use ~/.profile.local for environment variables shared with bash.
+# Do not commit the copied file.
+
+# Example:
+# alias work='cd "$HOME/Work"'

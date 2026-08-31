@@ -36,7 +36,10 @@ LINKS=(
 
 # OS 別 git 設定（credential.helper 等）。macOS でのみ ~/.gitconfig.d/os としてリンクする。
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  LINKS+=("git/gitconfig.d/macos.gitconfig|${HOME}/.gitconfig.d/os")
+  LINKS+=(
+    "git/gitconfig.d/macos.gitconfig|${HOME}/.gitconfig.d/os"
+    "macos/profile|${HOME}/.profile.macos"
+  )
 
   # Karabiner-Elements（macOS 専用）。karabiner.json はアプリが Preferences 保存や
   # デバイス接続時に atomic rename で書き換えるため、シンボリックリンクが実ファイルに

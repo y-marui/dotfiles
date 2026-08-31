@@ -26,7 +26,7 @@ fi
 
 # コメント・空行を除いてソート済みの一覧を作る
 load_names() {
-  grep -v '^\s*#' "$1" | grep -v '^\s*$' | sort
+  awk '!/^[[:space:]]*(#|$)/ { print $1 }' "$1" | sort
 }
 
 only_in_cache=$(comm -23 <(load_names "$PIPXFILE_CACHE") <(load_names "$PIPXFILE"))

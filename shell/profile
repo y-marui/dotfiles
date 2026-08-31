@@ -41,55 +41,18 @@ export PIP_REQUIRE_VIRTUALENV=true
 export PATH="$HOME/.rbenv/shims:$PATH"
 export PATH="$HOME/.nodebrew/current/bin:$PATH"
 
-# --------------------------------------------------------
-# Cloud storage roots（$HOME 相対なのでポータブル）
-# --------------------------------------------------------
-export GOOGLEDRIVE_ROOT="$HOME/Public/GoogleDrive"
-export DROPBOX_ROOT="$HOME/Public/Dropbox"
-export ICLOUD_ROOT="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-export ZOTERO_ROOT="$HOME/Library/Mobile Documents/3L68KQB4HG~com~readdle~CommonDocuments/Documents/Zotero Library"
-
-# --------------------------------------------------------
-# Misc
-# --------------------------------------------------------
-export DICTIONARY='en_US'
-
-# --------------------------------------------------------
-# Browser (macOS)
-# --------------------------------------------------------
-if [ "$(uname)" = Darwin ]; then
-  export BROWSER='open'
-fi
-
-# --------------------------------------------------------
-# Homebrew
-# --------------------------------------------------------
-if [ -d '/opt/homebrew' ]; then
-  export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
-fi
-export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
-
-if [ -d '/opt/homebrew/opt/openssl@3' ]; then
-  export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
-fi
-
-# --------------------------------------------------------
-# TeX
-# --------------------------------------------------------
-export PATH="/Library/TeX/texbin:$PATH"
-
 # dotfiles-managed commands (including the pinned Zellij) take precedence over
 # Homebrew and manually installed system binaries.
 export PATH="$HOME/.local/bin:$HOME/.local/bin/dotfiles:$PATH"
 
 # --------------------------------------------------------
-# Homebrew: misc
+# macOS / private / machine-local overrides
 # --------------------------------------------------------
-export XML_CATALOG_FILES='/opt/homebrew/etc/xml/catalog'
-
-# --------------------------------------------------------
-# コンパイラ・ライブラリフラグ（brew install したライブラリに依存）
-# マシン固有のものは host/<hostname>.sh へ記載してください
-# --------------------------------------------------------
-export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include${CPPFLAGS:+ $CPPFLAGS}"
-export PKG_CONFIG_PATH="/opt/homebrew/opt/sqlite/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+# macOS共通のPATH・コンパイラ設定は public の `macos/profile` からリンクする。
+# 個人設定は dotfiles-private から ~/.profile.private へリンクする。
+# shellcheck disable=SC1091
+[ -r "$HOME/.profile.macos" ] && . "$HOME/.profile.macos"
+# shellcheck disable=SC1091
+[ -r "$HOME/.profile.private" ] && . "$HOME/.profile.private"
+# shellcheck disable=SC1091
+[ -r "$HOME/.profile.local" ] && . "$HOME/.profile.local"

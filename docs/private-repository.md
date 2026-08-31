@@ -35,10 +35,23 @@ main ブランチの空の Git リポジトリを初期化する。生成直後�
 | `ssh/config.example` | `ssh/config` | 共通 SSH 設定 |
 | `ssh/config.d/*.example` | 同名から `.example` を除いたファイル | OS 別 SSH 設定 |
 | `identity/accounts.yaml.example` | `identity/accounts.yaml` | GitHub・著者名等の対応表。認証情報は保存しない |
+| `shell/profile.private.example` | `shell/profile.private` | 全マシンで共有する個人用のPOSIX環境変数。`~/.profile.private` へリンク |
+| `spotify-tools/groups.toml.example` | `spotify-tools/groups.toml` | Spotifyプレイリストの編集可否を分類する保護ルール。OAuth認証情報は含まない |
 | `macos/dockfile.example` | `macos/dockfile` | Dock・Finder sidebar の宣言 |
 | `macos/keyboard-shortcuts.plist.example` | `macos/keyboard-shortcuts.plist` | アプリケーションショートカットの宣言 |
 | `macos/menubarfile.example` | `macos/menubarfile` | メニューバーの宣言 |
 | `labpc/jobs.d/job.conf.example` | `labpc/jobs.d/<job-name>.conf` | `sync-labpc` のジョブ設定 |
+
+## Shell Settings Layers
+
+`~/.profile` は次の順に設定を読み込む。後の層は前の層を上書きできる。
+
+1. public の共通設定
+2. macOSでは public の `macos/profile`（`~/.profile.macos` へリンク）
+3. dotfiles-private の `shell/profile.private`（`~/.profile.private` へリンク）
+4. 未管理の `~/.profile.local`
+
+`shell/profile.private` には、複数の自分のマシンで共有するが公開しない個人用のパスや設定だけを置く。トークン等の認証情報と、このMacだけの値は `~/.profile.local` に置く。
 
 ## Application Shortcuts
 

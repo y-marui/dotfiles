@@ -11,6 +11,8 @@ file|ssh/config
 file|ssh/config.d/keychain.conf
 file|ssh/config.d/windows.conf
 file|identity/accounts.yaml
+file|shell/profile.private
+file|spotify-tools/groups.toml
 file|macos/dockfile
 file|macos/keyboard-shortcuts.plist
 file|macos/menubarfile
