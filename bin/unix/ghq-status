@@ -274,7 +274,7 @@ _is_quiet_row() {
   # charter は "VERSION (variant)" 形式なので、比較は VERSION 部分だけで行う
   # （末尾の " (full)"/" (lite)" を含めた文字列比較だと、VERSION が完全一致
   # していても suffix の有無で "<" が真になり得るため）
-  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$charter" != "-" && "${charter%% (*}" < "$charter_latest" ]] && return 1
+  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$charter" != "-" && "${charter%% \(*}" < "$charter_latest" ]] && return 1
   return 0
 }
 
@@ -290,7 +290,7 @@ _row() {
   [[ ! "$4" =~ ^${7}$ || "$8" != 1 ]] && _bc=$'\033[31m'
   printf ' │ %s' "$_bc"; _pad "$4" "$w_br"; printf '\033[0m'
   local _cc=''
-  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$5" != "-" && "${5%% (*}" < "$charter_latest" ]] && _cc=$'\033[31m'
+  [[ "$ignore_charter" != 1 && -n "$charter_latest" && "$5" != "-" && "${5%% \(*}" < "$charter_latest" ]] && _cc=$'\033[31m'
   printf ' │ %s' "$_cc"; _pad "$5" "$w_charter"; printf '\033[0m'
   local _kc=''
   case "$6" in keep) _kc=$'\033[32m' ;; skip) _kc=$'\033[90m' ;; esac
