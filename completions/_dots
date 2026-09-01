@@ -10,11 +10,14 @@ _dots() {
     'shortcuts:macOSのアプリケーションショートカット設定を操作'
     'npm:npmグローバルパッケージ設定を操作'
     'pipx:pipxパッケージ設定を操作'
+    'ai:Claude Code・Codex・GeminiのMCP・plugin・skillを一括操作'
     'claude:Claude CodeのMCP・plugin・skillを操作'
     'codex:CodexのMCP・plugin・skillを操作'
     'gemini:Gemini/AntigravityのMCP・plugin・skillを操作'
     'copilot:GitHub Copilot CLIのuser scope MCPを操作'
     'check:シンボリックリンク・dotfiles状態・全AI Agentの差分を一括検査'
+    'commit:sync系コマンドが書き換えたファイルのみの変更を自動commit'
+    'push:自動commitのみのcommitをpush'
     'help:ヘルプを表示'
   )
   actions=(
@@ -49,6 +52,18 @@ _dots() {
     check)
       if (( CURRENT == 3 )); then
         _wanted options expl 'option' compadd -- --verbose --help -h
+      fi
+      ;;
+    push)
+      if (( CURRENT == 3 )); then
+        _wanted options expl 'option' compadd -- --no-fetch --help -h
+      fi
+      ;;
+    ai)
+      if (( CURRENT == 3 )); then
+        _describe 'action' ai_actions
+      elif (( CURRENT == 4 )); then
+        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
       fi
       ;;
     brew|dock|shortcuts)

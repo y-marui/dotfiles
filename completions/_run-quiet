@@ -2,7 +2,9 @@
 
 _run-quiet() {
   if (( CURRENT == 2 )); then
-    _command_names -e
+    _alternative \
+      'options:option:(-h --help)' \
+      'commands:command name:_command_names -e'
   else
     words=("${words[2,-1]}")
     (( CURRENT-- ))

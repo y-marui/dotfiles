@@ -1,10 +1,17 @@
 #!/bin/sh
 # run-quiet: エラーがなければ1行サマリーを出力するラッパー
 # 使い方: run-quiet <command> [args...]
+# オプション:
+#   -h, --help          ヘルプを表示
 
 if [ $# -eq 0 ]; then
   echo "usage: run-quiet <command> [args...]" >&2
   exit 1
+fi
+
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
 fi
 
 output=$("$@" 2>&1)
