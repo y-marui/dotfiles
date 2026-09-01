@@ -12,7 +12,7 @@ description: "Preserve confirmed proofreading rules and a folder-local handoff s
 ## Read the existing context
 
 1. 対象文書、同階層の `PROOFREADING.md`、およびその先頭の有効な `@<relative-path>` 参照を読む。`@` 参照は `word-proofreading` と同じ規則で `$OBSIDIAN_ROOT/writing/<relative-path>` に解決する。
-2. 同階層の `proofreading/HANDOFF.md` があれば読む。対象文書・版・更新時刻が今回の作業と一致するか確認し、一致しない内容を現在の指示や事実として扱わない。
+2. 同階層の `proofreading/HANDOFF.md` があれば、既存の正本へ直接反映するか保留している観測・不具合兆候・暫定回避策だけを再開時の補助情報として読む。現在の文書状態と矛盾する内容は使わない。
 3. ユーザーが明示した判断、実際に確認した文書状態、未解決事項を区別する。不明確な内容や既存ルールと競合する内容は、推測して記録先を決めず確認する。
 
 ## Choose the destination
@@ -21,16 +21,16 @@ description: "Preserve confirmed proofreading rules and a folder-local handoff s
 | --- | --- |
 | 特定文書・フォルダの用語、対象範囲、書式、レイアウト、著者が確定した判断 | 同階層の `PROOFREADING.md` |
 | 科研費・論文・学会要旨など、複数案件で再利用し著者も更新する執筆・校閲知見 | 参照済みの `$OBSIDIAN_ROOT/writing/...` ガイド |
-| 現在の対象ファイル、作業済み範囲、出力版、未解決コメント、次に確認する点 | 同階層の `proofreading/HANDOFF.md` |
+| 既存の正本への反映を保留する、skill・ツール・処理経路の不具合兆候、観測結果、暫定回避策 | 同階層の `proofreading/HANDOFF.md` |
 | 文書横断の安全な編集不変条件、ツール利用手順、全案件共通の校閲手順 | `word-proofreading/SKILL.md` の更新案 |
 
 `PROOFREADING.md` に `@` 参照がない場合、文書種別を推測してObsidianのガイドを新設・参照追加しない。再利用先が明確なら候補パスを提案し、ユーザーの判断を得る。
 
 ## Transfer procedure
 
-1. 既存の正本を検索して重複・競合を避け、確定した情報だけを最小限追記する。既存の指示を上書き・要約して失わせない。
+1. まず対象文書、`PROOFREADING.md`、参照済みのObsidianガイド、skillを確認し、反映先が明確な情報は重複・競合を避けて最小限追記する。既存の指示を上書き・要約して失わせない。
 2. `PROOFREADING.md` とObsidianガイドには、今後も判断を変える規則だけを書く。今回の作業量、途中経過、個別本文、未確定の解釈は入れない。
-3. `proofreading/HANDOFF.md` には、対象ファイルの相対名または絶対パス、基準にした版、作業モード、確認済み範囲、生成物、未解決のアンカーコメントまたは確認事項、次の安全な作業を簡潔に記録する。更新時刻を付け、解決済みの進捗は最新状態へ置き換える。手順書や一般規則を複製しない。
+3. `proofreading/HANDOFF.md` には、正本へ直接反映するか迷う観測だけを短く記録する。対象ファイル名・版・作業モード・変更履歴・コメント・進捗・次の作業など、文書、skill、`PROOFREADING.md`、参照済みObsidianガイドから分かる内容は複製しない。skill・ツール・処理経路の不具合または非互換の兆候では、観測された差異、試した暫定回避策、未確定の点だけを残す。恒久ルールへ反映した後も、その規則だけでは分からない観測根拠または例外として有用ならHandoffに残す。
 4. 認証情報、個人情報、本文の不要な転載、推測、会話内だけの指示を記録しない。科学的事実・結論・根拠を新たに確定したように書かない。
 5. すべての案件で有用になり得る規則を見つけた場合は、`word-proofreading/SKILL.md` の更新候補を、根拠・追加先・短い文案とともに報告する。このskillからは `SKILL.md` を自動編集しない。
 
