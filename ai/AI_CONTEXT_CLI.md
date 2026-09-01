@@ -37,7 +37,22 @@ merge & push してよいか、PR を経由するかの違いに過ぎない）�
 既に作業ブランチにチェックアウト済み、または main 以外にいる場合はこの手順（ブランチ
 作成の要否確認）の対象外。各プロジェクトの AI_CONTEXT.md/CLAUDE.md が「ブランチ作成
 不要」と明記している場合に限りそれに従う（例: dotfiles）。単に直接 push が許可されて
-いるだけでは、このスキップの理由にならない。
+いるだけでは、このスキップの理由にならない。ただし、その省略が及ぶ範囲は変更の規模
+による（次節 Scope-Based PR Requirement 参照）。
+
+## Scope-Based PR Requirement
+
+プロジェクトの AI_CONTEXT.md/CLAUDE.md が「ブランチ作成不要」「main へ直接 push 可」と
+明記している場合でも、その省略は小規模な変更に限る。変更の性質によっては、その種の
+プロジェクトでも作業用ブランチを作成し PR 経由で main へ統合する。
+
+- **直接 push でよい**: memory/コンテキストの移管、Brewfile 等の依存関係定義ファイルの
+  追従的な更新、typo 修正等の小さな変更、既存ドキュメント・skill の軽微な更新
+- **PR 経由にする**: 新規スクリプトの追加、新規 skill の追加や既存 skill の大規模改修、
+  プロジェクトの全体構造（AI コンテキスト階層等）に関わる refactoring
+
+該当するか判断に迷う場合はユーザーに確認する。プロジェクトの AI_CONTEXT.md/CLAUDE.md
+がこの既定と異なる基準を明記している場合はそちらに従う。
 
 ## Local CI Checks Before Creating a PR or Pushing
 

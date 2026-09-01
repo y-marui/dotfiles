@@ -206,8 +206,12 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 
 ## Notes When Making Changes
 
-- このリポジトリは `main` に直接 push 可能。作業前にブランチを切る必要はない
-  （切ってもよいが必須ではない）
+- このリポジトリは `main` に直接 push 可能。memory/コンテキストの移管、Brewfile等の
+  依存関係定義ファイルの追従的な更新、typo修正等の小さな変更、既存ドキュメント・skillの
+  軽微な更新は、作業前にブランチを切る必要はない。新規スクリプトの追加、新規skillの
+  追加や既存skillの大規模改修、プロジェクト全体構造（AIコンテキスト階層等）に関わる
+  refactoringは、ブランチを作成しPR経由でmainへ統合する（詳細は
+  `~/.ai/AI_CONTEXT_CLI.md` の Scope-Based PR Requirement 参照）
 - シェルスクリプトは ShellCheck を通す（`shellcheck scripts/*.sh`）
 - シェルスクリプトの先頭に `set -euo pipefail` を書く
 - 既存ファイルを変更する前に `make check` を実行する
