@@ -1,0 +1,4 @@
+interface:
+  display_name: "作業セッション引き継ぎ"
+  short_description: "gitリポジトリでの作業を別チャットへ安全に引き継ぐ"
+  default_prompt: "Use $session-handoff to close out this work session: resolve loose ends and route what should persist to the right docs, GitHub Issues, or memory."
