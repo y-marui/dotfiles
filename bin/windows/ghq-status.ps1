@@ -10,6 +10,10 @@
 #                                 repo-protected-branches）かつ git status が
 #                                 clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
 #                                 リポジトリも表示する（デフォルトでは非表示）
+#   -p, --paths-only              異常のあるリポジトリ（デフォルト表示される行）の
+#                                 フルパスだけを1行ずつ出力する。テーブル表示はせず、
+#                                 -a は無視する（常に異常のあるリポジトリのみ）。
+#                                 他コマンドからパイプで使うためのもの
 #   --ignore-charter-outdated     DEV-CHARTER が古いことによるハイライト・強制表示を無視する
 #   --no-ignore-charter-outdated  DEV-CHARTER が古い場合にハイライト・強制表示する（無視しない）
 #   -h, --help                    ヘルプを表示
@@ -147,6 +151,7 @@ function Write-StatusRow([string]$Repo, [string]$Branch, [string]$StatusVal, [st
 # ---------- 引数解析 ----------
 $FILTER = ''
 $SHOW_ALL = $false
+$PATHS_ONLY = $false
 $IGNORE_CHARTER_ARG = $null
 
 $i = 0
@@ -158,6 +163,9 @@ while ($i -lt $args.Count) {
         $i += 2
     } elseif ($arg -eq '-a' -or $arg -eq '--all') {
         $SHOW_ALL = $true
+        $i++
+    } elseif ($arg -eq '-p' -or $arg -eq '--paths-only') {
+        $PATHS_ONLY = $true
         $i++
     } elseif ($arg -eq '--ignore-charter-outdated') {
         $IGNORE_CHARTER_ARG = $true
@@ -216,6 +224,7 @@ $allKeeps = New-Object System.Collections.Generic.List[string]
 $allBases = New-Object System.Collections.Generic.List[string]
 $allProtected = New-Object System.Collections.Generic.List[bool]
 $allPolicyOk = New-Object System.Collections.Generic.List[bool]
+$allPaths = New-Object System.Collections.Generic.List[string]
 
 $jobs = 8
 if ($env:GHQ_STATUS_JOBS) {
@@ -415,15 +424,21 @@ foreach ($data in $repoData) {
     $allBases.Add($data.ExpectedBranches)
     $allProtected.Add($data.IsProtected)
     $allPolicyOk.Add($data.PolicyOk)
+    $allPaths.Add($repoList[$data.Index])
 }
 
 $activeIdxList = New-Object System.Collections.Generic.List[int]
 for ($idx = 0; $idx -lt $allGroups.Count; $idx++) { $activeIdxList.Add($idx) }
 $activeIdx = @($activeIdxList)
-if (-not $SHOW_ALL) {
+if (-not $SHOW_ALL -or $PATHS_ONLY) {
     $activeIdx = @($activeIdx | Where-Object {
         -not (Test-QuietRow $allProtected[$_] $allStatuses[$_] $allBrs[$_] $allBases[$_] $allPolicyOk[$_] $allCharters[$_] $charterLatest $IGNORE_CHARTER)
     })
+}
+
+if ($PATHS_ONLY) {
+    foreach ($idx in $activeIdx) { Write-Host $allPaths[$idx] }
+    exit 0
 }
 
 $seenGroups = @(($activeIdx | ForEach-Object { $allGroups[$_] }) | Select-Object -Unique)

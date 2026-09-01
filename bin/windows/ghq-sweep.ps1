@@ -6,10 +6,13 @@
 #
 # オプション:
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
+#                        （ghq-status --paths-only の結果を使う。-f と併用可）
 #   -h, --help          ヘルプを表示
 #
 # 動作:
-#   ghq list -p のリポジトリに対して git-sweep --all を実行する。
+#   ghq list -p のリポジトリ（-s 指定時は ghq-status --paths-only の結果）に対して
+#   git-sweep --all を実行する。
 #   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
 #   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
 #   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
@@ -28,6 +31,7 @@ function Show-Help {
 }
 
 $FILTER = ''
+$STATUS_ONLY = $false
 
 $i = 0
 while ($i -lt $args.Count) {
@@ -39,6 +43,9 @@ while ($i -lt $args.Count) {
         }
         $FILTER = $args[$i + 1]
         $i += 2
+    } elseif ($arg -eq '-s' -or $arg -eq '--status-only') {
+        $STATUS_ONLY = $true
+        $i++
     } elseif ($arg -eq '-h' -or $arg -eq '--help') {
         Show-Help
         exit 0
@@ -62,11 +69,16 @@ $ok = 0
 $skipped = 0
 $failed = 0
 
-$repos = @(& ghq list -p) | Sort-Object
-if ($FILTER) {
-    # owner/repo 記法（"/"区切り）でフィルタを書けるよう、Windowsのバックスラッシュ
-    # パスを比較用に正規化する（実際のファイル操作には元のパスを使う）
-    $repos = @($repos | Where-Object { ($_ -replace '\\', '/') -match $FILTER })
+if ($STATUS_ONLY) {
+    $global:LASTEXITCODE = $null
+    $repos = @(& "$PSScriptRoot\ghq-status.ps1" --paths-only --filter $FILTER)
+} else {
+    $repos = @(& ghq list -p) | Sort-Object
+    if ($FILTER) {
+        # owner/repo 記法（"/"区切り）でフィルタを書けるよう、Windowsのバックスラッシュ
+        # パスを比較用に正規化する（実際のファイル操作には元のパスを使う）
+        $repos = @($repos | Where-Object { ($_ -replace '\\', '/') -match $FILTER })
+    }
 }
 
 foreach ($repo in $repos) {

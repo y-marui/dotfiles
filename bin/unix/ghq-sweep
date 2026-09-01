@@ -6,10 +6,13 @@
 #
 # オプション:
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
+#                        （ghq-status --paths-only の結果を使う。-f と併用可）
 #   -h, --help          ヘルプを表示
 #
 # 動作:
-#   ghq list -p のリポジトリに対して git-sweep --all を実行する。
+#   ghq list -p のリポジトリ（-s 指定時は ghq-status --paths-only の結果）に対して
+#   git-sweep --all を実行する。
 #   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
 #   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
 #   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
@@ -22,12 +25,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 FILTER=''
+STATUS_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--filter)
       [[ $# -lt 2 ]] && { echo "error: --filter requires an argument" >&2; exit 1; }
       FILTER="$2"; shift 2 ;;
+    -s|--status-only) STATUS_ONLY=1; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         echo "error: unknown option: $1" >&2; exit 1 ;;
   esac
@@ -63,7 +68,13 @@ while IFS= read -r repo; do
     echo "  [failed]" >&2
     (( failed++ )) || true
   fi
-done < <(ghq list -p | sort -fV | grep -iE -- "$FILTER")
+done < <(
+  if [[ "$STATUS_ONLY" == 1 ]]; then
+    "${SCRIPT_DIR}/ghq-status" --paths-only --filter "$FILTER"
+  else
+    ghq list -p | sort -fV | grep -iE -- "$FILTER"
+  fi
+)
 
 echo ""
 printf '完了: 成功 %d / スキップ %d / 失敗 %d\n' "$ok" "$skipped" "$failed"

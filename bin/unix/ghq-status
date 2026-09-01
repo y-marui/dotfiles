@@ -11,6 +11,10 @@
 #                                 repo-protected-branches）かつ git status が
 #                                 clean かつ BRANCHES/DEV-CHARTER がハイライトされていない
 #                                 リポジトリも表示する（デフォルトでは非表示）
+#   -p, --paths-only              異常のあるリポジトリ（デフォルト表示される行）の
+#                                 フルパスだけを1行ずつ出力する。テーブル表示はせず、
+#                                 -a は無視する（常に異常のあるリポジトリのみ）。
+#                                 他コマンドからパイプで使うためのもの
 #   --ignore-charter-outdated     DEV-CHARTER が古いことによるハイライト・強制表示を無視する
 #   --no-ignore-charter-outdated  DEV-CHARTER が古い場合にハイライト・強制表示する（無視しない）
 #   -h, --help                    ヘルプを表示
@@ -247,7 +251,7 @@ _collect_repo() {
   [[ "$keep_val" == true ]] && keep_val=keep || keep_val=skip
 
   printf '%s\0' "${rel%/*}" "${rel##*/}" "$branch" "$status_str" "$br_str" \
-    "$charter_ver" "$keep_val" "$expected_br" "$is_protected" "$policy_ok"
+    "$charter_ver" "$keep_val" "$expected_br" "$is_protected" "$policy_ok" "$repo"
 }
 
 _pad() {
@@ -311,6 +315,7 @@ main() {
   local filter="$1"
   local show_all="$2"
   local ignore_charter_arg="$3"
+  local paths_only="$4"
   local root
   root="$(ghq root)"
 
@@ -331,7 +336,7 @@ main() {
   # 打ち直すため、lite 導入先の VERSION が main より新しくなることがある
   # （その場合は要更新ではないので赤くしない、単純な不一致判定にはしない）
 
-  typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected all_policy_ok
+  typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected all_policy_ok all_paths
   typeset -a repo_list worker_pids
   repo_list=("${(@f)$(ghq list -p | sort -fV | grep -iE -- "$filter")}")
 
@@ -357,7 +362,7 @@ main() {
   done
   for pid in "${worker_pids[@]}"; do wait "$pid" || return 1; done
 
-  local group repo_name branch status_str br_str charter_ver keep_val expected_br is_protected policy_ok
+  local group repo_name branch status_str br_str charter_ver keep_val expected_br is_protected policy_ok repo_path
   for (( i = 1; i <= ${#repo_list}; i++ )); do
     {
       IFS= read -r -d $'\0' group
@@ -370,6 +375,7 @@ main() {
       IFS= read -r -d $'\0' expected_br
       IFS= read -r -d $'\0' is_protected
       IFS= read -r -d $'\0' policy_ok
+      IFS= read -r -d $'\0' repo_path
     } < "$_GHQ_STATUS_TMP_DIR/$i"
     all_groups+=("$group")
     all_repo_names+=("$repo_name")
@@ -381,12 +387,13 @@ main() {
     all_bases+=("$expected_br")
     all_protected+=("$is_protected")
     all_policy_ok+=("$policy_ok")
+    all_paths+=("$repo_path")
   done
   _cleanup_status_tmp
   trap - EXIT HUP INT TERM
 
-  if [[ "$show_all" != 1 ]]; then
-    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps q_bases q_protected q_policy_ok
+  if [[ "$show_all" != 1 || "$paths_only" == 1 ]]; then
+    typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps q_bases q_protected q_policy_ok q_paths
     for (( i = 1; i <= ${#all_groups}; i++ )); do
       _is_quiet_row "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" "${all_protected[$i]}" "${all_bases[$i]}" "${all_policy_ok[$i]}" && continue
       q_groups+=("${all_groups[$i]}")
@@ -399,6 +406,7 @@ main() {
       q_bases+=("${all_bases[$i]}")
       q_protected+=("${all_protected[$i]}")
       q_policy_ok+=("${all_policy_ok[$i]}")
+      q_paths+=("${all_paths[$i]}")
     done
     all_groups=("${q_groups[@]}")
     all_repo_names=("${q_repo_names[@]}")
@@ -410,6 +418,15 @@ main() {
     all_bases=("${q_bases[@]}")
     all_protected=("${q_protected[@]}")
     all_policy_ok=("${q_policy_ok[@]}")
+    all_paths=("${q_paths[@]}")
+  fi
+
+  if [[ "$paths_only" == 1 ]]; then
+    local p
+    for p in "${all_paths[@]}"; do
+      printf '%s\n' "$p"
+    done
+    return 0
   fi
 
   local term_width=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
@@ -477,12 +494,14 @@ main() {
 FILTER=''
 SHOW_ALL=0
 IGNORE_CHARTER=''
+PATHS_ONLY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -f|--filter)
       (( $# < 2 )) && { print -u2 "error: --filter requires an argument"; exit 1; }
       FILTER="$2"; shift 2 ;;
     -a|--all)  SHOW_ALL=1; shift ;;
+    -p|--paths-only) PATHS_ONLY=1; shift ;;
     --ignore-charter-outdated)    IGNORE_CHARTER=1; shift ;;
     --no-ignore-charter-outdated) IGNORE_CHARTER=0; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
@@ -490,4 +509,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-main "$FILTER" "$SHOW_ALL" "$IGNORE_CHARTER"
+main "$FILTER" "$SHOW_ALL" "$IGNORE_CHARTER" "$PATHS_ONLY"
