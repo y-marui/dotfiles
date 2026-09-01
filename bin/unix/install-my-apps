@@ -18,6 +18,9 @@
 # --uninstall / -u フラグ（アンインストールモード）:
 #   引数指定時: 指定アプリを削除
 #   引数なし: このスクリプトでインストールしたアプリをすべて削除
+# -h, --help フラグ:
+#   このヘルプを表示
+
 set -euo pipefail
 
 readonly BUILD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
@@ -270,6 +273,7 @@ for arg in "$@"; do
         --reinstall|-r) reinstall=true ;;
         --force|-f)     force=true ;;
         --uninstall|-u) uninstall=true ;;
+        --help|-h)      sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*) echo "不明なオプション: $arg" >&2; exit 1 ;;
         *) args+=("$arg") ;;
     esac

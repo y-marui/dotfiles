@@ -6,6 +6,7 @@
 #
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する
+#   -h, --help          ヘルプを表示
 #
 # リポジトリのブランチ方針は .gitattributes に宣言する:
 #   * repo-main-branch=develop
@@ -35,6 +36,14 @@ Set-StrictMode -Version Latest
 
 function Write-Stderr([string]$Message) {
     [Console]::Error.WriteLine($Message)
+}
+
+function Show-Help {
+    $lines = @(Get-Content -LiteralPath $PSCommandPath)
+    foreach ($line in $lines[1..($lines.Count - 1)]) {
+        if ($line -eq '') { break }
+        Write-Host ($line -replace '^#\s?', '')
+    }
 }
 
 function Get-Attr([string]$Attr) {
@@ -111,6 +120,9 @@ if ($PROTECTED.Count -eq 0) {
 foreach ($arg in $args) {
     if ($arg -eq '--all') {
         $ALL = $true
+    } elseif ($arg -eq '-h' -or $arg -eq '--help') {
+        Show-Help
+        exit 0
     } elseif ($arg -like '-*') {
         Write-Stderr "error: unknown option: $arg"
         exit 1

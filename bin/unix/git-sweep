@@ -6,6 +6,7 @@
 #
 # オプション:
 #   --all   現在のブランチに加え、他のマージ済みブランチも削除する
+#   -h, --help          ヘルプを表示
 #
 # リポジトリのブランチ方針は .gitattributes に宣言する:
 #   * repo-main-branch=develop
@@ -120,6 +121,7 @@ fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all) ALL=true; shift ;;
+    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "error: unknown option: $1" >&2; exit 1 ;;
     *)  MAIN="$1"; shift ;;
   esac

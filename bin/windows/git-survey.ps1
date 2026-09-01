@@ -4,9 +4,25 @@
 # 使い方:
 #   git-survey [main-branch]
 #
+# オプション:
+#   -h, --help          ヘルプを表示
+#
 # デフォルトの main ブランチ名: main
 
 Set-StrictMode -Version Latest
+
+function Show-Help {
+    $lines = @(Get-Content -LiteralPath $PSCommandPath)
+    foreach ($line in $lines[1..($lines.Count - 1)]) {
+        if ($line -eq '') { break }
+        Write-Host ($line -replace '^#\s?', '')
+    }
+}
+
+if ($args.Count -gt 0 -and ($args[0] -eq '-h' -or $args[0] -eq '--help')) {
+    Show-Help
+    exit 0
+}
 
 $MAIN = if ($args.Count -gt 0) { $args[0] } else { 'main' }
 

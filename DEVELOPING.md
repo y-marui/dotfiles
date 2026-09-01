@@ -21,6 +21,10 @@ Windows 向け変更（`bin/windows/`、`*.ps1`）は PowerShell 上で動作確
 - **OS 別実装**: macOS/Raspberry Pi は zsh/bash/sh ネイティブ、Windows は PowerShell ネイティブ。片方の実装をラッパー経由で呼び出さない（[AI_CONTEXT.md#OS別実装の方針](AI_CONTEXT.md)）
 - **bin/unix ⇔ bin/windows・.sh ⇔ .ps1 の対応**: 原則両OSに実装する。片方専用にする場合は `scripts/check-bin-parity.sh` / `scripts/check-sh-ps1-parity.sh` の `EXCEPTIONS` に理由を追記する
 - **シェルスクリプト**: 先頭に `set -euo pipefail`、ShellCheck 準拠
+- **CLIコマンド**: `bin/unix/`・`bin/windows/` の新規カスタムコマンドは `-h`/`--help`
+  （POSIX慣例と衝突しない範囲で `-h` も）を実装し、対応する `completions/_<name>`
+  （zsh補完。`fpath` へ自動リンクされる）も用意する。AIが単体でスクリプトを呼び出す
+  際にも仕様を把握できるようにするため
 - **コミットメッセージ**: Conventional Commits 形式（`feat:` / `fix:` / `chore:` / `docs:` / `refactor:` 等）
 - **シークレット**: コミットしない。ローカル専用設定は `~/.zshrc.local` または `host/<hostname>.zsh`
 

@@ -14,6 +14,7 @@ _install-my-apps() {
     '(-r --reinstall -u --uninstall)'{-r,--reinstall}'[削除してからインストール（再インストールモード）]' \
     '(-f --force)'{-f,--force}'[バージョンチェックをスキップして常にインストール（強制インストールモード）]' \
     '(-r --reinstall -u --uninstall)'{-u,--uninstall}'[インストール済みアプリを削除（アンインストールモード）]' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]' \
     '*:app:_install-my-apps_apps'
 }
 
