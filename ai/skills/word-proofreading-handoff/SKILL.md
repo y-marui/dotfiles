@@ -1,9 +1,9 @@
 ---
-name: word-proofreading-transfer
+name: word-proofreading-handoff
 description: "Transfer confirmed proofreading rules from conversation memory and current artifacts to durable project instructions, and preserve a folder-local handoff so Word proofreading can resume accurately in another chat. Use when the user asks to record, transfer, or resume proofreading context; do not use for ordinary proofreading alone."
 ---
 
-# Proofreading Knowledge Transfer
+# Proofreading Handoff
 
 校閲から得た情報と、必要に応じて会話メモリーに残っている校閲ルールを、次のチャットでも読める正本へ移す。対象文書そのものの内容や一時的な推測を会話メモリーへ保存する代わりに、再利用範囲ごとに記録先を分ける。
 

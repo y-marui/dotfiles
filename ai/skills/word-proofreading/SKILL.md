@@ -50,7 +50,7 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 - 新たな安全な編集不変条件や再利用可能なレビュー手順など、文書横断の作業規則はこの `SKILL.md` に追加する。
 - 文書またはフォルダ固有の用語、対象範囲、レイアウト、組版規則は同階層の `PROOFREADING.md` に追加する。
 - 特定の申請制度・文書種別・研究分野にまたがる、著者も参照・更新する知見は Obsidian の `writing/` 配下の執筆・校閲ガイドに記録し、該当フォルダの `PROOFREADING.md` の先頭から `@<relative-path>` で必要な場合だけ明示参照する。skillや案件フォルダへ複製しない。
-- コンテキストの記録・引き継ぎをユーザーが依頼した場合は、`word-proofreading-transfer` に従う。
+- コンテキストの記録・引き継ぎをユーザーが依頼した場合は、`word-proofreading-handoff` に従う。
 - 一回限りの文書内容、一時的な作業状態、推測的な結論、今回だけに限定されたユーザー指示を永続化しない。
 - 明示的なユーザー判断と推論を区別する。ユーザーが推論の保持を求めない限り、前者だけを記録する。
 
