@@ -65,7 +65,7 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 - `Deep-Auto`: `Deep` と同じ文章・内容レビューを行うが、著者の判断を必要とせず意味を変えずに一意に直せるもの（曖昧な指示語の解消、接続の補強、段落の入れ替えなど）は、コメントに留めず実際のWord変更履歴として直接適用する。事実・主張・論拠の当否・根拠の十分性・大きな再構成の要否など、著者の判断が必要な問題は `Deep` と同様に本文を変更せずコメントのまま残す（[Protect meaning and document anchors](#protect-meaning-and-document-anchors) の不変条件はモードによらず常に適用する）。
 - `Layout-Check`: `.docx` を編集せず、WordでPDFを出力してPNGへレンダリングし、全ページを視覚確認する。文字化け、フォント置換、文字・図表の欠け、重なり、改ページ、コメント表示、余白、ページ数を確認し、指定フォントがある場合は検出結果も照合する。問題は本文を直さず、位置と内容を報告する。
 
-`Deep` と `Deep-Auto` で本文中の主張・論拠・方法・結論を確認する際、対応する `references/<domain>.md` があれば、その観点を追加で適用する。現時点では研究論文・学位論文・研究計画書・研究報告書などの科学的文書向けに [references/science.md](references/science.md) がある。専用の参照ファイルがない文書種別では、この節までの一般的な観点だけを適用し、独自の観点をその場で作らない。文書種別の判定に確信が持てない場合は、推測でファイルを選ばずユーザーに確認する。
+`Deep` と `Deep-Auto` で本文中の主張・論拠・方法・結論を確認する際、対応する `references/<domain>.md` があれば、その観点を追加で適用する。現時点では研究論文・学位論文・研究計画書・研究報告書などの科学的文書向けに [references/science.md](references/science.md)、装置マニュアル・ソフトウェアマニュアルなどの操作・手順文書向けに [references/manual.md](references/manual.md) がある。専用の参照ファイルがない文書種別では、この節までの一般的な観点だけを適用し、独自の観点をその場で作らない。文書種別の判定に確信が持てない場合は、推測でファイルを選ばずユーザーに確認する。
 
 ### Deep-Auto Structural Review Completion Criteria
 
