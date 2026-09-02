@@ -36,7 +36,17 @@
 - `com.y-marui.dotfiles-check`をユーザーLaunchAgentとして、ログイン時と1時間ごとに実行する
 - plistとrunnerはdotfiles内で管理し、`~/Library/LaunchAgents/`と`~/.local/bin/`へリンクする
 - `make install-macos`と`dots update`が各Macで自動登録し、`make launchagent`で手動再登録できる
-- `dots check`の結果は`~/.cache/dots/check-summary`へ原子的に保存する
+- `dots check`（`--verbose`を付けない通常実行）本体が、実行の都度
+  `~/.cache/dots/{check-summary,check-state,check-digest}`を原子的に保存する
+  （`DOTS_CHECK_CACHE_DIR`で保存先を上書き可能）。LaunchAgent経由に限らず、
+  ユーザーが直接`dots check`を実行した場合も同じキャッシュが更新されるため、
+  `dots ...`コマンドで警告を手動解消した直後でも、次のシェル起動時の表示が
+  古い警告のまま残ることはない。`--verbose`はこの一覧形式に合わないため
+  キャッシュを更新しない
+- `dots-check-monitor.sh`（LaunchAgentのrunner）自体はキャッシュを書かず、
+  `dots check`を呼び出した後にキャッシュの実行前後の状態を比較してmacOS通知
+  だけを出す（`dots`コマンド自体が見つからずキャッシュを更新できない場合のみ、
+  例外的にrunner側が直接書き込む）
 - 警告内容のハッシュが変わった場合と、警告が解消した場合だけmacOS通知を出す
 - 警告・エラー通知はterminal-notifier経由で出し、クリックすると`dots-check-monitor-popup`が
   `check-summary`全文をダイアログ表示する（コピー/閉じるを選択可能）。osascriptの

@@ -24,6 +24,13 @@ DOTFILES_DIR="$(_resolve_dotfiles_dir)"
 PRIVATE_DIR="${DOTFILES_DIR%-private}-private"
 export DOTFILES_DIR
 
+# dots check（非verbose）の結果キャッシュ。macos/dots-check-monitor.sh（LaunchAgent
+# 経由）と共有するパスで、DOTS_CHECK_CACHE_DIRで上書きできる（テスト用途）。
+DOTS_CHECK_CACHE_DIR="${DOTS_CHECK_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots}"
+DOTS_CHECK_SUMMARY_FILE="${DOTS_CHECK_CACHE_DIR}/check-summary"
+DOTS_CHECK_STATE_FILE="${DOTS_CHECK_CACHE_DIR}/check-state"
+DOTS_CHECK_DIGEST_FILE="${DOTS_CHECK_CACHE_DIR}/check-digest"
+
 _usage() {
   cat <<'EOF'
 Usage:
@@ -747,6 +754,42 @@ _check_verbose() {
   done
 }
 
+# dots check（非verbose）の結果（output・status）を check-summary/check-state/
+# check-digest へ原子的に書き込む。macos/dots-check-monitor.sh がLaunchAgent
+# 経由で書いていたキャッシュを、`dots check`を直接実行した場合にも同じように
+# 更新するためのもの（手動でdots ...コマンドを実行して警告を解消した後も
+# シェル起動時の表示 shell/zshrc が古い警告のまま残ってしまう問題への対応）。
+# --verboseの詳細出力はこの一覧形式に合わないため対象外（変更なし）。
+_check_write_cache() {
+  local output="$1" status="$2" state summary digest tmp
+  if [[ "${status}" -eq 0 ]]; then
+    state="clean"
+    summary=""
+  else
+    state="warning"
+    summary="${output}"
+  fi
+
+  mkdir -p "${DOTS_CHECK_CACHE_DIR}"
+  chmod 700 "${DOTS_CHECK_CACHE_DIR}"
+  # macOSはshasum、Raspberry Pi（coreutils）はsha256sumを使う。
+  if command -v shasum >/dev/null 2>&1; then
+    digest="$(printf '%s\n%s' "${state}" "${summary}" | shasum -a 256 | awk '{print $1}')"
+  else
+    digest="$(printf '%s\n%s' "${state}" "${summary}" | sha256sum | awk '{print $1}')"
+  fi
+
+  tmp="$(mktemp "${DOTS_CHECK_SUMMARY_FILE}.XXXXXX")"
+  if [[ -n "${summary}" ]]; then
+    printf '%s\n' "${summary}" > "${tmp}"
+  else
+    : > "${tmp}"
+  fi
+  mv "${tmp}" "${DOTS_CHECK_SUMMARY_FILE}"
+  printf '%s\n' "${state}" > "${DOTS_CHECK_STATE_FILE}"
+  printf '%s\n' "${digest}" > "${DOTS_CHECK_DIGEST_FILE}"
+}
+
 _check() {
   local verbose=false
 
@@ -765,7 +808,11 @@ _check() {
   if [[ "${verbose}" == true ]]; then
     _check_verbose
   else
-    _check_summary
+    local output rc
+    output="$(_check_summary 2>&1)" && rc=0 || rc=$?
+    _check_write_cache "${output}" "${rc}"
+    [[ -n "${output}" ]] && printf '%s\n' "${output}"
+    return "${rc}"
   fi
 }
 

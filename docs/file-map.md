@@ -44,14 +44,14 @@ _最終更新: 2026-09-03_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作 | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/` |
+| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作。`check`（非verbose）は結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/`、`~/.cache/dots/` |
 
 ## dots check Monitor (macOS)
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `macos/com.y-marui.dotfiles-check.plist` | ログイン時・1時間ごとの`dots check`実行を定義 | `~/.local/bin/dots-check-monitor` |
-| `macos/dots-check-monitor.sh` | 結果キャッシュ更新と状態変化時のmacOS通知（terminal-notifier優先、未導入時はosascriptへフォールバック） | `~/.local/bin/dotfiles/dots`、`~/.cache/dots/`、`terminal-notifier` |
+| `macos/dots-check-monitor.sh` | `dots check`実行（結果キャッシュ自体は`bin/unix/dots`が書く）と状態変化時のmacOS通知（terminal-notifier優先、未導入時はosascriptへフォールバック）。`dots`コマンドが見つからない場合のみ例外的に自らキャッシュへ書き込む | `~/.local/bin/dotfiles/dots`、`~/.cache/dots/`、`terminal-notifier` |
 | `macos/dots-check-monitor-popup.sh` | 通知クリック時に`check-summary`全文をダイアログ表示し、コピー/閉じるを選ばせる | `~/.cache/dots/check-summary` |
 | `macos/*_keyboard_shortcuts.sh` | アプリケーションショートカットの適用・差分・同期・キャッシュ更新 | `macos/keyboard_shortcuts.py`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理ファイルと同期（applyは完全一致・未管理項目を削除、mergeは現在値を取り込み） | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |

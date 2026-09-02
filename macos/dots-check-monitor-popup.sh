@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-CACHE_DIR="${DOTS_MONITOR_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots}"
+CACHE_DIR="${DOTS_CHECK_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots}"
 SUMMARY_FILE="${CACHE_DIR}/check-summary"
 
 summary="$(cat "${SUMMARY_FILE}" 2>/dev/null || true)"

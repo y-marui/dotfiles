@@ -184,10 +184,12 @@ GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使�
 `dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
 
 macOSでは、`make install-macos` がLaunchAgentを登録し、ログイン時と1時間ごとに
-`dots check`をバックグラウンド実行する。結果は`~/.cache/dots/check-summary`へ保存し、
-内容が変わった場合だけシステム通知する。zsh起動時はこのキャッシュを読むだけなので、
-`dots check`の完了を待たない。LaunchAgentのplistと実行スクリプトはdotfilesで共有し、
-既存Macでも`dots update`時に再リンク・再登録する。手動確認の`dots check`は従来どおり利用できる。
+`dots check`をバックグラウンド実行する。結果は`dots check`本体が
+`~/.cache/dots/check-summary`へ保存し、内容が変わった場合だけシステム通知する。
+zsh起動時はこのキャッシュを読むだけなので、`dots check`の完了を待たない。
+LaunchAgentのplistと実行スクリプトはdotfilesで共有し、既存Macでも`dots update`時に
+再リンク・再登録する。手動で`dots check`を実行した場合も同じキャッシュが更新される
+ため、`dots ...`コマンドで警告を解消した直後でも次のシェル起動時の表示は最新になる。
 
 Claude Code・Codex・Gemini の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、

@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# dots check をバックグラウンド実行し、結果キャッシュとmacOS通知を更新する。
+# dots check をバックグラウンド実行し、macOS通知を出す。
+# 結果キャッシュ（check-summary/check-state/check-digest）自体は
+# `dots check`本体（bin/unix/dots）が書き込む。ユーザーが手動で
+# `dots check`を実行した場合も同じキャッシュが更新されるようにするため、
+# ここでは書き込みを重複させず、実行前後の状態を比較して通知するだけに留める。
 
 set -euo pipefail
 
 export PATH="${HOME}/.local/bin:${HOME}/.local/bin/dotfiles:${HOME}/.pyenv/shims:${HOME}/.nodebrew/current/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin"
 export LANG="${LANG:-ja_JP.UTF-8}"
 
-CACHE_DIR="${DOTS_MONITOR_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots}"
+CACHE_DIR="${DOTS_CHECK_CACHE_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots}"
 SUMMARY_FILE="${CACHE_DIR}/check-summary"
 STATE_FILE="${CACHE_DIR}/check-state"
 DIGEST_FILE="${CACHE_DIR}/check-digest"
@@ -16,40 +20,28 @@ mkdir -p "${CACHE_DIR}"
 chmod 700 "${CACHE_DIR}"
 umask 077
 
-if [[ ! -x "${DOTS_BIN}" ]]; then
-  output="⚠ dots monitor: dotsコマンドが見つかりません: ${DOTS_BIN}"
-  check_status=127
-else
-  set +e
-  output="$("${DOTS_BIN}" check 2>&1)"
-  check_status=$?
-  set -e
-fi
-
-if [[ "${check_status}" -eq 0 ]]; then
-  state="clean"
-  summary=""
-elif [[ -n "${output}" ]]; then
-  state="warning"
-  summary="${output}"
-else
-  state="error"
-  summary="⚠ dots monitor: dots check failed (exit ${check_status})"
-fi
-
 previous_state="$(sed -n '1p' "${STATE_FILE}" 2>/dev/null || true)"
 previous_digest="$(sed -n '1p' "${DIGEST_FILE}" 2>/dev/null || true)"
-digest="$(printf '%s\n%s' "${state}" "${summary}" | shasum -a 256 | awk '{print $1}')"
 
-summary_tmp="$(mktemp "${SUMMARY_FILE}.XXXXXX")"
-if [[ -n "${summary}" ]]; then
+if [[ ! -x "${DOTS_BIN}" ]]; then
+  # dotsコマンド自体が見つからず dots check を起動できない場合だけ、
+  # ここで直接キャッシュへ書き込む（通常経路のキャッシュ書き込みは
+  # dots check 自身が行う）。
+  state="error"
+  summary="⚠ dots monitor: dotsコマンドが見つかりません: ${DOTS_BIN}"
+  digest="$(printf '%s\n%s' "${state}" "${summary}" | shasum -a 256 | awk '{print $1}')"
+  summary_tmp="$(mktemp "${SUMMARY_FILE}.XXXXXX")"
   printf '%s\n' "${summary}" > "${summary_tmp}"
+  mv "${summary_tmp}" "${SUMMARY_FILE}"
+  printf '%s\n' "${state}" > "${STATE_FILE}"
+  printf '%s\n' "${digest}" > "${DIGEST_FILE}"
 else
-  : > "${summary_tmp}"
+  "${DOTS_BIN}" check >/dev/null 2>&1 || true
 fi
-mv "${summary_tmp}" "${SUMMARY_FILE}"
-printf '%s\n' "${state}" > "${STATE_FILE}"
-printf '%s\n' "${digest}" > "${DIGEST_FILE}"
+
+state="$(sed -n '1p' "${STATE_FILE}" 2>/dev/null || true)"
+digest="$(sed -n '1p' "${DIGEST_FILE}" 2>/dev/null || true)"
+summary="$(cat "${SUMMARY_FILE}" 2>/dev/null || true)"
 
 _notify() {
   local title="$1" message="$2" with_popup="${3:-0}"
