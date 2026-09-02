@@ -28,16 +28,15 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(pandoc:*)",
-      "Bash(pre-commit:*)",
-      "Bash(run-quiet pre-commit:*)",
-      "Bash(run-quiet shellcheck:*)",
-      "Bash(shellcheck:*)",
-      "Bash(wait)",
+      "Bash(run-quiet diff:*)",
+      "Bash(run-quiet find:*)",
+      "Bash(run-quiet grep:*)",
+      "Bash(run-quiet pandoc:*)",
+      "Bash(run-quiet wait:*)",
+      "Bash(run-quiet which:*)",
+      "Bash(wait:*)",
       "Bash(which:*)",
-      "Skill(pr-review-toolkit:review-pr)",
-      "WebSearch",
-      "mcp__github__issue_read",
-      "mcp__github__pull_request_read"
+      "WebSearch"
     ]
   },
   "statusLine": {
