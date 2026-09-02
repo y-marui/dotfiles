@@ -13,8 +13,13 @@
 #                                    ローカル allow エントリを一覧表示する
 #                                    （移管するかどうかの判断はユーザーが行い、
 #                                    実際の追加は手動で行う。削除は format が行う）
+#   claude-perms format-global      ~/.claude/settings.json （グローバル）自体の
+#                                    permissions.allow/deny/ask をソート・重複削除する。
+#                                    グローバルより上位は無いのでカバー済み判定は行わず、
+#                                    permissionsが空になっても他のキー（model等）を持つ
+#                                    本体設定ファイルなので削除もしない。DIR引数は取らない
 #
-# DIR は複数指定できる。省略時はカレントディレクトリ1件のみを対象にする。
+# DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
 # 通常の状態として無視する（エラーにしない）。--verbose 指定時だけ、無視した旨を表示する。
 # settings.local.json 自体が壊れたJSONの場合は、パスと jq のエラーを添えて常に報告し、
@@ -101,7 +106,9 @@ _global_settings_file() {
 }
 
 # 複数DIR引数をループして関数 $1 を各DIRに適用する共通ヘルパー。
-# DIR省略時は "." 1件のみを対象にする。2件以上の場合はDIRの間に空行を挟む。
+# DIR省略時は "." 1件のみを対象にする。各DIRの出力（stdout+stderr）はまとめて
+# 捕捉し、何か出力したDIRの間だけ空行を挟む。settings.local.json が無いDIRの
+# ような無音スキップを挟んでも、空行が積み重ならない。
 # いずれか1件でも失敗（非0終了）すれば、全体としても非0を返す。
 _run_over_dirs() {
   local fn="$1"
@@ -109,14 +116,19 @@ _run_over_dirs() {
   local -a dirs=("$@")
   (( ${#dirs[@]} == 0 )) && dirs=(".")
 
-  local dir failed=0 first=true
+  local dir out rc failed=0 printed_any=false
   for dir in "${dirs[@]}"; do
-    if [[ "${first}" == true ]]; then
-      first=false
-    elif (( ${#dirs[@]} > 1 )); then
-      printf '\n'
+    if out="$("${fn}" "${dir}" 2>&1)"; then
+      rc=0
+    else
+      rc=$?
     fi
-    "${fn}" "${dir}" || failed=1
+    if [[ -n "${out}" ]]; then
+      [[ "${printed_any}" == true ]] && printf '\n'
+      printf '%s\n' "${out}"
+      printed_any=true
+    fi
+    (( rc != 0 )) && failed=1
   done
   return "${failed}"
 }
@@ -429,15 +441,53 @@ _cmd_candidates() {
   _run_over_dirs _candidates_one "$@"
 }
 
+# ~/.claude/settings.json（グローバル）自体のallow/deny/askをソート・重複削除する。
+# グローバルより上位の設定は無いため「カバー済みだから削除」判定は行わない。
+# permissionsが空になっても、他のキー（model等）を持つ本体設定なので削除もしない。
+_cmd_format_global() {
+  [[ $# -eq 0 ]] || _error "format-global はDIR引数を取りません"
+
+  local file
+  file="$(_global_settings_file)"
+  if [[ ! -f "${file}" ]]; then
+    printf 'error: not found: %s\n' "${file}" >&2
+    return 1
+  fi
+  _validate_json "${file}" || return 1
+
+  local before after
+  before="$(jq -c '.permissions // {}' "${file}")"
+  after="$(jq -c "
+    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow |= unique else . end
+    | ${_DENY_ASK_SORT_FILTER}
+    | .permissions // {}
+  " "${file}")"
+
+  if [[ "${before}" == "${after}" ]]; then
+    printf '変更なし: %s\n' "${file}"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp "${file}.XXXXXX")"
+  jq "
+    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow |= unique else . end
+    | ${_DENY_ASK_SORT_FILTER}
+  " "${file}" > "${tmp}"
+  mv "${tmp}" "${file}"
+  printf '整理しました: %s\n' "${file}"
+}
+
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|check|candidates} [DIR...]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates} [DIR...]"
 shift
 
 case "${command_name}" in
-  format)     _cmd_format "$@" ;;
-  check)      _cmd_check "$@" ;;
-  candidates) _cmd_candidates "$@" ;;
-  *) _error "unknown command: ${command_name} (format/check/candidates が使えます)" ;;
+  format)        _cmd_format "$@" ;;
+  format-global) _cmd_format_global "$@" ;;
+  check)         _cmd_check "$@" ;;
+  candidates)    _cmd_candidates "$@" ;;
+  *) _error "unknown command: ${command_name} (format/format-global/check/candidates が使えます)" ;;
 esac
