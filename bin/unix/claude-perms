@@ -14,7 +14,10 @@
 #   claude-perms candidates [DIR...] グローバルにもDIRに一致するpathRuleにも無い
 #                                    （＝カバーされていない）ローカル allow エントリを
 #                                    一覧表示する（移管するかどうかの判断はユーザーが行い、
-#                                    実際の追加は手動で行う。削除は format が行う）
+#                                    実際の追加は手動で行う。削除は format が行う）。
+#                                    候補が0件のDIRは、複数DIR指定時にカバー済みの
+#                                    リポジトリまで毎回表示されるノイズを避けるため、
+#                                    --verbose指定時以外は無音でスキップする
 #   claude-perms format-global      ~/.claude/settings.json （グローバル）自体の
 #                                    permissions.allow/deny/ask を正規化・ソート・
 #                                    重複削除し、残ったBash allowのrun-quiet修飾版を
@@ -667,7 +670,7 @@ _candidates_one() {
   _validate_json "${local_file}" || return 1
   abs_dir="$(realpath "${dir}")"
 
-  local classified local_count global_count candidate_count
+  local classified candidate_count
   classified="$(_classify_allow "${local_file}" "${global_file}")"
 
   local -a raw_candidates=()
@@ -684,14 +687,21 @@ _candidates_one() {
       [[ -n "${entry}" ]] && candidates+=("${entry}")
     done < <(printf '%s\n' "${raw_candidates[@]}" | sort -u)
   fi
+  candidate_count=${#candidates[@]}
 
+  # 候補が無いDIRは、複数DIR指定時にカバー済みのリポジトリまで毎回表示されて
+  # ノイズになるため、--verbose指定時以外は無音でスキップする。
+  if [[ "${candidate_count}" -eq 0 && "${VERBOSE}" != true ]]; then
+    return 0
+  fi
+
+  local local_count global_count
   local_count="$(jq '.permissions.allow // [] | unique | length' "${local_file}")"
   if [[ -f "${global_file}" ]]; then
     global_count="$(jq '.permissions.allow // [] | unique | length' "${global_file}")"
   else
     global_count=""
   fi
-  candidate_count=${#candidates[@]}
 
   printf 'ローカル: %s (allow: %s件)\n' "${local_file}" "${local_count}"
   if [[ -f "${global_file}" ]]; then
