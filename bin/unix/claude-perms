@@ -19,11 +19,33 @@
 #                                    判定は行わず、permissionsが空になっても他のキー
 #                                    （model等）を持つ本体設定ファイルなので削除もしない。
 #                                    DIR引数は取らない
+#   claude-perms remove <pattern> [DIR...] [--glob] [--apply|-y]
+#                                    allow/deny/askからpatternに一致するエントリを探す。
+#                                    既定（厳密一致）: pattern・エントリ双方を正規化
+#                                    （下記）した上で完全一致するものだけを対象にする
+#                                    （例: pattern "run-quiet *" は "Bash(run-quiet:*)"
+#                                    には一致するが "Bash(run-quiet make:*)" には一致
+#                                    しない）。--glob指定時はpatternをbashのglob
+#                                    （*, ?等）としてエントリ文字列全体に対して評価する。
+#                                    既定はdry-run（一致内容の表示のみ）。実際に削除
+#                                    するには --apply（または -y）を付ける
+#   claude-perms remove-global <pattern> [--glob] [--apply|-y]
+#                                    removeと同じ判定を ~/.claude/settings.json
+#                                    （グローバル）自体に対して行う。DIR引数は取らない
 #
 # 正規化: Bash/PowerShellルールの末尾が半角スペース+"*"（例: "gh *"）の場合、
-# 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global共通）。
+# 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global/remove系すべて共通）。
 # 参考: https://code.claude.com/docs/en/permissions.md
 #   "The `:*` suffix is an equivalent way to write a trailing wildcard"
+#
+# 禁止エントリ: ~/.claude/claude-perms.json（Claude Code本体は読まない、claude-perms
+# 専用の設定）の forbiddenAllow に列挙したエントリは、format/format-globalが
+# ローカル・グローバルどちらのallowからも厳密一致（正規化後）で自動削除する。例えば
+# "run-quiet:*" のような「何でも実行できてしまう」 blanket allow を、"run-quiet make:*"
+# のような個別のスコープ付きallowは残したまま消したい場合に使う（前方一致の
+# カバー判定だと "run-quiet make:*" まで巻き込んでしまうため、ここだけ厳密一致にしている）。
+# ファイルが無ければ禁止リストなしとして扱う（自動作成しない）。
+#   例: {"forbiddenAllow": ["Bash(run-quiet:*)"]}
 #
 # DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
@@ -114,6 +136,40 @@ _local_settings_file() {
 
 _global_settings_file() {
   printf '%s/.claude/settings.json' "${HOME}"
+}
+
+# claude-perms専用の設定ファイル（Claude Code本体は読まない）。
+_claude_perms_config_file() {
+  printf '%s/.claude/claude-perms.json' "${HOME}"
+}
+
+# ~/.claude/claude-perms.json の forbiddenAllow（正規化済み・改行区切り）を
+# _FORBIDDEN_ALLOW_LINES にセットする。ファイルが無ければ空文字列のまま0を返す。
+# 壊れたJSONの場合はパスとエラーを報告して1を返す。
+_load_forbidden_allow() {
+  _FORBIDDEN_ALLOW_LINES=""
+  local config
+  config="$(_claude_perms_config_file)"
+  [[ -f "${config}" ]] || return 0
+  _validate_json "${config}" || return 1
+
+  local e
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    _FORBIDDEN_ALLOW_LINES="${_FORBIDDEN_ALLOW_LINES}$(_normalize_rule "${e}")"$'\n'
+  done < <(jq -r '.forbiddenAllow // [] | .[]' "${config}")
+  return 0
+}
+
+# 正規化済みエントリ($1)が _FORBIDDEN_ALLOW_LINES に厳密一致するか判定する。
+_is_forbidden() {
+  local normalized_entry="$1" line
+  [[ -n "${_FORBIDDEN_ALLOW_LINES}" ]] || return 1
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] || continue
+    [[ "${line}" == "${normalized_entry}" ]] && return 0
+  done <<< "${_FORBIDDEN_ALLOW_LINES}"
+  return 1
 }
 
 # 複数DIR引数をループして関数 $1 を各DIRに適用する共通ヘルパー。
@@ -291,33 +347,50 @@ _classify_allow() {
 }
 
 # file の permissions.allow/deny/ask を正規化（_normalize_rule）・重複除去し、
-# global_file（空文字なら比較しない）でカバーされる allow エントリを除外した結果を
-# 次の変数にセットする:
+# global_file（空文字なら比較しない）でカバーされる allow エントリ、および
+# ~/.claude/claude-perms.json の forbiddenAllow に厳密一致する allow エントリを
+# 除外した結果を次の変数にセットする:
 #   _FMT_BEFORE / _FMT_AFTER                          … 整理前後の .permissions（比較用）
 #   _FMT_NEW_ALLOW_JSON / _FMT_NEW_DENY_JSON / _FMT_NEW_ASK_JSON … 書き戻す新しい配列
 #   _FMT_CLASSIFIED                                    … _classify_allow の生出力（報告用。
 #                                                         global_file="" のときは空）
+#   _FMT_FORBIDDEN_REMOVED                             … forbiddenAllowで除外した生エントリ
+#                                                         （改行区切り、報告用）
+# claude-perms.json が壊れている場合は1を返す（呼び出し側は処理を中断すること）。
 _compute_format_result() {
   local file="$1" global_file="${2:-}"
 
+  _load_forbidden_allow || return 1
+
   # 配列ではなく改行区切り文字列で集める（bash 3.2対策。上のコメント参照）。
-  local kept_lines=""
+  local kept_lines="" forbidden_lines=""
   _FMT_CLASSIFIED=""
   if [[ -n "${global_file}" ]]; then
     _FMT_CLASSIFIED="$(_classify_allow "${file}" "${global_file}")"
     if [[ -n "${_FMT_CLASSIFIED}" ]]; then
       local tag entry
       while IFS=$'\t' read -r tag entry _covering; do
-        [[ "${tag}" == "KEEP" ]] && kept_lines="${kept_lines}${entry}"$'\n'
+        [[ "${tag}" == "KEEP" ]] || continue
+        if _is_forbidden "$(_normalize_rule "${entry}")"; then
+          forbidden_lines="${forbidden_lines}${entry}"$'\n'
+        else
+          kept_lines="${kept_lines}${entry}"$'\n'
+        fi
       done <<< "${_FMT_CLASSIFIED}"
     fi
   else
     local entry
     while IFS= read -r entry; do
-      [[ -n "${entry}" ]] && kept_lines="${kept_lines}${entry}"$'\n'
+      [[ -n "${entry}" ]] || continue
+      if _is_forbidden "$(_normalize_rule "${entry}")"; then
+        forbidden_lines="${forbidden_lines}${entry}"$'\n'
+      else
+        kept_lines="${kept_lines}${entry}"$'\n'
+      fi
     done < <(jq -r '.permissions.allow // [] | .[]' "${file}")
   fi
   _FMT_NEW_ALLOW_JSON="$(_normalize_entries_json <<< "${kept_lines}")"
+  _FMT_FORBIDDEN_REMOVED="${forbidden_lines}"
 
   local deny_lines="" d
   while IFS= read -r d; do
@@ -395,7 +468,7 @@ _format_one() {
   fi
   _validate_json "${file}" || return 1
 
-  _compute_format_result "${file}" "${global_file}"
+  _compute_format_result "${file}" "${global_file}" || return 1
 
   if [[ "${_FMT_BEFORE}" == "${_FMT_AFTER}" ]]; then
     printf '変更なし: %s\n' "${file}"
@@ -410,6 +483,12 @@ _format_one() {
       while IFS=$'\t' read -r _tag entry covering; do
         printf '  %s  (%s でカバー)\n' "${entry}" "${covering}"
       done <<< "${removed}"
+    fi
+    if [[ -n "${_FMT_FORBIDDEN_REMOVED}" ]]; then
+      printf '禁止エントリ（claude-perms.json）のため削除:\n'
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_FORBIDDEN_REMOVED}"
     fi
   fi
 
@@ -435,7 +514,7 @@ _check_one() {
   fi
   _validate_json "${file}" || return 1
 
-  _compute_format_result "${file}" "${global_file}"
+  _compute_format_result "${file}" "${global_file}" || return 1
 
   if [[ "${_FMT_BEFORE}" != "${_FMT_AFTER}" ]]; then
     printf '[.claude] found — permissions が未整理です（claude-perms format で整理）\n'
@@ -522,7 +601,7 @@ _cmd_format_global() {
   fi
   _validate_json "${file}" || return 1
 
-  _compute_format_result "${file}" ""
+  _compute_format_result "${file}" "" || return 1
 
   if [[ "${_FMT_BEFORE}" == "${_FMT_AFTER}" ]]; then
     printf '変更なし: %s\n' "${file}"
@@ -531,12 +610,170 @@ _cmd_format_global() {
 
   _write_format_result "${file}"
   printf '整理しました: %s\n' "${file}"
+
+  if [[ -n "${_FMT_FORBIDDEN_REMOVED}" ]]; then
+    printf '禁止エントリ（claude-perms.json）のため削除:\n'
+    local entry
+    while IFS= read -r entry; do
+      [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+    done <<< "${_FMT_FORBIDDEN_REMOVED}"
+  fi
+  return 0
+}
+
+# エントリ($1)がパターン($2)に一致するか判定する。
+#   glob=true : $2 をbashのglobとしてそのまま解釈する（*, ? 等）
+#   glob=false（既定）: 双方を正規化（_normalize_rule）した上での厳密一致
+_matches_pattern() {
+  local entry="$1" pattern="$2" glob="$3"
+  if [[ "${glob}" == true ]]; then
+    # shellcheck disable=SC2053  # globとして評価するためあえて非クォート
+    [[ "${entry}" == ${pattern} ]]
+    return
+  fi
+  [[ "$(_normalize_rule "${entry}")" == "$(_normalize_rule "${pattern}")" ]]
+}
+
+# file 内の allow/deny/ask から _REMOVE_PATTERN（_REMOVE_GLOBの解釈に従う）に
+# 一致するエントリを探す。_REMOVE_APPLY=true なら実際に削除して書き戻し、
+# false（既定）なら一致内容を表示するだけ（dry-run、書き換えない）。
+_remove_from_file() {
+  local file="$1"
+  local report="" matched_any=false
+  local allow_kept="" deny_kept="" ask_kept="" e
+
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+      report="${report}  [allow] ${e}"$'\n'
+      matched_any=true
+    else
+      allow_kept="${allow_kept}${e}"$'\n'
+    fi
+  done < <(jq -r '.permissions.allow // [] | .[]' "${file}")
+
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+      report="${report}  [deny] ${e}"$'\n'
+      matched_any=true
+    else
+      deny_kept="${deny_kept}${e}"$'\n'
+    fi
+  done < <(jq -r '.permissions.deny // [] | .[]' "${file}")
+
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+      report="${report}  [ask] ${e}"$'\n'
+      matched_any=true
+    else
+      ask_kept="${ask_kept}${e}"$'\n'
+    fi
+  done < <(jq -r '.permissions.ask // [] | .[]' "${file}")
+
+  if [[ "${matched_any}" != true ]]; then
+    printf '一致なし: %s\n' "${file}"
+    return 0
+  fi
+
+  if [[ "${_REMOVE_APPLY}" != true ]]; then
+    printf '[dry-run] 一致（--apply で削除）: %s\n' "${file}"
+    printf '%s' "${report}"
+    return 0
+  fi
+
+  local new_allow_json new_deny_json new_ask_json
+  new_allow_json="$(jq -R -s 'split("\n") | map(select(length > 0))' <<< "${allow_kept}")"
+  new_deny_json="$(jq -R -s 'split("\n") | map(select(length > 0))' <<< "${deny_kept}")"
+  new_ask_json="$(jq -R -s 'split("\n") | map(select(length > 0))' <<< "${ask_kept}")"
+
+  local tmp
+  tmp="$(mktemp "${file}.XXXXXX")"
+  jq \
+    --argjson new_allow "${new_allow_json}" \
+    --argjson new_deny "${new_deny_json}" \
+    --argjson new_ask "${new_ask_json}" '
+    if .permissions and (.permissions | has("allow")) then .permissions.allow = $new_allow else . end
+    | if .permissions and (.permissions | has("deny"))  then .permissions.deny  = $new_deny  else . end
+    | if .permissions and (.permissions | has("ask"))   then .permissions.ask   = $new_ask   else . end
+  ' "${file}" > "${tmp}"
+  mv "${tmp}" "${file}"
+  printf '削除しました: %s\n' "${file}"
+  printf '%s' "${report}"
+}
+
+_remove_one() {
+  local dir="${1:-.}" file
+  file="$(_local_settings_file "${dir}")"
+  if [[ ! -f "${file}" ]]; then
+    [[ "${VERBOSE}" == true ]] && printf 'skip（settings.local.json なし）: %s\n' "${file}"
+    return 0
+  fi
+  _validate_json "${file}" || return 1
+  _remove_from_file "${file}" || return 1
+  if [[ "${_REMOVE_APPLY}" == true ]]; then
+    _prune_if_empty "${file}"
+  fi
+  return 0
+}
+
+# claude-perms remove <pattern> [DIR...] [--glob] [--apply|-y]
+_cmd_remove() {
+  local glob=false apply=false
+  local -a rest=()
+  local a
+  for a in "$@"; do
+    case "${a}" in
+      --glob) glob=true ;;
+      --apply|-y) apply=true ;;
+      *) rest+=("${a}") ;;
+    esac
+  done
+  (( ${#rest[@]} > 0 )) || _error "usage: claude-perms remove <pattern> [DIR...] [--glob] [--apply]"
+
+  _REMOVE_PATTERN="${rest[0]}"
+  _REMOVE_GLOB="${glob}"
+  _REMOVE_APPLY="${apply}"
+
+  set -- "${rest[@]}"
+  shift
+  _run_over_dirs _remove_one "$@"
+}
+
+# claude-perms remove-global <pattern> [--glob] [--apply|-y]
+_cmd_remove_global() {
+  local glob=false apply=false
+  local -a rest=()
+  local a
+  for a in "$@"; do
+    case "${a}" in
+      --glob) glob=true ;;
+      --apply|-y) apply=true ;;
+      *) rest+=("${a}") ;;
+    esac
+  done
+  (( ${#rest[@]} > 0 )) || _error "usage: claude-perms remove-global <pattern> [--glob] [--apply]"
+  (( ${#rest[@]} == 1 )) || _error "remove-global はpattern以外の引数（DIR等）を取りません"
+
+  _REMOVE_PATTERN="${rest[0]}"
+  _REMOVE_GLOB="${glob}"
+  _REMOVE_APPLY="${apply}"
+
+  local file
+  file="$(_global_settings_file)"
+  if [[ ! -f "${file}" ]]; then
+    printf 'error: not found: %s\n' "${file}" >&2
+    return 1
+  fi
+  _validate_json "${file}" || return 1
+  _remove_from_file "${file}"
 }
 
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates} [DIR...]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global} [DIR...]"
 shift
 
 case "${command_name}" in
@@ -544,5 +781,7 @@ case "${command_name}" in
   format-global) _cmd_format_global "$@" ;;
   check)         _cmd_check "$@" ;;
   candidates)    _cmd_candidates "$@" ;;
-  *) _error "unknown command: ${command_name} (format/format-global/check/candidates が使えます)" ;;
+  remove)        _cmd_remove "$@" ;;
+  remove-global) _cmd_remove_global "$@" ;;
+  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global が使えます)" ;;
 esac
