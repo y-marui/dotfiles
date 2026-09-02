@@ -2,16 +2,20 @@
 # claude-perms: .claude/settings.local.json の permissions を整理するヘルパー
 #
 # 使い方:
-#   claude-perms sort [DIR]         permissions.allow/deny/ask をソート・重複削除し、
-#                                   allow のうち ~/.claude/settings.json （グローバル）の
-#                                   ルールで既にカバーされているものを削除して書き戻す
-#   claude-perms check [DIR]        整理が必要かどうかだけ確認する（書き換えない）
-#   claude-perms candidates [DIR]   グローバルにまだ無い（＝カバーされていない）
-#                                   ローカル allow エントリを一覧表示する
-#                                   （移管するかどうかの判断はユーザーが行い、
-#                                   実際の追加は手動で行う。削除は sort が行う）
+#   claude-perms format [DIR...]    permissions.allow/deny/ask をソート・重複削除し、
+#                                    allow のうち ~/.claude/settings.json （グローバル）の
+#                                    ルールで既にカバーされているものを削除して書き戻す。
+#                                    整理後に permissions が {"allow": []} だけになったら
+#                                    settings.local.json を削除し、.claude/ が空になれば
+#                                    それも削除する
+#   claude-perms check [DIR...]     整理が必要かどうかだけ確認する（書き換えない）
+#   claude-perms candidates [DIR...] グローバルにまだ無い（＝カバーされていない）
+#                                    ローカル allow エントリを一覧表示する
+#                                    （移管するかどうかの判断はユーザーが行い、
+#                                    実際の追加は手動で行う。削除は format が行う）
 #
-# DIR省略時はカレントディレクトリ。対象は DIR/.claude/settings.local.json。
+# DIR は複数指定できる。省略時はカレントディレクトリ1件のみを対象にする。
+# 各 DIR の対象は DIR/.claude/settings.local.json。
 #
 # claude-perms shell {on|off|status}   cd時の check 自動実行をon/off（既定off）。
 #                                       shell/zshrc のシェル関数が提供するサブコマンドで
@@ -35,7 +39,10 @@
 # オプション:
 #   -h, --help          ヘルプを表示
 #
-# 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・グローバルでカバー済みのいずれか）
+# 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・グローバルでカバー済み・
+#                       permissionsが空のいずれか）。複数DIR指定時はいずれか1件でも
+#                       該当すれば1。format/candidatesも、複数DIRのうち1件でも
+#                       エラー（settings.local.json が無い等）があれば1。
 
 set -euo pipefail
 
@@ -49,6 +56,10 @@ _error() {
   exit 1
 }
 
+_warn() {
+  printf 'warning: %s\n' "$*" >&2
+}
+
 _require_jq() {
   command -v jq > /dev/null 2>&1 || _error "jq が見つかりません（brew install jq）"
 }
@@ -60,6 +71,27 @@ _local_settings_file() {
 
 _global_settings_file() {
   printf '%s/.claude/settings.json' "${HOME}"
+}
+
+# 複数DIR引数をループして関数 $1 を各DIRに適用する共通ヘルパー。
+# DIR省略時は "." 1件のみを対象にする。2件以上の場合はDIRの間に空行を挟む。
+# いずれか1件でも失敗（非0終了）すれば、全体としても非0を返す。
+_run_over_dirs() {
+  local fn="$1"
+  shift
+  local -a dirs=("$@")
+  (( ${#dirs[@]} == 0 )) && dirs=(".")
+
+  local dir failed=0 first=true
+  for dir in "${dirs[@]}"; do
+    if [[ "${first}" == true ]]; then
+      first=false
+    elif (( ${#dirs[@]} > 1 )); then
+      printf '\n'
+    fi
+    "${fn}" "${dir}" || failed=1
+  done
+  return "${failed}"
 }
 
 # permissions.deny/ask のうち存在するものだけをソート・重複削除する jq フィルタ
@@ -172,11 +204,41 @@ _classify_allow() {
   done < <(jq -r '.permissions.allow // [] | .[]' "${local_file}")
 }
 
-_cmd_sort() {
+# permissions が {"allow": []} だけ（deny/ask無し、他のトップレベルキー無し）になった
+# settings.local.json を削除する。削除後、.claude/ に他のファイルが無ければ
+# .claude/ ごと削除する。
+_is_empty_permissions_only() {
+  local file="$1"
+  jq -e '
+    (keys == ["permissions"])
+    and (.permissions | keys == ["allow"])
+    and (.permissions.allow == [])
+  ' "${file}" > /dev/null 2>&1
+}
+
+_prune_if_empty() {
+  local file="$1" dir
+  [[ -f "${file}" ]] || return 0
+  _is_empty_permissions_only "${file}" || return 0
+
+  rm -f "${file}"
+  printf '空になったため削除: %s\n' "${file}"
+
+  dir="$(dirname "${file}")"
+  if [[ -d "${dir}" ]] && [[ -z "$(find "${dir}" -mindepth 1 -print -quit 2>/dev/null)" ]]; then
+    rmdir "${dir}"
+    printf '空になったため削除: %s\n' "${dir}"
+  fi
+}
+
+_format_one() {
   local dir="${1:-.}" file global_file
   file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
-  [[ -f "${file}" ]] || _error "not found: ${file}"
+  if [[ ! -f "${file}" ]]; then
+    _warn "not found: ${file}"
+    return 1
+  fi
 
   local classified
   classified="$(_classify_allow "${file}" "${global_file}")"
@@ -203,29 +265,34 @@ _cmd_sort() {
 
   if [[ "${before}" == "${after}" ]]; then
     printf '変更なし: %s\n' "${file}"
-    return 0
+  else
+    local tmp
+    tmp="$(mktemp "${file}.XXXXXX")"
+    jq --argjson new_allow "${new_allow_json}" "
+      if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
+      | ${_DENY_ASK_SORT_FILTER}
+    " "${file}" > "${tmp}"
+    mv "${tmp}" "${file}"
+    printf '整理しました: %s\n' "${file}"
+
+    local removed
+    removed="$(command grep $'^REMOVED\t' <<< "${classified}" | sort -u || true)"
+    if [[ -n "${removed}" ]]; then
+      printf 'グローバル設定でカバー済みのため削除:\n'
+      while IFS=$'\t' read -r _tag entry covering; do
+        printf '  %s  (%s でカバー)\n' "${entry}" "${covering}"
+      done <<< "${removed}"
+    fi
   fi
 
-  local tmp
-  tmp="$(mktemp "${file}.XXXXXX")"
-  jq --argjson new_allow "${new_allow_json}" "
-    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
-    | ${_DENY_ASK_SORT_FILTER}
-  " "${file}" > "${tmp}"
-  mv "${tmp}" "${file}"
-  printf '整理しました: %s\n' "${file}"
-
-  local removed
-  removed="$(grep $'^REMOVED\t' <<< "${classified}" | sort -u || true)"
-  if [[ -n "${removed}" ]]; then
-    printf 'グローバル設定でカバー済みのため削除:\n'
-    while IFS=$'\t' read -r _tag entry covering; do
-      printf '  %s  (%s でカバー)\n' "${entry}" "${covering}"
-    done <<< "${removed}"
-  fi
+  _prune_if_empty "${file}"
 }
 
-_cmd_check() {
+_cmd_format() {
+  _run_over_dirs _format_one "$@"
+}
+
+_check_one() {
   local dir="${1:-.}" file global_file
   file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
@@ -262,19 +329,30 @@ _cmd_check() {
     | .permissions // {}
   " "${file}")"
 
-  if [[ "${before}" == "${after}" ]]; then
-    printf '[.claude] found — permissions は整理済みです\n'
-    return 0
+  if [[ "${before}" != "${after}" ]]; then
+    printf '[.claude] found — permissions が未整理です（claude-perms format で整理）\n'
+    return 1
   fi
-  printf '[.claude] found — permissions が未整理です（claude-perms sort で整理）\n'
-  return 1
+  if _is_empty_permissions_only "${file}"; then
+    printf '[.claude] found — permissions が空です（claude-perms format で削除）\n'
+    return 1
+  fi
+  printf '[.claude] found — permissions は整理済みです\n'
+  return 0
 }
 
-_cmd_candidates() {
+_cmd_check() {
+  _run_over_dirs _check_one "$@"
+}
+
+_candidates_one() {
   local dir="${1:-.}" local_file global_file
   local_file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
-  [[ -f "${local_file}" ]] || _error "not found: ${local_file}"
+  if [[ ! -f "${local_file}" ]]; then
+    _warn "not found: ${local_file}"
+    return 1
+  fi
 
   local classified local_count global_count candidate_count
   classified="$(_classify_allow "${local_file}" "${global_file}")"
@@ -317,15 +395,19 @@ _cmd_candidates() {
   printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${global_file}"
 }
 
+_cmd_candidates() {
+  _run_over_dirs _candidates_one "$@"
+}
+
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {sort|check|candidates} [DIR]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|check|candidates} [DIR...]"
 shift
 
 case "${command_name}" in
-  sort)       _cmd_sort "$@" ;;
+  format)     _cmd_format "$@" ;;
   check)      _cmd_check "$@" ;;
   candidates) _cmd_candidates "$@" ;;
-  *) _error "unknown command: ${command_name} (sort/check/candidates が使えます)" ;;
+  *) _error "unknown command: ${command_name} (format/check/candidates が使えます)" ;;
 esac

@@ -325,7 +325,7 @@ function _g() { _values '' 'root' }
 # claude-perms shell {on|off|status}: cd時の .claude/ permissionsチェック（下記 cd
 # 参照）を、現在のシェルの環境変数だけで一時的にon/offする（pyenv shellと同じ方式で
 # 子シェルは起動しない）。既定はoff。on/off/status以外は本体（bin/unix/claude-perms）
-# の sort/check/candidates にそのまま渡す。
+# の format/check/candidates にそのまま渡す。
 function claude-perms() {
   if [[ "$1" == "shell" ]]; then
     case "$2" in
