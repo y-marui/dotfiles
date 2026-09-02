@@ -1,6 +1,6 @@
 ---
 name: word-proofreading-handoff
-description: "Transfer confirmed proofreading rules from conversation memory and current artifacts to durable project instructions, and preserve a folder-local handoff so Word proofreading can resume accurately in another chat. Use when the user asks to record, transfer, or resume proofreading context; do not use for ordinary proofreading alone."
+description: "Hand off confirmed proofreading rules from conversation memory and current artifacts to durable project instructions, and preserve a folder-local handoff note so Word proofreading can resume accurately in another chat. Use when the user asks to record, hand off, or resume proofreading context; do not use for ordinary proofreading alone."
 ---
 
 # Proofreading Handoff
@@ -29,7 +29,7 @@ description: "Transfer confirmed proofreading rules from conversation memory and
 
 `PROOFREADING.md` に `@` 参照がない場合、文書種別を推測してObsidianのガイドを新設・参照追加しない。再利用先が明確なら候補パスを提案し、ユーザーの判断を得る。
 
-## Transfer procedure
+## Handoff procedure
 
 1. まず対象文書、`PROOFREADING.md`、参照済みのObsidianガイド、skillを確認し、反映先が明確な情報は重複・競合を避けて最小限追記する。既存の指示を上書き・要約して失わせない。
 2. Memory移管を依頼された場合は、対象項目ごとに恒久的な規則だけを抽出し、先に適切な正本へ反映する。反映後に不要になったMemory項目は、ユーザーが明示的に更新・削除も依頼した場合だけ、小さな更新ノートで削除または更新を依頼する。`MEMORY.md` 自体を直接編集しない。
