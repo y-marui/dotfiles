@@ -47,7 +47,7 @@ _最終更新: 2026-08-27_
 | `macos/dots-check-monitor.sh` | 結果キャッシュ更新と状態変化時のmacOS通知（terminal-notifier優先、未導入時はosascriptへフォールバック） | `~/.local/bin/dotfiles/dots`、`~/.cache/dots/`、`terminal-notifier` |
 | `macos/dots-check-monitor-popup.sh` | 通知クリック時に`check-summary`全文をダイアログ表示し、コピー/閉じるを選ばせる | `~/.cache/dots/check-summary` |
 | `macos/*_keyboard_shortcuts.sh` | アプリケーションショートカットの適用・差分・同期・キャッシュ更新 | `macos/keyboard_shortcuts.py`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
-| `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理項目だけを安全にマージ | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
+| `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理ファイルと同期（applyは完全一致・未管理項目を削除、mergeは現在値を取り込み） | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
