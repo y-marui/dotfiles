@@ -2,22 +2,28 @@
 # claude-perms: .claude/settings.local.json の permissions を整理するヘルパー
 #
 # 使い方:
-#   claude-perms format [DIR...]    permissions.allow/deny/ask をソート・重複削除し、
-#                                    allow のうち ~/.claude/settings.json （グローバル）の
-#                                    ルールで既にカバーされているものを削除して書き戻す。
-#                                    整理後に permissions が {"allow": []} だけになったら
-#                                    settings.local.json を削除し、.claude/ が空になれば
-#                                    それも削除する
+#   claude-perms format [DIR...]    permissions.allow/deny/ask を正規化・ソート・
+#                                    重複削除し、allow のうち ~/.claude/settings.json
+#                                    （グローバル）のルールで既にカバーされているものを
+#                                    削除して書き戻す。整理後に permissions が
+#                                    {"allow": []} だけになったら settings.local.json を
+#                                    削除し、.claude/ が空になればそれも削除する
 #   claude-perms check [DIR...]     整理が必要かどうかだけ確認する（書き換えない）
 #   claude-perms candidates [DIR...] グローバルにまだ無い（＝カバーされていない）
 #                                    ローカル allow エントリを一覧表示する
 #                                    （移管するかどうかの判断はユーザーが行い、
 #                                    実際の追加は手動で行う。削除は format が行う）
 #   claude-perms format-global      ~/.claude/settings.json （グローバル）自体の
-#                                    permissions.allow/deny/ask をソート・重複削除する。
-#                                    グローバルより上位は無いのでカバー済み判定は行わず、
-#                                    permissionsが空になっても他のキー（model等）を持つ
-#                                    本体設定ファイルなので削除もしない。DIR引数は取らない
+#                                    permissions.allow/deny/ask を正規化・ソート・
+#                                    重複削除する。グローバルより上位は無いのでカバー済み
+#                                    判定は行わず、permissionsが空になっても他のキー
+#                                    （model等）を持つ本体設定ファイルなので削除もしない。
+#                                    DIR引数は取らない
+#
+# 正規化: Bash/PowerShellルールの末尾が半角スペース+"*"（例: "gh *"）の場合、
+# 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global共通）。
+# 参考: https://code.claude.com/docs/en/permissions.md
+#   "The `:*` suffix is an equivalent way to write a trailing wildcard"
 #
 # DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
@@ -49,12 +55,13 @@
 #   -v, --verbose        settings.local.json が無い DIR をスキップした旨も表示する
 #                         （format/candidates。位置は問わない）
 #
-# 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・グローバルでカバー済み・
-#                       permissionsが空のいずれか）。複数DIR指定時はいずれか1件でも
-#                       該当すれば1。settings.local.json が無いDIRはエラー扱いしない。
-#                       format/candidatesも同様で、settings.local.json が無いDIRは
-#                       スキップするだけだが、JSONとして壊れているDIRがあれば
-#                       パスとjqのエラーを報告し、複数DIRのうち1件でもあれば全体が1。
+# 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・未正規化・グローバルで
+#                       カバー済み・permissionsが空のいずれか）。複数DIR指定時は
+#                       いずれか1件でも該当すれば1。settings.local.json が無いDIRは
+#                       エラー扱いしない。format/candidatesも同様で、
+#                       settings.local.json が無いDIRはスキップするだけだが、
+#                       JSONとして壊れているDIRがあればパスとjqのエラーを報告し、
+#                       複数DIRのうち1件でもあれば全体が1。
 
 set -euo pipefail
 
@@ -66,7 +73,11 @@ for _a in "$@"; do
     *) _args+=("${_a}") ;;
   esac
 done
-set -- "${_args[@]}"
+if (( ${#_args[@]} > 0 )); then
+  set -- "${_args[@]}"
+else
+  set --
+fi
 unset _a _args
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -132,13 +143,6 @@ _run_over_dirs() {
   done
   return "${failed}"
 }
-
-# permissions.deny/ask のうち存在するものだけをソート・重複削除する jq フィルタ
-# （allow はグローバルのカバー判定を挟むため bash 側で別途組み立てる）
-_DENY_ASK_SORT_FILTER='
-  if .permissions and (.permissions | has("deny")) then .permissions.deny |= unique else . end
-  | if .permissions and (.permissions | has("ask"))  then .permissions.ask  |= unique else . end
-'
 
 # ルール文字列を "Tool(spec)" 形式で分解する。カッコが無ければ spec は空文字列
 # （＝そのツールを無制限に許可）として扱う。結果は _RULE_TOOL / _RULE_SPEC に入れる。
@@ -210,6 +214,49 @@ _covers() {
   return 1
 }
 
+# "Tool(prefix *)"（末尾が半角スペース+"*"）を "Tool(prefix:*)" へ正規化する。
+# Bash/PowerShell以外のツール、または末尾がスペース+"*"でないルールはそのまま返す
+# （":*" 形式との同義性はBash/PowerShellのコマンドルールとして文書化されており、
+#   Read/Glob等のパスglobには適用しない）。
+_normalize_rule() {
+  local rule="$1"
+  _split_rule "${rule}"
+  local tool="${_RULE_TOOL}" spec="${_RULE_SPEC}"
+  case "${tool}" in
+    Bash|PowerShell) ;;
+    *)
+      printf '%s' "${rule}"
+      return 0
+      ;;
+  esac
+  case "${spec}" in
+    *" "\*)
+      printf '%s(%s:*)' "${tool}" "${spec% \*}"
+      ;;
+    *)
+      printf '%s' "${rule}"
+      ;;
+  esac
+}
+
+# 標準入力から改行区切りのエントリ（空でもよい）を読み、正規化（_normalize_rule）・
+# 重複除去・ソートしてJSON配列文字列を返す。呼び出し側で配列を "${arr[@]}" のまま
+# 引数展開すると、要素0件のときbash 3.2（macOS標準）のset -uでunbound variableに
+# なるため、あえて標準入力経由にしている。
+_normalize_entries_json() {
+  local -a normalized=()
+  local e
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    normalized+=("$(_normalize_rule "${e}")")
+  done
+  if (( ${#normalized[@]} == 0 )); then
+    printf '[]'
+    return 0
+  fi
+  printf '%s\n' "${normalized[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique'
+}
+
 # ローカルの permissions.allow を1行ずつ判定し、
 #   KEEP<TAB>entry                 …そのまま残す
 #   REMOVED<TAB>entry<TAB>covering …グローバルの covering ルールでカバー済みなので削除
@@ -241,6 +288,74 @@ _classify_allow() {
       printf 'KEEP\t%s\n' "${entry}"
     fi
   done < <(jq -r '.permissions.allow // [] | .[]' "${local_file}")
+}
+
+# file の permissions.allow/deny/ask を正規化（_normalize_rule）・重複除去し、
+# global_file（空文字なら比較しない）でカバーされる allow エントリを除外した結果を
+# 次の変数にセットする:
+#   _FMT_BEFORE / _FMT_AFTER                          … 整理前後の .permissions（比較用）
+#   _FMT_NEW_ALLOW_JSON / _FMT_NEW_DENY_JSON / _FMT_NEW_ASK_JSON … 書き戻す新しい配列
+#   _FMT_CLASSIFIED                                    … _classify_allow の生出力（報告用。
+#                                                         global_file="" のときは空）
+_compute_format_result() {
+  local file="$1" global_file="${2:-}"
+
+  # 配列ではなく改行区切り文字列で集める（bash 3.2対策。上のコメント参照）。
+  local kept_lines=""
+  _FMT_CLASSIFIED=""
+  if [[ -n "${global_file}" ]]; then
+    _FMT_CLASSIFIED="$(_classify_allow "${file}" "${global_file}")"
+    if [[ -n "${_FMT_CLASSIFIED}" ]]; then
+      local tag entry
+      while IFS=$'\t' read -r tag entry _covering; do
+        [[ "${tag}" == "KEEP" ]] && kept_lines="${kept_lines}${entry}"$'\n'
+      done <<< "${_FMT_CLASSIFIED}"
+    fi
+  else
+    local entry
+    while IFS= read -r entry; do
+      [[ -n "${entry}" ]] && kept_lines="${kept_lines}${entry}"$'\n'
+    done < <(jq -r '.permissions.allow // [] | .[]' "${file}")
+  fi
+  _FMT_NEW_ALLOW_JSON="$(_normalize_entries_json <<< "${kept_lines}")"
+
+  local deny_lines="" d
+  while IFS= read -r d; do
+    [[ -n "${d}" ]] && deny_lines="${deny_lines}${d}"$'\n'
+  done < <(jq -r '.permissions.deny // [] | .[]' "${file}")
+  _FMT_NEW_DENY_JSON="$(_normalize_entries_json <<< "${deny_lines}")"
+
+  local ask_lines="" a
+  while IFS= read -r a; do
+    [[ -n "${a}" ]] && ask_lines="${ask_lines}${a}"$'\n'
+  done < <(jq -r '.permissions.ask // [] | .[]' "${file}")
+  _FMT_NEW_ASK_JSON="$(_normalize_entries_json <<< "${ask_lines}")"
+
+  _FMT_BEFORE="$(jq -c '.permissions // {}' "${file}")"
+  _FMT_AFTER="$(jq -c \
+    --argjson new_allow "${_FMT_NEW_ALLOW_JSON}" \
+    --argjson new_deny "${_FMT_NEW_DENY_JSON}" \
+    --argjson new_ask "${_FMT_NEW_ASK_JSON}" '
+    if .permissions and (.permissions | has("allow")) then .permissions.allow = $new_allow else . end
+    | if .permissions and (.permissions | has("deny"))  then .permissions.deny  = $new_deny  else . end
+    | if .permissions and (.permissions | has("ask"))   then .permissions.ask   = $new_ask   else . end
+    | .permissions // {}
+  ' "${file}")"
+}
+
+# _compute_format_result が計算済みの _FMT_NEW_*_JSON で file を実際に書き換える。
+_write_format_result() {
+  local file="$1" tmp
+  tmp="$(mktemp "${file}.XXXXXX")"
+  jq \
+    --argjson new_allow "${_FMT_NEW_ALLOW_JSON}" \
+    --argjson new_deny "${_FMT_NEW_DENY_JSON}" \
+    --argjson new_ask "${_FMT_NEW_ASK_JSON}" '
+    if .permissions and (.permissions | has("allow")) then .permissions.allow = $new_allow else . end
+    | if .permissions and (.permissions | has("deny"))  then .permissions.deny  = $new_deny  else . end
+    | if .permissions and (.permissions | has("ask"))   then .permissions.ask   = $new_ask   else . end
+  ' "${file}" > "${tmp}"
+  mv "${tmp}" "${file}"
 }
 
 # permissions が {"allow": []} だけ（deny/ask無し、他のトップレベルキー無し）になった
@@ -280,43 +395,16 @@ _format_one() {
   fi
   _validate_json "${file}" || return 1
 
-  local classified
-  classified="$(_classify_allow "${file}" "${global_file}")"
+  _compute_format_result "${file}" "${global_file}"
 
-  local -a kept=()
-  if [[ -n "${classified}" ]]; then
-    while IFS=$'\t' read -r tag entry _covering; do
-      [[ "${tag}" == "KEEP" ]] && kept+=("${entry}")
-    done <<< "${classified}"
-  fi
-
-  local new_allow_json='[]'
-  if (( ${#kept[@]} > 0 )); then
-    new_allow_json="$(printf '%s\n' "${kept[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique')"
-  fi
-
-  local before after
-  before="$(jq -c '.permissions // {}' "${file}")"
-  after="$(jq -c --argjson new_allow "${new_allow_json}" "
-    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
-    | ${_DENY_ASK_SORT_FILTER}
-    | .permissions // {}
-  " "${file}")"
-
-  if [[ "${before}" == "${after}" ]]; then
+  if [[ "${_FMT_BEFORE}" == "${_FMT_AFTER}" ]]; then
     printf '変更なし: %s\n' "${file}"
   else
-    local tmp
-    tmp="$(mktemp "${file}.XXXXXX")"
-    jq --argjson new_allow "${new_allow_json}" "
-      if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
-      | ${_DENY_ASK_SORT_FILTER}
-    " "${file}" > "${tmp}"
-    mv "${tmp}" "${file}"
+    _write_format_result "${file}"
     printf '整理しました: %s\n' "${file}"
 
     local removed
-    removed="$(command grep $'^REMOVED\t' <<< "${classified}" | sort -u || true)"
+    removed="$(command grep $'^REMOVED\t' <<< "${_FMT_CLASSIFIED}" | sort -u || true)"
     if [[ -n "${removed}" ]]; then
       printf 'グローバル設定でカバー済みのため削除:\n'
       while IFS=$'\t' read -r _tag entry covering; do
@@ -347,30 +435,9 @@ _check_one() {
   fi
   _validate_json "${file}" || return 1
 
-  local classified
-  classified="$(_classify_allow "${file}" "${global_file}")"
+  _compute_format_result "${file}" "${global_file}"
 
-  local -a kept=()
-  if [[ -n "${classified}" ]]; then
-    while IFS=$'\t' read -r tag entry _covering; do
-      [[ "${tag}" == "KEEP" ]] && kept+=("${entry}")
-    done <<< "${classified}"
-  fi
-
-  local new_allow_json='[]'
-  if (( ${#kept[@]} > 0 )); then
-    new_allow_json="$(printf '%s\n' "${kept[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique')"
-  fi
-
-  local before after
-  before="$(jq -c '.permissions // {}' "${file}")"
-  after="$(jq -c --argjson new_allow "${new_allow_json}" "
-    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
-    | ${_DENY_ASK_SORT_FILTER}
-    | .permissions // {}
-  " "${file}")"
-
-  if [[ "${before}" != "${after}" ]]; then
+  if [[ "${_FMT_BEFORE}" != "${_FMT_AFTER}" ]]; then
     printf '[.claude] found — permissions が未整理です（claude-perms format で整理）\n'
     return 1
   fi
@@ -441,8 +508,8 @@ _cmd_candidates() {
   _run_over_dirs _candidates_one "$@"
 }
 
-# ~/.claude/settings.json（グローバル）自体のallow/deny/askをソート・重複削除する。
-# グローバルより上位の設定は無いため「カバー済みだから削除」判定は行わない。
+# ~/.claude/settings.json（グローバル）自体のallow/deny/askを正規化・ソート・重複削除
+# する。グローバルより上位の設定は無いため「カバー済みだから削除」判定は行わない。
 # permissionsが空になっても、他のキー（model等）を持つ本体設定なので削除もしない。
 _cmd_format_global() {
   [[ $# -eq 0 ]] || _error "format-global はDIR引数を取りません"
@@ -455,26 +522,14 @@ _cmd_format_global() {
   fi
   _validate_json "${file}" || return 1
 
-  local before after
-  before="$(jq -c '.permissions // {}' "${file}")"
-  after="$(jq -c "
-    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow |= unique else . end
-    | ${_DENY_ASK_SORT_FILTER}
-    | .permissions // {}
-  " "${file}")"
+  _compute_format_result "${file}" ""
 
-  if [[ "${before}" == "${after}" ]]; then
+  if [[ "${_FMT_BEFORE}" == "${_FMT_AFTER}" ]]; then
     printf '変更なし: %s\n' "${file}"
     return 0
   fi
 
-  local tmp
-  tmp="$(mktemp "${file}.XXXXXX")"
-  jq "
-    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow |= unique else . end
-    | ${_DENY_ASK_SORT_FILTER}
-  " "${file}" > "${tmp}"
-  mv "${tmp}" "${file}"
+  _write_format_result "${file}"
   printf '整理しました: %s\n' "${file}"
 }
 
