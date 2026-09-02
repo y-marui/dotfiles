@@ -1,6 +1,6 @@
 ---
 name: word-proofreading
-description: "Modes: Light / Standard / Deep / Deep-Auto. Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits (Deep-Auto also applies Deep's clarity/structure fixes as tracked changes instead of leaving them as comments), detailed Japanese and English guidance, and Word tracked-change safeguards. Use for proofreading or copyediting; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions."
+description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits, Word tracked-change safeguards, and optional Word-based layout verification. Use for proofreading, copyediting, or Word layout review; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions."
 ---
 
 # Word Proofreading
@@ -18,7 +18,6 @@ description: "Modes: Light / Standard / Deep / Deep-Auto. Proofread multilingual
 - 指示は、skillの既定、同階層の `PROOFREADING.md`、今回のユーザー依頼の順に適用する。競合時は今回のユーザー依頼を優先する。
 - 明示されたローカルの対象範囲、組版、用語方針に従う。ローカルルールが未検証の科学的または実質的な判断を要求する場合は、本文を保持して代わりにアンカー付きコメントを付ける。
 - フォームや雛形の未記入欄は、ユーザーが明示的に依頼しない限り補完・編集しない。
-- 外部メモはレビューの補助として扱う。そこから新たな事実、主張、根拠を本文へ加える場合は、事前にユーザーの確認を得る。
 - ユーザーがファイルを添付またはドロップした場合、元の場所を確実に特定でき、読み書きできるときは、その場所の原本を処理対象とし、校正コピーも同じ場所に保存する。元の場所を特定できない、アクセスできない、または同じ場所に保存できない場合は、添付コピーを原本の場所とみなさず、編集前にユーザーへ処理対象と出力先を確認する。
 - 特別な範囲指定がない限り、変更履歴の有無にかかわらず、ローカルルールと依頼で対象となる文書全体を確認する。既存の変更履歴がある箇所だけをレビュー対象に限定しない。
 - 同階層の `proofreading/HANDOFF.md` がある場合は、ローカルルールの後に読み、対象文書・版・更新時刻が一致する作業状況だけを再開時の補助情報として使う。引き継ぎメモは恒久ルールではなく、現在の文書状態と矛盾する場合は現物確認を優先する。
@@ -29,17 +28,18 @@ description: "Modes: Light / Standard / Deep / Deep-Auto. Proofread multilingual
 `.docx` の校正では、次を守る。
 
 - Wordでのページ数や組版の再現が提出条件に関わる場合、LibreOfficeなどの代替レンダラによる結果を最終判定に使わない。macOSでは、Computer UseでWordの画面を操作せず、AppleScriptのWord自動化インターフェースで文書を開き、必要に応じてPDFを出力してページ数・レイアウトを確認する。自動化できない場合は、Wordでの最終確認が未実施であることを明記する。
-- macOSのWord自動化では、Wordに開かせるDOCXとWordが出力するPDFを、原本・校正コピーと同じソースディレクトリに置く。`/tmp`などの一時ディレクトリにあるDOCX/PDFをWordの入力・出力に使うと、ファイルアクセス許可を繰り返し求められることがあるため、この経路では使わない。Wordを介さない一時データには適用しない。
+- macOSのWord自動化では、`/tmp`などの一時ディレクトリにあるDOCX/PDFをWordの入力・出力に使わない。ファイルアクセス許可を繰り返し求められることがあるため、原本・最終校正コピーと同じソースディレクトリ、またはその配下の `proofreading/cache/<source-document-stem>/` を使う。Wordを介さない一時データには適用しない。
 - 文書が指定フォント（特に日本語フォント）に依存し、レイアウトの再現性が重要な場合は、作業開始前に Word の「ファイルにフォントを埋め込む」設定を有効にするかユーザーへ確認する。ファイル容量や配布先での編集可能性に影響するため、既存文書へ黙って有効化しない。ユーザーが希望した場合は、Word 側で設定して保存したうえで、表示を再確認する。
 - 編集経路は、既存の変更履歴・コメントを保持できる公式のWord接続、ローカルDOCXのOOXML変更履歴、レビューのみの順に選ぶ。意図した変更すべてを安全に表現できない場合、原本を上書きしたり未記録の本文編集を納品したりせず、修正案またはレビュー報告に留める。クリーンな書き直し版はユーザーが明示的に求めた場合だけ作成する。
-- 原本を保持し、同じ場所に `<stem>-proofread-<mode>-<YYYYMMDDHHMM>.docx` 形式の校正コピーを保存する。編集前に、既存のコメント・変更履歴、フィールド、数式、引用、脚注・文末脚注、コンテンツコントロール、リンク、ブックマーク、相互参照、保護領域、埋め込みオブジェクトを確認する。
+- 原本を保持し、ソースディレクトリ直下には原本と `<stem>-proofread-<mode>-<YYYYMMDDHHMM>.docx` 形式の最終校正コピーだけを置く。作業途中のDOCX、レンダリングページ、Word/PDFの検証出力、変更履歴を承諾したレイアウト確認用コピーは、`<source-directory>/proofreading/cache/<source-document-stem>/` に置く。編集前に、既存のコメント・変更履歴、フィールド、数式、引用、脚注・文末脚注、コンテンツコントロール、リンク、ブックマーク、相互参照、保護領域、埋め込みオブジェクトを確認する。
 - レビューまたは校正を始める前に、既存の変更履歴を確認して変更前後をレビュー上の参考として把握する。その後、ユーザーが別途指示しない限り、原本を保持したまま校正コピー内の既存の変更履歴をすべて承諾して、承諾後の本文を基準にレビューを進める。既存コメントは保持する。承諾済みの作業コピーを安全に作れない場合は、本文を編集せずユーザーへ制約を伝える。
 - 本文の各修正は、最小かつ安全な実際のWord変更履歴として記録する。周辺の書式、リンク、フィールド、ブックマーク、文書構造を保持し、分離した修正を段落全体の置換にまとめない。互換しないrun、保護されたアンカー、複雑なフィールド、数式、文献オブジェクト、コンテンツコントロールを安全に編集できない場合は変更しない。
 - OOXMLで変更履歴を作る場合は、非衝突のIDと `w:ins` / `w:del` を使い、削除文字は `w:delText` に入れる。コメントを追加する場合は、既存のコメント著者になりすまさず、実行中のコードエージェント名を用いる。
 - 科学的・事実的・方法論的な判断、主張の変更、根拠の不足、大きな再構成、解釈の曖昧さには未記録の本文編集をせず、必要に応じてアンカー付きコメントを使う。
+- 文字数・ページ数を減らすことだけを目的に、段落、主張、例、図表説明などの取捨選択を伴う大幅な短縮を適用しない。`Deep-Auto` を含む全モードで、短縮の必要性、対象箇所、著者による重要度判断が必要な理由をアンカーコメントに残し、人間が優先順位を確認してから本文更新を依頼できるようにする。
 - `.docx` への実際の変更履歴・コメントの追加は、その場でPythonスクリプトを書かず、`pipx` で導入された `docx-redline` コマンド（実体は [y-marui/python-docx-redline](https://github.com/y-marui/python-docx-redline)）のサブコマンドで行う。`docx-redline inspect` で編集前の段落・既存コメント・変更履歴を確認し、既存変更履歴の承諾には `accept-revisions`、編集には `replace`（一致1件が既定、複数箇所は `--occurrence`/`--all`）、`replace-batch`（複数の置換をJSONでまとめて適用）、`replace-paragraph`、`insert-paragraph`、`add-comment`、`strip-comments`、`strip-format-revisions` を用いて編集し、納品前に `validate` で安全確認する。コメント・変更履歴の著者名は、実行中のコードエージェント名を `--author` で明示して用いる。名前を確認できない場合、汎用の既定名で記録せず、ユーザーに確認する。既存のコメント著者になりすましてはならない。
 - `docx-redline` のサブコマンドで安全に表現できない編集（数式・コンテンツコントロール・フィールドをまたぐ置換など）だけ、その場限りの補助スクリプトを書いてよい。実行して検証に成功したコードは保存する。保存先は `<source-directory>/proofreading/scripts/<source-document-stem>/` とし、importの相対構造を維持する。作業開始時にディレクトリの有無を確認せず、保存が必要になった時点で作成する。同じ種類の欠落に繰り返し遭遇する場合は、使い捨てスクリプトを積み上げる代わりに `docx-redline` 側への機能追加（Issue・PR）を検討する。
-- 上記のように補助スクリプトを書いてコーディングで対応した場合は、そのスクリプトが生成した一時ファイル・中間出力（レンダリングページ、デバッグ用の途中生成物、検証に使った一時DOCX等）も後から再現・検証できるよう `<source-directory>/proofreading/scripts/<source-document-stem>/` 配下に保存する（例: 同階層の `tmp/` サブディレクトリ）。この保存は明示的に求められなくても常に行う。`docx-redline` のサブコマンドのみで完結した場合は、原本・校正出力以外の一時データを、ユーザーが明示的に求めない限り保存しない。
+- 補助スクリプトが生成した一時ファイル・中間出力（レンダリングページ、デバッグ用の途中生成物、検証に使った一時DOCX等）は、`<source-directory>/proofreading/cache/<source-document-stem>/` に保存する。スクリプト自体は `<source-directory>/proofreading/scripts/<source-document-stem>/` に保存し、再現に必要な入出力関係だけをコメントで示す。
 - 納品前に、出力が開けてレンダリングできること、今回の編集がWordの変更履歴として表示・受諾・却下可能なこと、既存のレビュー状態が依頼どおり保持または処理されたこと、保護対象が原本と一致すること、原本が未変更であることを確認する。確認できない項目は成功として扱わず、制約を明記する。
 
 ## Retain durable proofreading knowledge
@@ -55,12 +55,13 @@ description: "Modes: Light / Standard / Deep / Deep-Auto. Proofread multilingual
 
 ## Select the mode
 
-ユーザーが指定したモードを使う。指定がなければ `Standard` を使い、結果で簡潔に明記する。
+ユーザーが指定したモードを使う。指定がなければ `Standard` を使い、結果で簡潔に明記する。`Layout-Check` は文章校正の深さとは独立しており、必要な場合だけ `Deep + Layout-Check` のように明示して組み合わせる。指定がなければ、校正にレイアウト確認を暗黙に追加しない。
 
 - `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
 - `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。既定値はこれである。
 - `Deep`: Standardの修正に加え、論理のつながり、曖昧さ、段落構成、学術文体、読者が誤解しやすい点を確認する。さらに、本文中の事実関係・研究上の主張・論拠・方法・結論について、文書内の整合性、根拠の十分性、因果関係、研究目的と計画の対応、引用・図表との対応をレビューする。意味、論拠、根拠、構成の変更を要する問題は、編集ではなくコメントとして扱う。
 - `Deep-Auto`: `Deep` と同じ文章・内容レビューを行うが、著者の判断を必要とせず意味を変えずに一意に直せるもの（曖昧な指示語の解消、接続の補強、段落の入れ替えなど）は、コメントに留めず実際のWord変更履歴として直接適用する。事実・科学的主張・論拠の当否・根拠の十分性・大きな再構成の要否など、著者の判断が必要な問題は `Deep` と同様に本文を変更せずコメントのまま残す（[Protect meaning and document anchors](#protect-meaning-and-document-anchors) の不変条件はモードによらず常に適用する）。
+- `Layout-Check`: `.docx` を編集せず、WordでPDFを出力してPNGへレンダリングし、全ページを視覚確認する。文字化け、フォント置換、文字・図表の欠け、重なり、改ページ、コメント表示、余白、ページ数を確認し、指定フォントがある場合は検出結果も照合する。問題は本文を直さず、位置と内容を報告する。
 
 ### Deep-Auto Structural Review Completion Criteria
 
@@ -144,6 +145,6 @@ Deep-Auto では、表記・文法の修正だけで完了とせず、対象範�
 2. 著者の判断または内容上の懸念が残るときだけ、簡潔な `Comments / 指摘` セクションを追加する。
 3. 詳細な変更一覧または左右比較は、ユーザーが求めた場合だけ示す。
 
-`.docx` またはWord文書では、上記のWord文書保護策に従い、利用可能な安全な変更履歴・コメント手順とインストール済みの文書アーティファクト手順で、レンダリングと検証を行う。
+`.docx` またはWord文書では、上記のWord文書保護策に従い、利用可能な安全な変更履歴・コメント手順とインストール済みの文書アーティファクト手順で、レンダリングと検証を行う。`Layout-Check` では、確認したページ数、視覚確認の範囲、フォント検出結果、未解決のレイアウト上の懸念を報告する。
 
 納品時に、使用したモードと未解決の制約を明記する。Word文書では、変更が実際のWord変更履歴か、使用した編集経路、既存の変更履歴を確認後に校正コピーで承諾したこと、および既存コメントを保持したかを明記する。`Deep-Auto` では、どの指摘を編集として自動適用し、どれを著者判断のためコメントに残したかも簡潔に明記する。
