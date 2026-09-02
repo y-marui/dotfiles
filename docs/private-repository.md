@@ -61,12 +61,12 @@ main ブランチの空の Git リポジトリを初期化する。生成直後�
 
 - `dots shortcuts sync`: このMacの現在値を管理ファイルへ取り込む。
 - `dots shortcuts diff`: 管理ファイルと現在値を比較する。定期の `dots check` にも含まれる。
-- `dots shortcuts apply`: 管理ファイルの項目だけを `NSUserKeyEquivalents` に追加または更新する。
+- `dots shortcuts apply`: `NSUserKeyEquivalents` を管理ファイルの内容と完全に一致させる（追加・更新に加え、管理ファイルにない項目は削除する）。
 - `dots shortcuts cache`: 現在値の診断用スナップショットを更新する。
 
-`apply` は管理ファイルにないショートカットを削除しない。削除はシステム設定で行ってから
-`sync` を実行する。`sync` は実行したMacの設定を正とするため、別のMacから取り込む前には
-まず `diff` で差分を確認する。
+`apply` は管理ファイルにないショートカットを削除する。このMacだけのショートカットを残したい
+場合は、`apply` の前に `dots shortcuts merge` で現在値を管理ファイルへ取り込んでおく。
+`sync` は実行したMacの設定を正とするため、別のMacから取り込む前にはまず `diff` で差分を確認する。
 
 実設定を作成・編集し、リンク元がすべて存在することを確認してから、最後に次を行う。
 
