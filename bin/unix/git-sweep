@@ -149,8 +149,8 @@ _is_merged() {
   local b="$1"
   _is_protected "$b" && return 1
   [[ "$(git rev-parse "$b" 2>/dev/null)" == "$(git rev-parse "$MAIN" 2>/dev/null)" ]] && return 1
-  git branch --merged "$MAIN" 2>/dev/null | grep -qE "^[*]? +${b}$" && return 0
-  git branch -vv | grep -qE "^[*]? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
+  git branch --merged "$MAIN" 2>/dev/null | command grep -qE "^[*]? +${b}$" && return 0
+  git branch -vv | command grep -qE "^[*]? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
   return 1
 }
 
