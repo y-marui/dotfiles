@@ -26,6 +26,7 @@ LINKS=(
   "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
   "ai/codex/AGENTS.md|${HOME}/.codex/AGENTS.md"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"
+  "ai/claude/claude-perms.json|${HOME}/.claude/claude-perms.json"
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
   "ai/copilot/instructions.md|${HOME}/.copilot/copilot-instructions.md"
