@@ -129,6 +129,19 @@ _validate_json() {
   return 1
 }
 
+# $1 がシンボリックリンクなら実体パスを解決して返す。そうでなければ$1をそのまま返す。
+# mktemp+mvで書き戻す際、リンクパスに直接mvするとリンク自体が実ファイルに置き換わり
+# 同期が切れるため（dotfiles管理下の ~/.claude/settings.json 等で発生し得る。
+# karabiner.json の atomic rename と同種の問題）、書き込み前に必ず解決してから使う。
+_resolve_write_target() {
+  local file="$1"
+  if [[ -L "${file}" ]]; then
+    realpath "${file}"
+  else
+    printf '%s' "${file}"
+  fi
+}
+
 _local_settings_file() {
   local dir="${1:-.}"
   printf '%s/.claude/settings.local.json' "${dir%/}"
@@ -418,8 +431,9 @@ _compute_format_result() {
 
 # _compute_format_result が計算済みの _FMT_NEW_*_JSON で file を実際に書き換える。
 _write_format_result() {
-  local file="$1" tmp
-  tmp="$(mktemp "${file}.XXXXXX")"
+  local file="$1" target tmp
+  target="$(_resolve_write_target "${file}")"
+  tmp="$(mktemp "${target}.XXXXXX")"
   jq \
     --argjson new_allow "${_FMT_NEW_ALLOW_JSON}" \
     --argjson new_deny "${_FMT_NEW_DENY_JSON}" \
@@ -427,8 +441,8 @@ _write_format_result() {
     if .permissions and (.permissions | has("allow")) then .permissions.allow = $new_allow else . end
     | if .permissions and (.permissions | has("deny"))  then .permissions.deny  = $new_deny  else . end
     | if .permissions and (.permissions | has("ask"))   then .permissions.ask   = $new_ask   else . end
-  ' "${file}" > "${tmp}"
-  mv "${tmp}" "${file}"
+  ' "${target}" > "${tmp}"
+  mv "${tmp}" "${target}"
 }
 
 # permissions が {"allow": []} だけ（deny/ask無し、他のトップレベルキー無し）になった
@@ -700,8 +714,9 @@ _remove_from_file() {
   new_deny_json="$(jq -R -s 'split("\n") | map(select(length > 0))' <<< "${deny_kept}")"
   new_ask_json="$(jq -R -s 'split("\n") | map(select(length > 0))' <<< "${ask_kept}")"
 
-  local tmp
-  tmp="$(mktemp "${file}.XXXXXX")"
+  local target tmp
+  target="$(_resolve_write_target "${file}")"
+  tmp="$(mktemp "${target}.XXXXXX")"
   jq \
     --argjson new_allow "${new_allow_json}" \
     --argjson new_deny "${new_deny_json}" \
@@ -709,8 +724,8 @@ _remove_from_file() {
     if .permissions and (.permissions | has("allow")) then .permissions.allow = $new_allow else . end
     | if .permissions and (.permissions | has("deny"))  then .permissions.deny  = $new_deny  else . end
     | if .permissions and (.permissions | has("ask"))   then .permissions.ask   = $new_ask   else . end
-  ' "${file}" > "${tmp}"
-  mv "${tmp}" "${file}"
+  ' "${target}" > "${tmp}"
+  mv "${tmp}" "${target}"
   printf '削除しました: %s\n' "${file}"
   printf '%s' "${report}"
 }
