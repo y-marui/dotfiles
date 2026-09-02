@@ -5,7 +5,11 @@
 #   claude-perms format [DIR...]    permissions.allow/deny/ask を正規化・ソート・
 #                                    重複削除し、allow のうち ~/.claude/settings.json
 #                                    （グローバル）のルールで既にカバーされているものを
-#                                    削除して書き戻す。あわせて、残ったBash allowの
+#                                    削除して書き戻す。同じファイル内の他のallow
+#                                    エントリに包含されるものも削除する（後述の
+#                                    _dedupe_covered_within。例: 同じファイルに
+#                                    "Bash(git:*)" と "Bash(git commit:*)" が両方
+#                                    あれば後者を削除）。あわせて、残ったBash allowの
 #                                    run-quiet修飾版（未追加なら）を自動追加する（後述）。
 #                                    整理後に permissions が {"allow": []} だけになったら
 #                                    settings.local.json を削除し、.claude/ が空になれば
@@ -83,6 +87,16 @@
 # 抑制するだけの薄いラッパーで実体は同じコマンドだが、Claude Code自体はコマンド文字列を
 # 見て許可判定するため、run-quiet版を許可するには実際にそのエントリ自体が必要になる
 # （pathRules・グローバルの定義側では素のコマンドだけ書けば足り、二重に書く必要はない）。
+#
+# 同一ファイル内カバーの重複排除: format/format-globalは、グローバル判定と別に、
+# 同じファイル（settings.local.json/settings.json/pathRuleのallow配列それぞれ）の
+# 中で他のallowエントリに包含されるエントリも削除する（例: 同じファイルに
+# "Bash(git:*)" と "Bash(git commit:*)" が両方あれば、後者は前者に包含されるため
+# 削除する）。包含関係の判定は下記「カバーされている」の判定と同じ厳密ルールを
+# 使う（lenient判定は使わない）。カバーする側のエントリが同じファイル内に残る
+# ことを条件に判定するため、他ファイル（グローバルやpathRule）が実際に持っている
+# かどうかに依存せず安全（sync実行時はpathRule由来のエントリが先に同じファイルへ
+# 実体化されているため、この時点でカバー関係が成立する）。
 #
 # DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
@@ -422,6 +436,45 @@ _expand_run_quiet_lines() {
   printf '%s' "${result}"
 }
 
+# lines（改行区切り）から、同じ集合内の他のエントリに包含される（_covers）エントリを
+# 除いた結果を返す。例えば同じファイル内に "Bash(git:*)" と "Bash(git commit:*)" が
+# 両方あれば、後者は前者に包含されるため除く（前者は残るので実際の許可は失われない）。
+# 判定は厳密版の _covers を使う（グローバル/pathRuleに関わらず、削除後もカバーする
+# エントリ自体がこの同じ集合内に残っていることだけを根拠にするため安全）。
+_dedupe_covered_within() {
+  local lines="$1"
+  local -a arr=()
+  local line
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] && arr+=("${line}")
+  done <<< "${lines}"
+
+  if (( ${#arr[@]} > 0 )); then
+    local i j covered
+    for (( i = 0; i < ${#arr[@]}; i++ )); do
+      [[ -n "${arr[i]}" ]] || continue
+      covered=false
+      for (( j = 0; j < ${#arr[@]}; j++ )); do
+        (( i == j )) && continue
+        [[ -n "${arr[j]}" ]] || continue
+        if [[ "${arr[i]}" != "${arr[j]}" ]] && _covers "${arr[j]}" "${arr[i]}"; then
+          covered=true
+          break
+        fi
+      done
+      [[ "${covered}" == true ]] && arr[i]=""
+    done
+  fi
+
+  local out="" a
+  if (( ${#arr[@]} > 0 )); then
+    for a in "${arr[@]}"; do
+      [[ -n "${a}" ]] && out="${out}${a}"$'\n'
+    done
+  fi
+  printf '%s' "${out}"
+}
+
 # ローカルの permissions.allow を1行ずつ判定し、
 #   KEEP<TAB>entry                 …そのまま残す
 #   REMOVED<TAB>entry<TAB>covering …グローバルの covering ルールでカバー済みなので削除
@@ -467,6 +520,9 @@ _classify_allow() {
 #                                                         （改行区切り、報告用）
 #   _FMT_RUN_QUIET_ADDED                               … run-quiet修飾版として自動追加した
 #                                                         エントリ（改行区切り、報告用）
+#   _FMT_SELF_COVERED_REMOVED                          … 同じファイル内の他のallowエントリに
+#                                                         包含されるため除外したエントリ
+#                                                         （改行区切り、報告用）
 # claude-perms.json が壊れている場合は1を返す（呼び出し側は処理を中断すること）。
 _compute_format_result() {
   local file="$1" global_file="${2:-}"
@@ -509,6 +565,17 @@ _compute_format_result() {
     command grep -qxF "${expanded_line}" <<< "${kept_lines_before_expand}" && continue
     _FMT_RUN_QUIET_ADDED="${_FMT_RUN_QUIET_ADDED}${expanded_line}"$'\n'
   done <<< "${kept_lines}"
+
+  local kept_lines_before_dedup="${kept_lines}"
+  kept_lines="$(_dedupe_covered_within "${kept_lines}")"
+  _FMT_SELF_COVERED_REMOVED=""
+  local dedup_line
+  while IFS= read -r dedup_line; do
+    [[ -n "${dedup_line}" ]] || continue
+    command grep -qxF "${dedup_line}" <<< "${kept_lines}" && continue
+    _FMT_SELF_COVERED_REMOVED="${_FMT_SELF_COVERED_REMOVED}${dedup_line}"$'\n'
+  done <<< "${kept_lines_before_dedup}"
+
   _FMT_NEW_ALLOW_JSON="$(_normalize_entries_json <<< "${kept_lines}")"
   _FMT_FORBIDDEN_REMOVED="${forbidden_lines}"
 
@@ -616,6 +683,12 @@ _format_one() {
       while IFS= read -r entry; do
         [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
       done <<< "${_FMT_RUN_QUIET_ADDED}"
+    fi
+    if [[ -n "${_FMT_SELF_COVERED_REMOVED}" ]]; then
+      printf '同じファイル内の他のallowエントリでカバー済みのため削除:\n'
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_SELF_COVERED_REMOVED}"
     fi
   fi
 
@@ -726,9 +799,13 @@ _cmd_candidates() {
 
 # ~/.claude/claude-perms.json の forbiddenAllow と pathRules[].allow を
 # 正規化（_normalize_rule）・重複削除・ソートし、pathRules自体もpathGlobでソートして
-# 書き戻す。ファイルが無ければ何もしない（0を返す）。run-quiet自動補完
-# （_expand_run_quiet_lines）はここでは行わない: pathRulesはsync時にのみ実体化される
-# ソース定義であり、run-quiet版の実エントリはsyncの仕上げのformatが都度補完するため。
+# 書き戻す。pathRules[].allowは同一ルール内の他エントリに包含されるものも
+# _dedupe_covered_withinで除く（例: "Bash(git:*)" があれば同じallow内の
+# "Bash(git commit:*)" は不要）。forbiddenAllowは厳密一致専用の設計
+# （前方一致の判定コメント参照）のためこの重複排除は適用しない。ファイルが無ければ
+# 何もしない（0を返す）。run-quiet自動補完（_expand_run_quiet_lines）はここでは
+# 行わない: pathRulesはsync時にのみ実体化されるソース定義であり、run-quiet版の
+# 実エントリはsyncの仕上げのformatが都度補完するため。
 _format_claude_perms_config() {
   local config
   config="$(_claude_perms_config_file)"
@@ -754,6 +831,7 @@ _format_claude_perms_config() {
     while IFS= read -r a; do
       [[ -n "${a}" ]] && allow_lines="${allow_lines}${a}"$'\n'
     done < <(jq -r ".pathRules[${idx}].allow // [] | .[]" "${config}")
+    allow_lines="$(_dedupe_covered_within "${allow_lines}")"
     new_allow_json="$(_normalize_entries_json <<< "${allow_lines}")"
     rule_json="$(jq -cn --arg glob "${glob}" --argjson allow "${new_allow_json}" '{pathGlob: $glob, allow: $allow}')"
     new_rules_json="$(jq -c --argjson rule "${rule_json}" '. + [$rule]' <<< "${new_rules_json}")"
@@ -817,6 +895,13 @@ _cmd_format_global() {
       while IFS= read -r entry; do
         [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
       done <<< "${_FMT_RUN_QUIET_ADDED}"
+    fi
+    if [[ -n "${_FMT_SELF_COVERED_REMOVED}" ]]; then
+      printf '同じファイル内の他のallowエントリでカバー済みのため削除:\n'
+      local entry
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_SELF_COVERED_REMOVED}"
     fi
   fi
 
