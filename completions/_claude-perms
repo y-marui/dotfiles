@@ -9,8 +9,8 @@ _claude-perms() {
     'candidates:グローバル・pathRule未カバーのローカルallowを一覧表示'
     'remove:allow/deny/askからpatternに一致するエントリを削除'
     'remove-global:removeと同じ判定をグローバルに対して行う'
-    'sync:pathRulesのallowをDIRのsettings.local.jsonへ反映'
-    'apply:JSONのallowをpathRuleまたはグローバルへ書き込む'
+    'merge:pathRulesのallowをDIRのsettings.local.jsonへ追記'
+    'apply:pathRulesのallowでDIRのsettings.local.jsonを置き換え'
   )
 
   if (( CURRENT == 2 )); then
@@ -20,7 +20,7 @@ _claude-perms() {
 
   local cmd="${words[2]}"
   case "${cmd}" in
-    format|check|sync)
+    format|check|merge|apply)
       _arguments \
         '(-v --verbose)'{-v,--verbose}'[settings.local.jsonが無いDIRのスキップも表示]' \
         '*:directory:_directories'
@@ -47,11 +47,6 @@ _claude-perms() {
         '--glob[patternをbashのglobとして評価]' \
         '(--apply -y)'{--apply,-y}'[実際に削除する]' \
         '1:pattern:'
-      ;;
-    apply)
-      _arguments \
-        '(--apply -y)'{--apply,-y}'[実際に書き込む]' \
-        '1:file:_files'
       ;;
     *)
       _arguments '*:directory:_directories'

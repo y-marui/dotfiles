@@ -156,30 +156,36 @@ Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/setting
 整理するツール。サブコマンドの詳細と正規化規則は [claude-perms](../bin/unix/claude-perms)
 冒頭のコメントを参照。
 
-- `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `sync` /
+- `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `merge` /
   `apply` の8サブコマンドを持つ
 - `candidates --json [DIR...]`は、グローバル・pathRuleいずれでも未カバーの移管候補を
   `[{"target": DIR, "allow": [...]}...]`形式のJSONで出力する（人手で必要なものだけへ
   絞り込んでから使う想定）。`remove --json <FILE|->`はそのJSON（絞り込み後でも元の
   ままでもよい）を読み、targetごとの`settings.local.json`からallowに列挙したエントリを
-  厳密一致で削除する。`apply <FILE|->`は同じ形のJSONを読み、targetの絶対パスに一致する
-  既存pathRuleがちょうど1件あればそこへ、無ければグローバルへallowをunionで書き込む
-  （一致するpathRuleが複数ある場合はどちらのtargetもエラーにして書き込まない）。
-  典型的な移管フロー: `candidates --json` で候補を出す→必要なものだけ残るよう
-  手元で編集する→`apply`で書き込む→（全件、または残りの不要分だけ）
-  `remove --json`でローカルから削除する。`remove --json`/`apply`とも既定はdry-run、
-  `--apply`（または`-y`）で実際に書き込む
+  厳密一致で削除する（既定はdry-run、`--apply`または`-y`で実際に削除）
 - `~/.claude/claude-perms.json`（Claude Code本体は読まない専用設定。パス情報を含むため
   実体はdotfiles-privateの`ai/claude/claude-perms.json`）に`pathRules`
-  （`pathGlob` → `allow`）を宣言すると、`sync [DIR...]`がDIRの絶対パスに一致する
-  pathRuleのallowを`DIR/.claude/settings.local.json`へ実体化する。`pathGlob`は
-  単一文字列のほか文字列配列も指定でき、配列の場合はいずれか1つに一致すれば
-  そのpathRuleのallowが適用される（同じallowを複数の無関係なパスパターンへ
-  まとめて配布したい場合に、pathRuleエントリごとallowを重複させずに済む）。
-  複数のpathRuleが一致した場合、および1つのpathRule内でpathGlobの複数要素が
-  一致した場合も、allowを全て合成する（OR/和集合）。pathRuleを外しても、過去に
-  `sync`で追加したエントリを自動削除はしない
-- `format` / `format-global` / `sync`は、残ったBash allowエントリのうち末尾wildcard
+  （`pathGlob` → `allow`）を宣言すると、`merge [DIR...]`がDIRの絶対パスに一致する
+  pathRuleのallowを`DIR/.claude/settings.local.json`へ**追記**（既存の
+  allowはそのまま残す）する。`apply [DIR...]`は同じくpathRuleに一致するDIRを
+  対象にするが、そのDIRのallowをpathRuleの内容で**置き換える**（既存のうち
+  pathRuleに含まれないものは消える）。`dots brew/npm/pipx/dock/shortcuts`の`sync`
+  （システム実態→管理ファイルの方向）とはコマンド名の向きが逆（宣言→ローカル）
+  になるため、あえて`sync`ではなく`merge`と名付けている。`pathGlob`は単一文字列の
+  ほか文字列配列も指定でき、配列の場合はいずれか1つに一致すればそのpathRuleの
+  allowが適用される（同じallowを複数の無関係なパスパターンへまとめて配布したい
+  場合に、pathRuleエントリごとallowを重複させずに済む）。複数のpathRuleが
+  一致した場合、および1つのpathRule内でpathGlobの複数要素が一致した場合も、
+  allowを全て合成する（OR/和集合）。一致するpathRuleが無いDIRはmerge・applyとも
+  何もしない（settings.local.jsonを空にするような操作はしない）。pathRuleを
+  外しても、過去に`merge`で追加したエントリを自動削除はしない（`apply`なら
+  次回実行時に置き換えで消える）。典型的な移管フロー: `candidates`（`--json`も可）
+  でローカル限定のallowを確認する→必要なものだけ`claude-perms.json`の
+  `pathRules`へ手動で追記する→`apply`を実行すると、そのDIRのallowはpathRuleの
+  内容だけになり、昇格しなかった残りは自動的に消える（merge・apply同様、
+  dry-run無しで直接書き込む）。pathRuleを作らず個別に削除したいだけの場合は
+  `remove --json`を使う
+- `format` / `format-global` / `merge` / `apply`は、残ったBash allowエントリのうち末尾wildcard
   （`cmd:*`等）を持つものについて、run-quiet修飾版（`run-quiet cmd:*`）がまだ無ければ
   自動追加する（「素のコマンドを許可していればrun-quiet版も許可されているとみなす」
   という方針のため、pathRules・グローバル側は素のコマンドだけ書けばよい）。ただし
