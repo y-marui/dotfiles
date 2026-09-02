@@ -1,0 +1,3 @@
+{
+  "forbiddenAllow": ["Bash(run-quiet:*)"]
+}
