@@ -24,6 +24,7 @@ description: "Transfer confirmed proofreading rules from conversation memory and
 | 科研費・論文・学会要旨など、複数案件で再利用し著者も更新する執筆・校閲知見 | 参照済みの `$OBSIDIAN_ROOT/writing/...` ガイド |
 | 既存の正本への反映を保留する、skill・ツール・処理経路の不具合兆候、観測結果、暫定回避策 | 同階層の `proofreading/HANDOFF.md` |
 | 文書横断の安全な編集不変条件、ツール利用手順、全案件共通の校閲手順 | `word-proofreading/SKILL.md` の更新案 |
+| 特定の文書種別(科学的文書など)だけに関わる、案件・著者に依存しない内容レビューの観点 | `word-proofreading/references/<domain>.md` の更新案 |
 | 移管後に残す必要のない会話メモリーの校閲ルール | `/Users/yuki/.codex/memories/extensions/ad_hoc/notes/` に更新ノートを追加し、`MEMORY.md` の削除または更新を依頼する |
 
 `PROOFREADING.md` に `@` 参照がない場合、文書種別を推測してObsidianのガイドを新設・参照追加しない。再利用先が明確なら候補パスを提案し、ユーザーの判断を得る。
@@ -35,7 +36,7 @@ description: "Transfer confirmed proofreading rules from conversation memory and
 3. `PROOFREADING.md` とObsidianガイドには、今後も判断を変える規則だけを書く。今回の作業量、途中経過、個別本文、未確定の解釈は入れない。
 4. `proofreading/HANDOFF.md` には、正本へ直接反映するか迷う観測だけを短く記録する。対象ファイル名・版・作業モード・変更履歴・コメント・進捗・次の作業など、文書、skill、`PROOFREADING.md`、参照済みObsidianガイドから分かる内容は複製しない。skill・ツール・処理経路の不具合または非互換の兆候では、観測された差異、試した暫定回避策、未確定の点だけを残す。恒久ルールへ反映した後も、その規則だけでは分からない観測根拠または例外として有用ならHandoffに残す。
 5. 認証情報、個人情報、本文の不要な転載、推測、会話内だけの指示を記録しない。科学的事実・結論・根拠を新たに確定したように書かない。
-6. すべての案件で有用になり得る規則を見つけた場合は、`word-proofreading/SKILL.md` の更新候補を、根拠・追加先・短い文案とともに報告する。ユーザーが変更まで明示的に依頼した場合だけ、対象の `SKILL.md` を更新して検証する。それ以外は提案に留める。
+6. すべての案件で有用になり得る規則を見つけた場合は、文書種別によらない規則なら `word-proofreading/SKILL.md`、特定の文書種別だけに関わる観点なら `word-proofreading/references/<domain>.md` の更新候補を、根拠・追加先・短い文案とともに報告する。ユーザーが変更まで明示的に依頼した場合だけ、対象ファイルを更新して検証する。それ以外は提案に留める。
 
 ## Completion report
 
