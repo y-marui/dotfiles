@@ -1,0 +1,9 @@
+{
+  "forbiddenAllow": ["Bash(run-quiet:*)"],
+  "pathRules": [
+    {
+      "pathGlob": "~/src/github.com/example-user/python-*",
+      "allow": ["Bash(python3:*)", "Bash(uv:*)"]
+    }
+  ]
+}

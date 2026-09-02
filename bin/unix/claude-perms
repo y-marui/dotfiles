@@ -5,20 +5,32 @@
 #   claude-perms format [DIR...]    permissions.allow/deny/ask を正規化・ソート・
 #                                    重複削除し、allow のうち ~/.claude/settings.json
 #                                    （グローバル）のルールで既にカバーされているものを
-#                                    削除して書き戻す。整理後に permissions が
-#                                    {"allow": []} だけになったら settings.local.json を
-#                                    削除し、.claude/ が空になればそれも削除する
+#                                    削除して書き戻す。同じファイル内の他のallow
+#                                    エントリに包含されるものも削除する（後述の
+#                                    _dedupe_covered_within。例: 同じファイルに
+#                                    "Bash(git:*)" と "Bash(git commit:*)" が両方
+#                                    あれば後者を削除）。あわせて、残ったBash allowの
+#                                    run-quiet修飾版（未追加なら）を自動追加する（後述）。
+#                                    整理後に permissions が {"allow": []} だけになったら
+#                                    settings.local.json を削除し、.claude/ が空になれば
+#                                    それも削除する
 #   claude-perms check [DIR...]     整理が必要かどうかだけ確認する（書き換えない）
-#   claude-perms candidates [DIR...] グローバルにまだ無い（＝カバーされていない）
-#                                    ローカル allow エントリを一覧表示する
-#                                    （移管するかどうかの判断はユーザーが行い、
-#                                    実際の追加は手動で行う。削除は format が行う）
+#   claude-perms candidates [DIR...] グローバルにもDIRに一致するpathRuleにも無い
+#                                    （＝カバーされていない）ローカル allow エントリを
+#                                    一覧表示する（移管するかどうかの判断はユーザーが行い、
+#                                    実際の追加は手動で行う。削除は format が行う）。
+#                                    候補が0件のDIRは、複数DIR指定時にカバー済みの
+#                                    リポジトリまで毎回表示されるノイズを避けるため、
+#                                    --verbose指定時以外は無音でスキップする
 #   claude-perms format-global      ~/.claude/settings.json （グローバル）自体の
 #                                    permissions.allow/deny/ask を正規化・ソート・
-#                                    重複削除する。グローバルより上位は無いのでカバー済み
+#                                    重複削除し、残ったBash allowのrun-quiet修飾版を
+#                                    自動追加する。グローバルより上位は無いのでカバー済み
 #                                    判定は行わず、permissionsが空になっても他のキー
 #                                    （model等）を持つ本体設定ファイルなので削除もしない。
-#                                    DIR引数は取らない
+#                                    あわせて ~/.claude/claude-perms.json の
+#                                    forbiddenAllow・pathRules[].allow も正規化・
+#                                    重複削除・ソートする。DIR引数は取らない
 #   claude-perms remove <pattern> [DIR...] [--glob] [--apply|-y]
 #                                    allow/deny/askからpatternに一致するエントリを探す。
 #                                    既定（厳密一致）: pattern・エントリ双方を正規化
@@ -32,6 +44,16 @@
 #   claude-perms remove-global <pattern> [--glob] [--apply|-y]
 #                                    removeと同じ判定を ~/.claude/settings.json
 #                                    （グローバル）自体に対して行う。DIR引数は取らない
+#   claude-perms sync [DIR...]      ~/.claude/claude-perms.json の pathRules（後述）のうち
+#                                    DIRの絶対パスがpathGlobに一致するallowエントリを
+#                                    DIR/.claude/settings.local.json へ追記し、format と
+#                                    同じ正規化・重複削除・グローバルでカバー済み判定・
+#                                    禁止エントリ除去・run-quiet修飾版の自動追加（後述）を
+#                                    適用する。settings.local.json が無ければ新規作成する。
+#                                    一致するpathRuleが無いDIRは何もしない（--verbose指定時
+#                                    のみその旨を表示）。pathRuleを外した後に「過去にsyncで
+#                                    追加され今は対象外になったエントリ」を自動削除はしない
+#                                    （必要ならclaude-perms removeで手動削除する）
 #
 # 正規化: Bash/PowerShellルールの末尾が半角スペース+"*"（例: "gh *"）の場合、
 # 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global/remove系すべて共通）。
@@ -46,6 +68,35 @@
 # カバー判定だと "run-quiet make:*" まで巻き込んでしまうため、ここだけ厳密一致にしている）。
 # ファイルが無ければ禁止リストなしとして扱う（自動作成しない）。
 #   例: {"forbiddenAllow": ["Bash(run-quiet:*)"]}
+#
+# pathパターンによる一括allow配布: ~/.claude/claude-perms.json の pathRules に
+# {"pathGlob": <bashのglob。先頭の "~" はHOMEに展開>, "allow": [<allowエントリ...>]}
+# を列挙すると、claude-perms sync が「DIRの絶対パスがpathGlobに一致する」pathRuleの
+# allowをそのDIRのsettings.local.jsonへ追記する。用途: 自分名義のリポジトリ群など
+# 特定のパス配下でだけ広く許可したいが、真にグローバル（全リポジトリ無条件）にするには
+# 広すぎるルールを、都度手動コピーせず一括配布したい場合。
+#   例: {"pathRules": [{"pathGlob": "~/src/github.com/y-marui/*", "allow": ["Bash(npm:*)"]}]}
+# pathGlob はDIRの絶対パス全体に対するbash globとして評価する単純なパターンマッチで、
+# ディレクトリ階層の意味は理解しない。複数のpathRuleが一致する場合はallowを全て合成する。
+# ファイルが無ければpathRuleなしとして扱う（自動作成しない）。
+#
+# run-quiet修飾版の自動追加: format/format-global/syncは、残ったBash allowエントリの
+# うち単語境界付き末尾wildcard（"cmd:*" 等）を持つものについて、まだ無ければ
+# "Bash(run-quiet cmd:*)" を実エントリとして自動追加する。"Bash(cmd:*) を許可していれば
+# run-quiet cmd も許可されているとみなしたい"というポリシーのため。run-quietは出力を
+# 抑制するだけの薄いラッパーで実体は同じコマンドだが、Claude Code自体はコマンド文字列を
+# 見て許可判定するため、run-quiet版を許可するには実際にそのエントリ自体が必要になる
+# （pathRules・グローバルの定義側では素のコマンドだけ書けば足り、二重に書く必要はない）。
+#
+# 同一ファイル内カバーの重複排除: format/format-globalは、グローバル判定と別に、
+# 同じファイル（settings.local.json/settings.json/pathRuleのallow配列それぞれ）の
+# 中で他のallowエントリに包含されるエントリも削除する（例: 同じファイルに
+# "Bash(git:*)" と "Bash(git commit:*)" が両方あれば、後者は前者に包含されるため
+# 削除する）。包含関係の判定は下記「カバーされている」の判定と同じ厳密ルールを
+# 使う（lenient判定は使わない）。カバーする側のエントリが同じファイル内に残る
+# ことを条件に判定するため、他ファイル（グローバルやpathRule）が実際に持っている
+# かどうかに依存せず安全（sync実行時はpathRule由来のエントリが先に同じファイルへ
+# 実体化されているため、この時点でカバー関係が成立する）。
 #
 # DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
@@ -71,6 +122,10 @@
 #     グローバルの "Bash(gh*)" は "Bash(ghost:*)" も包含する
 #   上記以外（ドメインの前方一致やパスの glob、先頭・途中に * があるパターンなど）
 #   は完全一致でのみ判定し、誤って削除しないよう保守的に扱う。
+# candidatesの「pathRuleでカバー済みなので除外」判定だけは、上記に加えて
+# run-quietでラップされたBashコマンドも素のコマンドの許可でカバー済みとみなす
+# （lenient判定）。format/format-globalの実削除にはこのlenient判定を使わない
+# （run-quiet版の実エントリが無いと実際の許可を失うため）。
 #
 # オプション:
 #   -h, --help          ヘルプを表示
@@ -254,9 +309,16 @@ _strip_wildcard() {
   return 0
 }
 
-# $1（グローバル側のルール）が $2（ローカル側のルール）を包含するか判定する。
-_covers() {
-  local global_rule="$1" local_rule="$2"
+# $1（グローバル/pathRule側のルール）が $2（ローカル側のルール）を包含するか判定する
+# 共通実装。$3=true のときだけ、run-quietでラップされたBashコマンドを素のコマンドの
+# 許可でカバー済みとみなす追加判定を行う（lenient。candidatesの「除外」判定専用。
+# run-quietは出力を抑制するだけの薄いラッパーで実体は同じコマンドのため）。
+# lenient判定はformatの実削除には使わない: 実際にClaude Codeへ許可を与えるのは
+# settings.local.json/settings.jsonの文字列そのものであり、"Bash(cmd:*)" は
+# "run-quiet cmd ..." という起動文字列には一致しないため、削除すると実際の許可を
+# 失う。run-quiet版の実エントリは _expand_run_quiet_lines がformat時に自動補完する。
+_covers_impl() {
+  local global_rule="$1" local_rule="$2" lenient="$3"
   [[ "${global_rule}" == "${local_rule}" ]] && return 0
 
   _split_rule "${global_rule}"
@@ -275,6 +337,16 @@ _covers() {
     l_cmd="${_WILDCARD_PREFIX}"
   fi
 
+  _covers_match_cmd "${l_cmd}" "${g_prefix}" "${word_boundary}" && return 0
+
+  if [[ "${lenient}" == true && "${g_tool}" == "Bash" && "${l_cmd}" == "run-quiet "* ]]; then
+    _covers_match_cmd "${l_cmd#run-quiet }" "${g_prefix}" "${word_boundary}" && return 0
+  fi
+  return 1
+}
+
+_covers_match_cmd() {
+  local l_cmd="$1" g_prefix="$2" word_boundary="$3"
   if [[ "${word_boundary}" == true ]]; then
     [[ "${l_cmd}" == "${g_prefix}" || "${l_cmd}" == "${g_prefix} "* ]] && return 0
   else
@@ -282,6 +354,9 @@ _covers() {
   fi
   return 1
 }
+
+_covers() { _covers_impl "$1" "$2" false; }
+_covers_lenient() { _covers_impl "$1" "$2" true; }
 
 # "Tool(prefix *)"（末尾が半角スペース+"*"）を "Tool(prefix:*)" へ正規化する。
 # Bash/PowerShell以外のツール、または末尾がスペース+"*"でないルールはそのまま返す
@@ -324,6 +399,80 @@ _normalize_entries_json() {
     return 0
   fi
   printf '%s\n' "${normalized[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique'
+}
+
+# Bashルール($1)が単語境界付き末尾wildcard（":*" または " *"）を持ち、
+# コマンドが "run-quiet " で始まっていなければ、run-quiet修飾版のルール文字列
+# （正規化済み":*"形式）を返す。対象外（Bash以外のツール・wildcard無し・
+# 既にrun-quiet修飾済み）なら何も出力せず1を返す。
+# "Bash(cmd:*) を許可していれば run-quiet cmd:* も許可されているとみなしたい"
+# というユーザー方針により、format/format-global/syncが実エントリとして自動追加する
+# （run-quietは出力を抑制するだけの薄いラッパーで実体は同じコマンドのため）。
+_run_quiet_variant() {
+  local rule="$1"
+  _split_rule "${rule}"
+  [[ "${_RULE_TOOL}" == "Bash" ]] || return 1
+  _strip_wildcard "${_RULE_SPEC}" || return 1
+  [[ "${_WILDCARD_WORD_BOUNDARY}" == true ]] || return 1
+  local prefix="${_WILDCARD_PREFIX}"
+  [[ "${prefix}" == "run-quiet" || "${prefix}" == "run-quiet "* ]] && return 1
+  printf 'Bash(run-quiet %s:*)' "${prefix}"
+}
+
+# lines（改行区切り）の各エントリについて _run_quiet_variant で導出できる
+# run-quiet修飾版を、まだ含まれていなければ追加した結果を返す。呼び出し側は
+# 結果をコマンド置換（サブシェル）経由で受け取るため、追加分の報告はここでは
+# 行わず、呼び出し側で lines との差分から求めること。
+_expand_run_quiet_lines() {
+  local lines="$1" line variant
+  local result="${lines}"
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] || continue
+    variant="$(_run_quiet_variant "${line}")" || continue
+    [[ -n "${variant}" ]] || continue
+    command grep -qxF "${variant}" <<< "${lines}" && continue
+    result="${result}"$'\n'"${variant}"
+  done <<< "${lines}"
+  printf '%s' "${result}"
+}
+
+# lines（改行区切り）から、同じ集合内の他のエントリに包含される（_covers）エントリを
+# 除いた結果を返す。例えば同じファイル内に "Bash(git:*)" と "Bash(git commit:*)" が
+# 両方あれば、後者は前者に包含されるため除く（前者は残るので実際の許可は失われない）。
+# 判定は厳密版の _covers を使う（グローバル/pathRuleに関わらず、削除後もカバーする
+# エントリ自体がこの同じ集合内に残っていることだけを根拠にするため安全）。
+_dedupe_covered_within() {
+  local lines="$1"
+  local -a arr=()
+  local line
+  while IFS= read -r line; do
+    [[ -n "${line}" ]] && arr+=("${line}")
+  done <<< "${lines}"
+
+  if (( ${#arr[@]} > 0 )); then
+    local i j covered
+    for (( i = 0; i < ${#arr[@]}; i++ )); do
+      [[ -n "${arr[i]}" ]] || continue
+      covered=false
+      for (( j = 0; j < ${#arr[@]}; j++ )); do
+        (( i == j )) && continue
+        [[ -n "${arr[j]}" ]] || continue
+        if [[ "${arr[i]}" != "${arr[j]}" ]] && _covers "${arr[j]}" "${arr[i]}"; then
+          covered=true
+          break
+        fi
+      done
+      [[ "${covered}" == true ]] && arr[i]=""
+    done
+  fi
+
+  local out="" a
+  if (( ${#arr[@]} > 0 )); then
+    for a in "${arr[@]}"; do
+      [[ -n "${a}" ]] && out="${out}${a}"$'\n'
+    done
+  fi
+  printf '%s' "${out}"
 }
 
 # ローカルの permissions.allow を1行ずつ判定し、
@@ -369,6 +518,11 @@ _classify_allow() {
 #                                                         global_file="" のときは空）
 #   _FMT_FORBIDDEN_REMOVED                             … forbiddenAllowで除外した生エントリ
 #                                                         （改行区切り、報告用）
+#   _FMT_RUN_QUIET_ADDED                               … run-quiet修飾版として自動追加した
+#                                                         エントリ（改行区切り、報告用）
+#   _FMT_SELF_COVERED_REMOVED                          … 同じファイル内の他のallowエントリに
+#                                                         包含されるため除外したエントリ
+#                                                         （改行区切り、報告用）
 # claude-perms.json が壊れている場合は1を返す（呼び出し側は処理を中断すること）。
 _compute_format_result() {
   local file="$1" global_file="${2:-}"
@@ -402,6 +556,26 @@ _compute_format_result() {
       fi
     done < <(jq -r '.permissions.allow // [] | .[]' "${file}")
   fi
+  local kept_lines_before_expand="${kept_lines}"
+  kept_lines="$(_expand_run_quiet_lines "${kept_lines}")"
+  _FMT_RUN_QUIET_ADDED=""
+  local expanded_line
+  while IFS= read -r expanded_line; do
+    [[ -n "${expanded_line}" ]] || continue
+    command grep -qxF "${expanded_line}" <<< "${kept_lines_before_expand}" && continue
+    _FMT_RUN_QUIET_ADDED="${_FMT_RUN_QUIET_ADDED}${expanded_line}"$'\n'
+  done <<< "${kept_lines}"
+
+  local kept_lines_before_dedup="${kept_lines}"
+  kept_lines="$(_dedupe_covered_within "${kept_lines}")"
+  _FMT_SELF_COVERED_REMOVED=""
+  local dedup_line
+  while IFS= read -r dedup_line; do
+    [[ -n "${dedup_line}" ]] || continue
+    command grep -qxF "${dedup_line}" <<< "${kept_lines}" && continue
+    _FMT_SELF_COVERED_REMOVED="${_FMT_SELF_COVERED_REMOVED}${dedup_line}"$'\n'
+  done <<< "${kept_lines_before_dedup}"
+
   _FMT_NEW_ALLOW_JSON="$(_normalize_entries_json <<< "${kept_lines}")"
   _FMT_FORBIDDEN_REMOVED="${forbidden_lines}"
 
@@ -504,6 +678,18 @@ _format_one() {
         [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
       done <<< "${_FMT_FORBIDDEN_REMOVED}"
     fi
+    if [[ -n "${_FMT_RUN_QUIET_ADDED}" ]]; then
+      printf 'run-quiet修飾版を自動追加:\n'
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_RUN_QUIET_ADDED}"
+    fi
+    if [[ -n "${_FMT_SELF_COVERED_REMOVED}" ]]; then
+      printf '同じファイル内の他のallowエントリでカバー済みのため削除:\n'
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_SELF_COVERED_REMOVED}"
+    fi
   fi
 
   _prune_if_empty "${file}"
@@ -547,7 +733,7 @@ _cmd_check() {
 }
 
 _candidates_one() {
-  local dir="${1:-.}" local_file global_file
+  local dir="${1:-.}" local_file global_file abs_dir
   local_file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
   if [[ ! -f "${local_file}" ]]; then
@@ -555,14 +741,30 @@ _candidates_one() {
     return 0
   fi
   _validate_json "${local_file}" || return 1
+  abs_dir="$(realpath "${dir}")"
 
-  local classified local_count global_count candidate_count
+  local classified candidate_count
   classified="$(_classify_allow "${local_file}" "${global_file}")"
 
   local -a raw_candidates=()
   if [[ -n "${classified}" ]]; then
+    local pr_rc
     while IFS=$'\t' read -r tag entry _covering; do
-      [[ "${tag}" == "KEEP" ]] && raw_candidates+=("${entry}")
+      [[ "${tag}" == "KEEP" ]] || continue
+      if _covered_by_path_rule "${entry}" "${abs_dir}"; then
+        pr_rc=0
+      else
+        pr_rc=$?
+      fi
+      # pr_rc: 0=pathRuleでカバー済み（候補から除外）、1=未カバー（候補に残す）、
+      # 2=判定失敗（claude-perms.json破損等）。2を1と混同して静かに成功扱いに
+      # しないよう、ここでエラーとして伝播する。
+      if (( pr_rc == 2 )); then
+        return 1
+      elif (( pr_rc == 0 )); then
+        continue
+      fi
+      raw_candidates+=("${entry}")
     done <<< "${classified}"
   fi
   local -a candidates=()
@@ -571,14 +773,21 @@ _candidates_one() {
       [[ -n "${entry}" ]] && candidates+=("${entry}")
     done < <(printf '%s\n' "${raw_candidates[@]}" | sort -u)
   fi
+  candidate_count=${#candidates[@]}
 
+  # 候補が無いDIRは、複数DIR指定時にカバー済みのリポジトリまで毎回表示されて
+  # ノイズになるため、--verbose指定時以外は無音でスキップする。
+  if [[ "${candidate_count}" -eq 0 && "${VERBOSE}" != true ]]; then
+    return 0
+  fi
+
+  local local_count global_count
   local_count="$(jq '.permissions.allow // [] | unique | length' "${local_file}")"
   if [[ -f "${global_file}" ]]; then
     global_count="$(jq '.permissions.allow // [] | unique | length' "${global_file}")"
   else
     global_count=""
   fi
-  candidate_count=${#candidates[@]}
 
   printf 'ローカル: %s (allow: %s件)\n' "${local_file}" "${local_count}"
   if [[ -f "${global_file}" ]]; then
@@ -588,11 +797,11 @@ _candidates_one() {
   fi
 
   if [[ "${candidate_count}" -eq 0 ]]; then
-    printf '移管候補はありません（ローカルのallowは空、またはすべてグローバルのルールでカバー済みです）\n'
+    printf '移管候補はありません（ローカルのallowは空、またはすべてグローバルのルール・DIRに一致するpathRuleでカバー済みです）\n'
     return 0
   fi
 
-  printf '移管候補 (%s件, グローバルのルールで未カバー):\n' "${candidate_count}"
+  printf '移管候補 (%s件, グローバルのルール・pathRuleいずれでも未カバー):\n' "${candidate_count}"
   printf '%s\n' "${candidates[@]}" | sed 's/^/  /'
   printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${global_file}"
 }
@@ -601,9 +810,72 @@ _cmd_candidates() {
   _run_over_dirs _candidates_one "$@"
 }
 
+# ~/.claude/claude-perms.json の forbiddenAllow と pathRules[].allow を
+# 正規化（_normalize_rule）・重複削除・ソートし、pathRules自体もpathGlobでソートして
+# 書き戻す。pathRules[].allowは同一ルール内の他エントリに包含されるものも
+# _dedupe_covered_withinで除く（例: "Bash(git:*)" があれば同じallow内の
+# "Bash(git commit:*)" は不要）。forbiddenAllowは厳密一致専用の設計
+# （前方一致の判定コメント参照）のためこの重複排除は適用しない。ファイルが無ければ
+# 何もしない（0を返す）。run-quiet自動補完（_expand_run_quiet_lines）はここでは
+# 行わない: pathRulesはsync時にのみ実体化されるソース定義であり、run-quiet版の
+# 実エントリはsyncの仕上げのformatが都度補完するため。
+_format_claude_perms_config() {
+  local config
+  config="$(_claude_perms_config_file)"
+  [[ -f "${config}" ]] || return 0
+  _validate_json "${config}" || return 1
+
+  local before
+  before="$(jq -c '{forbiddenAllow: (.forbiddenAllow // []), pathRules: (.pathRules // [])}' "${config}")"
+
+  local forbidden_lines="" e
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] && forbidden_lines="${forbidden_lines}${e}"$'\n'
+  done < <(jq -r '.forbiddenAllow // [] | .[]' "${config}")
+  local new_forbidden_json
+  new_forbidden_json="$(_normalize_entries_json <<< "${forbidden_lines}")"
+
+  local rule_count idx new_rules_json='[]'
+  rule_count="$(jq '.pathRules // [] | length' "${config}")"
+  for (( idx = 0; idx < rule_count; idx++ )); do
+    local glob allow_lines a new_allow_json rule_json
+    glob="$(jq -r ".pathRules[${idx}].pathGlob" "${config}")"
+    allow_lines=""
+    while IFS= read -r a; do
+      [[ -n "${a}" ]] && allow_lines="${allow_lines}${a}"$'\n'
+    done < <(jq -r ".pathRules[${idx}].allow // [] | .[]" "${config}")
+    allow_lines="$(_dedupe_covered_within "${allow_lines}")"
+    new_allow_json="$(_normalize_entries_json <<< "${allow_lines}")"
+    rule_json="$(jq -cn --arg glob "${glob}" --argjson allow "${new_allow_json}" '{pathGlob: $glob, allow: $allow}')"
+    new_rules_json="$(jq -c --argjson rule "${rule_json}" '. + [$rule]' <<< "${new_rules_json}")"
+  done
+  new_rules_json="$(jq -c 'sort_by(.pathGlob)' <<< "${new_rules_json}")"
+
+  local new_doc
+  new_doc="$(jq --argjson forbidden "${new_forbidden_json}" --argjson rules "${new_rules_json}" \
+    '.forbiddenAllow = $forbidden | .pathRules = $rules' "${config}")"
+
+  local after
+  after="$(jq -c '{forbiddenAllow: (.forbiddenAllow // []), pathRules: (.pathRules // [])}' <<< "${new_doc}")"
+
+  if [[ "${before}" == "${after}" ]]; then
+    printf '変更なし: %s\n' "${config}"
+    return 0
+  fi
+
+  local target tmp
+  target="$(_resolve_write_target "${config}")"
+  tmp="$(mktemp "${target}.XXXXXX")"
+  printf '%s\n' "${new_doc}" > "${tmp}"
+  mv "${tmp}" "${target}"
+  printf '整理しました: %s\n' "${config}"
+}
+
 # ~/.claude/settings.json（グローバル）自体のallow/deny/askを正規化・ソート・重複削除
 # する。グローバルより上位の設定は無いため「カバー済みだから削除」判定は行わない。
 # permissionsが空になっても、他のキー（model等）を持つ本体設定なので削除もしない。
+# あわせて ~/.claude/claude-perms.json（forbiddenAllow・pathRules[].allow）も
+# 正規化・重複削除・ソートする（_format_claude_perms_config）。
 _cmd_format_global() {
   [[ $# -eq 0 ]] || _error "format-global はDIR引数を取りません"
 
@@ -619,20 +891,34 @@ _cmd_format_global() {
 
   if [[ "${_FMT_BEFORE}" == "${_FMT_AFTER}" ]]; then
     printf '変更なし: %s\n' "${file}"
-    return 0
+  else
+    _write_format_result "${file}"
+    printf '整理しました: %s\n' "${file}"
+
+    if [[ -n "${_FMT_FORBIDDEN_REMOVED}" ]]; then
+      printf '禁止エントリ（claude-perms.json）のため削除:\n'
+      local entry
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_FORBIDDEN_REMOVED}"
+    fi
+    if [[ -n "${_FMT_RUN_QUIET_ADDED}" ]]; then
+      printf 'run-quiet修飾版を自動追加:\n'
+      local entry
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_RUN_QUIET_ADDED}"
+    fi
+    if [[ -n "${_FMT_SELF_COVERED_REMOVED}" ]]; then
+      printf '同じファイル内の他のallowエントリでカバー済みのため削除:\n'
+      local entry
+      while IFS= read -r entry; do
+        [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
+      done <<< "${_FMT_SELF_COVERED_REMOVED}"
+    fi
   fi
 
-  _write_format_result "${file}"
-  printf '整理しました: %s\n' "${file}"
-
-  if [[ -n "${_FMT_FORBIDDEN_REMOVED}" ]]; then
-    printf '禁止エントリ（claude-perms.json）のため削除:\n'
-    local entry
-    while IFS= read -r entry; do
-      [[ -n "${entry}" ]] && printf '  %s\n' "${entry}"
-    done <<< "${_FMT_FORBIDDEN_REMOVED}"
-  fi
-  return 0
+  _format_claude_perms_config
 }
 
 # エントリ($1)がパターン($2)に一致するか判定する。
@@ -797,10 +1083,110 @@ _cmd_remove_global() {
   _remove_from_file "${file}"
 }
 
+# ~/.claude/claude-perms.json の pathRules を "glob<TAB>allow(JSON配列文字列)" の
+# 改行区切りで返す。ファイルが無ければ何も出力しない（0を返す）。壊れたJSONの場合は
+# パスとエラーを報告して1を返す。
+_path_rules_tsv() {
+  local config
+  config="$(_claude_perms_config_file)"
+  [[ -f "${config}" ]] || return 0
+  _validate_json "${config}" || return 1
+  jq -r '.pathRules // [] | .[] | [.pathGlob, (.allow // [] | tojson)] | @tsv' "${config}"
+}
+
+# abs_dir($1)に一致するpathRuleのallowエントリ（生文字列）を改行区切りで返す。
+# 一致なし・claude-perms.jsonが無ければ空文字列。壊れたJSONの場合は1を返す。
+_matched_path_rule_allow() {
+  local abs_dir="$1" rules_tsv
+  rules_tsv="$(_path_rules_tsv)" || return 1
+  [[ -n "${rules_tsv}" ]] || return 0
+
+  local glob allow_json a
+  while IFS=$'\t' read -r glob allow_json; do
+    [[ -n "${glob}" ]] || continue
+    glob="${glob/#\~/${HOME}}"
+    # shellcheck disable=SC2053  # globとして評価するためあえて非クォート
+    if [[ "${abs_dir}" == ${glob} ]]; then
+      while IFS= read -r a; do
+        [[ -n "${a}" ]] && printf '%s\n' "${a}"
+      done < <(jq -r '.[]' <<< "${allow_json}")
+    fi
+  done <<< "${rules_tsv}"
+}
+
+# entry($1)がabs_dir($2)に一致するpathRuleのallowでカバーされるか判定する
+# （_covers_lenient使用。run-quiet修飾版もカバー済み扱いにする）。
+# candidatesが「pathRuleで意図的にスコープ済みのエントリ」を除外するために使う。
+# 終了コードは3値: 0=カバー済み、1=未カバー（正常）、2=判定失敗
+# （~/.claude/claude-perms.json が壊れたJSON等）。呼び出し側は2を「未カバー」と
+# 混同せず、エラーとして伝播すること。
+_covered_by_path_rule() {
+  local entry="$1" abs_dir="$2" tsv
+  tsv="$(_matched_path_rule_allow "${abs_dir}")" || return 2
+  [[ -n "${tsv}" ]] || return 1
+  local pr
+  while IFS= read -r pr; do
+    [[ -n "${pr}" ]] || continue
+    _covers_lenient "${pr}" "${entry}" && return 0
+  done <<< "${tsv}"
+  return 1
+}
+
+# DIRの絶対パスに一致するpathRuleのallowをDIR/.claude/settings.local.jsonへ追記し、
+# format と同じ正規化（正規化・重複削除・グローバルカバー判定・禁止エントリ除去・
+# run-quiet修飾版の自動補完）を適用する。
+_sync_one() {
+  local dir="${1:-.}" abs_dir matched_tsv file
+  [[ -d "${dir}" ]] || _error "ディレクトリが見つかりません: ${dir}"
+  abs_dir="$(realpath "${dir}")"
+  matched_tsv="$(_matched_path_rule_allow "${abs_dir}")" || return 1
+
+  local -a matched_allow=()
+  if [[ -n "${matched_tsv}" ]]; then
+    local a
+    while IFS= read -r a; do
+      [[ -n "${a}" ]] && matched_allow+=("${a}")
+    done <<< "${matched_tsv}"
+  fi
+
+  if (( ${#matched_allow[@]} == 0 )); then
+    [[ "${VERBOSE}" == true ]] && printf 'skip（一致するpathRuleなし）: %s\n' "${abs_dir}"
+    return 0
+  fi
+
+  file="$(_local_settings_file "${dir}")"
+  if [[ ! -f "${file}" ]]; then
+    mkdir -p "$(dirname "${file}")"
+    printf '{"permissions": {"allow": []}}\n' > "${file}"
+  else
+    _validate_json "${file}" || return 1
+  fi
+
+  local target tmp new_allow_json
+  target="$(_resolve_write_target "${file}")"
+  new_allow_json="$(printf '%s\n' "${matched_allow[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')"
+  tmp="$(mktemp "${target}.XXXXXX")"
+  jq --argjson add "${new_allow_json}" '
+    .permissions //= {}
+    | .permissions.allow = ((.permissions.allow // []) + $add | unique)
+  ' "${target}" > "${tmp}"
+  mv "${tmp}" "${target}"
+
+  printf 'pathRuleを反映: %s\n' "${file}"
+  printf '%s\n' "${matched_allow[@]}" | sort -u | sed 's/^/  /'
+
+  _format_one "${dir}"
+}
+
+# claude-perms sync [DIR...]
+_cmd_sync() {
+  _run_over_dirs _sync_one "$@"
+}
+
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global} [DIR...]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global|sync} [DIR...]"
 shift
 
 case "${command_name}" in
@@ -810,5 +1196,6 @@ case "${command_name}" in
   candidates)    _cmd_candidates "$@" ;;
   remove)        _cmd_remove "$@" ;;
   remove-global) _cmd_remove_global "$@" ;;
-  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global が使えます)" ;;
+  sync)          _cmd_sync "$@" ;;
+  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global/sync が使えます)" ;;
 esac

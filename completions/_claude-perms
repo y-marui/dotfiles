@@ -1,0 +1,49 @@
+#compdef claude-perms
+
+_claude-perms() {
+  local -a subcommands
+  subcommands=(
+    'format:settings.local.jsonのpermissionsを整理'
+    'format-global:グローバルsettings.json（とclaude-perms.json）を整理'
+    'check:整理が必要か確認（書き換えない）'
+    'candidates:グローバル・pathRule未カバーのローカルallowを一覧表示'
+    'remove:allow/deny/askからpatternに一致するエントリを削除'
+    'remove-global:removeと同じ判定をグローバルに対して行う'
+    'sync:pathRulesのallowをDIRのsettings.local.jsonへ反映'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t subcommands 'claude-perms subcommand' subcommands
+    return
+  fi
+
+  local cmd="${words[2]}"
+  case "${cmd}" in
+    format|check|candidates|sync)
+      _arguments \
+        '(-v --verbose)'{-v,--verbose}'[settings.local.jsonが無いDIRのスキップも表示]' \
+        '*:directory:_directories'
+      ;;
+    format-global)
+      _message 'DIR引数は取りません'
+      ;;
+    remove)
+      _arguments \
+        '--glob[patternをbashのglobとして評価]' \
+        '(--apply -y)'{--apply,-y}'[実際に削除する]' \
+        '1:pattern:' \
+        '*:directory:_directories'
+      ;;
+    remove-global)
+      _arguments \
+        '--glob[patternをbashのglobとして評価]' \
+        '(--apply -y)'{--apply,-y}'[実際に削除する]' \
+        '1:pattern:'
+      ;;
+    *)
+      _arguments '*:directory:_directories'
+      ;;
+  esac
+}
+
+_claude-perms "$@"
