@@ -13,6 +13,11 @@
 #
 # DIR省略時はカレントディレクトリ。対象は DIR/.claude/settings.local.json。
 #
+# claude-perms shell {on|off|status}   cd時の check 自動実行をon/off（既定off）。
+#                                       shell/zshrc のシェル関数が提供するサブコマンドで
+#                                       このスクリプト本体には実装していない
+#                                       （現在のシェルの環境変数を直接操作する必要があるため）。
+#
 # 「グローバルのルールでカバーされている」の判定
 # （Claude Code本体のワイルドカード仕様 https://code.claude.com/docs/en/permissions.md
 #   の "Wildcard patterns" に合わせている）:
@@ -274,11 +279,17 @@ _cmd_candidates() {
   local classified local_count global_count candidate_count
   classified="$(_classify_allow "${local_file}" "${global_file}")"
 
-  local -a candidates=()
+  local -a raw_candidates=()
   if [[ -n "${classified}" ]]; then
     while IFS=$'\t' read -r tag entry _covering; do
-      [[ "${tag}" == "KEEP" ]] && candidates+=("${entry}")
+      [[ "${tag}" == "KEEP" ]] && raw_candidates+=("${entry}")
     done <<< "${classified}"
+  fi
+  local -a candidates=()
+  if (( ${#raw_candidates[@]} > 0 )); then
+    while IFS= read -r entry; do
+      [[ -n "${entry}" ]] && candidates+=("${entry}")
+    done < <(printf '%s\n' "${raw_candidates[@]}" | sort -u)
   fi
 
   local_count="$(jq '.permissions.allow // [] | unique | length' "${local_file}")"
@@ -302,7 +313,7 @@ _cmd_candidates() {
   fi
 
   printf '移管候補 (%s件, グローバルのルールで未カバー):\n' "${candidate_count}"
-  printf '%s\n' "${candidates[@]}" | sort -u | sed 's/^/  /'
+  printf '%s\n' "${candidates[@]}" | sed 's/^/  /'
   printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${global_file}"
 }
 
