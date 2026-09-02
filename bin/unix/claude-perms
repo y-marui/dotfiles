@@ -15,7 +15,10 @@
 #                                    実際の追加は手動で行う。削除は format が行う）
 #
 # DIR は複数指定できる。省略時はカレントディレクトリ1件のみを対象にする。
-# 各 DIR の対象は DIR/.claude/settings.local.json。
+# 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
+# 通常の状態として無視する（エラーにしない）。--verbose 指定時だけ、無視した旨を表示する。
+# settings.local.json 自体が壊れたJSONの場合は、パスと jq のエラーを添えて常に報告し、
+# その DIR だけ失敗扱いにして他の DIR の処理は続行する。
 #
 # claude-perms shell {on|off|status}   cd時の check 自動実行をon/off（既定off）。
 #                                       shell/zshrc のシェル関数が提供するサブコマンドで
@@ -38,13 +41,28 @@
 #
 # オプション:
 #   -h, --help          ヘルプを表示
+#   -v, --verbose        settings.local.json が無い DIR をスキップした旨も表示する
+#                         （format/candidates。位置は問わない）
 #
 # 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・グローバルでカバー済み・
 #                       permissionsが空のいずれか）。複数DIR指定時はいずれか1件でも
-#                       該当すれば1。format/candidatesも、複数DIRのうち1件でも
-#                       エラー（settings.local.json が無い等）があれば1。
+#                       該当すれば1。settings.local.json が無いDIRはエラー扱いしない。
+#                       format/candidatesも同様で、settings.local.json が無いDIRは
+#                       スキップするだけだが、JSONとして壊れているDIRがあれば
+#                       パスとjqのエラーを報告し、複数DIRのうち1件でもあれば全体が1。
 
 set -euo pipefail
+
+VERBOSE=false
+_args=()
+for _a in "$@"; do
+  case "${_a}" in
+    -v|--verbose) VERBOSE=true ;;
+    *) _args+=("${_a}") ;;
+  esac
+done
+set -- "${_args[@]}"
+unset _a _args
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
@@ -56,12 +74,21 @@ _error() {
   exit 1
 }
 
-_warn() {
-  printf 'warning: %s\n' "$*" >&2
-}
-
 _require_jq() {
   command -v jq > /dev/null 2>&1 || _error "jq が見つかりません（brew install jq）"
+}
+
+# JSONとして読めるか検証する。壊れている場合はパスとjqのエラーを添えて報告する
+# （jq自体のエラーメッセージにはファイルパスが含まれないため、ここで補う）。
+_validate_json() {
+  local file="$1"
+  local err
+  if err="$(jq empty "${file}" 2>&1)"; then
+    return 0
+  fi
+  printf 'error: 無効なJSON: %s\n' "${file}" >&2
+  printf '  %s\n' "${err}" >&2
+  return 1
 }
 
 _local_settings_file() {
@@ -236,9 +263,10 @@ _format_one() {
   file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
   if [[ ! -f "${file}" ]]; then
-    _warn "not found: ${file}"
-    return 1
+    [[ "${VERBOSE}" == true ]] && printf 'skip（settings.local.json なし）: %s\n' "${file}"
+    return 0
   fi
+  _validate_json "${file}" || return 1
 
   local classified
   classified="$(_classify_allow "${file}" "${global_file}")"
@@ -305,6 +333,7 @@ _check_one() {
     printf '[.claude] found（settings.local.json なし）\n'
     return 0
   fi
+  _validate_json "${file}" || return 1
 
   local classified
   classified="$(_classify_allow "${file}" "${global_file}")"
@@ -350,9 +379,10 @@ _candidates_one() {
   local_file="$(_local_settings_file "${dir}")"
   global_file="$(_global_settings_file)"
   if [[ ! -f "${local_file}" ]]; then
-    _warn "not found: ${local_file}"
-    return 1
+    [[ "${VERBOSE}" == true ]] && printf 'skip（settings.local.json なし）: %s\n' "${local_file}"
+    return 0
   fi
+  _validate_json "${local_file}" || return 1
 
   local classified local_count global_count candidate_count
   classified="$(_classify_allow "${local_file}" "${global_file}")"
