@@ -216,4 +216,5 @@ vscode "ziyasal.vscode-open-in-github"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "go"
+brew "tcl-tk@8"
 cask "macshot"
