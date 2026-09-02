@@ -161,9 +161,13 @@ Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/setting
 - `~/.claude/claude-perms.json`（Claude Code本体は読まない専用設定。パス情報を含むため
   実体はdotfiles-privateの`ai/claude/claude-perms.json`）に`pathRules`
   （`pathGlob` → `allow`）を宣言すると、`sync [DIR...]`がDIRの絶対パスに一致する
-  pathRuleのallowを`DIR/.claude/settings.local.json`へ実体化する。複数のpathRuleが
-  一致した場合はallowを全て合成する（OR/和集合）。pathRuleを外しても、過去に`sync`で
-  追加したエントリを自動削除はしない
+  pathRuleのallowを`DIR/.claude/settings.local.json`へ実体化する。`pathGlob`は
+  単一文字列のほか文字列配列も指定でき、配列の場合はいずれか1つに一致すれば
+  そのpathRuleのallowが適用される（同じallowを複数の無関係なパスパターンへ
+  まとめて配布したい場合に、pathRuleエントリごとallowを重複させずに済む）。
+  複数のpathRuleが一致した場合、および1つのpathRule内でpathGlobの複数要素が
+  一致した場合も、allowを全て合成する（OR/和集合）。pathRuleを外しても、過去に
+  `sync`で追加したエントリを自動削除はしない
 - `format` / `format-global` / `sync`は、残ったBash allowエントリのうち末尾wildcard
   （`cmd:*`等）を持つものについて、run-quiet修飾版（`run-quiet cmd:*`）がまだ無ければ
   自動追加する（「素のコマンドを許可していればrun-quiet版も許可されているとみなす」

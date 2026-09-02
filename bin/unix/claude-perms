@@ -70,15 +70,21 @@
 #   例: {"forbiddenAllow": ["Bash(run-quiet:*)"]}
 #
 # pathパターンによる一括allow配布: ~/.claude/claude-perms.json の pathRules に
-# {"pathGlob": <bashのglob。先頭の "~" はHOMEに展開>, "allow": [<allowエントリ...>]}
-# を列挙すると、claude-perms sync が「DIRの絶対パスがpathGlobに一致する」pathRuleの
-# allowをそのDIRのsettings.local.jsonへ追記する。用途: 自分名義のリポジトリ群など
-# 特定のパス配下でだけ広く許可したいが、真にグローバル（全リポジトリ無条件）にするには
-# 広すぎるルールを、都度手動コピーせず一括配布したい場合。
-#   例: {"pathRules": [{"pathGlob": "~/src/github.com/y-marui/*", "allow": ["Bash(npm:*)"]}]}
-# pathGlob はDIRの絶対パス全体に対するbash globとして評価する単純なパターンマッチで、
-# ディレクトリ階層の意味は理解しない。複数のpathRuleが一致する場合はallowを全て合成する。
-# ファイルが無ければpathRuleなしとして扱う（自動作成しない）。
+# {"pathGlob": <bashのglob、または同globの配列。先頭の "~" はHOMEに展開>,
+#  "allow": [<allowエントリ...>]}
+# を列挙すると、claude-perms sync が「DIRの絶対パスがpathGlobのいずれかに一致する」
+# pathRuleのallowをそのDIRのsettings.local.jsonへ追記する。用途: 自分名義の
+# リポジトリ群など特定のパス配下でだけ広く許可したいが、真にグローバル
+# （全リポジトリ無条件）にするには広すぎるルールを、都度手動コピーせず一括配布
+# したい場合。pathGlobを配列にすると、同じallowを複数の無関係なパスパターン
+# （別ホスト配下・別ownerのリポジトリ群等）へまとめて配布でき、allowが同じ
+# 複数のpathRuleエントリへ重複させる必要がない。
+#   例（単一）: {"pathRules": [{"pathGlob": "~/src/github.com/y-marui/*", "allow": ["Bash(npm:*)"]}]}
+#   例（配列）: {"pathRules": [{"pathGlob": ["~/src/github.com/y-marui/*", "~/work/*"], "allow": ["Bash(npm:*)"]}]}
+# pathGlob（配列の場合は各要素）はDIRの絶対パス全体に対するbash globとして評価する
+# 単純なパターンマッチで、ディレクトリ階層の意味は理解しない。複数のpathRuleが
+# 一致した場合、および1つのpathRule内でpathGlobの複数要素が一致した場合も、
+# allowを全て合成する。ファイルが無ければpathRuleなしとして扱う（自動作成しない）。
 #
 # run-quiet修飾版の自動追加: format/format-global/syncは、残ったBash allowエントリの
 # うち単語境界付き末尾wildcard（"cmd:*" 等）を持つものについて、まだ無ければ
@@ -838,18 +844,22 @@ _format_claude_perms_config() {
   local rule_count idx new_rules_json='[]'
   rule_count="$(jq '.pathRules // [] | length' "${config}")"
   for (( idx = 0; idx < rule_count; idx++ )); do
-    local glob allow_lines a new_allow_json rule_json
-    glob="$(jq -r ".pathRules[${idx}].pathGlob" "${config}")"
+    # pathGlobは単一文字列・配列いずれも許容する。ここではformatが行う正規化
+    # （順序・重複）の対象にせず、指定された形をそのまま保持する。
+    local glob_json allow_lines a new_allow_json rule_json
+    glob_json="$(jq -c ".pathRules[${idx}].pathGlob" "${config}")"
     allow_lines=""
     while IFS= read -r a; do
       [[ -n "${a}" ]] && allow_lines="${allow_lines}${a}"$'\n'
     done < <(jq -r ".pathRules[${idx}].allow // [] | .[]" "${config}")
     allow_lines="$(_dedupe_covered_within "${allow_lines}")"
     new_allow_json="$(_normalize_entries_json <<< "${allow_lines}")"
-    rule_json="$(jq -cn --arg glob "${glob}" --argjson allow "${new_allow_json}" '{pathGlob: $glob, allow: $allow}')"
+    rule_json="$(jq -cn --argjson glob "${glob_json}" --argjson allow "${new_allow_json}" '{pathGlob: $glob, allow: $allow}')"
     new_rules_json="$(jq -c --argjson rule "${rule_json}" '. + [$rule]' <<< "${new_rules_json}")"
   done
-  new_rules_json="$(jq -c 'sort_by(.pathGlob)' <<< "${new_rules_json}")"
+  # 配列pathGlobは先頭要素をソートキーにする（型混在のsort_byだと文字列と配列が
+  # 型で分かれてしまい直感的でないため）。
+  new_rules_json="$(jq -c 'sort_by(if (.pathGlob | type) == "array" then .pathGlob[0] else .pathGlob end)' <<< "${new_rules_json}")"
 
   local new_doc
   new_doc="$(jq --argjson forbidden "${new_forbidden_json}" --argjson rules "${new_rules_json}" \
@@ -1091,7 +1101,11 @@ _path_rules_tsv() {
   config="$(_claude_perms_config_file)"
   [[ -f "${config}" ]] || return 0
   _validate_json "${config}" || return 1
-  jq -r '.pathRules // [] | .[] | [.pathGlob, (.allow // [] | tojson)] | @tsv' "${config}"
+  jq -r '
+    .pathRules // [] | .[] | . as $r
+    | ($r.pathGlob | if type == "array" then . else [.] end)[]
+    | [., ($r.allow // [] | tojson)] | @tsv
+  ' "${config}"
 }
 
 # abs_dir($1)に一致するpathRuleのallowエントリ（生文字列）を改行区切りで返す。
