@@ -323,8 +323,15 @@ function g() {
 function _g() { _values '' 'root' }
 
 # cd 後に自動で ls
+# .claude/ があるディレクトリへ移動した場合は permissions の整理要否も通知する
+# （claude-perms は bin/unix、実際の整理・移管はユーザーが判断してコマンドを実行する）
 function cd() {
   builtin cd "$@" && ls
+  local cd_status=$?
+  if [[ $cd_status -eq 0 && -d .claude ]] && (( $+commands[claude-perms] )); then
+    claude-perms check .
+  fi
+  return $cd_status
 }
 
 # ディレクトリによって code / code-insiders を切り替え

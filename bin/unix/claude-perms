@@ -1,0 +1,320 @@
+#!/usr/bin/env bash
+# claude-perms: .claude/settings.local.json の permissions を整理するヘルパー
+#
+# 使い方:
+#   claude-perms sort [DIR]         permissions.allow/deny/ask をソート・重複削除し、
+#                                   allow のうち ~/.claude/settings.json （グローバル）の
+#                                   ルールで既にカバーされているものを削除して書き戻す
+#   claude-perms check [DIR]        整理が必要かどうかだけ確認する（書き換えない）
+#   claude-perms candidates [DIR]   グローバルにまだ無い（＝カバーされていない）
+#                                   ローカル allow エントリを一覧表示する
+#                                   （移管するかどうかの判断はユーザーが行い、
+#                                   実際の追加は手動で行う。削除は sort が行う）
+#
+# DIR省略時はカレントディレクトリ。対象は DIR/.claude/settings.local.json。
+#
+# 「グローバルのルールでカバーされている」の判定
+# （Claude Code本体のワイルドカード仕様 https://code.claude.com/docs/en/permissions.md
+#   の "Wildcard patterns" に合わせている）:
+#   - 完全一致（例: 両方とも "Bash(gh:*)"）
+#   - ツール名のみのグローバルルール（例: "Bash"）は同ツールの全ルールを包含
+#   - "Tool(prefix:*)" と "Tool(prefix *)"（コロン/半角スペース + *）は同義の
+#     単語境界つき前方一致。グローバルの "Bash(gh:*)" や "Bash(gh *)" は
+#     ローカルの "Bash(gh api:*)" や "Bash(gh api repo list)" を包含するが、
+#     単語境界で判定するため "Bash(ghost:*)" は包含しない
+#   - "Tool(prefix*)"（区切りなしの *）は単語境界なしの前方一致。
+#     グローバルの "Bash(gh*)" は "Bash(ghost:*)" も包含する
+#   上記以外（ドメインの前方一致やパスの glob、先頭・途中に * があるパターンなど）
+#   は完全一致でのみ判定し、誤って削除しないよう保守的に扱う。
+#
+# オプション:
+#   -h, --help          ヘルプを表示
+#
+# 終了コード（check）: 0=整理済み, 1=未整理（重複・未ソート・グローバルでカバー済みのいずれか）
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+_error() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+_require_jq() {
+  command -v jq > /dev/null 2>&1 || _error "jq が見つかりません（brew install jq）"
+}
+
+_local_settings_file() {
+  local dir="${1:-.}"
+  printf '%s/.claude/settings.local.json' "${dir%/}"
+}
+
+_global_settings_file() {
+  printf '%s/.claude/settings.json' "${HOME}"
+}
+
+# permissions.deny/ask のうち存在するものだけをソート・重複削除する jq フィルタ
+# （allow はグローバルのカバー判定を挟むため bash 側で別途組み立てる）
+_DENY_ASK_SORT_FILTER='
+  if .permissions and (.permissions | has("deny")) then .permissions.deny |= unique else . end
+  | if .permissions and (.permissions | has("ask"))  then .permissions.ask  |= unique else . end
+'
+
+# ルール文字列を "Tool(spec)" 形式で分解する。カッコが無ければ spec は空文字列
+# （＝そのツールを無制限に許可）として扱う。結果は _RULE_TOOL / _RULE_SPEC に入れる。
+_split_rule() {
+  local rule="$1"
+  if [[ "${rule}" =~ ^([A-Za-z_]+)\((.*)\)$ ]]; then
+    _RULE_TOOL="${BASH_REMATCH[1]}"
+    _RULE_SPEC="${BASH_REMATCH[2]}"
+  else
+    _RULE_TOOL="${rule}"
+    _RULE_SPEC=""
+  fi
+}
+
+# spec 末尾の trailing wildcard を剥がしてプレフィックスを取り出す。
+# 剥がせた場合は _WILDCARD_PREFIX / _WILDCARD_WORD_BOUNDARY をセットして返り値 0。
+# 剥がせない（末尾が wildcard でない）場合は返り値 1。
+#   "prefix:*" / "prefix *"（コロン or 半角スペース + *）は単語境界ありの前方一致
+#   "prefix*"  （区切りなしの *）は単語境界なしの前方一致（例: "gh*" は "ghost" にも一致）
+# 参考: https://code.claude.com/docs/en/permissions.md 「Wildcard patterns」
+_strip_wildcard() {
+  local spec="$1"
+  case "${spec}" in
+    *:\*)
+      _WILDCARD_PREFIX="${spec%:\*}"
+      _WILDCARD_WORD_BOUNDARY=true
+      ;;
+    *" "\*)
+      _WILDCARD_PREFIX="${spec% \*}"
+      _WILDCARD_WORD_BOUNDARY=true
+      ;;
+    *\*)
+      _WILDCARD_PREFIX="${spec%\*}"
+      _WILDCARD_WORD_BOUNDARY=false
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+# $1（グローバル側のルール）が $2（ローカル側のルール）を包含するか判定する。
+_covers() {
+  local global_rule="$1" local_rule="$2"
+  [[ "${global_rule}" == "${local_rule}" ]] && return 0
+
+  _split_rule "${global_rule}"
+  local g_tool="${_RULE_TOOL}" g_spec="${_RULE_SPEC}"
+  _split_rule "${local_rule}"
+  local l_tool="${_RULE_TOOL}" l_spec="${_RULE_SPEC}"
+
+  [[ "${g_tool}" == "${l_tool}" ]] || return 1
+  [[ -z "${g_spec}" ]] && return 0
+
+  _strip_wildcard "${g_spec}" || return 1
+  local g_prefix="${_WILDCARD_PREFIX}" word_boundary="${_WILDCARD_WORD_BOUNDARY}"
+
+  local l_cmd="${l_spec}"
+  if _strip_wildcard "${l_spec}"; then
+    l_cmd="${_WILDCARD_PREFIX}"
+  fi
+
+  if [[ "${word_boundary}" == true ]]; then
+    [[ "${l_cmd}" == "${g_prefix}" || "${l_cmd}" == "${g_prefix} "* ]] && return 0
+  else
+    [[ "${l_cmd}" == "${g_prefix}"* ]] && return 0
+  fi
+  return 1
+}
+
+# ローカルの permissions.allow を1行ずつ判定し、
+#   KEEP<TAB>entry                 …そのまま残す
+#   REMOVED<TAB>entry<TAB>covering …グローバルの covering ルールでカバー済みなので削除
+# を標準出力へ出す。
+_classify_allow() {
+  local local_file="$1" global_file="$2"
+  local -a global_allow=()
+  if [[ -f "${global_file}" ]]; then
+    while IFS= read -r line; do
+      [[ -n "${line}" ]] && global_allow+=("${line}")
+    done < <(jq -r '.permissions.allow // [] | .[]' "${global_file}")
+  fi
+
+  local entry g covering
+  while IFS= read -r entry; do
+    [[ -n "${entry}" ]] || continue
+    covering=""
+    if (( ${#global_allow[@]} > 0 )); then
+      for g in "${global_allow[@]}"; do
+        if _covers "${g}" "${entry}"; then
+          covering="${g}"
+          break
+        fi
+      done
+    fi
+    if [[ -n "${covering}" ]]; then
+      printf 'REMOVED\t%s\t%s\n' "${entry}" "${covering}"
+    else
+      printf 'KEEP\t%s\n' "${entry}"
+    fi
+  done < <(jq -r '.permissions.allow // [] | .[]' "${local_file}")
+}
+
+_cmd_sort() {
+  local dir="${1:-.}" file global_file
+  file="$(_local_settings_file "${dir}")"
+  global_file="$(_global_settings_file)"
+  [[ -f "${file}" ]] || _error "not found: ${file}"
+
+  local classified
+  classified="$(_classify_allow "${file}" "${global_file}")"
+
+  local -a kept=()
+  if [[ -n "${classified}" ]]; then
+    while IFS=$'\t' read -r tag entry _covering; do
+      [[ "${tag}" == "KEEP" ]] && kept+=("${entry}")
+    done <<< "${classified}"
+  fi
+
+  local new_allow_json='[]'
+  if (( ${#kept[@]} > 0 )); then
+    new_allow_json="$(printf '%s\n' "${kept[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique')"
+  fi
+
+  local before after
+  before="$(jq -c '.permissions // {}' "${file}")"
+  after="$(jq -c --argjson new_allow "${new_allow_json}" "
+    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
+    | ${_DENY_ASK_SORT_FILTER}
+    | .permissions // {}
+  " "${file}")"
+
+  if [[ "${before}" == "${after}" ]]; then
+    printf '変更なし: %s\n' "${file}"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp "${file}.XXXXXX")"
+  jq --argjson new_allow "${new_allow_json}" "
+    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
+    | ${_DENY_ASK_SORT_FILTER}
+  " "${file}" > "${tmp}"
+  mv "${tmp}" "${file}"
+  printf '整理しました: %s\n' "${file}"
+
+  local removed
+  removed="$(grep $'^REMOVED\t' <<< "${classified}" | sort -u || true)"
+  if [[ -n "${removed}" ]]; then
+    printf 'グローバル設定でカバー済みのため削除:\n'
+    while IFS=$'\t' read -r _tag entry covering; do
+      printf '  %s  (%s でカバー)\n' "${entry}" "${covering}"
+    done <<< "${removed}"
+  fi
+}
+
+_cmd_check() {
+  local dir="${1:-.}" file global_file
+  file="$(_local_settings_file "${dir}")"
+  global_file="$(_global_settings_file)"
+
+  if [[ ! -d "${dir%/}/.claude" ]]; then
+    printf '.claude/ が見つかりません: %s\n' "${dir}" >&2
+    return 1
+  fi
+  if [[ ! -f "${file}" ]]; then
+    printf '[.claude] found（settings.local.json なし）\n'
+    return 0
+  fi
+
+  local classified
+  classified="$(_classify_allow "${file}" "${global_file}")"
+
+  local -a kept=()
+  if [[ -n "${classified}" ]]; then
+    while IFS=$'\t' read -r tag entry _covering; do
+      [[ "${tag}" == "KEEP" ]] && kept+=("${entry}")
+    done <<< "${classified}"
+  fi
+
+  local new_allow_json='[]'
+  if (( ${#kept[@]} > 0 )); then
+    new_allow_json="$(printf '%s\n' "${kept[@]}" | jq -R -s 'split("\n") | map(select(length > 0)) | unique')"
+  fi
+
+  local before after
+  before="$(jq -c '.permissions // {}' "${file}")"
+  after="$(jq -c --argjson new_allow "${new_allow_json}" "
+    if .permissions and (.permissions | has(\"allow\")) then .permissions.allow = \$new_allow else . end
+    | ${_DENY_ASK_SORT_FILTER}
+    | .permissions // {}
+  " "${file}")"
+
+  if [[ "${before}" == "${after}" ]]; then
+    printf '[.claude] found — permissions は整理済みです\n'
+    return 0
+  fi
+  printf '[.claude] found — permissions が未整理です（claude-perms sort で整理）\n'
+  return 1
+}
+
+_cmd_candidates() {
+  local dir="${1:-.}" local_file global_file
+  local_file="$(_local_settings_file "${dir}")"
+  global_file="$(_global_settings_file)"
+  [[ -f "${local_file}" ]] || _error "not found: ${local_file}"
+
+  local classified local_count global_count candidate_count
+  classified="$(_classify_allow "${local_file}" "${global_file}")"
+
+  local -a candidates=()
+  if [[ -n "${classified}" ]]; then
+    while IFS=$'\t' read -r tag entry _covering; do
+      [[ "${tag}" == "KEEP" ]] && candidates+=("${entry}")
+    done <<< "${classified}"
+  fi
+
+  local_count="$(jq '.permissions.allow // [] | unique | length' "${local_file}")"
+  if [[ -f "${global_file}" ]]; then
+    global_count="$(jq '.permissions.allow // [] | unique | length' "${global_file}")"
+  else
+    global_count=""
+  fi
+  candidate_count=${#candidates[@]}
+
+  printf 'ローカル: %s (allow: %s件)\n' "${local_file}" "${local_count}"
+  if [[ -f "${global_file}" ]]; then
+    printf 'グローバル: %s (allow: %s件)\n' "${global_file}" "${global_count}"
+  else
+    printf 'グローバル: %s (未作成)\n' "${global_file}"
+  fi
+
+  if [[ "${candidate_count}" -eq 0 ]]; then
+    printf '移管候補はありません（ローカルのallowは空、またはすべてグローバルのルールでカバー済みです）\n'
+    return 0
+  fi
+
+  printf '移管候補 (%s件, グローバルのルールで未カバー):\n' "${candidate_count}"
+  printf '%s\n' "${candidates[@]}" | sort -u | sed 's/^/  /'
+  printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${global_file}"
+}
+
+_require_jq
+
+command_name="${1:-}"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {sort|check|candidates} [DIR]"
+shift
+
+case "${command_name}" in
+  sort)       _cmd_sort "$@" ;;
+  check)      _cmd_check "$@" ;;
+  candidates) _cmd_candidates "$@" ;;
+  *) _error "unknown command: ${command_name} (sort/check/candidates が使えます)" ;;
+esac
