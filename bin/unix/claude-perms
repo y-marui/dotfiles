@@ -32,6 +32,16 @@
 #   claude-perms remove-global <pattern> [--glob] [--apply|-y]
 #                                    removeと同じ判定を ~/.claude/settings.json
 #                                    （グローバル）自体に対して行う。DIR引数は取らない
+#   claude-perms sync [DIR...]      ~/.claude/claude-perms.json の pathRules（後述）のうち
+#                                    DIRの絶対パスがpathGlobに一致するallowエントリを
+#                                    DIR/.claude/settings.local.json へ追記し、format と
+#                                    同じ正規化・重複削除・グローバルでカバー済み判定・
+#                                    禁止エントリ除去を適用する。settings.local.json が
+#                                    無ければ新規作成する。一致するpathRuleが無いDIRは
+#                                    何もしない（--verbose指定時のみその旨を表示）。
+#                                    pathRuleを外した後に「過去にsyncで追加され今は
+#                                    対象外になったエントリ」を自動削除はしない
+#                                    （必要ならclaude-perms removeで手動削除する）
 #
 # 正規化: Bash/PowerShellルールの末尾が半角スペース+"*"（例: "gh *"）の場合、
 # 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global/remove系すべて共通）。
@@ -46,6 +56,17 @@
 # カバー判定だと "run-quiet make:*" まで巻き込んでしまうため、ここだけ厳密一致にしている）。
 # ファイルが無ければ禁止リストなしとして扱う（自動作成しない）。
 #   例: {"forbiddenAllow": ["Bash(run-quiet:*)"]}
+#
+# pathパターンによる一括allow配布: ~/.claude/claude-perms.json の pathRules に
+# {"pathGlob": <bashのglob。先頭の "~" はHOMEに展開>, "allow": [<allowエントリ...>]}
+# を列挙すると、claude-perms sync が「DIRの絶対パスがpathGlobに一致する」pathRuleの
+# allowをそのDIRのsettings.local.jsonへ追記する。用途: 自分名義のリポジトリ群など
+# 特定のパス配下でだけ広く許可したいが、真にグローバル（全リポジトリ無条件）にするには
+# 広すぎるルールを、都度手動コピーせず一括配布したい場合。
+#   例: {"pathRules": [{"pathGlob": "~/src/github.com/y-marui/*", "allow": ["Bash(npm:*)"]}]}
+# pathGlob はDIRの絶対パス全体に対するbash globとして評価する単純なパターンマッチで、
+# ディレクトリ階層の意味は理解しない。複数のpathRuleが一致する場合はallowを全て合成する。
+# ファイルが無ければpathRuleなしとして扱う（自動作成しない）。
 #
 # DIR は複数指定できる（format-global を除く）。省略時はカレントディレクトリ1件のみを対象にする。
 # 各 DIR の対象は DIR/.claude/settings.local.json。settings.local.json が無い DIR は
@@ -797,10 +818,78 @@ _cmd_remove_global() {
   _remove_from_file "${file}"
 }
 
+# ~/.claude/claude-perms.json の pathRules を "glob<TAB>allow(JSON配列文字列)" の
+# 改行区切りで返す。ファイルが無ければ何も出力しない（0を返す）。壊れたJSONの場合は
+# パスとエラーを報告して1を返す。
+_path_rules_tsv() {
+  local config
+  config="$(_claude_perms_config_file)"
+  [[ -f "${config}" ]] || return 0
+  _validate_json "${config}" || return 1
+  jq -r '.pathRules // [] | .[] | [.pathGlob, (.allow // [] | tojson)] | @tsv' "${config}"
+}
+
+# DIRの絶対パスに一致するpathRuleのallowをDIR/.claude/settings.local.jsonへ追記し、
+# format と同じ正規化（正規化・重複削除・グローバルカバー判定・禁止エントリ除去）を適用する。
+_sync_one() {
+  local dir="${1:-.}" abs_dir rules_tsv file
+  [[ -d "${dir}" ]] || _error "ディレクトリが見つかりません: ${dir}"
+  abs_dir="$(realpath "${dir}")"
+  rules_tsv="$(_path_rules_tsv)" || return 1
+
+  local -a matched_allow=()
+  if [[ -n "${rules_tsv}" ]]; then
+    local glob allow_json a
+    while IFS=$'\t' read -r glob allow_json; do
+      [[ -n "${glob}" ]] || continue
+      glob="${glob/#\~/${HOME}}"
+      # shellcheck disable=SC2053  # globとして評価するためあえて非クォート
+      if [[ "${abs_dir}" == ${glob} ]]; then
+        while IFS= read -r a; do
+          [[ -n "${a}" ]] && matched_allow+=("${a}")
+        done < <(jq -r '.[]' <<< "${allow_json}")
+      fi
+    done <<< "${rules_tsv}"
+  fi
+
+  if (( ${#matched_allow[@]} == 0 )); then
+    [[ "${VERBOSE}" == true ]] && printf 'skip（一致するpathRuleなし）: %s\n' "${abs_dir}"
+    return 0
+  fi
+
+  file="$(_local_settings_file "${dir}")"
+  if [[ ! -f "${file}" ]]; then
+    mkdir -p "$(dirname "${file}")"
+    printf '{"permissions": {"allow": []}}\n' > "${file}"
+  else
+    _validate_json "${file}" || return 1
+  fi
+
+  local target tmp new_allow_json
+  target="$(_resolve_write_target "${file}")"
+  new_allow_json="$(printf '%s\n' "${matched_allow[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')"
+  tmp="$(mktemp "${target}.XXXXXX")"
+  jq --argjson add "${new_allow_json}" '
+    .permissions //= {}
+    | .permissions.allow = ((.permissions.allow // []) + $add | unique)
+  ' "${target}" > "${tmp}"
+  mv "${tmp}" "${target}"
+
+  printf 'pathRuleを反映: %s\n' "${file}"
+  printf '%s\n' "${matched_allow[@]}" | sort -u | sed 's/^/  /'
+
+  _format_one "${dir}"
+}
+
+# claude-perms sync [DIR...]
+_cmd_sync() {
+  _run_over_dirs _sync_one "$@"
+}
+
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global} [DIR...]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global|sync} [DIR...]"
 shift
 
 case "${command_name}" in
@@ -810,5 +899,6 @@ case "${command_name}" in
   candidates)    _cmd_candidates "$@" ;;
   remove)        _cmd_remove "$@" ;;
   remove-global) _cmd_remove_global "$@" ;;
-  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global が使えます)" ;;
+  sync)          _cmd_sync "$@" ;;
+  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global/sync が使えます)" ;;
 esac
