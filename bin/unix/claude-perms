@@ -622,13 +622,25 @@ _cmd_format_global() {
 }
 
 # エントリ($1)がパターン($2)に一致するか判定する。
-#   glob=true : $2 をbashのglobとしてそのまま解釈する（*, ? 等）
+#   glob=true : $2 をbashのglobとしてそのまま解釈する（*, ? 等）。まず生のまま
+#     比較し、一致しなければ双方を正規化（_normalize_rule）した上でも比較する。
+#     例えば pattern "Bash(command *)" は生の "Bash(command:*)"（正規化済み
+#     エントリ）には一致しないが、正規化後の比較で拾える。一方 "Bash(npm run *)"
+#     のような広いglob検索で "Bash(npm run test)" を拾う既存の動作は、生のまま
+#     の比較で先に一致するため維持される。
 #   glob=false（既定）: 双方を正規化（_normalize_rule）した上での厳密一致
 _matches_pattern() {
   local entry="$1" pattern="$2" glob="$3"
   if [[ "${glob}" == true ]]; then
     # shellcheck disable=SC2053  # globとして評価するためあえて非クォート
-    [[ "${entry}" == ${pattern} ]]
+    if [[ "${entry}" == ${pattern} ]]; then
+      return 0
+    fi
+    local norm_entry norm_pattern
+    norm_entry="$(_normalize_rule "${entry}")"
+    norm_pattern="$(_normalize_rule "${pattern}")"
+    # shellcheck disable=SC2053
+    [[ "${norm_entry}" == ${norm_pattern} ]]
     return
   fi
   [[ "$(_normalize_rule "${entry}")" == "$(_normalize_rule "${pattern}")" ]]
