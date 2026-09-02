@@ -156,8 +156,19 @@ Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/setting
 整理するツール。サブコマンドの詳細と正規化規則は [claude-perms](../bin/unix/claude-perms)
 冒頭のコメントを参照。
 
-- `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `sync`
-  の7サブコマンドを持つ
+- `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `sync` /
+  `apply` の8サブコマンドを持つ
+- `candidates --json [DIR...]`は、グローバル・pathRuleいずれでも未カバーの移管候補を
+  `[{"target": DIR, "allow": [...]}...]`形式のJSONで出力する（人手で必要なものだけへ
+  絞り込んでから使う想定）。`remove --json <FILE|->`はそのJSON（絞り込み後でも元の
+  ままでもよい）を読み、targetごとの`settings.local.json`からallowに列挙したエントリを
+  厳密一致で削除する。`apply <FILE|->`は同じ形のJSONを読み、targetの絶対パスに一致する
+  既存pathRuleがちょうど1件あればそこへ、無ければグローバルへallowをunionで書き込む
+  （一致するpathRuleが複数ある場合はどちらのtargetもエラーにして書き込まない）。
+  典型的な移管フロー: `candidates --json` で候補を出す→必要なものだけ残るよう
+  手元で編集する→`apply`で書き込む→（全件、または残りの不要分だけ）
+  `remove --json`でローカルから削除する。`remove --json`/`apply`とも既定はdry-run、
+  `--apply`（または`-y`）で実際に書き込む
 - `~/.claude/claude-perms.json`（Claude Code本体は読まない専用設定。パス情報を含むため
   実体はdotfiles-privateの`ai/claude/claude-perms.json`）に`pathRules`
   （`pathGlob` → `allow`）を宣言すると、`sync [DIR...]`がDIRの絶対パスに一致する

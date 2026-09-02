@@ -10,6 +10,7 @@ _claude-perms() {
     'remove:allow/deny/askからpatternに一致するエントリを削除'
     'remove-global:removeと同じ判定をグローバルに対して行う'
     'sync:pathRulesのallowをDIRのsettings.local.jsonへ反映'
+    'apply:JSONのallowをpathRuleまたはグローバルへ書き込む'
   )
 
   if (( CURRENT == 2 )); then
@@ -19,9 +20,15 @@ _claude-perms() {
 
   local cmd="${words[2]}"
   case "${cmd}" in
-    format|check|candidates|sync)
+    format|check|sync)
       _arguments \
         '(-v --verbose)'{-v,--verbose}'[settings.local.jsonが無いDIRのスキップも表示]' \
+        '*:directory:_directories'
+      ;;
+    candidates)
+      _arguments \
+        '(-v --verbose)'{-v,--verbose}'[settings.local.jsonが無いDIRのスキップも表示]' \
+        '--json[移管候補をJSON配列で出力]' \
         '*:directory:_directories'
       ;;
     format-global)
@@ -31,6 +38,7 @@ _claude-perms() {
       _arguments \
         '--glob[patternをbashのglobとして評価]' \
         '(--apply -y)'{--apply,-y}'[実際に削除する]' \
+        '--json[FILEを読みtargetごとに一括削除]:file:_files' \
         '1:pattern:' \
         '*:directory:_directories'
       ;;
@@ -39,6 +47,11 @@ _claude-perms() {
         '--glob[patternをbashのglobとして評価]' \
         '(--apply -y)'{--apply,-y}'[実際に削除する]' \
         '1:pattern:'
+      ;;
+    apply)
+      _arguments \
+        '(--apply -y)'{--apply,-y}'[実際に書き込む]' \
+        '1:file:_files'
       ;;
     *)
       _arguments '*:directory:_directories'

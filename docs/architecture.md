@@ -7,7 +7,7 @@ macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリン�
 - `Makefile` — `install` / `links` / `check` / `uninstall` / `init` / `private-scaffold` / `private-validate` タスクの統一インターフェース（`$(OS)` で OS 別スクリプトへ分岐）
 - `bin/unix/dots` / `bin/windows/dots.ps1` — 日常運用コマンド（`status` / `update` / `brew` / `claude` / `codex` / `gemini` / `check` 等のサブコマンド群）
 - `bin/unix/ghq-status` — ghq 管理下の全リポジトリの git 状態・dev-charter 追従状況を一覧表示
-- `bin/unix/claude-perms` — Claude Code の permissions（allow/deny/ask）整理と、pathRule ベースの一括配布（`sync`）
+- `bin/unix/claude-perms` — Claude Code の permissions（allow/deny/ask）整理、pathRule ベースの一括配布（`sync`）、ローカル未カバーallowのJSON出力・移管・一括削除（`candidates --json` / `apply` / `remove --json`）
 
 ## Directory Structure
 | ディレクトリ | 役割 |

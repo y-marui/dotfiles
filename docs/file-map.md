@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-09-02_
+_最終更新: 2026-09-03_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -8,7 +8,7 @@ _最終更新: 2026-09-02_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/claude-perms` | `settings.local.json`/`settings.json`のpermissions整理、pathRuleベースの一括配布（`sync`）、run-quiet修飾版の自動補完 | `~/.claude/settings.json`、`~/.claude/claude-perms.json`（実体は`dotfiles-private/ai/claude/claude-perms.json`） |
+| `bin/unix/claude-perms` | `settings.local.json`/`settings.json`のpermissions整理、pathRuleベースの一括配布（`sync`）、pathRuleのpathGlobは文字列/配列いずれも可、`candidates --json`/`apply`/`remove --json`によるローカル未カバーallowのJSON出力・移管・一括削除、run-quiet修飾版の自動補完 | `~/.claude/settings.json`、`~/.claude/claude-perms.json`（実体は`dotfiles-private/ai/claude/claude-perms.json`） |
 | `completions/_claude-perms` | `claude-perms`のzsh補完 | `bin/unix/claude-perms` |
 
 ## ghq-status / ghq-update

@@ -15,13 +15,22 @@
 #                                    settings.local.json を削除し、.claude/ が空になれば
 #                                    それも削除する
 #   claude-perms check [DIR...]     整理が必要かどうかだけ確認する（書き換えない）
-#   claude-perms candidates [DIR...] グローバルにもDIRに一致するpathRuleにも無い
+#   claude-perms candidates [DIR...] [--json]
+#                                    グローバルにもDIRに一致するpathRuleにも無い
 #                                    （＝カバーされていない）ローカル allow エントリを
-#                                    一覧表示する（移管するかどうかの判断はユーザーが行い、
-#                                    実際の追加は手動で行う。削除は format が行う）。
+#                                    一覧表示する（移管するかどうかの判断はユーザーが行う。
+#                                    削除は format または remove --json が行う）。
 #                                    候補が0件のDIRは、複数DIR指定時にカバー済みの
 #                                    リポジトリまで毎回表示されるノイズを避けるため、
-#                                    --verbose指定時以外は無音でスキップする
+#                                    --verbose指定時以外は無音でスキップする。
+#                                    --json指定時は [{"target": DIR, "allow": [...]}...]
+#                                    形式のJSON配列を出力する（候補0件のDIRは--verbose
+#                                    指定時でも常に省く）。targetはコマンドラインに
+#                                    渡したDIRそのもの（未指定なら"."）。このJSONは
+#                                    人手で必要なエントリだけへ絞り込んだ上で
+#                                    claude-perms apply（移管先への書き込み）や
+#                                    claude-perms remove --json（ローカルからの一括削除）
+#                                    へそのまま渡せる
 #   claude-perms format-global      ~/.claude/settings.json （グローバル）自体の
 #                                    permissions.allow/deny/ask を正規化・ソート・
 #                                    重複削除し、残ったBash allowのrun-quiet修飾版を
@@ -41,9 +50,18 @@
 #                                    （*, ?等）としてエントリ文字列全体に対して評価する。
 #                                    既定はdry-run（一致内容の表示のみ）。実際に削除
 #                                    するには --apply（または -y）を付ける
+#   claude-perms remove --json <FILE|-> [--apply|-y]
+#                                    candidates --json と同じ形（[{"target": DIR,
+#                                    "allow": [...]}...]）のJSONを読み、targetごとの
+#                                    settings.local.jsonからallowに列挙したエントリを
+#                                    厳密一致（正規化後。globは使わない）で探して削除
+#                                    する。FILEに"-"を指定すると標準入力から読む。
+#                                    --glob とは併用できない。既定はdry-run、実際に
+#                                    削除するには --apply（または -y）を付ける
 #   claude-perms remove-global <pattern> [--glob] [--apply|-y]
 #                                    removeと同じ判定を ~/.claude/settings.json
 #                                    （グローバル）自体に対して行う。DIR引数は取らない
+#                                    （--json指定には未対応）
 #   claude-perms sync [DIR...]      ~/.claude/claude-perms.json の pathRules（後述）のうち
 #                                    DIRの絶対パスがpathGlobに一致するallowエントリを
 #                                    DIR/.claude/settings.local.json へ追記し、format と
@@ -54,6 +72,22 @@
 #                                    のみその旨を表示）。pathRuleを外した後に「過去にsyncで
 #                                    追加され今は対象外になったエントリ」を自動削除はしない
 #                                    （必要ならclaude-perms removeで手動削除する）
+#   claude-perms apply <FILE|-> [--apply|-y]
+#                                    sync（pathRules → ローカル）とは逆方向で、
+#                                    candidates --json と同じ形のJSONを、人手で必要な
+#                                    エントリだけへ絞り込んだ上で渡すと、targetの絶対
+#                                    パスに一致する既存pathRuleがちょうど1件あれば
+#                                    そのpathRules[].allowへ、一致するpathRuleが無ければ
+#                                    ~/.claude/settings.json（グローバル）のallowへ、
+#                                    allowをunion（重複除去・正規化。既存エントリは
+#                                    削除しない）で書き込む。一致するpathRuleが複数ある
+#                                    targetは自動で書き込み先を決められないため、その
+#                                    targetだけエラー報告してスキップする
+#                                    （claude-perms.jsonを手動整理してから再実行する）。
+#                                    ローカルのsettings.local.jsonは変更しない（不要に
+#                                    なったエントリの削除は別途 remove --json で行う）。
+#                                    既定はdry-run（書き込み内容の表示のみ）。実際に
+#                                    書き込むには --apply（または -y）を付ける
 #
 # 正規化: Bash/PowerShellルールの末尾が半角スペース+"*"（例: "gh *"）の場合、
 # 同義の ":*" 形式（例: "gh:*"）へ書き換える（format/format-global/remove系すべて共通）。
@@ -738,23 +772,35 @@ _cmd_check() {
   _run_over_dirs _check_one "$@"
 }
 
-_candidates_one() {
-  local dir="${1:-.}" local_file global_file abs_dir
-  local_file="$(_local_settings_file "${dir}")"
-  global_file="$(_global_settings_file)"
-  if [[ ! -f "${local_file}" ]]; then
-    [[ "${VERBOSE}" == true ]] && printf 'skip（settings.local.json なし）: %s\n' "${local_file}"
+# dir($1)の移管候補（グローバルのルール・pathRuleいずれでも未カバーのローカルallow）を
+# 計算する。結果は次の変数にセットする:
+#   _CAND_SKIP        … true ならsettings.local.jsonが無い（候補計算自体を行っていない）
+#   _CAND_LOCAL_FILE / _CAND_GLOBAL_FILE       … 対象ファイルパス
+#   _CAND_LOCAL_COUNT / _CAND_GLOBAL_COUNT     … allowの件数（_CAND_GLOBAL_COUNTは
+#                                                 グローバル未作成なら空文字列）
+#   _CAND_ENTRIES                              … 候補エントリ（ソート済み・重複除去済み・
+#                                                 改行区切り。0件なら空文字列）
+# settings.local.jsonが壊れたJSON、またはclaude-perms.json破損によりpathRule判定に
+# 失敗した場合は1を返す（呼び出し側はこれを候補0件と混同しないこと）。
+_compute_candidates() {
+  local dir="${1:-.}"
+  _CAND_SKIP=false
+  _CAND_LOCAL_FILE="$(_local_settings_file "${dir}")"
+  _CAND_GLOBAL_FILE="$(_global_settings_file)"
+  if [[ ! -f "${_CAND_LOCAL_FILE}" ]]; then
+    _CAND_SKIP=true
     return 0
   fi
-  _validate_json "${local_file}" || return 1
+  _validate_json "${_CAND_LOCAL_FILE}" || return 1
+  local abs_dir
   abs_dir="$(realpath "${dir}")"
 
-  local classified candidate_count
-  classified="$(_classify_allow "${local_file}" "${global_file}")"
+  local classified
+  classified="$(_classify_allow "${_CAND_LOCAL_FILE}" "${_CAND_GLOBAL_FILE}")"
 
   local -a raw_candidates=()
   if [[ -n "${classified}" ]]; then
-    local pr_rc
+    local tag entry _covering pr_rc
     while IFS=$'\t' read -r tag entry _covering; do
       [[ "${tag}" == "KEEP" ]] || continue
       if _covered_by_path_rule "${entry}" "${abs_dir}"; then
@@ -773,13 +819,38 @@ _candidates_one() {
       raw_candidates+=("${entry}")
     done <<< "${classified}"
   fi
-  local -a candidates=()
+
+  _CAND_ENTRIES=""
   if (( ${#raw_candidates[@]} > 0 )); then
+    local entry
     while IFS= read -r entry; do
-      [[ -n "${entry}" ]] && candidates+=("${entry}")
+      [[ -n "${entry}" ]] && _CAND_ENTRIES="${_CAND_ENTRIES}${entry}"$'\n'
     done < <(printf '%s\n' "${raw_candidates[@]}" | sort -u)
   fi
-  candidate_count=${#candidates[@]}
+
+  _CAND_LOCAL_COUNT="$(jq '.permissions.allow // [] | unique | length' "${_CAND_LOCAL_FILE}")"
+  if [[ -f "${_CAND_GLOBAL_FILE}" ]]; then
+    _CAND_GLOBAL_COUNT="$(jq '.permissions.allow // [] | unique | length' "${_CAND_GLOBAL_FILE}")"
+  else
+    _CAND_GLOBAL_COUNT=""
+  fi
+  return 0
+}
+
+_candidates_one() {
+  local dir="${1:-.}"
+  _compute_candidates "${dir}" || return 1
+  if [[ "${_CAND_SKIP}" == true ]]; then
+    [[ "${VERBOSE}" == true ]] && printf 'skip（settings.local.json なし）: %s\n' "${_CAND_LOCAL_FILE}"
+    return 0
+  fi
+
+  local -a candidates=()
+  local entry
+  while IFS= read -r entry; do
+    [[ -n "${entry}" ]] && candidates+=("${entry}")
+  done <<< "${_CAND_ENTRIES}"
+  local candidate_count=${#candidates[@]}
 
   # 候補が無いDIRは、複数DIR指定時にカバー済みのリポジトリまで毎回表示されて
   # ノイズになるため、--verbose指定時以外は無音でスキップする。
@@ -787,19 +858,11 @@ _candidates_one() {
     return 0
   fi
 
-  local local_count global_count
-  local_count="$(jq '.permissions.allow // [] | unique | length' "${local_file}")"
-  if [[ -f "${global_file}" ]]; then
-    global_count="$(jq '.permissions.allow // [] | unique | length' "${global_file}")"
+  printf 'ローカル: %s (allow: %s件)\n' "${_CAND_LOCAL_FILE}" "${_CAND_LOCAL_COUNT}"
+  if [[ -f "${_CAND_GLOBAL_FILE}" ]]; then
+    printf 'グローバル: %s (allow: %s件)\n' "${_CAND_GLOBAL_FILE}" "${_CAND_GLOBAL_COUNT}"
   else
-    global_count=""
-  fi
-
-  printf 'ローカル: %s (allow: %s件)\n' "${local_file}" "${local_count}"
-  if [[ -f "${global_file}" ]]; then
-    printf 'グローバル: %s (allow: %s件)\n' "${global_file}" "${global_count}"
-  else
-    printf 'グローバル: %s (未作成)\n' "${global_file}"
+    printf 'グローバル: %s (未作成)\n' "${_CAND_GLOBAL_FILE}"
   fi
 
   if [[ "${candidate_count}" -eq 0 ]]; then
@@ -809,11 +872,80 @@ _candidates_one() {
 
   printf '移管候補 (%s件, グローバルのルール・pathRuleいずれでも未カバー):\n' "${candidate_count}"
   printf '%s\n' "${candidates[@]}" | sed 's/^/  /'
-  printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${global_file}"
+  printf '\n%s へ手動で追記・整理してください（このコマンドは一覧表示のみで自動追加はしません）\n' "${_CAND_GLOBAL_FILE}"
 }
 
+# dir($1)の候補を {"target": DIR, "allow": [...]} のコンパクトなJSON1行として出力する
+# （claude-perms remove --json / apply へそのまま渡せる形）。settings.local.jsonが
+# 無いDIR、または候補0件のDIRは（--verbose指定時であっても）何も出力しない
+# ノイズを避けるため機械可読モードでは常にスキップする）。
+_candidates_one_json() {
+  local dir="${1:-.}"
+  _compute_candidates "${dir}" || return 1
+  [[ "${_CAND_SKIP}" == true ]] && return 0
+
+  local -a candidates=()
+  local entry
+  while IFS= read -r entry; do
+    [[ -n "${entry}" ]] && candidates+=("${entry}")
+  done <<< "${_CAND_ENTRIES}"
+  (( ${#candidates[@]} > 0 )) || return 0
+
+  local allow_json
+  allow_json="$(printf '%s\n' "${candidates[@]}" | jq -R -s 'split("\n") | map(select(length > 0))')"
+  jq -cn --arg target "${dir}" --argjson allow "${allow_json}" '{target: $target, allow: $allow}'
+}
+
+# _run_over_dirs と同様、複数DIRをループしてJSONオブジェクト（1行1件）を集め、
+# 全体を1つのJSON配列に整形して出力する（--jsonモード専用の集約ヘルパー）。
+_run_over_dirs_json() {
+  local fn="$1"
+  shift
+  local -a dirs=("$@")
+  (( ${#dirs[@]} == 0 )) && dirs=(".")
+
+  local dir out rc failed=0
+  local -a json_objs=()
+  for dir in "${dirs[@]}"; do
+    if out="$("${fn}" "${dir}")"; then
+      rc=0
+    else
+      rc=$?
+    fi
+    [[ -n "${out}" ]] && json_objs+=("${out}")
+    (( rc != 0 )) && failed=1
+  done
+
+  if (( ${#json_objs[@]} == 0 )); then
+    printf '[]\n'
+  else
+    printf '%s\n' "${json_objs[@]}" | jq -s '.'
+  fi
+  return "${failed}"
+}
+
+# claude-perms candidates [DIR...] [--json]
 _cmd_candidates() {
-  _run_over_dirs _candidates_one "$@"
+  local json=false
+  local -a rest=()
+  local a
+  for a in "$@"; do
+    case "${a}" in
+      --json) json=true ;;
+      *) rest+=("${a}") ;;
+    esac
+  done
+  if (( ${#rest[@]} > 0 )); then
+    set -- "${rest[@]}"
+  else
+    set --
+  fi
+
+  if [[ "${json}" == true ]]; then
+    _run_over_dirs_json _candidates_one_json "$@"
+  else
+    _run_over_dirs _candidates_one "$@"
+  fi
 }
 
 # ~/.claude/claude-perms.json の forbiddenAllow と pathRules[].allow を
@@ -956,9 +1088,25 @@ _matches_pattern() {
   [[ "$(_normalize_rule "${entry}")" == "$(_normalize_rule "${pattern}")" ]]
 }
 
-# file 内の allow/deny/ask から _REMOVE_PATTERN（_REMOVE_GLOBの解釈に従う）に
-# 一致するエントリを探す。_REMOVE_APPLY=true なら実際に削除して書き戻し、
-# false（既定）なら一致内容を表示するだけ（dry-run、書き換えない）。
+# エントリ($1)が_REMOVE_PATTERN/_REMOVE_GLOBに一致するか判定する
+# （claude-perms remove/remove-global専用のマッチャー。_REMOVE_MATCH_FNへセットして使う）。
+_pattern_match_entry() {
+  _matches_pattern "$1" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"
+}
+
+# エントリ($1)の正規化後の値が_REMOVE_JSON_SET（正規化済み・改行区切り）に厳密一致するか
+# 判定する（claude-perms remove --json専用のマッチャー。_REMOVE_MATCH_FNへセットして使う）。
+_json_set_match_entry() {
+  local norm_e
+  norm_e="$(_normalize_rule "$1")"
+  [[ -n "${_REMOVE_JSON_SET:-}" ]] || return 1
+  command grep -qxF "${norm_e}" <<< "${_REMOVE_JSON_SET}"
+}
+
+# file 内の allow/deny/ask から _REMOVE_MATCH_FN（引数1つ・エントリ文字列を取り、
+# 一致すれば0を返す関数名。remove系コマンドが呼び出し前に設定する）に一致する
+# エントリを探す。_REMOVE_APPLY=true なら実際に削除して書き戻し、false（既定）
+# なら一致内容を表示するだけ（dry-run、書き換えない）。
 _remove_from_file() {
   local file="$1"
   local report="" matched_any=false
@@ -966,7 +1114,7 @@ _remove_from_file() {
 
   while IFS= read -r e; do
     [[ -n "${e}" ]] || continue
-    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+    if "${_REMOVE_MATCH_FN}" "${e}"; then
       report="${report}  [allow] ${e}"$'\n'
       matched_any=true
     else
@@ -976,7 +1124,7 @@ _remove_from_file() {
 
   while IFS= read -r e; do
     [[ -n "${e}" ]] || continue
-    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+    if "${_REMOVE_MATCH_FN}" "${e}"; then
       report="${report}  [deny] ${e}"$'\n'
       matched_any=true
     else
@@ -986,7 +1134,7 @@ _remove_from_file() {
 
   while IFS= read -r e; do
     [[ -n "${e}" ]] || continue
-    if _matches_pattern "${e}" "${_REMOVE_PATTERN}" "${_REMOVE_GLOB}"; then
+    if "${_REMOVE_MATCH_FN}" "${e}"; then
       report="${report}  [ask] ${e}"$'\n'
       matched_any=true
     else
@@ -1041,23 +1189,115 @@ _remove_one() {
   return 0
 }
 
+# JSON入力（candidates --json と同じ形: [{"target":DIR,"allow":[...]},...]）の
+# 1件（idx番目）を処理する。対象targetのsettings.local.jsonから、allowに列挙された
+# エントリを厳密一致（正規化後）でallow/deny/askから探し、_REMOVE_APPLYに従って
+# 削除・報告する（_remove_one をそのまま再利用。_REMOVE_JSON_SETをこの件用に
+# セットしてから呼ぶ）。
+_remove_json_one() {
+  local content="$1" idx="$2"
+  local target
+  target="$(jq -r ".[${idx}].target" <<< "${content}")"
+  if [[ -z "${target}" || "${target}" == "null" ]]; then
+    printf 'error: JSON[%s].target が指定されていません\n' "${idx}" >&2
+    return 1
+  fi
+
+  _REMOVE_JSON_SET=""
+  local a
+  while IFS= read -r a; do
+    [[ -n "${a}" ]] && _REMOVE_JSON_SET="${_REMOVE_JSON_SET}$(_normalize_rule "${a}")"$'\n'
+  done < <(jq -r ".[${idx}].allow // [] | .[]" <<< "${content}")
+
+  _remove_one "${target}"
+}
+
+# claude-perms remove --json <FILE|-> [--apply|-y]
+# candidates --json の出力（[{"target":DIR,"allow":[...]},...]）をそのまま渡すと、
+# targetごとのsettings.local.jsonからallowに列挙されたエントリを厳密一致
+# （正規化後、glob展開はしない）で探して削除する。FILEに"-"を指定すると標準入力
+# から読む。既定はdry-run、--apply/-yで実際に削除する。
+_cmd_remove_json() {
+  local apply=false
+  local -a rest=()
+  local a
+  for a in "$@"; do
+    case "${a}" in
+      --apply|-y) apply=true ;;
+      *) rest+=("${a}") ;;
+    esac
+  done
+  (( ${#rest[@]} > 0 )) || _error "usage: claude-perms remove --json <FILE|-> [--apply]"
+  (( ${#rest[@]} == 1 )) || _error "remove --json はFILE以外の引数（DIR等）を取りません"
+
+  local src="${rest[0]}" content
+  if [[ "${src}" == "-" ]]; then
+    content="$(cat)"
+  else
+    [[ -f "${src}" ]] || _error "JSONファイルが見つかりません: ${src}"
+    content="$(cat "${src}")"
+  fi
+  local err
+  if ! err="$(jq empty <<< "${content}" 2>&1)"; then
+    printf 'error: 無効なJSON: %s\n' "${src}" >&2
+    printf '  %s\n' "${err}" >&2
+    return 1
+  fi
+
+  _REMOVE_APPLY="${apply}"
+  _REMOVE_MATCH_FN=_json_set_match_entry
+
+  local count idx failed=0 printed_any=false out rc
+  count="$(jq 'length' <<< "${content}")"
+  for (( idx = 0; idx < count; idx++ )); do
+    if out="$(_remove_json_one "${content}" "${idx}" 2>&1)"; then
+      rc=0
+    else
+      rc=$?
+    fi
+    if [[ -n "${out}" ]]; then
+      [[ "${printed_any}" == true ]] && printf '\n'
+      printf '%s\n' "${out}"
+      printed_any=true
+    fi
+    (( rc != 0 )) && failed=1
+  done
+  return "${failed}"
+}
+
 # claude-perms remove <pattern> [DIR...] [--glob] [--apply|-y]
+# claude-perms remove --json <FILE|-> [--apply|-y]
 _cmd_remove() {
-  local glob=false apply=false
+  local glob=false apply=false json=false
   local -a rest=()
   local a
   for a in "$@"; do
     case "${a}" in
       --glob) glob=true ;;
       --apply|-y) apply=true ;;
+      --json) json=true ;;
       *) rest+=("${a}") ;;
     esac
   done
+
+  if [[ "${json}" == true ]]; then
+    [[ "${glob}" == true ]] && _error "--json と --glob は同時に指定できません"
+    if (( ${#rest[@]} > 0 )); then
+      set -- "${rest[@]}"
+    else
+      set --
+    fi
+    [[ "${apply}" == true ]] && set -- "$@" --apply
+    _cmd_remove_json "$@"
+    return
+  fi
+
   (( ${#rest[@]} > 0 )) || _error "usage: claude-perms remove <pattern> [DIR...] [--glob] [--apply]"
 
   _REMOVE_PATTERN="${rest[0]}"
   _REMOVE_GLOB="${glob}"
   _REMOVE_APPLY="${apply}"
+  _REMOVE_MATCH_FN=_pattern_match_entry
 
   set -- "${rest[@]}"
   shift
@@ -1082,6 +1322,7 @@ _cmd_remove_global() {
   _REMOVE_PATTERN="${rest[0]}"
   _REMOVE_GLOB="${glob}"
   _REMOVE_APPLY="${apply}"
+  _REMOVE_MATCH_FN=_pattern_match_entry
 
   local file
   file="$(_global_settings_file)"
@@ -1126,6 +1367,44 @@ _matched_path_rule_allow() {
       done < <(jq -r '.[]' <<< "${allow_json}")
     fi
   done <<< "${rules_tsv}"
+}
+
+# ~/.claude/claude-perms.json の pathRules を "idx<TAB>glob" の改行区切りで返す
+# （idxは0始まり。pathGlobが配列の場合は各要素ごとに同じidxで複数行になる）。
+# claude-perms apply がtargetに一致する既存pathRuleのインデックスを求めるために使う。
+# ファイルが無ければ何も出力しない（0を返す）。壊れたJSONの場合は1を返す。
+_path_rule_indices_tsv() {
+  local config
+  config="$(_claude_perms_config_file)"
+  [[ -f "${config}" ]] || return 0
+  _validate_json "${config}" || return 1
+  jq -r '
+    .pathRules // [] | to_entries[] | . as $e
+    | ($e.value.pathGlob | if type == "array" then . else [.] end)[]
+    | [$e.key, .] | @tsv
+  ' "${config}"
+}
+
+# abs_dir($1)に一致するpathRuleのインデックス（0始まり、昇順・重複除去）を
+# 改行区切りで返す（claude-perms apply専用）。一致なし・ファイルが無ければ何も
+# 出力しない（0を返す）。壊れたJSONの場合は1を返す。
+_matched_path_rule_indices() {
+  local abs_dir="$1" tsv
+  tsv="$(_path_rule_indices_tsv)" || return 1
+  [[ -n "${tsv}" ]] || return 0
+
+  local idx glob last=""
+  while IFS=$'\t' read -r idx glob; do
+    [[ -n "${glob}" ]] || continue
+    [[ "${idx}" == "${last}" ]] && continue
+    glob="${glob/#\~/${HOME}}"
+    # shellcheck disable=SC2053  # globとして評価するためあえて非クォート
+    if [[ "${abs_dir}" == ${glob} ]]; then
+      printf '%s\n' "${idx}"
+      last="${idx}"
+    fi
+  done <<< "${tsv}"
+  return 0
 }
 
 # entry($1)がabs_dir($2)に一致するpathRuleのallowでカバーされるか判定する
@@ -1197,10 +1476,173 @@ _cmd_sync() {
   _run_over_dirs _sync_one "$@"
 }
 
+# existing_lines($1, 改行区切り生文字列) と add_lines($2, 改行区切り生文字列) を
+# 正規化・union（重複除去）した結果を _APPLY_NEW_JSON（JSON配列文字列）にセットする。
+# 既存に無く新規追加された分（正規化済み・改行区切り。0件なら空文字列）を
+# _APPLY_ADDED_LINES にセットする。既存エントリの削除は行わない（純粋な追加のみ）。
+_compute_apply_union() {
+  local existing_lines="$1" add_lines="$2"
+  local existing_norm_json
+  existing_norm_json="$(_normalize_entries_json <<< "${existing_lines}")"
+
+  local combined="${existing_lines}"$'\n'"${add_lines}"
+  _APPLY_NEW_JSON="$(_normalize_entries_json <<< "${combined}")"
+
+  _APPLY_ADDED_LINES=""
+  local e
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] || continue
+    jq -e --arg e "${e}" 'any(.[]; . == $e)' <<< "${existing_norm_json}" > /dev/null 2>&1 && continue
+    _APPLY_ADDED_LINES="${_APPLY_ADDED_LINES}${e}"$'\n'
+  done < <(jq -r '.[]' <<< "${_APPLY_NEW_JSON}")
+}
+
+# file($1) の既存allowをjq_read_filter($2)で読み、allow_lines($4)とunionした結果を
+# 表示する。_APPLY_APPLY=true のときだけ、jq_write_filter($3)（$newallowを参照する
+# jqフィルタ文字列）でfileへ実際に書き戻す。file・jq_read_filter・jq_write_filter
+# は呼び出し側（_cmd_apply）が組み立てた信頼済みの値のみを渡すこと。
+_apply_to_dest() {
+  local file="$1" jq_read_filter="$2" jq_write_filter="$3" allow_lines="$4"
+  local existing_lines="" e
+  while IFS= read -r e; do
+    [[ -n "${e}" ]] && existing_lines="${existing_lines}${e}"$'\n'
+  done < <(jq -r "${jq_read_filter}" "${file}")
+
+  _compute_apply_union "${existing_lines}" "${allow_lines}"
+
+  if [[ -z "${_APPLY_ADDED_LINES}" ]]; then
+    printf '  追加なし（すべて既存のallowでカバー済み）\n'
+    return 0
+  fi
+
+  printf '  追加:\n'
+  printf '%s' "${_APPLY_ADDED_LINES}" | sed 's/^/    /'
+
+  if [[ "${_APPLY_APPLY}" != true ]]; then
+    printf '  [dry-run] --apply で書き込みます\n'
+    return 0
+  fi
+
+  local target tmp
+  target="$(_resolve_write_target "${file}")"
+  tmp="$(mktemp "${target}.XXXXXX")"
+  jq --argjson newallow "${_APPLY_NEW_JSON}" "${jq_write_filter}" "${target}" > "${tmp}"
+  mv "${tmp}" "${target}"
+  printf '  書き込みました\n'
+}
+
+# claude-perms apply <FILE|-> [--apply|-y]
+# candidates --json の出力と同じ形（[{"target":DIR,"allow":[...]},...]）を読み、
+# targetの絶対パスに一致する既存pathRuleがちょうど1件あればそのpathRules[].allowへ、
+# 一致するpathRuleが無ければ~/.claude/settings.json（グローバル）のallowへ、
+# allowをunion（重複除去・正規化。既存エントリの削除はしない）で書き込む。一致する
+# pathRuleが複数ある場合は書き込み先を自動で決められないため、そのtargetだけ
+# エラー報告してスキップする（claude-perms.jsonを手動整理してから再実行する）。
+# ローカルのsettings.local.jsonは変更しない（不要になったエントリの削除は別途
+# claude-perms remove --json で行う）。既定はdry-run、--apply/-yで実際に書き込む。
+_cmd_apply() {
+  local apply=false
+  local -a rest=()
+  local a
+  for a in "$@"; do
+    case "${a}" in
+      --apply|-y) apply=true ;;
+      *) rest+=("${a}") ;;
+    esac
+  done
+  (( ${#rest[@]} > 0 )) || _error "usage: claude-perms apply <FILE|-> [--apply]"
+  (( ${#rest[@]} == 1 )) || _error "apply はFILE以外の引数（DIR等）を取りません"
+  _APPLY_APPLY="${apply}"
+
+  local src="${rest[0]}" content
+  if [[ "${src}" == "-" ]]; then
+    content="$(cat)"
+  else
+    [[ -f "${src}" ]] || _error "JSONファイルが見つかりません: ${src}"
+    content="$(cat "${src}")"
+  fi
+  local err
+  if ! err="$(jq empty <<< "${content}" 2>&1)"; then
+    printf 'error: 無効なJSON: %s\n' "${src}" >&2
+    printf '  %s\n' "${err}" >&2
+    return 1
+  fi
+
+  local config_file global_file
+  config_file="$(_claude_perms_config_file)"
+  global_file="$(_global_settings_file)"
+
+  local count idx failed=0 printed_any=false
+  count="$(jq 'length' <<< "${content}")"
+  for (( idx = 0; idx < count; idx++ )); do
+    local target abs_dir allow_lines a2
+    target="$(jq -r ".[${idx}].target" <<< "${content}")"
+    if [[ -z "${target}" || "${target}" == "null" ]]; then
+      printf 'error: JSON[%s].target が指定されていません: %s\n' "${idx}" "${src}" >&2
+      failed=1
+      continue
+    fi
+    if [[ ! -d "${target}" ]]; then
+      printf 'error: ディレクトリが見つかりません: %s\n' "${target}" >&2
+      failed=1
+      continue
+    fi
+    abs_dir="$(realpath "${target}")"
+
+    allow_lines=""
+    while IFS= read -r a2; do
+      [[ -n "${a2}" ]] && allow_lines="${allow_lines}${a2}"$'\n'
+    done < <(jq -r ".[${idx}].allow // [] | .[]" <<< "${content}")
+
+    [[ "${printed_any}" == true ]] && printf '\n'
+    printed_any=true
+
+    if [[ -z "${allow_lines}" ]]; then
+      printf '対象エントリなし（allowが空）: %s\n' "${target}"
+      continue
+    fi
+
+    local indices_out
+    if ! indices_out="$(_matched_path_rule_indices "${abs_dir}")"; then
+      printf 'error: claude-perms.json の読み込みに失敗しました（pathRule判定不可）: %s\n' "${target}"
+      failed=1
+      continue
+    fi
+    local -a rule_indices=()
+    local ri
+    while IFS= read -r ri; do
+      [[ -n "${ri}" ]] && rule_indices+=("${ri}")
+    done <<< "${indices_out}"
+
+    if (( ${#rule_indices[@]} > 1 )); then
+      printf 'error: 複数のpathRuleに一致するため書き込み先を決められません: %s (pathRule index: %s)\n' "${target}" "${rule_indices[*]}"
+      printf '  %s を手動で編集してから再実行してください\n' "${config_file}"
+      failed=1
+      continue
+    fi
+
+    if (( ${#rule_indices[@]} == 1 )); then
+      local ridx="${rule_indices[0]}"
+      printf 'target: %s\n書き込み先: %s pathRules[%s]\n' "${target}" "${config_file}" "${ridx}"
+      _apply_to_dest "${config_file}" ".pathRules[${ridx}].allow // [] | .[]" ".pathRules[${ridx}].allow = \$newallow" "${allow_lines}"
+    else
+      if [[ ! -f "${global_file}" ]]; then
+        printf 'error: not found: %s\n' "${global_file}"
+        failed=1
+        continue
+      fi
+      printf 'target: %s\n書き込み先: %s（一致するpathRuleなし）\n' "${target}" "${global_file}"
+      # shellcheck disable=SC2016  # $newallowはjq --argjsonのプレースホルダ（bash展開ではない）
+      _apply_to_dest "${global_file}" '.permissions.allow // [] | .[]' '.permissions.allow = $newallow' "${allow_lines}"
+    fi
+  done
+  return "${failed}"
+}
+
 _require_jq
 
 command_name="${1:-}"
-[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global|sync} [DIR...]"
+[[ -n "${command_name}" ]] || _error "usage: claude-perms {format|format-global|check|candidates|remove|remove-global|sync|apply} [DIR...]"
 shift
 
 case "${command_name}" in
@@ -1211,5 +1653,6 @@ case "${command_name}" in
   remove)        _cmd_remove "$@" ;;
   remove-global) _cmd_remove_global "$@" ;;
   sync)          _cmd_sync "$@" ;;
-  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global/sync が使えます)" ;;
+  apply)         _cmd_apply "$@" ;;
+  *) _error "unknown command: ${command_name} (format/format-global/check/candidates/remove/remove-global/sync/apply が使えます)" ;;
 esac
