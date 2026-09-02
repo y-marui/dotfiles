@@ -15,6 +15,7 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 EXCEPTIONS=(
   "install-my-apps:macOS専用ツール（.appのDMGインストール）"
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
+  "claude-perms:zsh専用（shell/zshrcのcdフックと連携）。Windows対応が必要になれば別途追加する"
 )
 
 _exception_key() {

@@ -322,9 +322,49 @@ function g() {
 }
 function _g() { _values '' 'root' }
 
+# claude-perms shell {on|off|status}: cd時の .claude/ permissionsチェック（下記 cd
+# 参照）を、現在のシェルの環境変数だけで一時的にon/offする（pyenv shellと同じ方式で
+# 子シェルは起動しない）。既定はoff。on/off/status以外は本体（bin/unix/claude-perms）
+# の sort/check/candidates にそのまま渡す。
+function claude-perms() {
+  if [[ "$1" == "shell" ]]; then
+    case "$2" in
+      on)
+        export CLAUDE_PERMS_CD_CHECK=1
+        echo "claude-perms: cd時のpermissionsチェックを有効にしました（無効化: claude-perms shell off）"
+        ;;
+      off)
+        unset CLAUDE_PERMS_CD_CHECK
+        echo "claude-perms: cd時のpermissionsチェックを無効にしました"
+        ;;
+      status|"")
+        if [[ -n "${CLAUDE_PERMS_CD_CHECK:-}" ]]; then
+          echo "claude-perms: cd時のpermissionsチェックは有効です"
+        else
+          echo "claude-perms: cd時のpermissionsチェックは無効です（claude-perms shell on で有効化）"
+        fi
+        ;;
+      *)
+        echo "usage: claude-perms shell {on|off|status}" >&2
+        return 1
+        ;;
+    esac
+    return 0
+  fi
+  command claude-perms "$@"
+}
+
 # cd 後に自動で ls
+# CLAUDE_PERMS_CD_CHECK が有効（claude-perms shell on）な間だけ、.claude/ がある
+# ディレクトリへ移動した場合に permissions の整理要否も通知する
 function cd() {
   builtin cd "$@" && ls
+  local cd_status=$?
+  if [[ -n "${CLAUDE_PERMS_CD_CHECK:-}" && $cd_status -eq 0 && -d .claude ]] \
+      && (( $+commands[claude-perms] )); then
+    command claude-perms check .
+  fi
+  return $cd_status
 }
 
 # ディレクトリによって code / code-insiders を切り替え
