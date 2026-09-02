@@ -13,3 +13,4 @@
 - コミットメッセージは Conventional Commits 形式
 - `pre-commit run --all-files` を通してから提出する
 - 個人運用のリポジトリのため、レビュー・マージには時間がかかることがある
+- `main` は `Require conversation resolution before merging` を有効化しており（管理者にも適用）、全 conversation が resolve されるまでマージできない。返信だけでは resolve 済みにならないため、対応後に GitHub 上で明示的に resolve する。この設定は暫定であり、direct push 運用との両立方針は [y-marui/dev-charter#110](https://github.com/y-marui/dev-charter/issues/110) で検討中
