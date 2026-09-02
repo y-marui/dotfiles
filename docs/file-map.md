@@ -1,8 +1,15 @@
 # File Map
 
-_最終更新: 2026-08-27_
+_最終更新: 2026-09-02_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
+
+## claude-perms
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `bin/unix/claude-perms` | `settings.local.json`/`settings.json`のpermissions整理、pathRuleベースの一括配布（`sync`）、run-quiet修飾版の自動補完 | `~/.claude/settings.json`、`~/.claude/claude-perms.json`（実体は`dotfiles-private/ai/claude/claude-perms.json`） |
+| `completions/_claude-perms` | `claude-perms`のzsh補完 | `bin/unix/claude-perms` |
 
 ## ghq-status / ghq-update
 

@@ -150,6 +150,32 @@ LaunchAgentいずれも）、キーチェーンの値がプロンプトなしで
   経由で現在の正しいパスワードを入力し直してキーチェーンの値そのものを更新する
 - `guest`ジョブはそもそもパスワードが不要なため、この手順は不要
 
+## claude-perms
+
+Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/settings.json`）を
+整理するツール。サブコマンドの詳細と正規化規則は [claude-perms](../bin/unix/claude-perms)
+冒頭のコメントを参照。
+
+- `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `sync`
+  の7サブコマンドを持つ
+- `~/.claude/claude-perms.json`（Claude Code本体は読まない専用設定。パス情報を含むため
+  実体はdotfiles-privateの`ai/claude/claude-perms.json`）に`pathRules`
+  （`pathGlob` → `allow`）を宣言すると、`sync [DIR...]`がDIRの絶対パスに一致する
+  pathRuleのallowを`DIR/.claude/settings.local.json`へ実体化する。複数のpathRuleが
+  一致した場合はallowを全て合成する（OR/和集合）。pathRuleを外しても、過去に`sync`で
+  追加したエントリを自動削除はしない
+- `format` / `format-global` / `sync`は、残ったBash allowエントリのうち末尾wildcard
+  （`cmd:*`等）を持つものについて、run-quiet修飾版（`run-quiet cmd:*`）がまだ無ければ
+  自動追加する（「素のコマンドを許可していればrun-quiet版も許可されているとみなす」
+  という方針のため、pathRules・グローバル側は素のコマンドだけ書けばよい）。ただし
+  これは「無ければ足す」自動補完に限られ、`format`の実削除判定（グローバルで
+  カバー済みのローカルエントリを消す判定）はrun-quiet版を誤って失わないよう厳密な
+  前方一致のままにしている。`candidates`の「pathRuleでカバー済みなので除外」判定
+  だけは、run-quiet修飾版も考慮する緩い判定を使う
+- `~/.claude/claude-perms.json`の`forbiddenAllow`に列挙したエントリ（例:
+  `Bash(run-quiet:*)`のような無制限wildcard）は、`format`/`format-global`が
+  ローカル・グローバルどちらのallowからも自動削除する
+
 ## ghq-status
 
 `bin/unix/ghq-status` の BRANCHES 列・DEV-CHARTER 列・keep-up-to-date 判定ロジックは [ghq-status](../bin/unix/ghq-status) 冒頭のコメントと [DEVELOPING.md](../DEVELOPING.md) を参照。
