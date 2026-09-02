@@ -748,9 +748,22 @@ _candidates_one() {
 
   local -a raw_candidates=()
   if [[ -n "${classified}" ]]; then
+    local pr_rc
     while IFS=$'\t' read -r tag entry _covering; do
       [[ "${tag}" == "KEEP" ]] || continue
-      _covered_by_path_rule "${entry}" "${abs_dir}" && continue
+      if _covered_by_path_rule "${entry}" "${abs_dir}"; then
+        pr_rc=0
+      else
+        pr_rc=$?
+      fi
+      # pr_rc: 0=pathRuleでカバー済み（候補から除外）、1=未カバー（候補に残す）、
+      # 2=判定失敗（claude-perms.json破損等）。2を1と混同して静かに成功扱いに
+      # しないよう、ここでエラーとして伝播する。
+      if (( pr_rc == 2 )); then
+        return 1
+      elif (( pr_rc == 0 )); then
+        continue
+      fi
       raw_candidates+=("${entry}")
     done <<< "${classified}"
   fi
@@ -1104,9 +1117,12 @@ _matched_path_rule_allow() {
 # entry($1)がabs_dir($2)に一致するpathRuleのallowでカバーされるか判定する
 # （_covers_lenient使用。run-quiet修飾版もカバー済み扱いにする）。
 # candidatesが「pathRuleで意図的にスコープ済みのエントリ」を除外するために使う。
+# 終了コードは3値: 0=カバー済み、1=未カバー（正常）、2=判定失敗
+# （~/.claude/claude-perms.json が壊れたJSON等）。呼び出し側は2を「未カバー」と
+# 混同せず、エラーとして伝播すること。
 _covered_by_path_rule() {
   local entry="$1" abs_dir="$2" tsv
-  tsv="$(_matched_path_rule_allow "${abs_dir}")" || return 1
+  tsv="$(_matched_path_rule_allow "${abs_dir}")" || return 2
   [[ -n "${tsv}" ]] || return 1
   local pr
   while IFS= read -r pr; do
