@@ -47,7 +47,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots dock apply` | Dock・Finderサイドバーを適用 |
 | `dots dock diff` | Dock・Finderサイドバーの差分を表示 |
 | `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
-| `dots shortcuts {apply\|diff\|sync\|cache}` | macOSのアプリケーションショートカットを管理 |
+| `dots shortcuts {apply\|diff\|sync\|merge\|cache}` | macOSのアプリケーションショートカットを管理（applyは管理ファイルと完全一致、mergeで現在値を先に取り込める） |
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
 | `dots ai {apply\|diff\|prune}` | Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理 |

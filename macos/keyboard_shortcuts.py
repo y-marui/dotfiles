@@ -235,20 +235,29 @@ def command_diff(summary: bool) -> int:
 
 def command_apply() -> int:
     managed = load_shortcuts(managed_path())
-    for domain, entries in managed.items():
-        command = ["write"]
-        if domain == GLOBAL_DOMAIN:
-            command.append("-globalDomain")
-        else:
-            command.append(domain)
-        command.extend([KEY, "-dict-add"])
-        for title, equivalent in entries.items():
-            command.extend([title, equivalent])
-        result = run_defaults(*command)
-        if result.returncode != 0:
-            print(f"Error: failed to update {domain}", file=sys.stderr)
-            return result.returncode
-        print(f"  APPLIED  {domain} ({len(entries)} shortcut(s))")
+    current = current_shortcuts()
+    for domain in sorted(set(managed) | set(current)):
+        entries = managed.get(domain, {})
+        existing = current.get(domain, {})
+        removed = sorted(set(existing) - set(entries))
+        domain_flag = ["-globalDomain"] if domain == GLOBAL_DOMAIN else [domain]
+        if entries:
+            command = ["write", *domain_flag, KEY, "-dict"]
+            for title, equivalent in entries.items():
+                command.extend([title, equivalent])
+            result = run_defaults(*command)
+            if result.returncode != 0:
+                print(f"Error: failed to update {domain}", file=sys.stderr)
+                return result.returncode
+            if removed:
+                print(f"  REMOVED  {domain} ({len(removed)} shortcut(s)): {', '.join(removed)}")
+            print(f"  APPLIED  {domain} ({len(entries)} shortcut(s))")
+        elif removed:
+            result = run_defaults("delete", *domain_flag, KEY)
+            if result.returncode != 0:
+                print(f"Error: failed to clear {domain}", file=sys.stderr)
+                return result.returncode
+            print(f"  REMOVED  {domain} ({len(removed)} shortcut(s)): {', '.join(removed)}")
     command_cache()
     print("Done. Quit and reopen affected applications to use the new shortcuts.")
     return 0
