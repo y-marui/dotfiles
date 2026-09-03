@@ -67,6 +67,15 @@ Swift/SwiftUI など Mac/iOS ネイティブアプリの変更を検証する際
 `swift build` / `swift test` / `xcodebuild` やコンパイル・自動テストでの検証は問題ない。
 UI 上の見た目確認が必要な場合は、その旨を伝えてユーザーに確認してもらう。
 
+Alfred Workflow（`.alfredworkflow`）など、ダブルクリックで開く形式のネイティブ
+macOS 成果物も同様に、実際の見た目・動作確認はユーザー自身が Alfred 上で行う。
+ただし成果物をビルドした後、`open <file>.alfredworkflow` で OS 標準のインポート
+ダイアログを開くところまでは行ってよい（Finder でのダブルクリックと同義の操作で、
+検証行為そのものではないため）。オープンな PR 上で反復開発している場合、ユーザー
+からの具体的なフィードバックは新しいブランチを作らず同じ PR に追いコミットし、
+再ビルド → `open` → 再確認のループを回す。PR 本文も直近の変更点を反映するよう
+都度更新する。
+
 ## Language for Self-Executed Issues
 
 GitHub Issue の本文言語は、その Issue の残作業を誰が実行するかで決める。
