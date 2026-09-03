@@ -1,4 +1,3 @@
-SHELL      := /bin/bash
 DOTFILES_DIR := $(CURDIR)
 PRIVATE_DIR  := $(DOTFILES_DIR)-private
 PRIVATE_SCAFFOLD_DIR ?= $(PRIVATE_DIR)
@@ -108,8 +107,8 @@ private-lint: ## dotfiles-private のpre-commitを全ファイルに実行
 	@cd "$(PRIVATE_DIR)" && pre-commit run --all-files
 
 update-charter: ## dev-charter (lite) を最新版に更新
-	CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+	curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash
 
 update-private-charter: ## dotfiles-private のdev-charter subtreeを更新
 	@test -d "$(PRIVATE_DIR)/.git" || { echo "エラー: $(PRIVATE_DIR) がありません。make private を実行してください。" >&2; exit 1; }
-	@cd "$(PRIVATE_DIR)" && CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+	@cd "$(PRIVATE_DIR)" && curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash
