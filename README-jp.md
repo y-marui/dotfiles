@@ -4,11 +4,13 @@
 > 英語版（参照）は [README.md](README.md) を参照してください。
 
 [dev-charter](https://github.com/y-marui/dev-charter) の **lite** 版。
-プロジェクト種別を問わず普遍的に価値がある部分（AI コンテキストの整備、
-GitHub Issues/Projects でのタスク管理、シークレット管理等）だけを収録して
-いる。Python 開発環境・UI デザイン・収益化方針などソフトウェアプロジェクト
-固有の内容は含まれない。収録内容は [CHARTER_INDEX.md](CHARTER_INDEX.md) を
-参照。それらが必要な場合は `full` ブランチを検討すること。
+プロジェクト種別を問わず普遍的に価値がある部分（変更設計の原則、AI コンテキ
+ストの整備、GitHub Issues/Projects でのタスク管理、Git ワークフロー・
+ブランチ戦略、言語・ライセンス方針、シークレット管理等）だけを収録している。
+Python 開発環境・UI デザイン・
+収益化方針などソフトウェアプロジェクト固有の内容は含まれない。収録内容は
+[CHARTER_INDEX.md](CHARTER_INDEX.md) を参照。それらが必要な場合は `full`
+ブランチを検討すること。
 
 ## Install (git subtree)
 
@@ -21,13 +23,13 @@ git subtree add --prefix=docs/dev-charter dev-charter lite --squash
 インストール後、以下のプロンプトを AI ツールに貼り付けてください：
 
 ```
-docs/dev-charter/CHARTER_INDEX.md を読み、このプロジェクトに合わせて AI_CONTEXT.md 等を構成して
+docs/dev-charter/INSTALL_CHECKLIST.md を実行して
 ```
 
 Quick Install のワンライナーでも同じことができる：
 
 ```bash
-CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_BRANCH=lite bash
 ```
 
 ## Update
@@ -38,7 +40,7 @@ Quick Install のワンライナーを再実行するだけでも更新できる
 場合は完全な再同期にフォールバックする）：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | bash
 ```
 
 手動で更新する場合：`dev-charter` リモートが未設定の場合（プロジェクトを clone した直後など）は先に追加する：
@@ -52,9 +54,12 @@ git subtree pull --prefix=docs/dev-charter dev-charter lite --squash
 > GitHub テンプレートはファイルのみコピーし git 履歴を引き継がないため、`git subtree pull` は失敗します。
 > `check-charter.yml` ワークフローがこのケースを自動検出して対処します。
 > 手動で更新する場合は `git subtree pull` の代わりに以下を実行してください：
+> 作業ツリーが clean であることを確認してから実行してください（`git reset --hard HEAD` は未コミット変更を破棄します）。
 > ```bash
 > git remote add dev-charter https://github.com/y-marui/dev-charter || true
 > git fetch dev-charter
+> git reset --hard HEAD
+> git clean -fd docs/dev-charter/
 > SPLIT=$(git rev-parse dev-charter/lite)
 > rm -rf docs/dev-charter/
 > mkdir -p docs/dev-charter/
@@ -66,9 +71,11 @@ git subtree pull --prefix=docs/dev-charter dev-charter lite --squash
 > git-subtree-split: ${SPLIT}"
 > ```
 
-更新後は `git diff HEAD~1 HEAD --name-only -- docs/dev-charter/` で変更ファイル
-を確認し、AI ツールにプロジェクトへの反映を依頼すること（lite には独立した
-`UPDATE_CHECKLIST.md` が無い）。
+更新後、以下のプロンプトを AI ツールに貼り付けてください：
+
+```
+docs/dev-charter/UPDATE_CHECKLIST.md を実行して
+```
 
 ## Version Check (CI)
 
@@ -158,7 +165,7 @@ jobs:
 ```
 .PHONY: update-charter
 update-charter:
-	CHARTER_UPDATE_ONLY=1 bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+	curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_UPDATE_ONLY=1 bash
 ```
 
 `CHARTER_UPDATE_ONLY=1` により、万一まだ何も導入していない状態でこの

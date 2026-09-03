@@ -4,10 +4,12 @@
 > For the canonical (Japanese) version, see [README-jp.md](README-jp.md).
 
 The **lite** variant of [dev-charter](https://github.com/y-marui/dev-charter):
-only the parts that are universally valuable regardless of project type (AI
-context maintenance, task management via GitHub Issues/Projects, secrets
-management, etc.). Software-project-specific content (Python dev environment,
-UI design, monetization policy, and so on) is not included. See
+only the parts that are universally valuable regardless of project type
+(change design principles, AI context maintenance, task management via
+GitHub Issues/Projects, Git workflow and branch strategy, language and
+license policy, secrets management, etc.). Software-project-specific
+content (Python dev environment, UI design,
+monetization policy, and so on) is not included. See
 [CHARTER_INDEX.md](CHARTER_INDEX.md) for what's included. If you need that
 content, consider the `full` branch instead.
 
@@ -22,13 +24,13 @@ git subtree add --prefix=docs/dev-charter dev-charter lite --squash
 After installing, paste the following prompt into your AI tool:
 
 ```
-Read docs/dev-charter/CHARTER_INDEX.md and set up AI_CONTEXT.md etc. for this project
+Run docs/dev-charter/INSTALL_CHECKLIST.md
 ```
 
 The Quick Install one-liner does the same thing:
 
 ```bash
-CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_BRANCH=lite bash
 ```
 
 ## Update
@@ -39,7 +41,7 @@ pull` for you (stashing/restoring uncommitted changes as needed, and falling
 back to a full re-sync for template-repo checkouts):
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | bash
 ```
 
 To update manually instead: if the `dev-charter` remote is not set up (e.g., after cloning the project), add it first:
@@ -53,9 +55,12 @@ git subtree pull --prefix=docs/dev-charter dev-charter lite --squash
 > GitHub templates copy files only — git history is not carried over — so `git subtree pull` will fail.
 > The `check-charter.yml` workflow detects this automatically and handles it.
 > For manual updates, use the following instead of `git subtree pull`:
+> Make sure the working tree is clean first (`git reset --hard HEAD` discards uncommitted changes).
 > ```bash
 > git remote add dev-charter https://github.com/y-marui/dev-charter || true
 > git fetch dev-charter
+> git reset --hard HEAD
+> git clean -fd docs/dev-charter/
 > SPLIT=$(git rev-parse dev-charter/lite)
 > rm -rf docs/dev-charter/
 > mkdir -p docs/dev-charter/
@@ -67,9 +72,11 @@ git subtree pull --prefix=docs/dev-charter dev-charter lite --squash
 > git-subtree-split: ${SPLIT}"
 > ```
 
-After updating, run `git diff HEAD~1 HEAD --name-only -- docs/dev-charter/`
-to see what changed and have your AI tool apply it to the project (lite
-doesn't have its own `UPDATE_CHECKLIST.md`).
+After updating, paste the following prompt into your AI tool:
+
+```
+Run docs/dev-charter/UPDATE_CHECKLIST.md
+```
 
 ## Version Check (CI)
 
@@ -161,7 +168,7 @@ full install with lite or vice versa.
 ```
 .PHONY: update-charter
 update-charter:
-	CHARTER_UPDATE_ONLY=1 bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+	curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh | CHARTER_UPDATE_ONLY=1 bash
 ```
 
 `CHARTER_UPDATE_ONLY=1` means that if this target is ever run before
