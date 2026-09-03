@@ -6,7 +6,7 @@ BACKUP_DIR   := $(HOME)/.dotfiles-backup/$(shell date +%Y%m%d%H%M%S)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills launchagent launchagent-museum-status init private private-scaffold private-validate private-lint update-private-charter
+.PHONY: help install install-macos install-rpi install-windows links uninstall check check-skills launchagent launchagent-museum-status init private private-scaffold private-validate private-lint update-charter update-private-charter
 
 help: ## コマンド一覧を表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -107,18 +107,9 @@ private-lint: ## dotfiles-private のpre-commitを全ファイルに実行
 	@test -d "$(PRIVATE_DIR)/.git" || { echo "エラー: $(PRIVATE_DIR) がありません。make private を実行してください。" >&2; exit 1; }
 	@cd "$(PRIVATE_DIR)" && pre-commit run --all-files
 
+update-charter: ## dev-charter (lite) を最新版に更新
+	CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
+
 update-private-charter: ## dotfiles-private のdev-charter subtreeを更新
 	@test -d "$(PRIVATE_DIR)/.git" || { echo "エラー: $(PRIVATE_DIR) がありません。make private を実行してください。" >&2; exit 1; }
-	@REPO_DIR="$(PRIVATE_DIR)"; \
-	 git -C "$$REPO_DIR" remote | grep -q '^dev-charter$$' || \
-	   git -C "$$REPO_DIR" remote add dev-charter https://github.com/y-marui/dev-charter; \
-	 git -C "$$REPO_DIR" fetch dev-charter; \
-	 STASHED=0; \
-	 if ! git -C "$$REPO_DIR" diff --quiet || \
-	    ! git -C "$$REPO_DIR" diff --cached --quiet || \
-	    [[ -n "$$(git -C "$$REPO_DIR" ls-files --others --exclude-standard)" ]]; then \
-	   git -C "$$REPO_DIR" stash push -u -m "update-charter"; \
-	   STASHED=1; \
-	 fi; \
-	 git -C "$$REPO_DIR" subtree pull --prefix=docs/dev-charter dev-charter lite --squash; \
-	 if [[ "$$STASHED" == "1" ]]; then git -C "$$REPO_DIR" stash pop; fi
+	@cd "$(PRIVATE_DIR)" && CHARTER_UPDATE_ONLY=1 CHARTER_BRANCH=lite bash <(curl -fsSL https://raw.githubusercontent.com/y-marui/dev-charter/main/scripts/install.sh)
