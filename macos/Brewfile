@@ -60,7 +60,7 @@ brew "uv"
 brew "cmake"
 brew "colormake"
 brew "flyctl"
-brew "ollama", restart_service: :changed
+brew "ollama"
 brew "postgresql@14"
 brew "pre-commit"
 brew "pyright"
@@ -216,4 +216,5 @@ vscode "ziyasal.vscode-open-in-github"
 
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "go"
+brew "tcl-tk@8"
 cask "macshot"
