@@ -11,6 +11,7 @@
     "sites@openai-bundled",
     "spreadsheets@openai-primary-runtime",
     "template-creator@openai-primary-runtime",
+    "unified-computer-use@openai-bundled",
     "visualize@openai-bundled"
   ]
 }
