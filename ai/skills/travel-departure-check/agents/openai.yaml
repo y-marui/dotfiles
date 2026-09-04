@@ -1,0 +1,4 @@
+interface:
+  display_name: "出発直前チェック"
+  short_description: "旅程に沿う天気・警報・交通影響を出発直前にまとめて確認する"
+  default_prompt: "$travel-departure-check で、明日の旅行の天気と交通への影響を確認して。"

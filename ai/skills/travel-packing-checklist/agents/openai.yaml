@@ -1,0 +1,4 @@
+interface:
+  display_name: "旅行持ち物チェック"
+  short_description: "目的地の天気に合わせて旅行の持ち物をチェックリスト化"
+  default_prompt: "$travel-packing-checklist で、目的地と日程の天気に合わせた旅行の持ち物チェックリストを作って。"
