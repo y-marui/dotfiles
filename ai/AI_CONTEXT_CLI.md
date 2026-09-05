@@ -99,6 +99,16 @@ Issue が PR マージ直後にクローズされた後も、関連する別の�
 
 ## Running Commands in the Warp Terminal
 
-Warp ターミナルは `ssh` や `make` などを独自ラッパーで包み、直接呼び出すとエラーになる
-ことがある（例: `(eval):1: make: function definition file not found`）。発生した場合は
-`command ssh ...` / `command make ...` のように `command` プレフィックスを付けて回避する。
+Warp ターミナルは `ssh` や `make` に加え `diff` 等の一般的なコマンドも独自ラッパーで包み、
+直接呼び出すとエラーになることがある（例: `(eval):1: make: function definition file not found`）。
+発生した場合は `command ssh ...` / `command make ...` / `command diff ...` のように
+`command` プレフィックスを付けて回避する。
+
+## Word Splitting in zsh Loops
+
+zsh は既定で `sh_word_split` が無効なため、bash と異なりクォートなしの変数展開
+（`for d in $repos; do ...`）はスペース区切りで単語分割されず、変数全体が1つの
+値としてループに渡る（`repos="a b c"` としても `$d` には `"a b c"` がまるごと入り、
+ループは1回しか回らない）。複数の値をループで回す場合は、変数を介さず
+`for d in a b c; do ...` のようにリテラルを直接書くか、配列
+（`repos=(a b c); for d in "${repos[@]}"; do ...`）を使う。
