@@ -38,7 +38,7 @@ repos:
   #     カスタムルールは .gitleaks.toml に記述
   # ============================================================
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.21.2
+    rev: v8.30.1
     hooks:
       - id: gitleaks
         name: "gitleaks: シークレット検知"
@@ -128,7 +128,7 @@ repos:
   # [4] pre-commit 標準フック — 基本的なファイル品質チェック
   # ============================================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # ファイル末尾の空白を除去
       - id: trailing-whitespace
