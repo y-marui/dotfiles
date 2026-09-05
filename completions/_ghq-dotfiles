@@ -1,0 +1,49 @@
+#compdef ghq
+
+# shell/zshrc の ghq() 関数は、ghq のビルトインサブコマンド以外を PATH 上の
+# ghq-<sub>（bin/unix/ghq-status 等）に git 的な流儀でディスパッチする。
+# この補完はその実行時ディスパッチと整合させ、`ghq status` のようにスペース
+# 区切りで呼んだ場合でも、`ghq-status` を直接叩いた場合と同じ補完
+# （completions/_ghq-status 等、各自 #compdef ghq-<sub> で登録済み）が効くようにする。
+#
+# ファイル名を _ghq にしていないのは、Homebrew が提供する同名の _ghq
+# （fpath 上でこのファイルより手前にある）と衝突し、autoload 時にそちらの
+# ファイルが優先されてしまうのを避けるため。#compdef の宛先コマンド名（ghq）と
+# 補完関数のファイル名は独立しているので、ファイル名さえ変えておけば
+# Homebrew 版 _ghq はそのまま生きており、ビルトインサブコマンド
+# （get/list/root/create/rm/migrate/help）自体の補完はそちらにそのまま委譲する。
+
+_ghq_dotfiles_custom_commands() {
+  local -a custom
+  local cmd
+  for cmd in ${(ok)commands}; do
+    [[ "$cmd" == ghq-* ]] || continue
+    custom+=("${cmd#ghq-}:custom ghq subcommand (${cmd})")
+  done
+  (( ${#custom} )) && _describe -t custom-commands 'custom ghq subcommand' custom
+}
+
+_ghq-dotfiles() {
+  local -a builtin_cmds
+  builtin_cmds=(get clone list rm root create migrate help h)
+
+  if (( CURRENT == 2 )); then
+    _alternative \
+      'commands:ghq command:_ghq' \
+      'custom-commands:custom ghq subcommand:_ghq_dotfiles_custom_commands'
+    return
+  fi
+
+  local sub="$words[2]"
+  if (( ! ${builtin_cmds[(Ie)$sub]} )) && (( $+commands[ghq-$sub] )); then
+    words[2]="ghq-$sub"
+    shift words
+    (( CURRENT-- ))
+    _normal
+    return
+  fi
+
+  _ghq "$@"
+}
+
+_ghq-dotfiles "$@"

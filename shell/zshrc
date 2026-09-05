@@ -289,6 +289,10 @@ function ghq() {
       fi;;
   esac
 }
+# 上記ディスパッチに合わせて、`ghq status` 等スペース区切りの補完も
+# completions/_ghq-status 等に効くようにする（fpath順ではHomebrew版_ghqが
+# 勝つため、明示的に上書きする。completions/_ghq-dotfiles 参照）。
+compdef _ghq-dotfiles ghq
 
 # ghq + fzf でリポジトリ移動
 compdef _g g
