@@ -52,5 +52,5 @@ Bash・WebFetch・同梱`scripts/`の実行が可能なサンドボックスを�
 plugin skillの表記（`plugin:skill`）と紛らわしいため使わない。
 
 特定のサービス・アプリに紐づかない汎用skill（`consolidate-global-memory`、
-`word-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める
+`docx-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める
 従来通りの命名でよい。
