@@ -36,6 +36,7 @@
       "Bash(run-quiet which:*)",
       "Bash(wait:*)",
       "Bash(which:*)",
+      "WebFetch",
       "WebSearch"
     ]
   },
