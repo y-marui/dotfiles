@@ -28,4 +28,5 @@ dev-charter の各ドキュメントへのインデックス。
 | issue/PRテンプレート（lite版）、個人開発、チェックリスト | `topics/GITHUB_ISSUE_PR_TEMPLATES.md` |
 | TODO・バックログ・ロードマップ管理、Issues、Sub-issues、Milestones、Projects (v2) | `topics/GITHUB_PROJECT_MANAGEMENT.md` |
 | GitHub設定（lite版）、branch protection、Ruleset、direct push、PRの要否 | `topics/GITHUB_SETTINGS.md` |
-| Python 開発環境、pyenv、uv、ruff、mypy、pytest、py.typed、PEP 561 | `topics/PYTHON_DEV_ENV.md` |
+| Python 開発環境、pyenv、uv、ruff、mypy、pytest、py.typed、PEP 561 | `topics/python/PYTHON_DEV_ENV.md` |
+| Swift 開発環境、XcodeGen、SwiftLint、SwiftFormat、App/+Packages/Core/、swift test、CI | `topics/swift/SWIFT_DEV_ENV.md` |
