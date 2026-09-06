@@ -1,0 +1,4 @@
+interface:
+  display_name: "PPTX校閲コンテキスト引き継ぎ"
+  short_description: "PPTX校閲ルールと再開用の状況を安全に引き継ぐ"
+  default_prompt: "Use $pptx-proofreading-handoff to record the confirmed PPTX proofreading rules and current deck-review state."
