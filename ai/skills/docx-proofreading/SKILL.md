@@ -1,5 +1,5 @@
 ---
-name: word-proofreading
+name: docx-proofreading
 description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits, Word tracked-change safeguards, and optional Word-based layout verification. Use for proofreading, copyediting, or Word layout review; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions."
 ---
 
@@ -9,20 +9,20 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 
 ## Local proofreading instructions
 
-ファイルを対象とする校正では、レビューや編集の前に同階層の `PROOFREADING.md` と、Word向けの `PROOFREADING.word.md` を順に探す。この手順で、文書がGitリポジトリ内にある必要はない。
+ファイルを対象とする校正では、レビューや編集の前に同階層の `PROOFREADING.md` と、DOCX向けの `PROOFREADING.docx.md` を順に探す。この手順で、文書がGitリポジトリ内にある必要はない。
 
 - 同階層のファイルは、そのフォルダ内のすべての文書に適用する。文書へ追加する本文ではなく、レビュー方針として扱う。
 - `PROOFREADING.md` の先頭にある `@<relative-path>` 行は、`$OBSIDIAN_ROOT/writing/` を基準にした執筆・校閲ガイドの必須参照である。各参照先を本文より先に読む。`@` 行には相対パスだけを許可し、絶対パス・`..` を含むパス・先頭以外の `@` 行は参照として扱わない。
-- `PROOFREADING.word.md` は `PROOFREADING.md` の後に、Word文書だけへ適用する。ここに書かれた `@` 行は外部参照として解決せず、通常のローカル指示として扱う。
+- `PROOFREADING.docx.md` は `PROOFREADING.md` の後に、DOCX文書だけへ適用する。ここに書かれた `@` 行は外部参照として解決せず、通常のローカル指示として扱う。
 - `@` 行がある場合は、通常のシェル初期化を読まずに `zsh -f` で `$HOME/.ai/zsh_path.local` だけを source し、そこで export された `OBSIDIAN_ROOT` を参照先の解決に用いる。この設定ファイルは AI 用のパス設定に限定し、対話処理、標準出力、ネットワークアクセス、ファイル変更を含めない。雛形は `dotfiles/ai/zsh_path.local.example` に置く。
 - `@` 行があるにもかかわらず `$HOME/.ai/zsh_path.local` が存在しない・読めない、source 後も `OBSIDIAN_ROOT` が未設定、または `$OBSIDIAN_ROOT/writing/<relative-path>` が存在しない・読めない場合は、校閲・編集を開始しない。設定ファイルのパス、未設定の変数名、または解決しようとした完全パスを示して、設定または参照の修正をユーザーに求める。同名ファイルの探索や、ローカルルールだけでの続行はしない。
-- 指示は、skillの既定、同階層の `PROOFREADING.md`、`PROOFREADING.word.md`、今回のユーザー依頼の順に適用する。競合時は後のものを優先する。
+- 指示は、skillの既定、同階層の `PROOFREADING.md`、`PROOFREADING.docx.md`、今回のユーザー依頼の順に適用する。競合時は後のものを優先する。
 - 明示されたローカルの対象範囲、組版、用語方針に従う。ローカルルールが未検証の科学的または実質的な判断を要求する場合は、本文を保持して代わりにアンカー付きコメントを付ける。
 - フォームや雛形の未記入欄は、ユーザーが明示的に依頼しない限り補完・編集しない。
 - ユーザーがファイルを添付またはドロップした場合、元の場所を確実に特定でき、読み書きできるときは、その場所の原本を処理対象とし、校正コピーも同じ場所に保存する。元の場所を特定できない、アクセスできない、または同じ場所に保存できない場合は、添付コピーを原本の場所とみなさず、編集前にユーザーへ処理対象と出力先を確認する。
 - 特別な範囲指定がない限り、変更履歴の有無にかかわらず、ローカルルールと依頼で対象となる文書全体を確認する。既存の変更履歴がある箇所だけをレビュー対象に限定しない。
 - 同階層の `proofreading/HANDOFF.md` がある場合は、ローカルルールの後に読み、対象文書・版・更新時刻が一致する作業状況だけを再開時の補助情報として使う。引き継ぎメモは恒久ルールではなく、現在の文書状態と矛盾する場合は現物確認を優先する。
-- 納品時に適用したローカルファイル（`PROOFREADING.md` / `PROOFREADING.word.md`）を明記する。どちらも存在しない場合は、このskillの既定手順で進める。
+- 納品時に適用したローカルファイル（`PROOFREADING.md` / `PROOFREADING.docx.md`）を明記する。どちらも存在しない場合は、このskillの既定手順で進める。
 
 ## Word document safeguards
 
@@ -48,17 +48,23 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 
 校正作業の最後に、作業中に得た永続的で判断に関わる知識だけを記録する。
 
-- 新たな安全な編集不変条件や再利用可能なレビュー原則など、WordとPPTXに共通する規則は `../_proofreading-common/review-principles.md` に追加する。Wordだけの作業規則はこの `SKILL.md` に追加する。
+- 新たな安全な編集不変条件や再利用可能なレビュー原則など、DOCXとPPTXに共通する規則は `../_proofreading-common/review-principles.md` に追加する。DOCXだけの作業規則はこの `SKILL.md` に追加する。
 - 特定の文書種別(科学的文書など)だけに関わる内容レビューの観点は `references/<domain>.md` に追加する。該当ファイルがなければ、観点の内容を確認したうえで新設する。適用の判定は対象文書の内容に基づき、`PROOFREADING.md`の有無や`@`参照の設定には依存しない。
-- 文書またはフォルダ固有の用語、対象範囲、レイアウト、組版規則は、共通なら同階層の `PROOFREADING.md`、Wordだけなら `PROOFREADING.word.md` に追加する。
+- 文書またはフォルダ固有の用語、対象範囲、レイアウト、組版規則は、共通なら同階層の `PROOFREADING.md`、DOCXだけなら `PROOFREADING.docx.md` に追加する。
 - 特定の申請制度・文書種別・研究分野にまたがる、著者も参照・更新する知見は Obsidian の `writing/` 配下の執筆・校閲ガイドに記録し、該当フォルダの `PROOFREADING.md` の先頭から `@<relative-path>` で必要な場合だけ明示参照する。skillや案件フォルダへ複製しない。
-- コンテキストの記録・引き継ぎをユーザーが依頼した場合は、`word-proofreading-handoff` に従う。
+- コンテキストの記録・引き継ぎをユーザーが依頼した場合は、`docx-proofreading-handoff` に従う。
 - 一回限りの文書内容、一時的な作業状態、推測的な結論、今回だけに限定されたユーザー指示を永続化しない。
 - 明示的なユーザー判断と推論を区別する。ユーザーが推論の保持を求めない限り、前者だけを記録する。
 
 ## Select the mode
 
-ユーザーが指定したモードを使う。指定がなければ `Standard` を使い、結果で簡潔に明記する。`Layout-Check` は文章校正の深さとは独立しており、必要な場合だけ `Deep + Layout-Check` のように明示して組み合わせる。指定がなければ、校正にレイアウト確認を暗黙に追加しない。
+ユーザーが指定したモードを使う。モードが指定されていない場合は、校閲・編集を開始せず、次の選択肢を提示して選択を確認する。`Layout-Check` は文章校正の深さとは独立しており、1〜4の選択に `+ Layout-Check` として明示的に組み合わせられる。レイアウト確認を暗黙に追加しない。
+
+1. `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。
+2. `Standard`: Lightに加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。
+3. `Deep`: Standardに加え、論理、構成、学術文体、主張と根拠の対応をレビューする。
+4. `Deep-Auto`: DOCXの安全な変更履歴として適用できる、意味を変えない一意な修正を自動適用する。
+5. `Layout-Check`: 本文を編集せず、組版と表示だけを確認する。
 
 - `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
 - `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。既定値はこれである。

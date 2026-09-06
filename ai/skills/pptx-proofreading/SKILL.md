@@ -11,7 +11,7 @@ Microsoft PowerPoint (`.pptx`) のスライド本文と speaker note 内の発�
 
 レビューや編集の前に、対象デッキと同階層の次のファイルを順に探す。この手順で、デッキがGitリポジトリ内にある必要はない。
 
-- `PROOFREADING.md` は、同一フォルダ内のWord・PPTXに共通する方針である。先頭の有効な `@<relative-path>` 行は、`$OBSIDIAN_ROOT/writing/` を基準にした執筆・校閲ガイドの必須参照である。各参照先を本文より先に読む。`@` 行には相対パスだけを許可し、絶対パス・`..` を含むパス・先頭以外の `@` 行は参照として扱わない。
+- `PROOFREADING.md` は、同一フォルダ内のDOCX・PPTXに共通する方針である。先頭の有効な `@<relative-path>` 行は、`$OBSIDIAN_ROOT/writing/` を基準にした執筆・校閲ガイドの必須参照である。各参照先を本文より先に読む。`@` 行には相対パスだけを許可し、絶対パス・`..` を含むパス・先頭以外の `@` 行は参照として扱わない。
 - `@` 行がある場合は、通常のシェル初期化を読まずに `zsh -f` で `$HOME/.ai/zsh_path.local` だけを source し、そこで export された `OBSIDIAN_ROOT` を参照先の解決に用いる。この設定ファイルは AI 用のパス設定に限定し、対話処理、標準出力、ネットワークアクセス、ファイル変更を含めない。雛形は `dotfiles/ai/zsh_path.local.example` に置く。
 - `@` 行があるにもかかわらず `$HOME/.ai/zsh_path.local` が存在しない・読めない、source 後も `OBSIDIAN_ROOT` が未設定、または `$OBSIDIAN_ROOT/writing/<relative-path>` が存在しない・読めない場合は、校閲・編集を開始しない。設定ファイルのパス、未設定の変数名、または解決しようとした完全パスを示して、設定または参照の修正をユーザーに求める。同名ファイルの探索や、ローカルルールだけでの続行はしない。
 - `PROOFREADING.pptx.md` は `PROOFREADING.md` の後に、PPTXだけへ適用する。ここに書かれた `@` 行は外部参照として解決せず、通常のローカル指示として扱う。
@@ -55,7 +55,12 @@ speaker note は、次の順序と区切りを既定とする。
 
 ## Select the mode
 
-ユーザーが指定したモードを使う。指定がなければ `Standard` を使い、結果で簡潔に明記する。`Layout-Check` は文章校閲の深さとは独立しており、必要な場合だけ `Deep + Layout-Check` のように明示して組み合わせる。
+ユーザーが指定したモードを使う。モードが指定されていない場合は、校閲・編集を開始せず、次の選択肢を提示して選択を確認する。`Layout-Check` は文章校閲の深さとは独立しており、1〜3の選択に `+ Layout-Check` として明示的に組み合わせられる。レイアウト確認を暗黙に追加しない。
+
+1. `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけをコメントで指摘する。
+2. `Standard`: Lightに加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性をコメントで改善する。
+3. `Deep`: Standardに加え、論理、構成、学術文体、主張と根拠の対応をレビューする。
+4. `Layout-Check`: 本文を編集せず、組版と表示だけを確認する。
 
 - `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけをコメントで指摘する。
 - `Standard`: Lightに加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性をコメントで改善する。既定値はこれである。
@@ -73,7 +78,7 @@ speaker note は、次の順序と区切りを既定とする。
 
 ## Retain durable proofreading knowledge
 
-- WordとPPTXに共通するレビュー原則は `../_proofreading-common/review-principles.md` に追加する。
+- DOCXとPPTXに共通するレビュー原則は `../_proofreading-common/review-principles.md` に追加する。
 - PPTXだけの安全な作業規則・実装手順はこの `SKILL.md` に追加する。
 - 特定の文書種別だけに関わる内容レビューの観点は `references/<domain>.md` に追加する。
 - 文書またはフォルダ固有の規則は、共通なら `PROOFREADING.md`、PPTXだけなら `PROOFREADING.pptx.md` に追加する。

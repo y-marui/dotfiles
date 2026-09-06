@@ -1,4 +1,4 @@
 interface:
-  display_name: "PPTX校閲"
-  short_description: "PPTXをコメント主体で安全に校閲し、視覚確認まで行う"
-  default_prompt: "Use $pptx-proofreading to proofread this PowerPoint deck and add concrete correction proposals as comments."
+  display_name: "PowerPoint校閲"
+  short_description: "PowerPointをコメント主体で安全に校閲し、視覚確認まで行う"
+  default_prompt: "Use $pptx-proofreading to proofread this PowerPoint deck, and ask me to select a mode before reviewing."

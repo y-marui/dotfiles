@@ -1,6 +1,6 @@
 # Cross-format proofreading principles
 
-Word と PPTX の校閲では、この文書を必ず全文読んでからレビューする。形式固有の手順は各 skill を優先し、ここでは言語・意味保護・コメントの共通原則だけを定める。
+DOCX と PPTX の校閲では、この文書を必ず全文読んでからレビューする。形式固有の手順は各 skill を優先し、ここでは言語・意味保護・コメントの共通原則だけを定める。
 
 ## Detect language and conventions
 
