@@ -3,6 +3,7 @@
 _ghq-sweep() {
   _arguments \
     '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
+    '(-s --status-only)'{-s,--status-only}'[ghq-status で異常が検出されたリポジトリだけを対象にする]' \
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }
 
