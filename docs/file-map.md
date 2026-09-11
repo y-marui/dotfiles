@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-09-03_
+_最終更新: 2026-09-11_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -16,7 +16,11 @@ _最終更新: 2026-09-03_
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
-| `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期 | `git config local.keep-up-to-date` |
+| `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
+| `bin/unix/ghq-pull` | ghq 管理下リポジトリの fetch + pull、upstream fork sync | `upstream` remote |
+| `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、upstream fork sync、自動PRのPR先解決） | `upstream` remote、`bin/ghq-upstream-pr-allow` |
+| `bin/ghq-upstream-pr-allow` | 自動PR機能がfork元（upstream）へPRしてよい`owner/repo`パターンの許可リスト | `bin/unix/_ghq-lib.sh`、`bin/windows/_ghq-lib.ps1`、`shell/zshrc`（`gh()`） |
+| `shell/zshrc`（`gh()`関数） | `upstream` remoteがあり許可リストに一致するリポジトリで、`gh pr create --repo <origin>`を拒否（うっかり防止） | `bin/ghq-upstream-pr-allow` |
 | `bin/unix/git-sweep` | マージ済みブランチの自動整理 | `.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*` |
 
 ## dev-charter Installation
