@@ -124,13 +124,13 @@ function Test-GhqUpstreamPrAllowed([string]$Target) {
 
 # Sync-GhqUpstreamFork <repo>
 # upstream という名前の remote があるリポジトリ（GitHub標準のfork運用）に限り、
-# `gh repo sync` で upstream のデフォルトブランチを origin・ローカル双方へ
-# fast-forwardで反映する（diverge していれば警告のみで自動マージはしない）。
+# `gh repo sync` で upstream のデフォルトブランチを origin（自分のfork）へ
+# fast-forward反映する（diverge していれば警告のみで自動マージはしない）。
+# ローカルへの反映は、呼び出し元が続けて行う origin の fetch/pull に任せる。
 # upstream remote が無いリポジトリには何もしない。失敗時も例外は投げない。
 function Sync-GhqUpstreamFork([string]$Repo) {
-    $global:LASTEXITCODE = $null
-    & git -C $Repo remote get-url upstream *> $null
-    if ($LASTEXITCODE -ne 0) { return }
+    $upstreamRepo = Get-GhqRemoteOwnerRepo $Repo 'upstream'
+    if (-not $upstreamRepo) { return }
 
     if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
         Write-GhqStderr "  [skip upstream-sync] (${Repo}) 'gh' が見つかりません"
@@ -146,8 +146,17 @@ function Sync-GhqUpstreamFork([string]$Repo) {
             return
         }
 
+        $originRepo = Get-GhqRemoteOwnerRepo $Repo 'origin'
+        if (-not $originRepo) {
+            Write-GhqStderr "  [skip upstream-sync] (${Repo}) origin リポジトリを解決できませんでした"
+            return
+        }
+
+        # 引数無しの gh repo sync はローカルの origin remote URL を gh 自身が解決する
+        # ため、~/.ssh/config の Host エイリアス（例: github-public:owner/repo.git）を
+        # 解釈できず失敗する。正規表現で抜き出し済みの owner/repo を明示的に渡す。
         $global:LASTEXITCODE = $null
-        $syncOutput = & gh repo sync 2>&1
+        $syncOutput = & gh repo sync $originRepo --source $upstreamRepo 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  [upstream-sync] upstream と同期しました: ${Repo}"
         } else {
@@ -242,7 +251,15 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
 
     Push-Location $Repo
     try {
-        $prCountRaw = & gh pr list --repo $targetRepo --head $headRef --state open --json number -q 'length' 2>$null
+        if ($targetRepo -eq $originRepo) {
+            $prCountRaw = & gh pr list --repo $targetRepo --head $headRef --state open --json number -q 'length' 2>$null
+        } else {
+            # gh pr list --head は "<owner>:<branch>" 形式に非対応（gh pr list --help に明記）
+            # なため、targetRepo 全体を取得して headRepositoryOwner/headRefName でフィルタする。
+            $originOwner = $originRepo.Split('/')[0]
+            $jqFilter = "[.[] | select(.headRefName == `"$branch`" and .headRepositoryOwner.login == `"$originOwner`")] | length"
+            $prCountRaw = & gh pr list --repo $targetRepo --state open --json number,headRefName,headRepositoryOwner -q $jqFilter 2>$null
+        }
         $prCount = if ($prCountRaw) { $prCountRaw } else { '0' }
         if ($prCount -eq '0') {
             $prCreateArgs = @(

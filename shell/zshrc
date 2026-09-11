@@ -420,10 +420,10 @@ function git() {
 }
 
 # gh pr create で、upstream remote があり bin/ghq-upstream-pr-allow（dotfiles-lib/ghq）
-# で許可されたリポジトリに対して、--repo で明示的に origin（自分のfork）を指定した
-# PR作成を禁止する。--repo 未指定なら gh 標準の「forkのデフォルトはparent（upstream）
-# へPR」という挙動に任せる（bin/unix/_ghq-lib.sh の _ghq_upstream_pr_allowed と同じ
-# 許可リストを参照）。
+# で許可されたリポジトリに対して、--repo（短縮形 -R も含む）で明示的に origin
+# （自分のfork）を指定したPR作成を禁止する。--repo/-R 未指定なら gh 標準の
+# 「forkのデフォルトはparent（upstream）へPR」という挙動に任せる
+# （bin/unix/_ghq-lib.sh の _ghq_upstream_pr_allowed と同じ許可リストを参照）。
 # 注: git() 同様うっかり防止のためのものであり、フルパス実行等は回避しうる。
 function gh() {
   if [[ "$1" == "pr" && "$2" == "create" ]]; then
@@ -437,6 +437,9 @@ function gh() {
       case "$arg" in
         --repo=*) repo_flag="${arg#--repo=}" ;;
         --repo)   next_is_repo=true ;;
+        -R=*)     repo_flag="${arg#-R=}" ;;
+        -R)       next_is_repo=true ;;
+        -R*)      repo_flag="${arg#-R}" ;;
       esac
     done
 

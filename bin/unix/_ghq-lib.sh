@@ -123,13 +123,16 @@ _ghq_upstream_pr_allowed() {
 
 # _ghq_sync_upstream_fork <repo>
 # upstream という名前の remote があるリポジトリ（GitHub標準のfork運用）に限り、
-# `gh repo sync` で upstream のデフォルトブランチを origin・ローカル双方へ
-# fast-forwardで反映する（diverge していれば警告のみで自動マージはしない）。
-# upstream remote が無いリポジトリには何もしない。失敗時も常に 0 を返す。
+# `gh repo sync` で upstream のデフォルトブランチを origin（自分のfork）へ
+# fast-forward反映する（diverge していれば警告のみで自動マージはしない）。
+# ローカルへの反映は、この関数の呼び出し元が続けて行う origin の
+# fetch/pull に任せる。upstream remote が無いリポジトリには何もしない。
+# 失敗時も常に 0 を返す。
 _ghq_sync_upstream_fork() {
-  local repo="$1" output
+  local repo="$1" origin_repo upstream_repo output
 
-  git -C "$repo" remote get-url upstream >/dev/null 2>&1 || return 0
+  upstream_repo="$(_ghq_remote_owner_repo "$repo" upstream)"
+  [[ -n "${upstream_repo}" ]] || return 0
 
   if ! command -v gh >/dev/null 2>&1; then
     echo "  [skip upstream-sync] (${repo}) 'gh' が見つかりません" >&2
@@ -140,7 +143,16 @@ _ghq_sync_upstream_fork() {
     return 0
   fi
 
-  if output="$(cd "$repo" && gh repo sync 2>&1)"; then
+  origin_repo="$(_ghq_remote_owner_repo "$repo" origin)"
+  if [[ -z "${origin_repo}" ]]; then
+    echo "  [skip upstream-sync] (${repo}) origin リポジトリを解決できませんでした" >&2
+    return 0
+  fi
+
+  # 引数無しの `gh repo sync` はローカルの origin remote URL を gh 自身が解決する
+  # ため、~/.ssh/config の Host エイリアス（例: github-public:owner/repo.git）を
+  # 解釈できず失敗する。正規表現で抜き出し済みの owner/repo を明示的に渡す。
+  if output="$(cd "$repo" && gh repo sync "$origin_repo" --source "$upstream_repo" 2>&1)"; then
     echo "  [upstream-sync] upstream と同期しました: ${repo}"
   else
     echo "  [warn][upstream-sync] (${repo}) 同期に失敗しました（fast-forward不可の可能性があります。手動で確認してください）: $(printf '%s' "${output}" | tr '\n' ' ' | cut -c1-500)" >&2
@@ -208,7 +220,16 @@ _ghq_auto_pr_lockfile() {
     return 0
   fi
 
-  pr_count="$(cd "$repo" && gh pr list --repo "$target_repo" --head "$head_ref" --state open --json number -q 'length' 2>/dev/null || echo 0)"
+  if [[ "$target_repo" == "$origin_repo" ]]; then
+    pr_count="$(cd "$repo" && gh pr list --repo "$target_repo" --head "$head_ref" --state open --json number -q 'length' 2>/dev/null || echo 0)"
+  else
+    # `gh pr list --head` は "<owner>:<branch>" 形式に非対応（gh pr list --help に明記）
+    # なため、target_repo 全体を取得して headRepositoryOwner/headRefName でフィルタする。
+    pr_count="$(cd "$repo" && gh pr list --repo "$target_repo" --state open \
+      --json number,headRefName,headRepositoryOwner \
+      -q "[.[] | select(.headRefName == \"${branch}\" and .headRepositoryOwner.login == \"${origin_repo%%/*}\")] | length" \
+      2>/dev/null || echo 0)"
+  fi
   if [[ "${pr_count}" == "0" ]]; then
     local pr_create_args=(--repo "$target_repo" --title "$title" \
       --body "$body" \
