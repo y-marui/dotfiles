@@ -7,6 +7,8 @@
 ## Concise Command Output
 
 ビルド・テスト・lint・pre-commit など出力が多いコマンドは `run-quiet` でラップして実行する。
+`git commit` も、pre-commit フックが走るリポジトリでは全フックの "Passed" 行が大量に出力される
+ため対象に含める（`run-quiet git commit -m "..."`）。
 エラーがなければ1行サマリーのみを確認し、warning / deprecated / note 行は必要に応じて確認する。
 原因の特定に十分な情報が得られない場合は、`run-quiet` を外してフル出力で再実行する。
 
