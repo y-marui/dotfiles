@@ -10,8 +10,11 @@
 #   -h, --help          ヘルプを表示
 #
 # 動作:
+#   - upstream という名前の remote があれば、先に `gh repo sync` で upstream の
+#     デフォルトブランチを origin・ローカル双方へ fast-forward 反映する
+#     （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
 #   - git fetch origin --prune を実行する（dirty でも実行）
-#   - fetch 失敗・detached HEAD・upstream 未設定の場合は pull をスキップ
+#   - fetch 失敗・detached HEAD・upstream ブランチ未設定の場合は pull をスキップ
 #   - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
 #     pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
 #   - それら以外にも dirty な変更がある場合は pull をスキップ
@@ -64,6 +67,8 @@ $repos = Get-GhqOrderedList $FILTER
 foreach ($f in $repos) {
     Write-Host ""
     Write-Host "==> $f"
+
+    Sync-GhqUpstreamFork $f
 
     $global:LASTEXITCODE = $null
     & git -C $f fetch origin --prune

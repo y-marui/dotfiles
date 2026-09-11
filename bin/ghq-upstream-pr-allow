@@ -1,0 +1,7 @@
+# ghq-update の自動 PR 機能（uv.lock / package-lock.json 更新）が、
+# fork元（upstream remote）へ直接 PR を作成してよいリポジトリのパターン。
+# owner/repo 形式で1行1件記載する。owner/* のような glob パターンも可。
+#
+# upstream remote が無い、またはここに一致しないリポジトリでは、
+# 従来通り origin（自分の fork）宛てに PR を作成する。
+fukami-lab-sot/*

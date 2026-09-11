@@ -15,6 +15,8 @@ function Write-GhqStderr([string]$Message) {
     [Console]::Error.WriteLine($Message)
 }
 
+$Script:GhqUpstreamPrAllowFile = Join-Path $PSScriptRoot '..\ghq-upstream-pr-allow'
+
 $Script:GhqPriorityRepos = @('dotfiles', 'dev-charter')
 
 # Get-GhqOrderedList <filter>
@@ -93,6 +95,80 @@ function Pop-GhqLockfileStash([string]$Repo) {
     return $false
 }
 
+# Get-GhqRemoteOwnerRepo <repo> <remote>
+# <remote> の URL から owner/repo を切り出す。`gh repo view <url>` による解決は
+# ~/.ssh/config の Host エイリアス（例: github-public:owner/repo.git）を解釈できない
+# ため使わず、正規表現で抜き出す。
+function Get-GhqRemoteOwnerRepo([string]$Repo, [string]$Remote) {
+    $url = (& git -C $Repo remote get-url $Remote 2>$null)
+    if (-not $url) { return $null }
+    $trimmed = $url -replace '\.git$', ''
+    if ($trimmed -match '[:/]([^/]+/[^/]+)$') {
+        return $Matches[1]
+    }
+    return $null
+}
+
+# Test-GhqUpstreamPrAllowed <owner/repo>
+# bin/ghq-upstream-pr-allow に列挙された owner/repo パターン（glob可、# 以降はコメント）の
+# いずれかに一致すれば $true を返す。ファイルが無い・一致しなければ $false を返す。
+function Test-GhqUpstreamPrAllowed([string]$Target) {
+    if (-not (Test-Path -LiteralPath $Script:GhqUpstreamPrAllowFile)) { return $false }
+    foreach ($rawLine in Get-Content -LiteralPath $Script:GhqUpstreamPrAllowFile) {
+        $line = ($rawLine -split '#', 2)[0].Trim()
+        if (-not $line) { continue }
+        if ($Target -like $line) { return $true }
+    }
+    return $false
+}
+
+# Sync-GhqUpstreamFork <repo>
+# upstream という名前の remote があるリポジトリ（GitHub標準のfork運用）に限り、
+# `gh repo sync` で upstream のデフォルトブランチを origin（自分のfork）へ
+# fast-forward反映する（diverge していれば警告のみで自動マージはしない）。
+# ローカルへの反映は、呼び出し元が続けて行う origin の fetch/pull に任せる。
+# upstream remote が無いリポジトリには何もしない。失敗時も例外は投げない。
+function Sync-GhqUpstreamFork([string]$Repo) {
+    $upstreamRepo = Get-GhqRemoteOwnerRepo $Repo 'upstream'
+    if (-not $upstreamRepo) { return }
+
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-GhqStderr "  [skip upstream-sync] (${Repo}) 'gh' が見つかりません"
+        return
+    }
+
+    Push-Location $Repo
+    try {
+        $global:LASTEXITCODE = $null
+        & gh auth status *> $null
+        if ($LASTEXITCODE -ne 0) {
+            Write-GhqStderr "  [skip upstream-sync] (${Repo}) gh が未認証です"
+            return
+        }
+
+        $originRepo = Get-GhqRemoteOwnerRepo $Repo 'origin'
+        if (-not $originRepo) {
+            Write-GhqStderr "  [skip upstream-sync] (${Repo}) origin リポジトリを解決できませんでした"
+            return
+        }
+
+        # 引数無しの gh repo sync はローカルの origin remote URL を gh 自身が解決する
+        # ため、~/.ssh/config の Host エイリアス（例: github-public:owner/repo.git）を
+        # 解釈できず失敗する。正規表現で抜き出し済みの owner/repo を明示的に渡す。
+        $global:LASTEXITCODE = $null
+        $syncOutput = & gh repo sync $originRepo --source $upstreamRepo 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  [upstream-sync] upstream と同期しました: ${Repo}"
+        } else {
+            $syncSummary = (($syncOutput | Out-String) -replace "`r?`n", ' ').Trim()
+            if ($syncSummary.Length -gt 500) { $syncSummary = $syncSummary.Substring(0, 500) }
+            Write-GhqStderr "  [warn][upstream-sync] (${Repo}) 同期に失敗しました（fast-forward不可の可能性があります。手動で確認してください）: ${syncSummary}"
+        }
+    } finally {
+        Pop-Location
+    }
+}
+
 # Invoke-GhqAutoPrLockfile <repo> <base_branch> <lockfile> <branch> <title> <body>
 # uv sync --upgrade / npm update により <lockfile> のみが dirty な場合、
 # <branch> にコミットして force push し、gh で PR を作成する（既に open な
@@ -132,20 +208,22 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
     # origin の remote URL から owner/repo を直接切り出す。upstream 等の追加
     # remote がある fork で --repo を渡さずに gh pr list/create を実行すると、
     # gh がベースリポジトリを fork 元だと誤解決し、origin にしか存在しない
-    # ブランチが見つからず PR 作成が常に失敗する。gh repo view による解決は
-    # ~/.ssh/config の Host エイリアス（github-public:owner/repo.git 等）を
-    # 解釈できないため使わず、正規表現で owner/repo を抜き出す。
-    $originUrl = (& git -C $Repo remote get-url origin 2>$null)
-    $ghRepo = $null
-    if ($originUrl) {
-        $trimmed = $originUrl -replace '\.git$', ''
-        if ($trimmed -match '[:/]([^/]+/[^/]+)$') {
-            $ghRepo = $Matches[1]
-        }
-    }
-    if (-not $ghRepo) {
+    # ブランチが見つからず PR 作成が常に失敗するため、明示的に origin を指定する。
+    $originRepo = Get-GhqRemoteOwnerRepo $Repo 'origin'
+    if (-not $originRepo) {
         Write-GhqStderr "  [skip auto-pr] (${Repo}) origin リポジトリを解決できませんでした"
         return
+    }
+
+    # upstream remote があり、かつ bin/ghq-upstream-pr-allow で許可されている場合のみ、
+    # origin ではなく upstream（fork元）へ PR を作成する。head は fork からの
+    # クロスリポジトリPRとして "<originのowner>:<branch>" 形式で指定する。
+    $targetRepo = $originRepo
+    $headRef = $branch
+    $upstreamRepo = Get-GhqRemoteOwnerRepo $Repo 'upstream'
+    if ($upstreamRepo -and (Test-GhqUpstreamPrAllowed $upstreamRepo)) {
+        $targetRepo = $upstreamRepo
+        $headRef = "$($originRepo.Split('/')[0]):$branch"
     }
 
     $global:LASTEXITCODE = $null
@@ -173,18 +251,26 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
 
     Push-Location $Repo
     try {
-        $prCountRaw = & gh pr list --repo $ghRepo --head $branch --state open --json number -q 'length' 2>$null
+        if ($targetRepo -eq $originRepo) {
+            $prCountRaw = & gh pr list --repo $targetRepo --head $headRef --state open --json number -q 'length' 2>$null
+        } else {
+            # gh pr list --head は "<owner>:<branch>" 形式に非対応（gh pr list --help に明記）
+            # なため、targetRepo 全体を取得して headRepositoryOwner/headRefName でフィルタする。
+            $originOwner = $originRepo.Split('/')[0]
+            $jqFilter = "[.[] | select(.headRefName == `"$branch`" and .headRepositoryOwner.login == `"$originOwner`")] | length"
+            $prCountRaw = & gh pr list --repo $targetRepo --state open --json number,headRefName,headRepositoryOwner -q $jqFilter 2>$null
+        }
         $prCount = if ($prCountRaw) { $prCountRaw } else { '0' }
         if ($prCount -eq '0') {
             $prCreateArgs = @(
-                '--repo', $ghRepo,
+                '--repo', $targetRepo,
                 '--title', $Title,
                 '--body', $Body,
                 '--base', $BaseBranch,
-                '--head', $branch
+                '--head', $headRef
             )
             # 自分（y-marui）名義のリポジトリでは見逃し防止のため自分を assignee にする
-            if ($ghRepo -like 'y-marui/*') {
+            if ($targetRepo -like 'y-marui/*') {
                 $prCreateArgs += @('--assignee', 'y-marui')
             }
             $global:LASTEXITCODE = $null

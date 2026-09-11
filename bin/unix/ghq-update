@@ -38,7 +38,10 @@
 #   共通:
 #     - dotfiles・dev-charter は他より先に処理する（ghq-status の基準バージョン等、
 #       他リポジトリの処理より先に最新化しておきたいため）
-#     - detached HEAD・upstream 未設定の場合は pull をスキップ（fetch は実行）
+#     - upstream という名前の remote があれば、fetch/pull の前に `gh repo sync` で
+#       upstream のデフォルトブランチを origin・ローカル双方へ fast-forward 反映する
+#       （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
+#     - detached HEAD・upstream ブランチ未設定の場合は pull をスキップ（fetch は実行）
 #     - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
 #       pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
 #     - それら以外にも dirty な変更がある場合は pull をスキップ
@@ -46,6 +49,9 @@
 #     - uv sync --upgrade / npm update の結果、対応するロックファイル（uv.lock /
 #       package-lock.json）のみが dirty な場合、専用ブランチ（chore/uv-lock-update /
 #       chore/npm-lock-update）にコミットして force push し、gh で PR を作成する
+#     - PR先は通常 origin（自分の fork）。upstream という名前の remote があり、
+#       かつその owner/repo が bin/ghq-upstream-pr-allow に列挙されたパターンに
+#       一致する場合のみ、upstream（fork元）へ PR を作成する
 #     - 既に同名ブランチで open な PR があれば push だけでその PR に反映される
 #     - gh 未インストール・未認証、またはロックファイル以外にも dirty な変更がある場合は
 #       スキップし、従来通り working tree に差分を残す
@@ -111,6 +117,7 @@ while IFS= read -r f; do
   if [[ "$UV_SYNC_ONLY" == true ]]; then
     pulled=true
   else
+    _ghq_sync_upstream_fork "$f"
     if ! git -C "$f" fetch origin --prune; then
       echo "  [skip pull] fetch failed"
       continue
