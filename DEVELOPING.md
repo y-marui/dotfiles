@@ -76,6 +76,13 @@ fork）・ローカル双方へfast-forward反映する（diverge時は警告の
 （globも可）に一致する場合のみ、`upstream`（fork元）へPRを作成する。許可対象は
 今後増える見込みのため、このファイルに追記して管理する。
 
+手動での`gh pr create`にも同じ許可リストを適用する。`shell/zshrc`の`gh()`
+ラッパー関数（`git()`の`--no-verify`禁止と同じ、うっかり防止のための仕組み）が、
+`upstream` remoteがあり`bin/ghq-upstream-pr-allow`で許可されたリポジトリに対して、
+`--repo`で明示的に`origin`を指定した`gh pr create`を拒否する。`--repo`未指定なら
+`gh`標準の「forkのデフォルトはparent（upstream）へPR」という挙動に任せるため、
+このラッパーは何もしない。
+
 ## About docs/dev-charter/
 
 `docs/dev-charter/` は [dev-charter](https://github.com/y-marui/dev-charter) を `git subtree` で取り込んだものであり、**直接編集しない**。変更が必要な場合は dev-charter リポジトリに Issue を立て、`git subtree pull` で取り込む。

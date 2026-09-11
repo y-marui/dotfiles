@@ -419,6 +419,56 @@ function git() {
   command git "$@"
 }
 
+# gh pr create で、upstream remote があり bin/ghq-upstream-pr-allow（dotfiles-lib/ghq）
+# で許可されたリポジトリに対して、--repo で明示的に origin（自分のfork）を指定した
+# PR作成を禁止する。--repo 未指定なら gh 標準の「forkのデフォルトはparent（upstream）
+# へPR」という挙動に任せる（bin/unix/_ghq-lib.sh の _ghq_upstream_pr_allowed と同じ
+# 許可リストを参照）。
+# 注: git() 同様うっかり防止のためのものであり、フルパス実行等は回避しうる。
+function gh() {
+  if [[ "$1" == "pr" && "$2" == "create" ]]; then
+    local arg next_is_repo=false repo_flag=''
+    for arg in "${@:3}"; do
+      if [[ "$next_is_repo" == true ]]; then
+        repo_flag="$arg"
+        next_is_repo=false
+        continue
+      fi
+      case "$arg" in
+        --repo=*) repo_flag="${arg#--repo=}" ;;
+        --repo)   next_is_repo=true ;;
+      esac
+    done
+
+    local upstream_url
+    upstream_url="$(command git remote get-url upstream 2>/dev/null)"
+    if [[ -n "$upstream_url" ]]; then
+      local upstream_repo
+      upstream_repo="$(printf '%s' "$upstream_url" | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#')"
+      local allow_file="$DOTFILES_DIR/bin/ghq-upstream-pr-allow"
+      if [[ -n "$upstream_repo" && -f "$allow_file" ]]; then
+        local line allowed=false
+        while IFS= read -r line; do
+          line="${line%%#*}"
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [[ -z "$line" ]] && continue
+          if [[ "$upstream_repo" == ${~line} ]]; then
+            allowed=true
+            break
+          fi
+        done < "$allow_file"
+
+        if [[ "$allowed" == true && -n "$repo_flag" && "$repo_flag" != "$upstream_repo" ]]; then
+          echo "gh pr create --repo ${repo_flag} は使用禁止です（このリポジトリは upstream=${upstream_repo} へのPRのみ許可されています。--repo を外すか ${upstream_repo} を指定してください）。" >&2
+          return 1
+        fi
+      fi
+    fi
+  fi
+  command gh "$@"
+}
+
 # claude-rc: リモートで claude remote-control を起動
 # デスクトップの ghq リポジトリを fzf で選択し、
 # リモートの zellij 新タブで claude remote-control を起動する。
