@@ -127,6 +127,7 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - `y-marui/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する
 - GitHub Copilot の PR レビューをリクエストした場合、結果はインクリメンタルに表示されず完了時に一括で反映される。数分待たずに「反映されない＝利用不可」と結論づけない（間隔を空けてポーリングする）
 - 自動レビュー（Copilot 等）の指摘は無条件に正しいものとして受け入れない。各指摘を自分で検証し、妥当と判断したものだけ修正する
+- y-marui配下の全repo（および主要forkのupstream）のCI・Issue・PR状況は `y-marui/repo-status` のREADMEに一覧化されている。再生成は新規repo作成/削除・workflow構成変更時のみ `scripts/status-badges.sh` を実行する（自動更新ではなく都度手動実行）
 
 ## Account Information
 
