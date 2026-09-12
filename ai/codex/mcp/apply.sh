@@ -115,7 +115,8 @@ def update_http_auth(entry, headers):
     # "[", so it must be walked as a block rather than treated as the end of
     # the entry's table (which previously left the old http_headers subtable
     # behind and produced a duplicate key on the next run).
-    preserved = []
+    root_lines = []
+    preserved_subtables = []
     index = start + 1
     while index < end:
         line = lines[index]
@@ -129,22 +130,25 @@ def update_http_auth(entry, headers):
                 end,
             )
             if line.strip() != http_headers_table:
-                preserved.extend(lines[index:block_end])
+                preserved_subtables.extend(lines[index:block_end])
             index = block_end
             continue
         key = line.split("=", 1)[0].strip() if "=" in line else ""
         if key not in {"bearer_token_env_var", "http_headers"}:
-            preserved.append(line)
+            root_lines.append(line)
         index += 1
 
     header_items = ", ".join(
         f"{toml_string(key)} = {toml_string(value)}"
         for key, value in sorted(wanted_headers.items())
     )
-    replacement = [lines[start], *preserved]
+    # Keep the inline http_headers setting in the MCP's own table.  Appending
+    # it after a nested tool table would make it a tool-level setting instead.
+    replacement = [lines[start], *root_lines]
     if replacement and not replacement[-1].endswith("\n"):
         replacement[-1] += "\n"
     replacement.append(f"http_headers = {{ {header_items} }}\n")
+    replacement.extend(preserved_subtables)
     updated = "".join([*lines[:start], *replacement, *lines[end:]])
 
     backup_config()

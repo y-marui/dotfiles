@@ -13,7 +13,6 @@
     "pdf@openai-primary-runtime",
     "plugin-management@openai-curated-remote",
     "presentations@openai-primary-runtime",
-    "sites@openai-bundled",
     "spreadsheets@openai-primary-runtime",
     "template-creator@openai-primary-runtime",
     "unified-computer-use@openai-bundled",
