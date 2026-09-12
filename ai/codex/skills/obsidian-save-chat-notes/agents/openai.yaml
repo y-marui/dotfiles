@@ -1,0 +1,4 @@
+interface:
+  display_name: "チャット内容をObsidianへ保存"
+  short_description: "複数チャットを検証しidea_notesへ網羅的に保存"
+  default_prompt: "Use $obsidian-save-chat-notes to verify and organize the referenced chats into appropriate idea_notes in my Obsidian vault."
