@@ -163,7 +163,6 @@ cask "zotero"
 # ── macOS アプリ（エンジニアリング） ────────────────────────────────────────────
 cask "autodesk-fusion"
 cask "ltspice"
-cask "vnc-viewer"
 cask "windows-app"
 cask "wolfram-engine"
 
@@ -219,3 +218,4 @@ brew "tcl-tk@8"
 cask "font-noto-sans-cjk-jp"
 cask "font-noto-serif-cjk-jp"
 cask "macshot"
+cask "realvnc-connect-viewer"
