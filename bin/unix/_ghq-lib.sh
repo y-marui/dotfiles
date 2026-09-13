@@ -101,7 +101,7 @@ _GHQ_NPM_LOCK_PR_BRANCH='chore/npm-lock-update'
 _ghq_remote_owner_repo() {
   local repo="$1" remote="$2"
   git -C "$repo" remote get-url "$remote" 2>/dev/null \
-    | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#'
+    | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#' || true
 }
 
 # _ghq_upstream_pr_allowed <owner/repo>
