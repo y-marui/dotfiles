@@ -33,7 +33,51 @@ log brew cleanup
 # compatibility issue is open. Re-assert the approved version on every update.
 log bash "${0:A:h}/setup-zellij.sh"
 
-log pipx upgrade-all
+resolve_global_python() {
+  local global_versions
+
+  if command -v pyenv &>/dev/null; then
+    # dots は任意のディレクトリから実行できるため、local .python-version や
+    # PYENV_VERSION ではなく、pyenv global の選択を明示して解決する。
+    global_versions="$(pyenv global | paste -sd: -)"
+    PYENV_VERSION="${global_versions}" pyenv which python3
+  else
+    python3 -c 'import os, sys; print(os.path.realpath(sys.executable))'
+  fi
+}
+
+PIPX_GLOBAL_PYTHON="$(resolve_global_python)"
+PIPX_GLOBAL_PYTHON="$("${PIPX_GLOBAL_PYTHON}" -c 'import os, sys; print(os.path.realpath(sys.executable))')"
+PIPX_GLOBAL_PYTHON_VERSION="$("${PIPX_GLOBAL_PYTHON}" -c 'import platform; print(platform.python_version())')"
+PIPX_VENVS_DIR="$(pipx environment --value PIPX_HOME)/venvs"
+PIPX_REINSTALL_ALL=false
+
+for venv_dir in "${PIPX_VENVS_DIR}"/*; do
+  [[ -d "${venv_dir}" ]] || continue
+
+  venv_python="${venv_dir}/bin/python"
+  if [[ ! -x "${venv_python}" ]]; then
+    PIPX_REINSTALL_ALL=true
+    break
+  fi
+  if ! venv_base_python="$("${venv_python}" -c 'import os, sys; print(os.path.realpath(getattr(sys, "_base_executable", sys.executable)))' 2>/dev/null)" || \
+    ! venv_python_version="$("${venv_python}" -c 'import platform; print(platform.python_version())' 2>/dev/null)"; then
+    PIPX_REINSTALL_ALL=true
+    break
+  fi
+  if [[ "${venv_base_python}" != "${PIPX_GLOBAL_PYTHON}" || \
+    "${venv_python_version}" != "${PIPX_GLOBAL_PYTHON_VERSION}" ]]; then
+    PIPX_REINSTALL_ALL=true
+    break
+  fi
+done
+
+if [[ "${PIPX_REINSTALL_ALL}" == true ]]; then
+  echo "  REINSTALL pipx environments with global Python ${PIPX_GLOBAL_PYTHON_VERSION}"
+  log pipx reinstall-all --python "${PIPX_GLOBAL_PYTHON}"
+else
+  log pipx upgrade-all
+fi
 
 log npm update -g
 

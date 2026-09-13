@@ -31,6 +31,12 @@
 3. zprezto をサブモジュール込みで更新
 4. OS 別パッケージマネージャー（Homebrew / winget）の更新
 
+pipx は、各仮想環境を作成した基底 Python の実体パス・バージョンを現在の global Python と
+比較する。異なる環境や Python 実行ファイルが失われた環境がある場合は、
+`pipx reinstall-all --python <global Python>` で全仮想環境を作り直す。全環境が一致する
+場合は `pipx upgrade-all` のみを実行する。macOSでpyenvを使用している場合は、実行場所の
+`.python-version` や `PYENV_VERSION` ではなく `pyenv global` を基準にする。
+
 ## dots check Monitor (macOS)
 
 - `com.y-marui.dotfiles-check`をユーザーLaunchAgentとして、ログイン時と1時間ごとに実行する
