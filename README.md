@@ -156,10 +156,11 @@ dotfiles専用キャッシュからClaude CodeとCodexの両方へリンクす�
 
 `dots codex {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
 Claude Code と同じく `--mcp-only`、`--plugin-only`、`--skill-only` を指定できる。
-Codex CLI が返す統合済みの実態を使うため、Codex アプリまたは CLI から追加された
-local / remote MCP と plugin を検知する。skill は実際の個人 skill ディレクトリを検査する。
-plugin内包MCPとChatGPT/Codexアプリの内部MCPは所有元を表示し、直接MCPの差分や
-`prune`対象には含めない。
+plugin は `codex app-server` の `plugin/list` が返す統合済みの実態を使うため、Codex
+アプリまたは CLI から追加された local / remote plugin を検知する。remote plugin の
+追加・削除には同じ app-server の `plugin/install` / `plugin/uninstall` を使用する。
+skill は実際の個人 skill ディレクトリを検査する。plugin内包MCPとChatGPT/Codexアプリの
+内部MCPは所有元を表示し、直接MCPの差分や`prune`対象には含めない。
 
 追加する MCP は、公式サーバーが確認できる次の接続だけに限定する。
 
