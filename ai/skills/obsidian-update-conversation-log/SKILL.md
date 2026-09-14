@@ -8,7 +8,8 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 ## Target Files
 
 - 個別指定時は、そのファイルだけを対象にしてブランチ間差分を確認しない。
-- 指定がなければ、`origin/ai/review` があれば `git diff --name-only origin/main origin/ai/review` の差分、なければ `conversation_log/` 配下の全 `.md` を対象にする。
+- 指定がなければ、`origin/ai/review` があれば `git diff --name-only origin/main origin/ai/review` の差分を取り、そのうち `conversation_log/` 配下の `.md` だけを対象にする。`origin/ai/review` は本スキルの最終pushでのみ更新されるため、main側でローカル自動コミット等の別経路により生じた `idea_notes/` 等の無関係な差分が混ざることがある。それらには一切触れない。
+- `origin/ai/review` が無ければ `conversation_log/` 配下の全 `.md` を対象にする。
 
 ## Flow
 
@@ -18,7 +19,7 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 
 ## Google Tasks Migration
 
-日次ログの行動可能な「タスク」は、原則としてGlance Taskを経由してGoogle Tasksへ移管する。移管が明示されていない場合は、候補と移管先を提示し、作成前に一度だけ確認する。移管の依頼または確認が得られた場合は、ログ更新と同じ作業で作成・検証・記録まで行う。
+日次ログの行動可能な「タスク」は、原則としてGlance Taskを経由してGoogle Tasksへ移管する。移管が明示されていない場合は、候補と移管先を提示し、作成前に一度だけ確認する。移管の依頼または確認が得られた場合は、ログ更新と同じ作業で作成・検証・記録まで行う。無人実行(スケジュールタスク等でユーザーに確認できない)場合は移管を行わず、候補と想定される移管先だけを最終報告に含める。
 
 - `#no-update` を含むファイルは移管対象にしない。
 - 時刻が決まった予定はGoogle Calendar、コード・実装を伴うタスクはGitHub、先送りするメモやアイデアはObsidianで扱う。Google Tasksには、これら以外の行動タスクだけを移す。
@@ -69,4 +70,4 @@ description: Proofread and rewrite conversation logs in the conversation_log dir
 ## Git
 
 - コミットメッセージ: `YYYY-MM-DD HH:MM:SS - Proofread and rewrite conversation logs`
-- 個別指定時は `upstream` (main) のみ、自動抽出時は `upstream` と `origin/ai/review` の両方へpushする。
+- 個別指定時は `origin/main` のみ、自動抽出時は `origin/main` と `origin/ai/review` の両方へpushする(このリポジトリのリモート名は `origin` であり、`upstream` という名のリモートは存在しない)。
