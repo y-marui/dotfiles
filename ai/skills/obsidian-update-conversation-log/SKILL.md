@@ -1,5 +1,5 @@
 ---
-name: conversation-log-update
+name: obsidian-update-conversation-log
 description: Proofread and rewrite conversation logs in the conversation_log directory of the obsidian-vault repository, and, when explicitly requested, migrate daily-note tasks to Google Tasks through Glance Task.
 ---
 

@@ -11,7 +11,7 @@ description: "Read one or more referenced Codex or ChatGPT conversations, verify
 
 - 保存依頼は対象ノートの作成・更新を許可するが、commit、push、既存ノートの削除・大規模再構成までは許可しない。別途明示された場合だけ行う。
 - シークレット、認証情報、不要な個人識別情報は転記しない。網羅性より安全を優先し、省いた内容が結論へ影響する場合は省略理由だけ報告する。
-- `conversation_log/` の校正・日次ログ整理には `conversation-log-update` を使う。この skill は、継続利用する主題別ノートへの昇華を担当する。
+- `conversation_log/` の校正・日次ログ整理には `obsidian-update-conversation-log` を使う。この skill は、継続利用する主題別ノートへの昇華を担当する。
 
 ## 1. Read the source material completely
 
