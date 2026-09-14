@@ -59,6 +59,8 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
   `display notification`はクリック時の送信元がScript Editorに固定され空の新規スクリプトが
   開いてしまうため、terminal-notifier未導入時のみそちらへフォールバックする
 - zsh起動時はキャッシュを読み取るだけで、チェック処理を同期実行しない
+- macOSでは、`/etc/pam.d/sudo` が `sudo_local` を読み込み、
+  `/etc/pam.d/sudo_local` で `auth sufficient pam_tid.so` が有効になっていることを検査する
 - 自動修復は行わない。詳細確認と手動再実行には`dots check`を使う
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 

@@ -193,7 +193,7 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `dots {claude|codex|gemini} apply`: 宣言済みの不足・設定不一致を追加または更新
 - `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
 - `dots ai {diff|apply|prune}`: Claude Code・Codex・Gemini の同じ操作を順番に一括実行
-- `dots check`    : 全 AI Agent (claude, codex, gemini, copilot) の MCP・plugin・skill 差分を一括確認
+- `dots check`    : リンク・dotfiles状態・パッケージ・macOSの sudo Touch ID・全 AI Agentの差分を一括確認
   macOSではLaunchAgentがログイン時と1時間ごとに実行し、状態変化時だけ通知する。zshは
   `~/.cache/dots/check-summary`を表示するだけで、チェック完了を待たない
 

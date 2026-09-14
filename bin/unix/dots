@@ -653,6 +653,27 @@ _check_backup_summary() {
   return 1
 }
 
+_check_sudo_touch_id_summary() {
+  [[ "$(uname -s)" == "Darwin" ]] || return 0
+
+  local sudo_pam="/etc/pam.d/sudo"
+  local sudo_local_pam="/etc/pam.d/sudo_local"
+
+  if [[ ! -r "${sudo_pam}" ]] || \
+     ! awk '$1 == "auth" && $2 == "include" && $3 == "sudo_local" { found = 1 } END { exit !found }' \
+       "${sudo_pam}"; then
+    printf '⚠ sudo Touch ID: %s が sudo_local を読み込んでいません\n' "${sudo_pam}"
+    return 1
+  fi
+
+  if [[ ! -r "${sudo_local_pam}" ]] || \
+     ! awk '$1 == "auth" && $2 == "sufficient" && $3 == "pam_tid.so" { found = 1 } END { exit !found }' \
+       "${sudo_local_pam}"; then
+    printf '⚠ sudo Touch ID: %s で pam_tid.so が有効ではありません\n' "${sudo_local_pam}"
+    return 1
+  fi
+}
+
 _check_script_summary() {
   local label="$1" hint="$2"
   shift 2
@@ -668,6 +689,7 @@ _check_summary() {
 
   _check_links_summary || found=1
   _check_backup_summary || found=1
+  _check_sudo_touch_id_summary || found=1
   _check_repo_summary "dotfiles" "${DOTFILES_DIR}" || found=1
   _check_repo_summary "dotfiles-private" "${PRIVATE_DIR}" || found=1
 
@@ -729,6 +751,16 @@ _check_verbose() {
   echo "=========================================="
   _check_backup_summary || true
   echo ""
+
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "=========================================="
+    echo " Checking sudo Touch ID ..."
+    echo "=========================================="
+    if _check_sudo_touch_id_summary; then
+      echo "sudo Touch ID: enabled"
+    fi
+    echo ""
+  fi
 
   echo "=========================================="
   echo " Checking brew / npm / pipx / dock / application shortcuts ..."

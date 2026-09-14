@@ -182,7 +182,9 @@ GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使�
 
 ### Batch-Check All Agents (`dots check`)
 
-`dots check` は `claude`, `codex`, `gemini`, `copilot` の全 AI Agent の MCP・plugin・skill の設定差分をまとめて検査する。
+`dots check` はシンボリックリンク、dotfilesの状態、パッケージ管理、全 AI Agent の
+MCP・plugin・skill の設定差分をまとめて検査する。macOSでは、`/etc/pam.d/sudo_local`
+で `pam_tid.so` が有効になっており、`sudo` から読み込まれることも読み取り専用で検査する。
 
 macOSでは、`make install-macos` がLaunchAgentを登録し、ログイン時と1時間ごとに
 `dots check`をバックグラウンド実行する。結果は`dots check`本体が

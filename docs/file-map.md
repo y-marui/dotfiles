@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-09-11_
+_最終更新: 2026-09-14_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -48,7 +48,7 @@ _最終更新: 2026-09-11_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作。`check`（非verbose）は結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/`、`~/.cache/dots/` |
+| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作。`check`（非verbose）はmacOSの sudo Touch IDを含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
 
 ## dots check Monitor (macOS)
 
