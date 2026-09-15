@@ -46,18 +46,15 @@ Bash・WebFetch・同梱`scripts/`の実行が可能なサンドボックスを�
 
 cloud skillが[Private Data](#private-data)パターン（`~/.identity/<name>.yaml` 等を既定値
 として読む）を併用する場合は注意する。cloud実行時はそのパスへアクセスできないため、
-`scheduled_tasks` が非空のskillでこれをそのまま同期すると、無人実行時に既定値が失われる
-（例: `weather-check` の既定地点は `~/.identity/weather-location.yaml` から読むが、
-cloud側の「Daily Weather Check」Scheduled Taskは地点を明示指定する運用にする必要がある）。
-`check-skills.sh` のcloud portabilityチェックはキーワード一致ベースのため、この依存を
-機械的には検知しない。
-
-値が単一の既定値（引数化できる）なら上記のようにcloud側もローカルと同じ参照文言のままでよいが、
-`morning-brief` の複数カレンダーID一覧のように、skillの動作に必須な構造化データで引数化が
-現実的でない場合は、cloud側のSkill本体にだけ実値を直書きせざるを得ない（cloud側はアカウント
-個人のプライベート設定でgitに乗らないため許容する）。この場合の同期手順・衝突判定は
-`ai/claude/skills/sync-cloud-skills/`（特に「Private data: local と cloud で内容が分岐してよい
-ケース」）に従う。
+`scheduled_tasks` が非空のskillでこれをそのまま同期すると、無人実行時に既定値が失われる。
+このため、cloud側だけファイル末尾に「Private Data (cloud-only)」節を追加して実値をまとめ、
+本文中の参照文言はその節を指す1文に置き換える（例: `weather-check` の地点、`morning-brief`
+の複数カレンダーID一覧）。cloud側のSkill本体はアカウント個人のプライベート設定でgitに乗らない
+ため、実値の保持を許容する。ローカル（`ai/skills/<name>/SKILL.md`、gitで公開管理）は
+`~/.identity/<name>.yaml` への参照文言のまま保ち、末尾セクションは持たせない。この形式の
+同期手順・衝突判定は `ai/claude/skills/sync-cloud-skills/`（特に「Private Data: When Local
+and Cloud May Diverge」）に従う。`check-skills.sh` のcloud portabilityチェックはキーワード
+一致ベースのため、この依存を機械的には検知しない。
 
 ## Private Data
 
