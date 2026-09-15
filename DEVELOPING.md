@@ -14,6 +14,12 @@ pre-commit run --all-files          # 全 pre-commit フックを実行
 
 Windows 向け変更（`bin/windows/`、`*.ps1`）は PowerShell 上で動作確認する（`pwsh -File <script>.ps1`）。
 
+`bin/unix/git-sweep` を変更した場合は、使い捨てのgitリポジトリで回帰テストを実行する:
+
+```bash
+scripts/test-git-sweep.sh
+```
+
 ## Conventions
 
 詳細は [AI_CONTEXT.md](AI_CONTEXT.md) を参照。要点のみ:

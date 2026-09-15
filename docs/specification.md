@@ -123,6 +123,46 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
   リポジトリパスを提示して手動pushを促す
 - upstream未設定のリポジトリはスキップする
 
+## git-sweep
+
+コマンド仕様（オプション、main/protectedブランチの解決順）は
+[bin/unix/git-sweep](../bin/unix/git-sweep)冒頭のコメントを正本とする。ここでは
+削除・保存に関する安全性の保証のみを記す（`bin/windows/git-sweep.ps1`も同一の
+保証を提供する）。
+
+- **dirty worktreeの保護**: 実行時点でstaged・unstaged・untrackedのいずれかが
+  存在する場合、checkout・pull・ブランチ削除を一切行わずスキップし、理由を表示する
+- **他worktreeで使用中のブランチの保護**: `git worktree list --porcelain`で
+  明示的に列挙し、現在のworktree以外でcheckout中のブランチは切り替え・削除・
+  fast-forward更新の対象にしない（`git branch`の`+`マーカー行も正しく除外する）
+- **fast-forward-only同期**: pullは`--ff-only`のみ。暗黙のrebaseやautostashは
+  行わない。分岐（diverge）している場合は警告を表示するだけで、ローカルの
+  コミットはそのまま保持する（ユーザーの明示操作に委ねる）
+- **`gone`だけでのマージ済み判定をしない**: リモート追跡ブランチが`gone`でも、
+  それだけでは削除しない。squash/rebase merge後のケースは、
+  merge-baseからの差分が`$MAIN`側の履歴に実在することを検証してから
+  （git-delete-squashed相当のアルゴリズム）のみ削除する。検証で一致しない
+  場合（未マージ、または追加のローカル専用コミットが乗っている場合）は
+  ブランチを保持する
+- **理由のない`-d`→`-D`フォールバックをしない**: `git branch -d`が失敗しても
+  無条件に`-D`へフォールバックしない。`-D`（force）は、上記の検証で
+  squash/rebase mergeとして内容一致を確認できた場合にのみ使う
+- **成功メッセージは実際の成功時のみ**: 削除・fast-forward更新・checkoutの
+  各操作は、対応するgitコマンドの終了コードを確認してから成功メッセージを
+  表示する。失敗時は理由付きの警告を表示し、処理は継続する
+- **Skipped / Deleted / Remaining の区別**: dirty・他worktree使用中で
+  スキップしたブランチは`Skipped: ...`、削除したブランチは`Deleted: ...`、
+  保護対象以外で残存するブランチは末尾の`Remaining branches:`一覧として、
+  それぞれ区別して表示する
+
+回帰テストは[scripts/test-git-sweep.sh](../scripts/test-git-sweep.sh)（Unix版のみ。
+使い捨てのbare origin + 作業用クローンをテンポラリディレクトリに作成し、
+fast-forward/squash-merge検出・未マージ保持・dirty worktree保持・他worktree
+使用中ブランチの保持・分岐したprotectedブランチの保持を検証する。ネットワーク
+アクセスなし、リポジトリ外への影響なし）を実行する。Windows版
+（`bin/windows/git-sweep.ps1`）の同等テストは、pwsh実行環境で動作確認できる
+ようになってから追加する。
+
 ## sync-labpc
 
 - ジョブ定義（`~/.config/labpc/jobs.d/<job-name>.conf`）に基づき、SMB共有からこのMacへ

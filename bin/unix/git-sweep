@@ -17,14 +17,30 @@
 #
 # 動作:
 #   1. fetch --prune でリモートの削除済みブランチを反映
-#   2. 現在のブランチが保護対象（PROTECTED）なら pull するだけ
-#   3. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
-#   4. PROTECTED のうち現在のブランチ以外は、ローカルに既にあれば HEAD を動かさず
+#   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
+#      削除を一切行わずスキップし、理由を表示する
+#   3. 現在のブランチが保護対象（PROTECTED）なら fast-forward pull するだけ
+#   4. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
+#      （$MAIN が他の worktree で checkout 済みの場合は切り替えをスキップする）
+#   5. PROTECTED のうち現在のブランチ以外は、ローカルに既にあれば HEAD を動かさず
 #      fast-forward fetch で同期する（コンフリクトがあれば警告のみ、自動マージは
 #      しない）。ローカルにまだ無ければ origin から新規作成し、それが $MAIN なら
 #      checkout する（develop 運用に気づかず main のまま作業を続ける事故を防ぐ）
-#   5. --all の場合、他のマージ済みブランチも削除
-#   6. 保護ブランチ以外の残存ブランチを表示
+#   6. --all の場合、他のマージ済みブランチも削除
+#   7. 保護ブランチ以外の残存ブランチを表示
+#
+# 安全性の保証:
+#   - dirty な worktree（staged/unstaged/untracked のいずれか）は checkout・pull・
+#     ブランチ削除の対象にしない
+#   - 他の worktree で checkout 済みのブランチは切り替え・削除・fast-forward
+#     更新の対象にしない（`git worktree list --porcelain` で明示的に検出する）
+#   - pull は fast-forward-only。暗黙の rebase や autostash は行わず、
+#     診断済みでコンフリクトの可能性がある操作は必ずユーザーの明示操作に委ねる
+#   - `git branch -d` の失敗を理由なく `-D` にフォールバックしない。squash/rebase
+#     merge 後の `gone` 判定は、squash された変更が $MAIN 側に実在することを
+#     git-delete-squashed 相当のアルゴリズムで検証してからのみ `-D` を使う
+#   - 削除・fast-forward の成功メッセージは、対応する git コマンドが実際に
+#     成功した場合のみ表示する
 #
 # マージ済みの判定:
 #   - PROTECTED に含まれるブランチは常に対象外
@@ -32,13 +48,17 @@
 #     （誤削除防止: 作成直後は HEAD が $MAIN と同じコミットを指すため、
 #     git branch --merged だけで判定すると常に「マージ済み」扱いになってしまう）
 #   - git branch --merged（fast-forward / merge commit）
-#   - リモートブランチが gone（squash merge / rebase merge 後に PR がクローズ済み）
+#   - リモートブランチが gone、かつ merge-base からの差分が $MAIN 側の履歴に
+#     実在する（squash/rebase merge 後の内容が確認できる。追加のローカル専用
+#     コミットがある場合は不一致になり対象外のまま残る）
 
 set -euo pipefail
 
 ALL=false
 MAIN=""
 PROTECTED=()
+MERGE_KIND=""
+DIRTY=false
 
 _get_attr() {
   local attr="$1"
@@ -136,6 +156,10 @@ fi
 
 git fetch --all --prune --quiet
 
+if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+  DIRTY=true
+fi
+
 _is_protected() {
   local b="$1" p
   for p in "${PROTECTED[@]}"; do
@@ -144,22 +168,95 @@ _is_protected() {
   return 1
 }
 
-# ブランチがマージ済みか判定
-_is_merged() {
-  local b="$1"
-  _is_protected "$b" && return 1
-  [[ "$(git rev-parse "$b" 2>/dev/null)" == "$(git rev-parse "$MAIN" 2>/dev/null)" ]] && return 1
-  git branch --merged "$MAIN" 2>/dev/null | command grep -qE "^[*]? +${b}$" && return 0
-  git branch -vv | command grep -qE "^[*]? +${b} +[0-9a-f]+ \[.*: gone\]" && return 0
+# ブランチ b が「現在の worktree 以外」で checkout されているかを判定する。
+# `git worktree list --porcelain` の各レコードは空行区切り。末尾レコードも
+# 確実に処理するため、入力の末尾に空行を1つ追加してから読む。
+_worktree_path_for_branch() {
+  local b="$1" path="" branch=""
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *) path="${line#worktree }" ;;
+      branch\ *) branch="${line#branch refs/heads/}" ;;
+      "")
+        if [[ -n "$path" && "$branch" == "$b" ]]; then
+          printf '%s\n' "$path"
+          return 0
+        fi
+        path=""; branch=""
+        ;;
+    esac
+  done < <(git worktree list --porcelain 2>/dev/null; printf '\n')
   return 1
 }
 
+_branch_in_other_worktree() {
+  local b="$1" wt cur
+  wt=$(_worktree_path_for_branch "$b") || return 1
+  cur=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+  [[ "$wt" != "$cur" ]]
+}
+
+# squash/rebase merge で $MAIN に取り込まれた内容が、ブランチ b の
+# merge-base 以降の差分と一致するかを検証する（git-delete-squashed 相当）。
+# 差分の内容が $MAIN 側の履歴に実在することを確認できた場合のみ真を返す。
+_is_squash_integrated() {
+  local b="$1" merge_base tree synth mark
+  merge_base=$(git merge-base "$MAIN" "$b" 2>/dev/null) || return 1
+  tree=$(git rev-parse "${b}^{tree}" 2>/dev/null) || return 1
+  # merge-base 以降に変更が全く無ければ、失うものは無いので安全とみなす。
+  if git diff --quiet "$merge_base" "$b" -- 2>/dev/null; then
+    return 0
+  fi
+  synth=$(git commit-tree "$tree" -p "$merge_base" -m _git-sweep-squash-check 2>/dev/null) || return 1
+  mark=$(git cherry "$MAIN" "$synth" 2>/dev/null) || return 1
+  [[ "$mark" == "-"* ]]
+}
+
+# ブランチがマージ済みか判定する。真を返す場合は $MERGE_KIND に
+# "ff"（fast-forward/merge commit）または "squash"（squash/rebase merge、
+# 内容の一致を検証済み）を設定する。
+_is_merged() {
+  local b="$1"
+  MERGE_KIND=""
+  _is_protected "$b" && return 1
+  [[ "$(git rev-parse "$b" 2>/dev/null)" == "$(git rev-parse "$MAIN" 2>/dev/null)" ]] && return 1
+  if git branch --merged "$MAIN" 2>/dev/null | command grep -qE "^[*+]? +${b}$"; then
+    MERGE_KIND="ff"
+    return 0
+  fi
+  if git branch -vv | command grep -qE "^[*+]? +${b} +[0-9a-f]+ \[.*: gone\]"; then
+    if _is_squash_integrated "$b"; then
+      MERGE_KIND="squash"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# 検証済みの判定結果 (kind) に基づいてのみ削除する。理由のない `-d` → `-D`
+# フォールバックは行わない。成功メッセージは実際の削除成功時のみ表示する。
+_delete_branch() {
+  local b="$1" kind="$2"
+  if [[ "$kind" == "squash" ]]; then
+    if git branch -D "$b" 2>/dev/null; then
+      echo "Deleted: $b (squash/rebase merge, verified)"
+    else
+      echo "warning: failed to delete $b" >&2
+    fi
+  else
+    if git branch -d "$b" 2>/dev/null; then
+      echo "Deleted: $b"
+    else
+      echo "warning: failed to delete $b (not fully merged into $MAIN; skipping)" >&2
+    fi
+  fi
+}
+
 _pull_current() {
-  if git pull --rebase --autostash --quiet; then
+  if git pull --ff-only --quiet; then
     echo "Updated $(git rev-parse --abbrev-ref HEAD)."
   else
-    git rebase --abort 2>/dev/null || true
-    echo "warning: could not pull (conflict). Run 'git pull --rebase' manually." >&2
+    echo "warning: could not fast-forward $(git rev-parse --abbrev-ref HEAD) (diverged or conflict). Resolve manually with 'git pull' or 'git merge'." >&2
   fi
 }
 
@@ -167,11 +264,16 @@ _pull_current() {
 # fast-forward だけ行う。ローカルにまだ無ければ origin から新規作成し、それが
 # $MAIN（develop 運用の統合ブランチ）であれば checkout する（2ブランチ運用の
 # 導入に気づかず main のままローカル作業を続けてしまう事故を防ぐため）。
+# 他の worktree で checkout 済みのブランチは更新・切り替えの対象にしない。
 _sync_other_protected() {
   local current="$1" b
   for b in "${PROTECTED[@]}"; do
     [[ "$b" == "$current" ]] && continue
     if git rev-parse --verify -q "$b" >/dev/null 2>&1; then
+      if _branch_in_other_worktree "$b"; then
+        echo "Skipped: $b (checked out in another worktree; not updated)"
+        continue
+      fi
       if git fetch . "origin/${b}:${b}" --quiet 2>/dev/null; then
         echo "Updated $b (fast-forward)."
       else
@@ -181,8 +283,15 @@ _sync_other_protected() {
       if git fetch origin "${b}:${b}" --quiet 2>/dev/null; then
         echo "Created local branch $b (tracking origin/$b)."
         if [[ "$b" == "$MAIN" ]]; then
-          git checkout "$MAIN"
-          echo "Switched to $MAIN."
+          if [[ "$DIRTY" == true ]]; then
+            echo "warning: worktree has uncommitted changes; not switching to $MAIN. Run 'git checkout $MAIN' after committing/stashing." >&2
+          elif _branch_in_other_worktree "$MAIN"; then
+            echo "warning: $MAIN is checked out in another worktree; not switching." >&2
+          elif git checkout "$MAIN" 2>/dev/null; then
+            echo "Switched to $MAIN."
+          else
+            echo "warning: failed to checkout $MAIN." >&2
+          fi
         fi
       fi
     fi
@@ -191,15 +300,27 @@ _sync_other_protected() {
 
 current=$(git rev-parse --abbrev-ref HEAD)
 
-if _is_protected "$current"; then
+if [[ "$DIRTY" == true ]]; then
+  echo "warning: worktree has uncommitted changes (staged, unstaged, or untracked); skipping checkout/pull/delete for '$current'. Run 'git status' to review." >&2
+  if _is_protected "$current"; then
+    _sync_other_protected "$current"
+  fi
+elif _is_protected "$current"; then
   _pull_current
   _sync_other_protected "$current"
 elif _is_merged "$current"; then
-  echo "Branch '$current' is merged. Switching to $MAIN..."
-  git checkout "$MAIN"
-  _pull_current
-  git branch -d "$current" 2>/dev/null || git branch -D "$current"
-  echo "Deleted: $current"
+  kind="$MERGE_KIND"
+  if _branch_in_other_worktree "$MAIN"; then
+    echo "warning: '$MAIN' is checked out in another worktree; skipping switch/cleanup for '$current'." >&2
+  else
+    echo "Branch '$current' is merged. Switching to $MAIN..."
+    if git checkout "$MAIN" 2>/dev/null; then
+      _pull_current
+      _delete_branch "$current" "$kind"
+    else
+      echo "warning: failed to checkout $MAIN; leaving '$current' in place." >&2
+    fi
+  fi
   _sync_other_protected "$MAIN"
 else
   echo "Branch '$current' is not yet merged into $MAIN."
@@ -207,13 +328,18 @@ fi
 
 # --all: 他のマージ済みブランチも削除
 if [[ "$ALL" == true ]]; then
+  current2=$(git rev-parse --abbrev-ref HEAD)
   while IFS= read -r b; do
     _is_protected "$b" && continue
-    if _is_merged "$b"; then
-      git branch -d "$b" 2>/dev/null || git branch -D "$b"
-      echo "Deleted: $b"
+    [[ "$b" == "$current2" ]] && continue
+    if _branch_in_other_worktree "$b"; then
+      echo "Skipped: $b (checked out in another worktree)"
+      continue
     fi
-  done < <(git branch | sed 's/^[* ]*//')
+    if _is_merged "$b"; then
+      _delete_branch "$b" "$MERGE_KIND"
+    fi
+  done < <(git branch | sed 's/^[*+ ]*//')
 fi
 
 # 保護ブランチ以外の残存ブランチを表示
@@ -222,7 +348,7 @@ while IFS= read -r b; do
   b="${b#"${b%%[! ]*}"}"  # trim leading spaces/asterisk
   _is_protected "$b" && continue
   others="${others:+$others$'\n'}$b"
-done < <(git branch | sed 's/^[* ]*//')
+done < <(git branch | sed 's/^[*+ ]*//')
 
 if [[ -n "$others" ]]; then
   echo ""
