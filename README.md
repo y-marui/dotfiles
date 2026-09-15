@@ -108,6 +108,9 @@ pre-commitで両者の対応関係を検証する。
 ## AI Configuration
 
 グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートまたは直接リンクしている。
+CLI 操作は [`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) で補完する。
+環境固有の詳細は [`ai/references/cli-environments.md`](ai/references/cli-environments.md) を
+必要時だけ参照する。リンク経由で読む場合は、CLI 規約ファイルの実体から参照先を解決する。
 リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
 
 ### Claude Code
