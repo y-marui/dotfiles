@@ -2,12 +2,12 @@
   "skills": [
     {
       "name": "weather-check",
-      "synced_hash": "729e1c48254ce5e8ab9252fb00d0f9bc4c343199440f0b4ae4f50bdc495cbfea",
+      "synced_hash": "092016d696507885129e71fe8910508af86fcfc002ab7c7228fde048ec52c34f",
       "scheduled_tasks": ["Daily Weather Check"]
     },
     {
       "name": "morning-brief",
-      "synced_hash": "7391a6a21810d258cf8bc11b406a8581914d3f1c7670d4b230b1d0dc57901f8c",
+      "synced_hash": "53f5de0e4d0a2b728d33926260e7809f74d06599848643da993b375b907daa74",
       "scheduled_tasks": ["Daily Morning Brief"]
     }
   ]
