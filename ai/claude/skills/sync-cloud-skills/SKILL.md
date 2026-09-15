@@ -29,8 +29,9 @@ claude.aiのSettings > Capabilities > Skills（またはそれに相当する現
 
 対象skillが[Private Dataパターン](../../skills/README.md#private-data)を使っている場合、
 `synced_hash` はローカルファイル（`~/.identity/<name>.yaml` 等への参照を含む形）のハッシュである。
-cloud側は後述のとおり実値を直書きした別内容になるため、両者のハッシュが一致することはそもそも
-想定しない。この場合の「一致」判定は、後述の「Reconcile per skill」の正規化比較に従う。
+cloud側は末尾に「Private Data (cloud-only)」節を持つ別内容になるため、両者のハッシュが一致する
+ことはそもそも想定しない。比較する際は、下記「Private Data: When Local and Cloud May Diverge」の
+とおり正規化してから行う。
 
 ## Read the cloud side
 
@@ -39,9 +40,9 @@ cloud側は後述のとおり実値を直書きした別内容になるため、
 （セッションごとにパス中のUUIDが変わるため固定パスをハードコードしない）:
 
 ```bash
-MIRROR_DIR=$(find "$HOME/Library/Application Support/Claude/local-agent-mode-sessions" \
+SKILLS_BASE=$(find "$HOME/Library/Application Support/Claude/local-agent-mode-sessions" \
   -maxdepth 4 -type d -name skills 2>/dev/null | head -1)
-cat "$MIRROR_DIR/<name>/SKILL.md"
+cat "$SKILLS_BASE/<name>/SKILL.md"
 ```
 
 見つかれば、これを「現在のcloud内容」として読む（ブラウザで概要・コンテンツタブを開いて
@@ -71,47 +72,63 @@ CDPのタイムアウトや、エディタの自動インデント機能によ�
 `.skill`ファイルへパッケージ化し、`SendUserFile`で届ける）を使う。ユーザーがカードの
 「Save skill」を押すことでcloud側に反映される。手順:
 
-1. 対象skillの最終的なローカル内容（`ai/skills/<name>/SKILL.md`、および対象skillが
-   Private Dataパターンを使う場合は後述の「cloud向けに実値を埋め込む」を適用した内容）を、
-   ローカルミラーのパス（`$MIRROR_DIR/<name>/SKILL.md`）へ書き込む。
-2. `skill-publish` skillを呼び出し、対象skill名を伝えてパッケージ化・送付させる。
-3. ユーザーに、届いたカードの「Save skill」を押してcloudへ保存するよう伝える。
+1. 対象skillの最終的な内容を `$SKILLS_BASE/<name>/SKILL.md`（上記ミラーパス）へ書き込む。
+   対象skillがPrivate Dataパターンを使う場合は、下記「Private Data: When Local and Cloud May
+   Diverge」に従い、cloud向けに実値を埋め込んだ内容にする。
+2. `skill-creator` の `package_skill.py` でパッケージ化する（`SKILLS_BASE` の親が
+   `skill-creator` ディレクトリ）:
+   ```bash
+   cd "$SKILLS_BASE/skill-creator"
+   uv run --with pyyaml python -m scripts.package_skill "../<name>"
+   ```
+   システムの `python`/`python3` に `pyyaml` が入っていない環境があるため、`uv run --with pyyaml`
+   で都度用意する。
+3. 生成された `<name>.skill` を `SendUserFile` でユーザーに届け、カードの「Save skill」で
+   cloudへ保存するよう伝える。
+4. 複数skillをまとめて反映する場合は、1回の `SendUserFile` 呼び出しでまとめて届けてよい。
 
 ## Private Data: When Local and Cloud May Diverge
 
-[Private Dataパターン](../../skills/README.md#private-data)を使うskillのうち、対象値が
-「呼び出し元が明示引数で渡せる単一の既定値」（例: `weather-check` の地点）なら、cloud側も
-ローカルと同じ `~/.identity/<name>.yaml` 参照の文言のまま置いてよい。cloud実行時にファイルが
-見つからなければユーザーに尋ねる設計にしておき、claude.ai側のScheduled Task自体のプロンプトで
-値を明示指定する運用にする（[Cloud Skills](../../skills/README.md#cloud-skills)参照）。この
-場合、local・cloudのSKILL.mdは同一内容で構わず、通常どおり`synced_hash`で一致管理する。
-
-一方、対象値が「skillの動作に必須な複数の構造化データ」（例: `morning-brief` が取得する
-複数カレンダーのID・メールアドレス一覧）で、呼び出し時の引数化が現実的でない場合は、
-cloud側は実値を直書きせざるを得ない。cloud側のSkillはアカウント個人のプライベート設定であり
-gitに乗らないため、これは許容する。この場合:
+[Private Dataパターン](../../skills/README.md#private-data)を使うskillのうち、`scheduled_tasks`
+が非空でcloud側の無人実行が必須なものは、本文中に実値を散らさず、ファイル末尾にまとめる。
 
 - ローカル（`ai/skills/<name>/SKILL.md`、gitで公開管理）は `~/.identity/<name>.yaml` への
-  参照のまま保つ。
-- cloud側だけ、参照部分を実値に展開した内容にする（展開後の内容を「Write the cloud side」の
-  手順でcloudへ反映する）。
-- 両者の差分は、この展開差分だけに限定されているかを確認する。それ以外の行に差分があれば、
-  通常の「Reconcile per skill」の衝突判定に従う（自動で一方を破棄しない）。
-- `cloud.json` の `synced_hash` は、ローカル側（参照形式）の内容のハッシュで管理する。
+  参照文言のまま保つ。
+- cloud側は、本文中でその参照文言が現れる箇所だけを「本SKILL末尾の『Private Data』節にある
+  〜を使う」という趣旨の1文に置き換え、ファイル末尾に次の形式でセクションを追加する:
+
+  ~~~markdown
+  ## Private Data (cloud-only)
+
+  このセクションはclaude.aiのcloud Skillにのみ存在する。dotfiles（公開リポジトリ）には
+  反映しない — dotfiles側は `~/.identity/<name>.yaml` を読む設計のまま維持する。
+
+  ```yaml
+  <~/.identity/<name>.yaml と同じスキーマの実データ>
+  ```
+  ~~~
+
+- cloud側のSkill本体はアカウント個人のプライベート設定でgitに乗らないため、実値を保持する
+  ことを許容する。
+- この形式なら、本文は（末尾セクションの有無と、参照文言1文を除いて）ローカルとcloudで
+  同一に保てるため、次回同期時の差分比較で「意図した私有データ差分」と「本当の内容変更」を
+  区別しやすい。
+- cloud→localへ反映する場合（「Reconcile per skill」4番）は、末尾の「Private Data (cloud-only)」
+  節をローカル側にコピーせず、参照文言も `~/.identity/<name>.yaml` へ戻す。
 
 ## Reconcile per skill
 
 `synced_hash` をベースラインとした3方向比較で判断する。ローカルとcloudのどちらが正しいかを
-推測で決めない。Private Dataパターンで意図的に分岐している場合は、上記の展開差分を除いた
-残りの内容で一致・不一致を判定する。
+推測で決めない。Private Dataパターンで意図的に分岐している場合は、上記の正規化（cloudの
+末尾セクションと参照文言1文を除く）をしたうえで一致・不一致を判定する。
 
 1. **未同期（`synced_hash` が `null`）かつcloud未作成** — ローカル内容をそのままcloudへ新規作成する。
 2. **未同期かつcloud側に既存Skillがある** — 内容が一致すれば単に `synced_hash` を記録するだけでよい。
    異なる場合は、どちらを正とするかをユーザーに確認してから決める（自動で片方を選ばない）。
 3. **ローカル不変・cloud不変**（両方が `synced_hash` の内容と一致） — 何もしない。
 4. **ローカル不変・cloud変化** — cloud側が正本の更新とみなし、cloudの内容をローカルの
-   `ai/skills/<name>/SKILL.md` へ反映する。Private Dataパターンの展開差分だけは反映せず、
-   `~/.identity/<name>.yaml` への参照に戻す。
+   `ai/skills/<name>/SKILL.md` へ反映する。末尾の「Private Data (cloud-only)」節は反映せず、
+   参照文言を `~/.identity/<name>.yaml` に戻す。
 5. **ローカル変化・cloud不変** — ローカルの内容をcloudへ反映する（「Write the cloud side」参照）。
 6. **ローカル変化・cloud変化かつ内容が異なる** — 衝突。両方の差分をユーザーに提示し、どちらを
    採用するか、または手動マージが必要かを確認する。自動で一方を破棄しない。
@@ -136,6 +153,6 @@ gitに乗らないため、これは許容する。この場合:
   パターン）を既定値として読む設計に変わっていないか確認する。`scripts/check-skills.sh` の
   cloud portabilityチェックはこのパターンを機械的には検知しない（`ローカルファイル`等の
   キーワードに一致しないため）。該当し、かつ `scheduled_tasks` が非空の場合、上記の
-  「Private data: local と cloud で内容が分岐してよいケース」に従って対応する。
+  「Private Data: When Local and Cloud May Diverge」に従って対応する。
 - claude.aiのSkills UIの実際の構成が想定と異なる場合（項目名、操作手順など）は、
   推測で進めずユーザーに確認する。
