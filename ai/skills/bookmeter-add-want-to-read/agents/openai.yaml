@@ -1,0 +1,3 @@
+interface:
+  display_name: "読書メーターの読みたいに追加"
+  short_description: "ジャンル別アカウントで読書メーターの登録状態を確認し、未登録なら読みたい本に追加"

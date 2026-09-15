@@ -1,0 +1,4 @@
+# Google Mapsの保存先リスト操作に使うアカウントのauthuserインデックス
+# google-maps-add-saved-place skill（dotfiles ai/skills）が読み取る
+
+authuser: 0

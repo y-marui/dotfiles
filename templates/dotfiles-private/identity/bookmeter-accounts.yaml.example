@@ -1,0 +1,11 @@
+# ジャンル別の読書メーターアカウント対応表
+# bookmeter-add-want-to-read skill（dotfiles ai/skills）が読み取る
+
+accounts:
+  - genre: example-genre-a
+    label: Example Genre A
+    display_name: Example Account A
+
+  - genre: example-genre-b
+    label: Example Genre B
+    display_name: Example Account B

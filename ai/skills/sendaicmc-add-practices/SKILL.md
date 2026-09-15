@@ -9,8 +9,7 @@ Google Calendarコネクタを使う。無関係なカレンダーを変更せ�
 
 ## Calendars
 
-- 通常練習 — `仙台室内楽の会 練習`: `4195f51b88a6d4542f79584ec53d39aaf6ebed1cf8cfac4c40e7947535bef928@group.calendar.google.com`
-- ピアノなし練習 — `仙台室内楽の会 練習 (ピアノなし)`: `8621676421379e707a6978a47e0a529f9139afb144fea1c1bd93a3315ab7b22c@group.calendar.google.com`
+カレンダーIDは `~/.identity/sendaicmc-calendars.yaml`（dotfiles-private で管理、`key`/`label`/`calendar_id` を持つ）の `regular`（通常練習）・`no_piano`（ピアノなし練習）を読む。ファイルがなければ作成方法を説明してユーザーに確認し、停止する。
 
 すべての日付・時刻の解釈には `Asia/Tokyo` を使う。ユーザーが通常練習カレンダーを明示する、または通常の練習と説明した場合は通常練習カレンダーを使う。ピアノなしカレンダーは、ユーザーが `ピアノなし` と言うか、そのカレンダーを明示した場合だけ使う。安全に判定できなければ、使用するカレンダーを質問する。
 
