@@ -44,6 +44,14 @@ Bash・WebFetch・同梱`scripts/`の実行が可能なサンドボックスを�
 更新・読み取りの公開APIがないため、実際の反映（ローカル⇔cloud間の差分検知・反映）は
 ブラウザ操作が必要になり、`ai/claude/skills/sync-cloud-skills/` が担う。
 
+cloud skillが[Private Data](#private-data)パターン（`~/.identity/<name>.yaml` 等を既定値
+として読む）を併用する場合は注意する。cloud実行時はそのパスへアクセスできないため、
+`scheduled_tasks` が非空のskillでこれをそのまま同期すると、無人実行時に既定値が失われる
+（例: `weather-check` の既定地点は `~/.identity/weather-location.yaml` から読むが、
+cloud側の「Daily Weather Check」Scheduled Taskは地点を明示指定する運用にする必要がある）。
+`check-skills.sh` のcloud portabilityチェックはキーワード一致ベースのため、この依存を
+機械的には検知しない。
+
 ## Private Data
 
 skill本体（判定ロジック・操作手順）は `ai/skills/`（または各ツール固有配置）に置き、
@@ -58,7 +66,9 @@ skill本体に直接書かない。
   `sendaicmc-*` は `~/.identity/sendaicmc-calendars.yaml` の `key`/`label`/`calendar_id`
   や `~/.identity/sendaicmc-jimoty.yaml` の `fallback_article_url`/`fallback_edit_url`
   を、`google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
-  `authuser` を読む）。`.example` は `dotfiles/templates/dotfiles-private/` と
+  `authuser` を、`weather-check` は `~/.identity/weather-location.yaml` の
+  `label`/`prefecture_code`/`area_code`/`latitude`/`longitude` を読む）。`.example` は
+  `dotfiles/templates/dotfiles-private/` と
   完全一致させ、`links.conf` / `links.conf.example` は dotfiles-private側の規約どおり
   完全一致させる（詳細は dotfiles-private の `docs/specification.md` / `DEVELOPING.md`）。
 - 保存先リストの内容・読書ログ等、量が多い・頻繁に増減する個人データは

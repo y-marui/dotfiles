@@ -11,6 +11,7 @@ all|identity/bookmeter-accounts.yaml|.identity/bookmeter-accounts.yaml
 all|identity/sendaicmc-calendars.yaml|.identity/sendaicmc-calendars.yaml
 all|identity/sendaicmc-jimoty.yaml|.identity/sendaicmc-jimoty.yaml
 all|identity/google-maps-account.yaml|.identity/google-maps-account.yaml
+all|identity/weather-location.yaml|.identity/weather-location.yaml
 all|ai/claude/claude-perms.json|.claude/claude-perms.json
 all|shell/profile.private|.profile.private
 unix|labpc|.config/labpc

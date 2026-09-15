@@ -1,0 +1,8 @@
+# weather-check skillの既定地点
+# dotfiles ai/skills/weather-check が読み取る
+
+label: Example City
+prefecture_code: "000000"
+area_code: "00000"
+latitude: 35.6812
+longitude: 139.7671
