@@ -1,0 +1,27 @@
+# morning-brief skillが取得するカレンダー対応表
+# dotfiles ai/skills/morning-brief が読み取る
+
+calendars:
+  - key: primary
+    label: Example Primary Calendar
+    calendar_id: example-primary@example.com
+
+  - key: work
+    label: Example Work Calendar
+    calendar_id: example-work@example.org
+
+  - key: work_secondary
+    label: Example Work Calendar (secondary)
+    calendar_id: example-work-secondary@group.calendar.google.com
+
+  - key: community_a
+    label: Example Community Calendar A
+    calendar_id: example-community-a@group.calendar.google.com
+
+  - key: community_b
+    label: Example Community Calendar B
+    calendar_id: example-community-b@group.calendar.google.com
+
+  - key: community_admin
+    label: Example Community Admin Calendar
+    calendar_id: example-community-admin@example.com

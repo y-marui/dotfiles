@@ -52,6 +52,13 @@ cloud側の「Daily Weather Check」Scheduled Taskは地点を明示指定する
 `check-skills.sh` のcloud portabilityチェックはキーワード一致ベースのため、この依存を
 機械的には検知しない。
 
+値が単一の既定値（引数化できる）なら上記のようにcloud側もローカルと同じ参照文言のままでよいが、
+`morning-brief` の複数カレンダーID一覧のように、skillの動作に必須な構造化データで引数化が
+現実的でない場合は、cloud側のSkill本体にだけ実値を直書きせざるを得ない（cloud側はアカウント
+個人のプライベート設定でgitに乗らないため許容する）。この場合の同期手順・衝突判定は
+`ai/claude/skills/sync-cloud-skills/`（特に「Private data: local と cloud で内容が分岐してよい
+ケース」）に従う。
+
 ## Private Data
 
 skill本体（判定ロジック・操作手順）は `ai/skills/`（または各ツール固有配置）に置き、
@@ -67,7 +74,9 @@ skill本体に直接書かない。
   や `~/.identity/sendaicmc-jimoty.yaml` の `fallback_article_url`/`fallback_edit_url`
   を、`google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
   `authuser` を、`weather-check` は `~/.identity/weather-location.yaml` の
-  `label`/`prefecture_code`/`area_code`/`latitude`/`longitude` を読む）。`.example` は
+  `label`/`prefecture_code`/`area_code`/`latitude`/`longitude` を、`morning-brief` は
+  `~/.identity/morning-brief-calendars.yaml` の `key`/`label`/`calendar_id` を読む）。
+  `.example` は
   `dotfiles/templates/dotfiles-private/` と
   完全一致させ、`links.conf` / `links.conf.example` は dotfiles-private側の規約どおり
   完全一致させる（詳細は dotfiles-private の `docs/specification.md` / `DEVELOPING.md`）。
