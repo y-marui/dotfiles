@@ -59,7 +59,9 @@ description: "Read one or more referenced Codex or ChatGPT conversations, verify
 
 事実、ユーザーの選好、推論を文章上で混同しない。推論やおすすめは「この条件なら」「〜と考えられる」のように条件付きで書く。相反する情報は一方へ丸めず、情報源・時点・確認課題とともに残す。
 
-出典は主張を直接支えるページへ通常のMarkdownリンクで付ける。元チャットへのリンクやtask IDは来歴であって根拠ではないため、必要な場合だけ「元の会話」等へ分離する。Codex内部のcitation tokenや検索結果IDをノートへ転記しない。
+出典は主張を直接支えるページへ通常のMarkdownリンクで付ける。Codex内部のcitation tokenや検索結果IDをノートへ転記しない。
+
+`## 来歴` や `chatgpt-conversation://` を含む元チャットへの参照は、通常はノートに残さない。継続利用する判断や根拠を本文と出典へ移した後、ユーザーが明示的に追跡を求める場合だけ、根拠と区別した短い参照として残す。
 
 ### Images requested for a note
 
