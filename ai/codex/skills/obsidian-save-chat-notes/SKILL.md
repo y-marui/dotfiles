@@ -26,10 +26,11 @@ description: "Read one or more referenced Codex or ChatGPT conversations, verify
 
 ## 2. Inspect the vault before choosing a destination
 
-ユーザーが別のvaultを指定しない限り、`${HOME}/src/github.com/y-marui/obsidian-vault` を対象候補とし、存在を確認する。作業前にvaultの指示が定める順序で `README.md`、`AI_CONTEXT.md`、`idea_notes/coding/note-organization.md` と、関連しそうな既存ノートを読む。
+ユーザーが別のvaultを指定しない限り、`${HOME}/src/github.com/y-marui/obsidian-vault` を対象候補とし、存在を確認する。作業前にvaultの指示が定める順序で `README.md`、`AI_CONTEXT.md`、`idea_notes/coding/note-organization.md` を読む。保存先を新設する前に、会話の主題・判断・ユーザーの継続的な計画に関わる語で既存ノートを検索し、候補を読む。まず既存ノートへ統合できるかを判断する。
 
 - ユーザーが保存先を明示した場合は、vault規約と矛盾しない限り従う。
-- 既存の主題に自然に収まる場合は既存フォルダを使う。単独トピックは直下、複数の独立ノートが同じ主題を持つ場合だけフォルダを作る。
+- 会話の内容が既存ノートの具体化・運用追加として自然に収まる場合は、既存ノートへ統合する。関連する既存プロジェクトや生活方針のスコープを無理なく広げられる場合も、重複する新規ノートより統合を優先する。
+- 独立した選定基準・更新周期・判断文脈を持つ主題、または統合すると既存ノートを実質的な複数トピックにしてしまう場合にだけ、新規ノートを作る。単独トピックは直下、複数の独立ノートが同じ主題を持つ場合だけフォルダを作る。
 - 新しいパスは既存規約に合わせ、通常は小文字英語の説明的な名前にする。
 - 1トピック1ファイルを守る。選定基準や更新周期が異なる主題は複数ファイルへ分け、`[[wikilink]]` で結ぶ。
 - 似た既存ノートがあれば重複新規作成を避ける。ただし、ユーザーの既存記述を指示なく削除・要約・再構成しない。
