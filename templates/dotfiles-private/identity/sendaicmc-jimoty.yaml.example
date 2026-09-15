@@ -1,0 +1,5 @@
+# 仙台室内楽の会のジモティー投稿フォールバック参照
+# sendaicmc-create-jimoty-post skill（dotfiles ai/skills）が読み取る
+
+fallback_article_url: https://jmty.jp/example-prefecture/example-category/article-example
+fallback_edit_url: https://jmty.jp/example-prefecture/example-category/article_example/edit
