@@ -16,10 +16,7 @@ description: Create a new Jimoty recruitment post for 仙台室内楽の会 by r
 
 ## Calendar sources
 
-Google Calendarコネクタで両方のカレンダーからイベントを読む。
-
-- `仙台室内楽の会 練習`: `4195f51b88a6d4542f79584ec53d39aaf6ebed1cf8cfac4c40e7947535bef928@group.calendar.google.com`
-- `仙台室内楽の会 練習 (ピアノなし)`: `8621676421379e707a6978a47e0a529f9139afb144fea1c1bd93a3315ab7b22c@group.calendar.google.com`
+Google Calendarコネクタで両方のカレンダーからイベントを読む。カレンダーIDは `~/.identity/sendaicmc-calendars.yaml`（dotfiles-private で管理、`key`/`label`/`calendar_id` を持つ）の `regular`（通常練習）・`no_piano`（ピアノなし練習）を読む。ファイルがなければ作成方法を説明してユーザーに確認し、停止する。
 
 渡された埋め込みカレンダーURLには日本の祝日カレンダーも含まれる。練習スケジュールに祝日イベントを含めない。
 

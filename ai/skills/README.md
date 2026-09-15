@@ -50,14 +50,16 @@ skill本体（判定ロジック・操作手順）は `ai/skills/`（または�
 アカウント名・アカウント対応表・個人の趣味嗜好リストなど個人を特定できる情報は
 skill本体に直接書かない。
 
-- サービスのアカウント名・ジャンル対応表など、固定で小規模な設定データは
-  `dotfiles-private` に置き、`links.conf` で `~/.identity/<service>-accounts.yaml` 等の
-  固定パスへリンクする。skillはそのパスだけを読み、中身のスキーマだけを前提にする
-  （例: `bookmeter-add-want-to-read` は `~/.identity/bookmeter-accounts.yaml` の
-  `genre`/`label`/`display_name` を読む）。`.example` は
-  `dotfiles/templates/dotfiles-private/` と完全一致させ、`links.conf` /
-  `links.conf.example` は dotfiles-private側の規約どおり完全一致させる
-  （詳細は dotfiles-private の `docs/specification.md` / `DEVELOPING.md`）。
+- サービスのアカウント名・カレンダーIDなどのリソース識別子・ジャンル対応表など、
+  固定で小規模な設定データは `dotfiles-private` に置き、`links.conf` で
+  `~/.identity/<service>-*.yaml` 等の固定パスへリンクする。skillはそのパスだけを読み、
+  中身のスキーマだけを前提にする（例: `bookmeter-add-want-to-read` は
+  `~/.identity/bookmeter-accounts.yaml` の `genre`/`label`/`display_name` を、
+  `sendaicmc-*` は `~/.identity/sendaicmc-calendars.yaml` の `key`/`label`/`calendar_id`
+  を、`google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
+  `authuser` を読む）。`.example` は `dotfiles/templates/dotfiles-private/` と
+  完全一致させ、`links.conf` / `links.conf.example` は dotfiles-private側の規約どおり
+  完全一致させる（詳細は dotfiles-private の `docs/specification.md` / `DEVELOPING.md`）。
 - 保存先リストの内容・読書ログ等、量が多い・頻繁に増減する個人データは
   `obsidian-vault` 側に置く。
 - ログイン済みブラウザ状態にのみ依存し、アカウント選択や個人設定データを必要としない

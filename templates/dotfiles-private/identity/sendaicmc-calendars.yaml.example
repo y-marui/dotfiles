@@ -1,0 +1,11 @@
+# 仙台室内楽の会 練習カレンダーのGoogle Calendar ID対応表
+# sendaicmc-* skills（dotfiles ai/skills）が読み取る
+
+calendars:
+  - key: regular
+    label: Example Regular Practice
+    calendar_id: example-regular@group.calendar.google.com
+
+  - key: no_piano
+    label: Example Secondary Practice
+    calendar_id: example-secondary@group.calendar.google.com
