@@ -68,5 +68,12 @@ claude.aiのSettings > Capabilities > Skills（またはそれに相当する現
   呼び出されている。そのようなskillをcloud側から削除する、または `cloud.json` の
   エントリごと削除することはユーザーに確認してから行う（`scripts/check-cloud-skill-schedule-removal.sh`
   がpre-commitで機械的にもブロックする）。
+- ローカルの `SKILL.md` が `~/.identity/<name>.yaml` 等（[Private Data](../../skills/README.md#private-data)
+  パターン）を既定値として読む設計に変わっていないか確認する。`scripts/check-skills.sh` の
+  cloud portabilityチェックはこのパターンを機械的には検知しない（`ローカルファイル`等の
+  キーワードに一致しないため）。該当し、かつ `scheduled_tasks` が非空の場合、cloud側の
+  Scheduled Taskは同じファイルを読めないため、そのまま同期すると無人実行時に地点等の
+  既定値が失われて動作が変わる。ユーザーに、Scheduled Task側のプロンプトで必要な値を
+  明示指定する運用に更新済みかを確認してから同期する。
 - claude.aiのSkills UIの実際の構成が想定と異なる場合（項目名、操作手順など）は、
   推測で進めずユーザーに確認する。
