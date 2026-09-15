@@ -11,8 +11,7 @@ description: Create a new Jimoty recruitment post for 仙台室内楽の会 by r
 
 - 投稿管理: `https://jmty.jp/my/posts`
 - 新規投稿フォーム: `https://jmty.jp/articles/new?category_group_id=6&prefecture_id=4`
-- フォールバック参照記事: `https://jmty.jp/miyagi/com-etc/article-1pvg2m`
-- フォールバック参照記事の編集フォーム: `https://jmty.jp/miyagi/com-etc/article_1pvg2m/edit`
+- フォールバック参照記事とその編集フォームは `~/.identity/sendaicmc-jimoty.yaml`（dotfiles-private で管理、`fallback_article_url`/`fallback_edit_url` を持つ）を読む。ファイルがなければ作成方法を説明してユーザーに確認し、停止する。
 
 ## Calendar sources
 

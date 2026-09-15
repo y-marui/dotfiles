@@ -56,6 +56,7 @@ skill本体に直接書かない。
   中身のスキーマだけを前提にする（例: `bookmeter-add-want-to-read` は
   `~/.identity/bookmeter-accounts.yaml` の `genre`/`label`/`display_name` を、
   `sendaicmc-*` は `~/.identity/sendaicmc-calendars.yaml` の `key`/`label`/`calendar_id`
+  や `~/.identity/sendaicmc-jimoty.yaml` の `fallback_article_url`/`fallback_edit_url`
   を、`google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
   `authuser` を読む）。`.example` は `dotfiles/templates/dotfiles-private/` と
   完全一致させ、`links.conf` / `links.conf.example` は dotfiles-private側の規約どおり
