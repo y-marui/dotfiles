@@ -44,6 +44,25 @@ Bash・WebFetch・同梱`scripts/`の実行が可能なサンドボックスを�
 更新・読み取りの公開APIがないため、実際の反映（ローカル⇔cloud間の差分検知・反映）は
 ブラウザ操作が必要になり、`ai/claude/skills/sync-cloud-skills/` が担う。
 
+## Private Data
+
+skill本体（判定ロジック・操作手順）は `ai/skills/`（または各ツール固有配置）に置き、
+アカウント名・アカウント対応表・個人の趣味嗜好リストなど個人を特定できる情報は
+skill本体に直接書かない。
+
+- サービスのアカウント名・ジャンル対応表など、固定で小規模な設定データは
+  `dotfiles-private` に置き、`links.conf` で `~/.identity/<service>-accounts.yaml` 等の
+  固定パスへリンクする。skillはそのパスだけを読み、中身のスキーマだけを前提にする
+  （例: `bookmeter-add-want-to-read` は `~/.identity/bookmeter-accounts.yaml` の
+  `genre`/`label`/`display_name` を読む）。`.example` は
+  `dotfiles/templates/dotfiles-private/` と完全一致させ、`links.conf` /
+  `links.conf.example` は dotfiles-private側の規約どおり完全一致させる
+  （詳細は dotfiles-private の `docs/specification.md` / `DEVELOPING.md`）。
+- 保存先リストの内容・読書ログ等、量が多い・頻繁に増減する個人データは
+  `obsidian-vault` 側に置く。
+- ログイン済みブラウザ状態にのみ依存し、アカウント選択や個人設定データを必要としない
+  skill（例: `filmarks-add-want-to-watch`）は、私有データファイルを持たなくてよい。
+
 ## Naming
 
 特定のサービス・アプリと連携する skill は `<service>-<verb>-<object>` の順にし、
