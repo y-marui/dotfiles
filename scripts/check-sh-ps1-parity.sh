@@ -66,6 +66,7 @@ EXCEPTIONS=(
   "scripts/check-readme-placeholders.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/init-host.sh:make専用ツール。git-bash経由で全OS共通実行"
   "scripts/setup-private.sh:make専用ツール（gh CLI依存）。git-bash経由で全OS共通実行"
+  "scripts/test-git-sweep.sh:TODO: bin/windows/git-sweep.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/run_quiet_hook.sh:Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
   "ai/claude/hooks/status.sh:Claude Codeのstatuslineはbash経由で実行される前提のためOS問わず動作"
   "ai/claude/mcp/apply.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
