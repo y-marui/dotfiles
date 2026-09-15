@@ -5,7 +5,7 @@ description: Search Google Maps from place information supplied as text or an im
 
 # Add a Google Maps Saved Place
 
-ユーザーがサインイン済みの外部ブラウザ状態を使う。新しいタブを開き、Google Mapsの `authuser=2` アカウントで検索し、確認済みの場所を意図したリストだけへ追加する。結果詳細を記録後、ユーザーへの引き継ぎで開いたままにする必要がない限り、完了タブを閉じる。
+ユーザーがサインイン済みの外部ブラウザ状態を使う。使用する `authuser` インデックスは `~/.identity/google-maps-account.yaml`（dotfiles-private で管理、`authuser` を持つ）を読む。ファイルがなければ作成方法を説明してユーザーに確認し、停止する。新しいタブを開き、そのアカウントで検索し、確認済みの場所を意図したリストだけへ追加する。結果詳細を記録後、ユーザーへの引き継ぎで開いたままにする必要がない限り、完了タブを閉じる。
 
 ## Extract and verify the place
 
@@ -13,7 +13,7 @@ description: Search Google Maps from place information supplied as text or an im
 2. 場所を一意に特定できない場合は、Google Mapsを変更する前に、不足する名前、都市、住所、支店名を質問する。
 3. この手順はユーザーがサインイン済みのGoogle Maps状態に依存するため、Chrome/browser-control skillを使う。ブラウザ操作前に専用のGoogle Mapsコネクタを確認し、保存リストを編集できるコネクタがなければブラウザを使う。
 4. 新しいブラウザタブを作る。既存のユーザータブを取得、再利用、移動しない。
-5. たとえば `https://www.google.com/maps/search/<encoded query>?authuser=2` のように、URLへ `authuser=2` を明示してGoogle Mapsで検索する。
+5. たとえば `https://www.google.com/maps/search/<encoded query>?authuser=<authuser>` のように、URLへ設定済みの `authuser` を明示してGoogle Mapsで検索する。
 6. 結果を、渡された名前と住所または地域名に照合する。単に似ている支店や同名店を保存しない。
 
 ## Choose the destination list
@@ -53,7 +53,7 @@ description: Search Google Maps from place information supplied as text or an im
 2. 保存先リストを調べる前に、存在する場合はシステムリスト `スター付き` と `お気に入り` の正確なチェック状態を調べる。
 3. `スター付き` または `お気に入り` のどちらかにチェックがあれば、どのリストも変更せず停止する。いずれのリストにすでに入っているため依頼された保存をスキップしたかを報告する。保存先リストの確認へ進まない。
 4. 正確な保存先リスト名を探す。似た名前のリストで代用しない。
-5. 正確な保存先リストがなければ、何も変更せず停止する。代替リストを作成しない。新しいMapsタブを引き継ぎのため開いたままにし、不足している保存先リスト名を示して、Google Mapsが正しい `authuser=2` アカウントを表示しているかユーザーに確認を求める。
+5. 正確な保存先リストがなければ、何も変更せず停止する。代替リストを作成しない。新しいMapsタブを引き継ぎのため開いたままにし、不足している保存先リスト名を示して、Google Mapsが設定済みの `authuser` に対応する正しいアカウントを表示しているかユーザーに確認を求める。
 6. 完全一致の候補が複数あれば、何も変更せず停止し、アカウントと重複リストの確認をユーザーに求める。
 7. 1件に確定した保存先リストのチェック状態を調べる。
 8. 保存先がすでにチェック済みなら変更せず、すでに保存済みと報告する。
@@ -68,7 +68,7 @@ description: Search Google Maps from place information supplied as text or an im
 
 - Google Mapsに表示される正確な場所名
 - Google Mapsに表示される完全な確認済み住所
-- Google Mapsの場所ページURL。検索結果URLではなく現在の正規URLを使い、存在する `authuser=2` を保持する。
+- Google Mapsの場所ページURL。検索結果URLではなく現在の正規URLを使い、存在する `authuser` パラメータを保持する。
 - 結果と正確なリスト名: 新規追加、保存先にすでに存在、または `スター付き` もしくは `お気に入り` にすでに存在したためスキップ
 
 成功、保存先にすでに存在、または `スター付き` / `お気に入り` によるスキップの後は、上記の記録と新規作成タブを閉じること以外のページ操作をしない。複数の場所を処理する場合は、完了したタブをすべて閉じる。
