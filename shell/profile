@@ -1,3 +1,6 @@
+# Docker Desktop CLI
+export PATH="$PATH:$HOME/.docker/bin"
+
 # ~/.profile / shell/profile
 # sh 互換構文のみ。全シェル（zsh/bash）共通の環境変数・PATH。
 # shellcheck shell=sh
