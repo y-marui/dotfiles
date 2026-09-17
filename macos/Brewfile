@@ -215,6 +215,7 @@ vscode "ziyasal.vscode-open-in-github"
 # ── 未分類 ────────────────────────────────────────────────────────────────────
 brew "go"
 brew "tcl-tk@8"
+cask "docker-desktop"
 cask "font-noto-sans-cjk-jp"
 cask "font-noto-serif-cjk-jp"
 cask "macshot"
