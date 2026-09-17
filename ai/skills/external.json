@@ -4,8 +4,7 @@
       "name": "grilling",
       "repo": "mattpocock/skills",
       "ref": "3cca18b368ae95cdbdebbff572ccafa662551015",
-      "path": "skills/productivity/grilling",
-      "targets": ["codex"]
+      "path": "skills/productivity/grilling"
     }
   ]
 }
