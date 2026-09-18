@@ -4,9 +4,10 @@
 #
 # 動作:
 #   1. dotfiles-private/macos/dockfile を読み込む
-#   2. Dock・Finder サイドバーそれぞれについて diff_dockfile.sh で個別に差分判定し、
+#   2. dockfile.cache を現在の Dock・Sidebar状態で更新（判定を常に実機基準にする）
+#   3. Dock・Finder サイドバーそれぞれについて diff_dockfile.sh で個別に差分判定し、
 #      差分がある側だけリセットして再構築する（差分がない側には触れない）
-#   3. dockfile.cache を更新
+#   4. dockfile.cache を再度更新（適用結果を反映）
 #
 # 使い方:
 #   DOTFILES_DIR=~/dotfiles bash macos/apply_dockfile.sh
@@ -43,8 +44,14 @@ if [[ ! -s "$DOCK_FILE" ]]; then
   exit 1
 fi
 
+# ── 差分判定の前に cache を実機の最新状態へ更新 ──────────────────────────────
+# cache が古いままだと、cache 更新後に手動でDock/Sidebarを変更した側の乖離を
+# 見逃して誤ってスキップしてしまうため、判定は常に「dockfile vs 現在の実機状態」
+# になるよう毎回リフレッシュしてから比較する
+export DOTFILES_DIR
+bash "$DOTFILES_DIR/macos/update_dockcache.sh"
+
 # ── Dock・Sidebarそれぞれの差分有無を個別判定 ─────────────────────────────────
-# （diff_dockfile.sh は cache未生成時も差分ありとして扱うため、初回適用は両方 true）
 dock_needs_update=1
 sidebar_needs_update=1
 if bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" --dock >/dev/null; then
@@ -138,7 +145,6 @@ if [[ $dock_needs_update -eq 1 ]]; then
   killall Dock 2>/dev/null || true
 fi
 
-# ── cache を更新 ──────────────────────────────────────────────────────────────
-export DOTFILES_DIR
+# ── cache を更新（適用結果を反映） ────────────────────────────────────────────
 bash "$DOTFILES_DIR/macos/update_dockcache.sh"
 echo "Done. dockfile.cache saved to $PRIVATE_DIR/macos/dockfile.cache"
