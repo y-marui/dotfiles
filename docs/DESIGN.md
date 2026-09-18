@@ -73,7 +73,7 @@ skillがdotfilesまたは専用キャッシュを指す未宣言リンクに限�
 
 外部 AI CLI を MCP として接続する場合は、提供元が公式に公開する server mode または
 remote server のみ採用する。現在の Codex 管理対象は GitHub Remote MCP と
-その Copilot toolset、および `claude mcp serve` だけで、Copilot CLI / Gemini CLI /
+その Copilot toolset、および `claude mcp serve` だけで、Copilot CLI /
 Ollama 用の独自 bridge は作らない。
 
 ---

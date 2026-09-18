@@ -26,7 +26,7 @@ AI はタスク開始時に以下の順で参照する:
 
 ## AI Tool Assignments
 
-- **使用ツール**：Claude Code、Codex、GitHub Copilot、Gemini CLI
+- **使用ツール**：Claude Code、Codex、GitHub Copilot
 - **標準担当の正本**：`docs/dev-charter/AI_COLLABORATION_RULES.md` の「AI Tool Responsibilities」と「Rules for Multi-AI Usage」
 - **プロジェクト固有の上書き**：
   - Codex へのPRレビュー依頼は、対象PRに `@codex review` とコメントする
@@ -51,7 +51,7 @@ macOS・Raspberry Pi・Windows の開発環境設定（シェル・Git・エデ�
 - Mac: 複数台（ホスト名で差分管理）
 - Version managers: pyenv, rbenv, nodebrew
 - Editor: Vim, VSCode
-- AI: Codex、Claude Code、GitHub Copilot、Gemini CLI
+- AI: Codex、Claude Code、GitHub Copilot
 
 ## Platform-Specific Setup
 
@@ -136,7 +136,6 @@ dotfiles/
 │   ├── codex/      # Codex 固有の skill / plugin / MCP 宣言
 │   ├── claude/     # Claude Code 固有の設定と skill / plugin / MCP 宣言
 │   ├── copilot/    # GitHub Copilot 設定ドキュメント
-│   └── gemini/     # ~/.gemini/ にリンクされる Gemini CLI 設定
 ├── macos/          # Brewfile、macOS defaults スクリプト
 ├── windows/        # WingetPin（winget一時pin宣言）
 ├── host/           # マシン固有設定（コミット対象外）
@@ -194,10 +193,10 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `dots winget apply/diff/cache`: Windows専用。`windows/WingetPin` に宣言したパッケージの
   一時pinをwinget側の実際の状態と同期する（macOSの `dots brew` におけるBrewfile-pin相当）
 - `macos/Brewfile-pin`: 一時的に更新を止める formula/Cask を宣言。`dots brew apply/diff/cache` で実pin状態と同期する
-- `dots {claude|codex|gemini} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
-- `dots {claude|codex|gemini} apply`: 宣言済みの不足・設定不一致を追加または更新
-- `dots {claude|codex|gemini} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
-- `dots ai {diff|apply|prune}`: Claude Code・Codex・Gemini の同じ操作を順番に一括実行
+- `dots {claude|codex} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
+- `dots {claude|codex} apply`: 宣言済みの不足・設定不一致を追加または更新
+- `dots {claude|codex} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
+- `dots ai {diff|apply|prune}`: Claude Code・Codex の同じ操作を順番に一括実行
 - `dots check`    : リンク・dotfiles状態・パッケージ・macOSの sudo Touch ID・全 AI Agentの差分を一括確認
   macOSではLaunchAgentがログイン時と1時間ごとに実行し、状態変化時だけ通知する。zshは
   `~/.cache/dots/check-summary`を表示するだけで、チェック完了を待たない

@@ -48,7 +48,7 @@ _最終更新: 2026-09-15_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex・Gemini の一括操作。`check`（非verbose）はmacOSの sudo Touch IDを含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex,gemini}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
+| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex の一括操作。`check`（非verbose）はmacOSの sudo Touch IDを含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
 
 ## dots check Monitor (macOS)
 

@@ -29,7 +29,6 @@ LINKS=(
   "ai/claude/CLAUDE.md|${HOME}/.claude/CLAUDE.md"
   "ai/claude/hooks/status.sh|${HOME}/.claude/hooks/status.sh"
   "ai/copilot/instructions.md|${HOME}/.copilot/copilot-instructions.md"
-  "ai/gemini/GEMINI.md|${HOME}/.gemini/GEMINI.md"
   "completions|${HOME}/.zsh_completions"
   "bin/unix|${HOME}/.local/bin/dotfiles"
 )
@@ -57,14 +56,11 @@ fi
 
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを
 # 個別リンクする。これにより、アプリや CLI が追加した未管理 skill と所有範囲が衝突しない。
-# gemini は Antigravity と Gemini CLI 本体で参照先ディレクトリが異なるため、
-# agent 1つにつき複数の配置先を持てるよう skill_homes を配列にしている。
 CODEX_LEGACY_SKILLS=()
-for agent in codex claude gemini; do
+for agent in codex claude; do
   case "${agent}" in
     codex) skill_homes=("${HOME}/.agents/skills") ;;
     claude) skill_homes=("${HOME}/.claude/skills") ;;
-    gemini) skill_homes=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   esac
 
   seen_skill_names="|"

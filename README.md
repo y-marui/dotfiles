@@ -1,7 +1,7 @@
 # dotfiles
 
 macOS を中心に、Raspberry Pi・Windowsでも共有する個人開発環境設定。
-zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copilot + Gemini CLI。
+zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copilot。
 
 ## Setup (New Machine)
 
@@ -50,7 +50,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots shortcuts {apply\|diff\|sync\|merge\|cache}` | macOSのアプリケーションショートカットを管理（applyは管理ファイルと完全一致、mergeで現在値を先に取り込める） |
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
-| `dots ai {apply\|diff\|prune}` | Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理 |
+| `dots ai {apply\|diff\|prune}` | Claude Code・Codex の MCP・plugin・skill を一括管理 |
 | `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
 | `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |
 
@@ -100,7 +100,7 @@ pre-commitで両者の対応関係を検証する。
 | `shell/` | zsh / bash 設定 |
 | `git/` | Git 設定（公開分のみ） |
 | `terminal/` | Zellij / p10k / PowerShell 設定 |
-| `ai/` | Codex / Claude Code / Copilot / Gemini CLI 設定 |
+| `ai/` | Codex / Claude Code / Copilot 設定 |
 | `macos/` | Brewfile / macOS デフォルト設定 |
 | `host/` | ホスト固有設定（git 管理外） |
 | `scripts/` | install / check 等のスクリプト |
@@ -170,19 +170,6 @@ skill は実際の個人 skill ディレクトリを検査する。plugin内包M
 - Claude Code → Codex の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
 - Codex → Claude Code の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
 
-### Gemini / Antigravity
-
-| ファイル | リンク先 | 説明 |
-|---------|---------|------|
-| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示 |
-| [`ai/skills/`](ai/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity にも配置する共有 skill |
-| [`ai/gemini/skills/`](ai/gemini/skills/) | `~/.gemini/skills/`, `~/.gemini/config/skills/` | Gemini CLI / Antigravity 専用の個人 skill |
-| [`ai/gemini/mcp/`](ai/gemini/mcp/) | `~/.gemini/config/mcp_config.json` | MCP の宣言と実態との差分・追加 |
-| [`ai/gemini/plugin/plugins/`](ai/gemini/plugin/plugins/) | `~/.gemini/config/plugins/<plugin-name>/` | Antigravity plugin の実体（`plugin.json` 必須） |
-
-`dots gemini {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
-GitHub MCP (`github/github-mcp-server`) は `gh auth token` (GitHub CLI) を使用して認証情報を動的に読み込むラッパースクリプト経由で安全に起動される。
-
 ### Batch-Check All Agents (`dots check`)
 
 `dots check` はシンボリックリンク、dotfilesの状態、パッケージ管理、全 AI Agent の
@@ -197,7 +184,7 @@ LaunchAgentのplistと実行スクリプトはdotfilesで共有し、既存Mac�
 再リンク・再登録する。手動で`dots check`を実行した場合も同じキャッシュが更新される
 ため、`dots ...`コマンドで警告を解消した直後でも次のシェル起動時の表示は最新になる。
 
-Claude Code・Codex・Gemini の宣言をまとめて同期する場合は
+Claude Code・Codex の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、
 `--skill-only` は3エージェントすべてへ渡される。Copilot は管理対象が user scope MCP
 のみで引数体系が異なるため、`dots ai` には含めず `dots copilot` で個別に操作する。
@@ -210,7 +197,7 @@ Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Au
 `codex mcp list --json` は静的ヘッダー値も返すため、出力をログやIssueへ貼らない。
 
 - Copilot CLI → Claude Code / Codex の公式 MCP server mode
-- Copilot CLI エージェント自体、Gemini CLI、別PCの Ollama を汎用操作する公式 MCP
+- Copilot CLI エージェント自体、別PCの Ollama を汎用操作する公式 MCP
   server は採用していない。独自 MCP bridge も作成しない。
 
 `~/.codex` の次の内容も管理対象外とする。
@@ -239,17 +226,6 @@ MCP と plugin の管理ファイルは公開可能な宣言だけを保持し�
 workspace・plugin・builtin MCP は検出対象だが `prune` の対象外とする。
 
 参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
-
-### Gemini CLI
-
-| ファイル | リンク先 | 説明 |
-|---------|---------|------|
-| [`ai/gemini/GEMINI.md`](ai/gemini/GEMINI.md) | `~/.gemini/GEMINI.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
-| [`GEMINI.md`](GEMINI.md) | — | リポジトリ固有指示（`@./AI_CONTEXT.md` をインポート） |
-
-参照: [GEMINI.md ドキュメント](https://geminicli.com/docs/cli/gemini-md/)
-
----
 
 ## Zellij Auto-Attach & SSH Wrapper
 

@@ -12,9 +12,8 @@ BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)/ai-skills-pruned/${AG
 case "${AGENT}" in
   claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
   codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
-  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex|gemini}\n' "$0" >&2
+    printf 'usage: %s {claude|codex}\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -39,7 +38,7 @@ path, agent = sys.argv[1:]
 with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
 for entry in entries:
-    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
+    if agent in entry.get("targets", ["claude", "codex"]):
         print(entry["name"])
 PYEOF
 sort -u -o "${declared_file}" "${declared_file}"
@@ -86,8 +85,7 @@ if [[ -d "${CACHE_HOME}" ]]; then
     name="$(basename "${source_dir}")"
     grep -Fxq "${name}" "${all_external_file}" && continue
     referenced=false
-    for destination in "${HOME}/.agents/skills/${name}" "${HOME}/.claude/skills/${name}" \
-      "${HOME}/.gemini/skills/${name}" "${HOME}/.gemini/config/skills/${name}"; do
+    for destination in "${HOME}/.agents/skills/${name}" "${HOME}/.claude/skills/${name}"; do
       if [[ -L "${destination}" && "$(readlink "${destination}")" == "${source_dir}" ]]; then
         referenced=true
       fi

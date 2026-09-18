@@ -13,9 +13,8 @@ SUMMARY_MODE=0
 case "${AGENT}" in
   claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
   codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
-  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex|gemini} [--summary]\n' "$0" >&2
+    printf 'usage: %s {claude|codex} [--summary]\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -38,7 +37,7 @@ path, agent, cache_home = sys.argv[1:]
 with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
 for entry in entries:
-    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
+    if agent in entry.get("targets", ["claude", "codex"]):
         print(entry["name"], f"{cache_home}/{entry['name']}", sep="\t")
 PYEOF
 
@@ -111,7 +110,7 @@ import sys
 declared_path, actual_path, mismatch_path, codex_installed_path, source_missing_path = sys.argv[1:6]
 summary = sys.argv[6] == "1"
 agent = sys.argv[7]
-agent_label = "Claude Code" if agent == "claude" else ("Codex" if agent == "codex" else "Gemini/Antigravity")
+agent_label = "Claude Code" if agent == "claude" else "Codex"
 
 
 def names(path):
@@ -144,7 +143,7 @@ if summary:
     raise SystemExit(1 if parts else 0)
 
 if not only_actual and not only_files and not mismatched and not codex_installed and not source_missing:
-    location = "~/.claude/skills" if agent == "claude" else ("~/.agents/skills" if agent == "codex" else "~/.gemini/skills and ~/.gemini/config/skills")
+    location = "~/.claude/skills" if agent == "claude" else "~/.agents/skills"
     print(f"No diff: 管理対象の共通・{agent_label}専用 skill と {location} は一致しています。")
     raise SystemExit(0)
 

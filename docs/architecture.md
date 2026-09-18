@@ -5,7 +5,7 @@ macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリン�
 
 ## Entry Points
 - `Makefile` — `install` / `links` / `check` / `uninstall` / `init` / `private-scaffold` / `private-validate` タスクの統一インターフェース（`$(OS)` で OS 別スクリプトへ分岐）
-- `bin/unix/dots` / `bin/windows/dots.ps1` — 日常運用コマンド（`status` / `update` / `brew` / `claude` / `codex` / `gemini` / `check` 等のサブコマンド群）
+- `bin/unix/dots` / `bin/windows/dots.ps1` — 日常運用コマンド（`status` / `update` / `brew` / `claude` / `codex` / `check` 等のサブコマンド群）
 - `bin/unix/ghq-status` — ghq 管理下の全リポジトリの git 状態・dev-charter 追従状況を一覧表示
 - `bin/unix/claude-perms` — Claude Code の permissions（allow/deny/ask）整理、pathRule ベースの一括配布（`merge`＝追記／`apply`＝置き換え）、ローカル未カバーallowのJSON出力・一括削除（`candidates --json` / `remove --json`）
 
@@ -18,7 +18,7 @@ macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリン�
 | `git/` | gitconfig、gitignore_global、エイリアス |
 | `terminal/` | Zellij、p10k、PowerShell 設定 |
 | `karabiner/` | Karabiner-Elements 設定（macOS専用） |
-| `ai/` | Claude Code / Codex / Copilot / Gemini CLI 向け設定・skill・MCP 宣言 |
+| `ai/` | Claude Code / Codex / Copilot 向け設定・skill・MCP 宣言 |
 | `macos/` | Brewfile、macOS defaults スクリプト |
 | `windows/` | WingetPin（winget一時pin宣言） |
 | `scripts/` | install / uninstall / check / init スクリプトおよび pre-commit フック |

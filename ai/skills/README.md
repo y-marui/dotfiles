@@ -2,7 +2,7 @@
 
 ## Design Goal
 
-`ai/skills/` の設計目標は、同じ内容の skill をできるだけ多くの agent（Claude Code、Codex、Gemini CLI など）で使い回すことである。skillを追加・移動する際は、ツール固有の機能や記法に本当に依存する内容だけを `ai/claude/skills/` や `ai/codex/skills/` などのツール固有配置へ切り出し、それ以外は極力ここへ残す。
+`ai/skills/` の設計目標は、同じ内容の skill をできるだけ多くの agent（Claude Code、Codex など）で使い回すことである。skillを追加・移動する際は、ツール固有の機能や記法に本当に依存する内容だけを `ai/claude/skills/` や `ai/codex/skills/` などのツール固有配置へ切り出し、それ以外は極力ここへ残す。
 
 ## Writing Policy
 

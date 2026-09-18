@@ -43,7 +43,7 @@ Usage:
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
   dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
-  dots {claude|codex|gemini} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
+  dots {claude|codex} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots copilot {apply|diff|prune} [--mcp-only]
   dots check [--verbose]
   dots commit
@@ -58,10 +58,9 @@ Commands:
   shortcuts  macOSのアプリケーションショートカット設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
-  ai      Claude Code・Codex・Gemini の MCP・plugin・skill を一括管理
+  ai      Claude Code・Codex の MCP・plugin・skill を一括管理
   claude  Claude Code の MCP・plugin・skill を宣言的に管理
   codex   Codex の MCP・plugin・skill を宣言的に管理
-  gemini  Gemini/Antigravity の MCP・plugin・skill を宣言的に管理
   copilot GitHub Copilot CLI の user scope MCP を宣言的に管理
   check   シンボリックリンク・dotfiles状態・パッケージ管理・全 AI Agent の差分を一括検査
           （デフォルトは差分がある項目のみ1行で表示。--verbose で詳細表示）
@@ -582,7 +581,7 @@ _ai() {
     _error "unknown ai action: ${action} (apply/diff/prune are supported)"
 
   local agent
-  for agent in claude codex gemini; do
+  for agent in claude codex; do
     printf '=== %s ===\n' "${agent}"
     _ai_agent "${agent}" "${action}" "$@"
     printf '\n'
@@ -707,7 +706,7 @@ _check_summary() {
     bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh" || found=1
 
   local agent
-  for agent in claude codex gemini; do
+  for agent in claude codex; do
     if [[ "${agent}" == codex ]] && ! command -v codex >/dev/null 2>&1; then
       continue
     fi
@@ -773,7 +772,7 @@ _check_verbose() {
   echo ""
 
   local agent
-  for agent in claude codex gemini copilot; do
+  for agent in claude codex copilot; do
     echo "=========================================="
     echo " Checking ${agent} ..."
     echo "=========================================="
@@ -859,7 +858,7 @@ case "${command_name}" in
   shortcuts) _shortcuts "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
   ai) _ai "$@" ;;
-  claude|codex|gemini) _ai_agent "${command_name}" "$@" ;;
+  claude|codex) _ai_agent "${command_name}" "$@" ;;
   copilot) _copilot "$@" ;;
   check) _check "$@" ;;
   commit) _commit "$@" ;;

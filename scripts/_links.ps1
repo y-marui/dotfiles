@@ -88,21 +88,14 @@ $Links = @(
         Src  = "ai\copilot\instructions.md"
         Dest = Join-Path $HOME ".copilot\copilot-instructions.md"
     }
-    [pscustomobject]@{
-        Src  = "ai\gemini\GEMINI.md"
-        Dest = Join-Path $HOME ".gemini\GEMINI.md"
-    }
 )
 
 # 共通 skill と agent 専用 skill はディレクトリ全体ではなく、SKILL.md を持つものだけを
 # 個別リンクする。scripts/_links.sh の同名ロジックと揃える。
-# gemini は Antigravity と Gemini CLI 本体で参照先ディレクトリが異なるため、
-# agent 1つにつき複数の配置先を持てるよう skillHomes を配列にしている。
-foreach ($agent in @("codex", "claude", "gemini")) {
+foreach ($agent in @("codex", "claude")) {
     $skillHomes = switch ($agent) {
         "codex" { @(Join-Path $HOME ".agents\skills") }
         "claude" { @(Join-Path $HOME ".claude\skills") }
-        "gemini" { @((Join-Path $HOME ".gemini\skills"), (Join-Path $HOME ".gemini\config\skills")) }
     }
 
     $seenSkillNames = @{}

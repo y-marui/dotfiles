@@ -75,7 +75,7 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 - ❌が1件以上あった実行ではmacOS通知を1回出す（該当タスク名と件数を含む）
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 
-## dots {claude|codex|gemini} diff / apply / prune
+## dots {claude|codex} diff / apply / prune
 
 MCP・plugin・skill の「宣言（dotfiles 内の設定ファイル）」と「実状態（各ツールの実際の設定）」を比較・同期する。
 
@@ -85,13 +85,13 @@ MCP・plugin・skill の「宣言（dotfiles 内の設定ファイル）」と�
 
 ## dots ai diff / apply / prune
 
-Claude Code、Codex、Gemini の順に、各エージェントの同じ操作を一括実行する。
+Claude Code、Codex の順に、各エージェントの同じ操作を一括実行する。
 `--mcp-only`、`--plugin-only`、`--skill-only` を指定した場合は、同じ限定オプションを
 3エージェントすべてへ渡す。途中のエージェントで `apply` または `prune` が失敗した場合は
 そこで終了し、後続エージェントは処理しない。
 
 Copilot は user scope MCP のみを管理し、対応する対象種別とオプションが異なるため含めない。
-個別の `dots {claude|codex|gemini}` コマンドは引き続き利用できる。
+個別の `dots {claude|codex}` コマンドは引き続き利用できる。
 
 ## dots commit / dots push
 
@@ -112,7 +112,7 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
   自動生成してcommitする
 - 対象外のファイルが1つでも変更に含まれる場合は、対象ファイルも含めて一切commitせず
   （部分commitはしない）、対象外ファイルの一覧を表示して手動commitを促す
-- `Brewfile-pin` やAI（claude/codex/gemini/copilot）のMCP・plugin・skill宣言ファイルは
+- `Brewfile-pin` やAI（claude/codex/copilot）のMCP・plugin・skill宣言ファイルは
   人間が意図して編集するため対象外
 
 `dots push [--no-fetch]`:

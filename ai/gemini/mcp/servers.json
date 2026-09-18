@@ -1,8 +1,0 @@
-[
-  {
-    "name": "github",
-    "type": "stdio",
-    "command": "${DOTFILES_DIR}/ai/gemini/mcp/run-github-mcp.sh",
-    "args": []
-  }
-]

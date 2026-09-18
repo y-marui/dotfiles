@@ -25,7 +25,6 @@ done < <(
     "${DOTFILES_DIR}/ai/skills" \
     "${DOTFILES_DIR}/ai/claude/skills" \
     "${DOTFILES_DIR}/ai/codex/skills" \
-    "${DOTFILES_DIR}/ai/gemini/skills" \
     -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null | sort
 )
 
@@ -59,7 +58,7 @@ if [[ -f "${CLOUD_MANIFEST}" ]]; then
     [[ -n "${name}" ]] || continue
     cloud_count=$((cloud_count + 1))
     skill_md=""
-    for base in "${DOTFILES_DIR}/ai/skills" "${DOTFILES_DIR}/ai/claude/skills" "${DOTFILES_DIR}/ai/codex/skills" "${DOTFILES_DIR}/ai/gemini/skills"; do
+    for base in "${DOTFILES_DIR}/ai/skills" "${DOTFILES_DIR}/ai/claude/skills" "${DOTFILES_DIR}/ai/codex/skills"; do
       if [[ -f "${base}/${name}/SKILL.md" ]]; then
         skill_md="${base}/${name}/SKILL.md"
         break

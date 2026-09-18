@@ -12,9 +12,8 @@ STATE_HOME="${CACHE_HOME}/.sources"
 case "${AGENT}" in
   claude) SKILL_HOMES=("${HOME}/.claude/skills") ;;
   codex) SKILL_HOMES=("${HOME}/.agents/skills") ;;
-  gemini) SKILL_HOMES=("${HOME}/.gemini/skills" "${HOME}/.gemini/config/skills") ;;
   *)
-    printf 'usage: %s {claude|codex|gemini}\n' "$0" >&2
+    printf 'usage: %s {claude|codex}\n' "$0" >&2
     exit 2
     ;;
 esac
@@ -29,7 +28,7 @@ changed=0
 mkdir -p "${SKILL_HOMES[@]}"
 
 # 外部 skill は公式 skill-installer で dotfiles 専用キャッシュへ取得し、
-# Claude Code / Codex / Gemini から同じ実体を参照する。
+# Claude Code / Codex から同じ実体を参照する。
 while IFS=$'\t' read -r name repo ref path; do
   [[ -n "${name}" ]] || continue
   source_dir="${CACHE_HOME}/${name}"
@@ -70,7 +69,7 @@ for entry in entries:
     skill_path = entry["path"]
     if name != skill_path.rstrip("/").rsplit("/", 1)[-1]:
         raise SystemExit(f"external skill name must match path basename: {name}")
-    if agent in entry.get("targets", ["claude", "codex", "gemini"]):
+    if agent in entry.get("targets", ["claude", "codex"]):
         print(
             name,
             entry["repo"],
