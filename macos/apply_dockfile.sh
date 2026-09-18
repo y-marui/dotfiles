@@ -4,8 +4,10 @@
 #
 # 動作:
 #   1. dotfiles-private/macos/dockfile を読み込む
-#   2. Dock・Finder サイドバーをリセットして再構築
-#   3. dockfile.cache を更新
+#   2. dockfile.cache を現在の Dock・Sidebar状態で更新（判定を常に実機基準にする）
+#   3. Dock・Finder サイドバーそれぞれについて diff_dockfile.sh で個別に差分判定し、
+#      差分がある側だけリセットして再構築する（差分がない側には触れない）
+#   4. dockfile.cache を再度更新（適用結果を反映）
 #
 # 使い方:
 #   DOTFILES_DIR=~/dotfiles bash macos/apply_dockfile.sh
@@ -42,38 +44,70 @@ if [[ ! -s "$DOCK_FILE" ]]; then
   exit 1
 fi
 
-# ── Dock を適用 ───────────────────────────────────────────────────────────────
-if command -v dockutil &>/dev/null; then
-  BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)"
-  mkdir -p "$BACKUP_DIR"
-  dockutil --list 2>/dev/null > "$BACKUP_DIR/dock-apps.txt" || true
-  _mysides list > "$BACKUP_DIR/dock-sidebar.txt" 2>&1 || \
-    printf '%sWarning: sidebar backup failed — continuing without sidebar backup%s\n' "$YELLOW" "$RESET" >&2
-  echo "  BACKUP  $BACKUP_DIR/dock-apps.txt"
+# ── 差分判定の前に cache を実機の最新状態へ更新 ──────────────────────────────
+# cache が古いままだと、cache 更新後に手動でDock/Sidebarを変更した側の乖離を
+# 見逃して誤ってスキップしてしまうため、判定は常に「dockfile vs 現在の実機状態」
+# になるよう毎回リフレッシュしてから比較する
+export DOTFILES_DIR
+bash "$DOTFILES_DIR/macos/update_dockcache.sh"
 
-  if ! dockutil --no-restart --remove all; then
-    printf '%sError: dockutil --remove all failed. Aborting to prevent inconsistent Dock state.%s\n' "$YELLOW" "$RESET" >&2
-    exit 1
+# ── Dock・Sidebarそれぞれの差分有無を個別判定 ─────────────────────────────────
+dock_needs_update=1
+sidebar_needs_update=1
+if bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" --dock >/dev/null; then
+  dock_needs_update=0
+fi
+if bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" --sidebar >/dev/null; then
+  sidebar_needs_update=0
+fi
+
+if [[ $dock_needs_update -eq 0 && $sidebar_needs_update -eq 0 ]]; then
+  echo "No diff: Dock・Sidebar ともに適用済みです。"
+  exit 0
+fi
+
+# ── バックアップ（読み取りのみなので常時実施） ─────────────────────────────────
+BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+dockutil --list 2>/dev/null > "$BACKUP_DIR/dock-apps.txt" || true
+_mysides list > "$BACKUP_DIR/dock-sidebar.txt" 2>&1 || \
+  printf '%sWarning: sidebar backup failed — continuing without sidebar backup%s\n' "$YELLOW" "$RESET" >&2
+echo "  BACKUP  $BACKUP_DIR/dock-apps.txt"
+
+# ── Dock をリセット（差分がある場合のみ） ─────────────────────────────────────
+if [[ $dock_needs_update -eq 1 ]]; then
+  if command -v dockutil &>/dev/null; then
+    if ! dockutil --no-restart --remove all; then
+      printf '%sError: dockutil --remove all failed. Aborting to prevent inconsistent Dock state.%s\n' "$YELLOW" "$RESET" >&2
+      exit 1
+    fi
+  else
+    printf '%sWarning: dockutil not found. Run: brew install dockutil%s\n' "$YELLOW" "$RESET" >&2
   fi
 else
-  printf '%sWarning: dockutil not found. Run: brew install dockutil%s\n' "$YELLOW" "$RESET" >&2
+  echo "  SKIP    Dock (差分なし)"
 fi
 
-# ── Finder サイドバーをリセット ───────────────────────────────────────────────
-if mysides_items=$(_mysides list 2>/dev/null); then
-  while IFS= read -r name; do
-    [[ -z "$name" ]] && continue
-    _mysides remove "$name" 2>/dev/null || \
-      printf '%sWarning: sidebar: failed to remove: %s%s\n' "$YELLOW" "$name" "$RESET" >&2
-  done < <(awk -F' -> ' '{print $1}' <<< "$mysides_items")
+# ── Finder サイドバーをリセット（差分がある場合のみ） ──────────────────────────
+if [[ $sidebar_needs_update -eq 1 ]]; then
+  if mysides_items=$(_mysides list 2>/dev/null); then
+    while IFS= read -r name; do
+      [[ -z "$name" ]] && continue
+      _mysides remove "$name" 2>/dev/null || \
+        printf '%sWarning: sidebar: failed to remove: %s%s\n' "$YELLOW" "$name" "$RESET" >&2
+    done < <(awk -F' -> ' '{print $1}' <<< "$mysides_items")
+  else
+    printf '%sWarning: sidebar tool not available. Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
+  fi
 else
-  printf '%sWarning: sidebar tool not available. Skipping sidebar reset.%s\n' "$YELLOW" "$RESET" >&2
+  echo "  SKIP    Sidebar (差分なし)"
 fi
 
-# ── dock ファイルを1行ずつ適用 ────────────────────────────────────────────────
+# ── dock ファイルを1行ずつ適用（差分があった側のみ実際に追加） ─────────────────
 while IFS=$'\t' read -r type arg1 arg2; do
   case "$type" in
     dock)
+      [[ $dock_needs_update -eq 1 ]] || continue
       if [[ -e "$arg1" ]]; then
         if [[ -d "$arg1" && "$arg1" != *.app ]]; then
           dockutil --no-restart --add "$arg1" --display stack \
@@ -87,6 +121,7 @@ while IFS=$'\t' read -r type arg1 arg2; do
       fi
       ;;
     sidebar)
+      [[ $sidebar_needs_update -eq 1 ]] || continue
       if ! path=$(python3 -c "
 import sys
 from urllib.parse import unquote
@@ -105,9 +140,11 @@ print(unquote(sys.argv[1]).removeprefix('file://').rstrip('/'))
   esac
 done < "$DOCK_FILE"
 
-killall Dock 2>/dev/null || true
+# Dock アプリを変更した場合だけ Dock を再起動する（Sidebarのみの変更では不要）
+if [[ $dock_needs_update -eq 1 ]]; then
+  killall Dock 2>/dev/null || true
+fi
 
-# ── cache を更新 ──────────────────────────────────────────────────────────────
-export DOTFILES_DIR
+# ── cache を更新（適用結果を反映） ────────────────────────────────────────────
 bash "$DOTFILES_DIR/macos/update_dockcache.sh"
 echo "Done. dockfile.cache saved to $PRIVATE_DIR/macos/dockfile.cache"
