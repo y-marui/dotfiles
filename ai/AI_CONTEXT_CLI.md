@@ -97,6 +97,13 @@ Warp でラッパー由来のコマンド実行エラーが起きた場合は、
 zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、配列かリテラルを使う。
 具体例が必要な場合は、[環境別手順](references/cli-environments.md#zsh-word-splitting) を読む。
 
+## Overwriting Files in zsh
+
+この環境の zsh は `noclobber` が有効で、`cat > file` や `echo > file` は既存ファイルの
+上書きに失敗する。既存ファイルの更新は Write/Edit ツールで行い、シェルでは
+`>|` を使う。失敗した heredoc 書き込みは、その後の処理が古い内容のまま
+進みやすいため、書き込み後に内容を確認する。
+
 ## Reference Resolution
 
 環境別手順は必要な節だけ読む。このファイルがシンボリックリンク経由の場合は、
