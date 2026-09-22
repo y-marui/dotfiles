@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian idea_notes再構成"
+  short_description: "情報を保全してidea_notesを1トピック1ファイルへ再構成"
+  default_prompt: "Use $obsidian-restructure-idea-notes to audit and reorganize idea_notes without losing information."
