@@ -178,6 +178,8 @@ skill は実際の個人 skill ディレクトリを検査する。plugin内包M
 
 - Claude Code → Codex の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
 - Codex → Claude Code の公式 MCP server mode、GitHub Remote MCP、同 Copilot toolset
+- Codex → Raindrop.io の公式hosted MCP（Pro向けbeta、OAuth 2.1。
+  公式ヘルプ指定の `mcp-remote` bridge経由）
 
 ### Batch-Check All Agents (`dots check`)
 

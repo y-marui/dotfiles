@@ -31,5 +31,15 @@
     "name": "openaiDeveloperDocs",
     "type": "http",
     "url": "https://developers.openai.com/mcp"
+  },
+  {
+    "name": "raindrop",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "mcp-remote",
+      "https://api.raindrop.io/rest/v2/ai/mcp"
+    ]
   }
 ]
