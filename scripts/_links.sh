@@ -23,6 +23,7 @@ LINKS=(
   "terminal/zellij/config.kdl|${HOME}/.config/zellij/config.kdl"
   "terminal/p10k.zsh|${HOME}/.p10k.zsh"
   "ai/AI_CONTEXT.md|${HOME}/.ai/AI_CONTEXT.md"
+  "ai/AI_CONTEXT_COMPUTER_USE.md|${HOME}/.ai/AI_CONTEXT_COMPUTER_USE.md"
   "ai/AI_CONTEXT_CLI.md|${HOME}/.ai/AI_CONTEXT_CLI.md"
   "ai/codex/AGENTS.md|${HOME}/.codex/AGENTS.md"
   "ai/claude/settings.json|${HOME}/.claude/settings.json"

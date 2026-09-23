@@ -23,7 +23,7 @@ git repository内の作業セッションを、別チャット・別作業へ安
 | 情報の性質 | 記録先 |
 | --- | --- |
 | このプロジェクトに固有の仕様・設計判断・手順・制約、または「なぜこうなっているか」という背景（他プロジェクトとの関係・共有元リポジトリの存在なども含む） | プロジェクトの `AI_CONTEXT.md`（または `CLAUDE.md`/`AGENTS.md` が import する先）や `docs/`。「メタ情報っぽいから」「個人的な文脈だから」を理由に long-term memory へ逃がさない — 将来そのプロジェクトを読む人・AI の理解を助けるなら docs の役割。構成はプロジェクトの `DOCS_STRUCTURE.md` 相当の指示に従う |
-| 特定プロジェクトに限らない、ユーザーの作業スタイル・恒久的な指示・CLI/GitHub運用フィードバック | まず `~/.ai/AI_CONTEXT.md`（対話スタイル・原則）や `~/.ai/AI_CONTEXT_CLI.md`（CLIツール向けの作業ルール）に書けないか検討する。これらは dotfiles 管理下でユーザー自身が全プロジェクト共通で読む恒久contextなので、Claude の long-term memory より優先する。編集は通常のファイル編集として行うが、dotfiles リポジトリへの commit は他プロジェクト同様ユーザーの明示的な指示があるときのみ行う |
+| 特定プロジェクトに限らない、ユーザーの作業スタイル・恒久的な指示・Computer Use・CLI/Coding/GitHub運用フィードバック | まず `~/.ai/AI_CONTEXT.md`（常時読む対話・安全・ツール選択の原則）、`~/.ai/AI_CONTEXT_COMPUTER_USE.md`（ブラウザ・GUI操作）、`~/.ai/AI_CONTEXT_CLI.md`（CLI・Coding・リポジトリ・Git/GitHubの作業ルール）に書けないか検討する。これらは dotfiles 管理下でユーザー自身が全プロジェクト共通で使う恒久contextなので、Claude の long-term memory より優先する。編集は通常のファイル編集として行うが、dotfiles リポジトリへの commit は他プロジェクト同様ユーザーの明示的な指示があるときのみ行う |
 | 上記どちらにも当てはまらない、Claude自身の運用にのみ関わる情報（ユーザー自身のcontextファイルに書くには細かすぎる／Claude固有の挙動に関する事項） | 実行中のagentが対応し、ユーザーが明示的に保存を求めた場合だけ長期memoryに保存する。保存不可または基準が不明な場合は保存せず、ユーザーへ報告する |
 | 未完了のTODO・バックログ・調査中の仮説・実装チェックリスト | GitHubのIssue/Sub-issue/Project。リポジトリに `TODO.md` 等の一時ファイルとして残さない |
 | 次にどこから再開するか（対象ブランチ・ファイル・直前の判断） | git自体（コミットメッセージ、ブランチ名、必要なら記述的なstashメッセージ）。恒久ドキュメントにもmemoryにも書かない |
@@ -36,7 +36,7 @@ git repository内の作業セッションを、別チャット・別作業へ安
 ## Step 3: Apply updates with the right permission level
 
 - プロジェクトdocsの編集は通常の編集操作として行う。
-- `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_CLI.md`（dotfiles管理）の編集も通常の編集操作として行うが、dotfilesリポジトリへのcommit・pushはユーザーの明示的な指示があるときのみ行う。
+- `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`（dotfiles管理）の編集も通常の編集操作として行うが、dotfilesリポジトリへのcommit・pushはユーザーの明示的な指示があるときのみ行う。
 - GitHub Issueの新規作成・更新、対象プロジェクト側のcommit・pushはそれぞれ影響を確認し、ユーザーの承認を得てから行う。
 - long-term memoryへの保存は、実行中のagentが対応し、ユーザーが明示的に求めた場合だけ既存のmemory種別の基準に従って行う。今回の作業の一時的な状態や進行中のタスク詳細はmemoryに書かない。
 
