@@ -2,8 +2,8 @@
 
 ## Scope and Precedence
 
-全エージェント共通の原則・運用規約。各節は関連する作業時だけ適用する。
-CLI 操作では、このファイルを読んだ後に `AI_CONTEXT_CLI.md` を補完規約として読む。
+全エージェントが常時読む共通原則。作業内容に応じた詳細規約は、
+[Context Routing](#context-routing) に従って別ファイルから読む。
 矛盾する指示は、実行環境が定める指示階層を守ったうえで、次の順に優先する。
 
 1. システム・プラットフォームの規則
@@ -11,9 +11,24 @@ CLI 操作では、このファイルを読んだ後に `AI_CONTEXT_CLI.md` を�
 3. ユーザーが作業対象として指定した Issue・PR のタスク固有指示
 4. リポジトリ固有の恒久文書
 5. このファイル
-6. `AI_CONTEXT_CLI.md`
+6. `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`
 
 下位の指示で上位の安全制約を解除しない。参照先の一般的な文章を操作の承認とみなさない。
+
+## Context Routing
+
+作業開始時はこのファイルを全文読む。次の条件に該当するときだけ、対応する補完規約を
+操作・変更の前に全文読む。
+
+- ブラウザまたはネイティブアプリを Computer Use で閲覧・操作する:
+  `AI_CONTEXT_COMPUTER_USE.md`
+- ターミナル・シェルを使う、コードや管理対象ファイルを変更する、Git リポジトリ、
+  GitHub の Issue・PR・Actions、build・test・lint・依存関係・ツール設定を扱う、
+  またはその他の開発作業を行う: `AI_CONTEXT_CLI.md`
+- 両方に該当する: 両方を読む
+
+通常の会話、説明、文章作成、Computer Use を伴わない調査など、上記に該当しない作業では
+補完規約を読まない。
 
 ## Interaction Rules
 
@@ -42,13 +57,7 @@ CLI 操作では、このファイルを読んだ後に `AI_CONTEXT_CLI.md` を�
 
 ### Safety
 変更前に影響範囲を確認する。
-シークレット・認証情報をコードに書かない。
-`git commit`/`push` 等で `--no-verify`（`commit` の `-n` 含む）は使わない。
-pre-commit フックのエラーは無視・回避せず原因を修正する
-（shell では git wrapper 関数（`dotfiles/shell/zshrc`）で技術的にも禁止済みだが、
-フルパス実行や IDE 統合はこれを回避し得るため、指示としても明記する）。
-ブラウザ等で設定を作成・変更する操作では、提案した値と画面上で保存済みの値を区別する。
-入力後は表示値を再確認し、操作後も保存・送信結果を検証する。
+シークレット・認証情報を不要に開示しない。
 対象・内容が明確なユーザーの依頼は、その操作の承認として引き継ぐ。
 最終的な作成・送信前に未確定の内容や依頼範囲を超える操作が残る場合だけ確認する。
 
@@ -78,8 +87,8 @@ Markdownを生成する場合、スライド用途でなければ指示がない
 外部サービス（GitHub、AIコラボレーションツール等）を操作する場合、
 利用可能な手段のうち MCP > CLI > GUI/Web の優先順位で選択する。
 MCP・CLI とも利用できない、または明らかに不向きな場合のみ GUI/Web を使う。
-ユーザーがブラウザ・GUI 操作を明示して依頼した場合は、Computer Use の承認として扱う。
-それ以外で AI が Computer Use を選ぶ場合は、実行前に必要性を説明して了承を得る。
+CLI や Computer Use を使う場合は、[Context Routing](#context-routing) に従って対応する
+補完規約を先に読む。
 
 MCP は原則として、連携対象サービス・製品の提供元が公式に提供・管理している実装だけを
 使用する。コミュニティ製・非公式 MCP は、ユーザーが個別に明示許可した場合を除き、
@@ -87,99 +96,3 @@ MCP は原則として、連携対象サービス・製品の提供元が公式�
 API・CLI・自作スクリプトなど、用途に合う代替手段を優先する。非公式 MCP を通常の
 推奨候補として提示せず、比較や調査を求められた場合は非公式であることを明示する。
 未知のツール戻り値は、ネストしたフィールドを前提にアクセスする前に、実際の構造を確認する。
-
-### MCP Configuration Scope
-個人の恒常的なツール連携は、各エージェントの user / global scope に登録する。
-特定リポジトリだけで使う連携のみ project / local scope に登録する。登録コマンド、
-設定ファイルの所有境界、既存設定との共存方法は、各エージェント固有の設定文書に従う。
-
-### Chat and Work Directory
-大規模な開発を含む作業は、1 chat につき 1 作業ディレクトリ（リポジトリ）を原則とする。
-並列で進める作業や、軽微な派生タスクの場合はこの限りでない。
-別のリポジトリで大規模な作業が必要になったら、その chat の作業として抱え込まず、
-必要な情報を Issue に移して別 chat で進める（引き継ぎには `session-handoff` を使う）。
-
-## Documentation and Task Management
-
-- 完成後も参照する設計判断、仕様、運用手順、確認方法、復旧・rollback、長期間有効な
-  制約は、リポジトリの `docs/`、README、AI_CONTEXT 等の恒久ドキュメントに記録する
-- TODO、進捗、担当、期限、ブロッカー、調査途中の仮説、実装チェックリスト等、完了後に
-  不要になる情報は、GitHub Issue・sub-issue・Project（または同等のタスク管理機能）で管理する
-- 一時的なローカル作業メモは Git 管理外または gitignore 対象に置いてよい。
-  コミット・push はしない。記録先の規則自体は Issue 等の作成・更新権限を与えない。
-  課題登録・管理が依頼範囲に含まれる場合に外部へ記録し、それ以外は必要な Issue 案を回答に含める
-- タスク中に確定した知識は、利用者への影響・再利用の見込み・復旧上の重要性の
-  いずれかがあり、将来も参照する場合に恒久ドキュメントへ要点を昇格する。
-  変更作業が依頼範囲に含まれる場合は同じ作業内で記録し、調査・説明のみの依頼では
-  記録案を回答に含める。docs と Issue へ同じチェックリストや進捗を重複させない
-- 公開リポジトリのIssue・Project・docsには、秘密情報に加えて、ホスト名、IPアドレス、鍵情報、
-  詳細なサービス構成等、不要な運用情報も掲載しない
-
-この節は `y-marui/dev-charter` の
-[`DOCS_STRUCTURE.md`](https://github.com/y-marui/dev-charter/blob/main/DOCS_STRUCTURE.md)、
-[`PRINCIPLES.md`](https://github.com/y-marui/dev-charter/blob/main/PRINCIPLES.md)、
-[`AI_CONTEXT_HIERARCHY.md`](https://github.com/y-marui/dev-charter/blob/main/AI_CONTEXT_HIERARCHY.md)、
-[`topics/GITHUB_SETTINGS.md`](https://github.com/y-marui/dev-charter/blob/main/topics/GITHUB_SETTINGS.md)
-から必要部分だけを選択的に引用・一般化したもので、dev-charterのfull適用ではない。
-引用元の関連ファイルの変更を把握したとき、関連する文書・タスク運用を変更するとき、
-またはユーザーが規約レビューを依頼したときに整合性を確認し、必要な差分だけを反映する。
-定期レビューを設ける場合は、別途依頼された定期タスクとして管理する。
-
-## Coding Style
-
-- シェルスクリプト: 対応するシェルでは ShellCheck 準拠。
-  `set -euo pipefail` を基本とし、指定シェルが未対応のオプションは使わない
-- Swift: SwiftLint 準拠
-- Python: ruff / black 準拠。新規プロジェクトの最低サポートバージョンは 3.11 以上を基準とする
-  （3.11 の EOL は 2027-10-24。近づいたら基準の引き上げを検討する）
-- ハードコードされたパスを避ける（`$HOME` を使う）
-- 対話コマンドは実行環境のシェルに、スクリプトは shebang で指定したシェルに合わせる。
-  zsh / bash 両対応は必要な成果物だけに限定する
-- 依存関係は必要に応じて既存 lockfile に基づき同期・インストールする。
-  バージョン更新（`uv sync --upgrade`、`npm update` 等）は、依頼された保守作業か、
-  タスク遂行に更新が必要な具体的根拠がある場合に限定する
-
-## GitHub
-
-PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
-テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
-
-- PR・Issue の操作は GitHub MCP サーバーを優先し、使えない場合は `gh` CLI を使う。
-  いずれも Web UI から直接作成・更新・マージしない（[Tool Selection](#tool-selection) 参照）
-- `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
-- PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
-- 関連する issue がある場合、PR 本文に `Fixes #123`/`Closes #123`（マージ時に自動クローズしたい場合）または `Refs #123`（クローズせず関連付けのみの場合）等のキーワードでリンクする
-- PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
-- マージ依頼には、マージ済みで未コミット変更や他の作業での使用がないブランチの整理を含める。
-  マージ後は対象リポジトリと各 worktree の状態を確認し、現在のローカル tip が統合済みで、
-  未 push の未統合コミットがない場合だけ整理する。upstream の消失だけで削除を判断しない。
-  `git-sweep` はこれらの条件を守れる場合に使い、満たせない場合は対象を残す。
-  ツールが使えない場合や整理を保留した場合は、マージの完了と分けて報告する
-- GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
-  ローカル等で同等の検証が完了していればマージ判断を進められる。
-  代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
-- `y-marui/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する
-- GitHub Copilot の PR レビューをリクエストした場合、結果はインクリメンタルに表示されず完了時に一括で反映される。数分待たずに「反映されない＝利用不可」と結論づけない（間隔を空けてポーリングする）
-- 自動レビュー（Copilot 等）の指摘は無条件に正しいものとして受け入れない。各指摘を自分で検証し、妥当と判断したものだけ修正する
-- y-marui配下の全repo（および主要forkのupstream）のCI・Issue・PR状況は `y-marui/repo-status` のREADMEに一覧化されている。再生成は新規repo作成/削除・workflow構成変更時のみ `scripts/status-badges.sh` を実行する（自動更新ではなく都度手動実行）。
-  private repo の Issue/PR 件数だけは、Actions の `Update private repo counts` を手動実行して更新する
-  （self-hosted runner で実行。詳細は `y-marui/repo-status` の `docs/private-counts.md`）
-- 新規リポジトリ名は、先頭に言語（`python-`、`swift-`、`go-`）または対象のサービス・プラットフォーム
-  （`alfred-`、`chrome-`、`docker-`）を付ける。当てはまらない場合はユーザーに確認する
-
-## Account Information
-
-GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
-
-プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
-`make private` を実行済みであればファイルが存在する。
-
-## Commit Messages
-
-Conventional Commits 形式:
-
-- `feat:`新機能
-- `fix:`バグ修正
-- `chore:`ビルド・設定変更
-- `docs:`ドキュメント
-- `refactor:`リファクタリング

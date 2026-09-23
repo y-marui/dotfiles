@@ -107,8 +107,15 @@ pre-commitで両者の対応関係を検証する。
 
 ## AI Configuration
 
-グローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルからインポートまたは直接リンクしている。
-CLI 操作は [`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) で補完する。
+`ai/` の管理方針、コンテキスト階層、ディレクトリ責務、公開・private・実行時状態の
+境界、変更時の確認手順は [`ai/README.md`](ai/README.md) を参照する。
+
+常時読むグローバル共通指示は [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md)
+（→ `~/.ai/AI_CONTEXT.md`）に集約し、各エージェントのグローバル設定ファイルから
+インポートまたは直接リンクしている。同ファイルの Context Routing に従い、
+Computer Use は [`ai/AI_CONTEXT_COMPUTER_USE.md`](ai/AI_CONTEXT_COMPUTER_USE.md)、
+CLI・Coding・リポジトリ・Git/GitHub の作業は
+[`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) を必要時だけ読む。
 環境固有の詳細は [`ai/references/cli-environments.md`](ai/references/cli-environments.md) を
 必要時だけ参照する。リンク経由で読む場合は、CLI 規約ファイルの実体から参照先を解決する。
 リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
@@ -118,8 +125,10 @@ CLI 操作は [`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) で補完する。
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
 | [`ai/AI_CONTEXT.md`](ai/AI_CONTEXT.md) | `~/.ai/AI_CONTEXT.md` | 全エージェント共通グローバル指示 |
+| [`ai/AI_CONTEXT_COMPUTER_USE.md`](ai/AI_CONTEXT_COMPUTER_USE.md) | `~/.ai/AI_CONTEXT_COMPUTER_USE.md` | Computer Use固有の許可・操作ルール |
+| [`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) | `~/.ai/AI_CONTEXT_CLI.md` | CLI・Coding・リポジトリ・Git/GitHub固有の作業ルール |
 | [`ai/claude/settings.json`](ai/claude/settings.json) | `~/.claude/settings.json` | ツール許可・フック設定 |
-| [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | グローバル指示（`@~/.ai/AI_CONTEXT.md` をインポート） |
+| [`ai/claude/CLAUDE.md`](ai/claude/CLAUDE.md) | `~/.claude/CLAUDE.md` | 共通contextをインポート（補完規約はContext Routingで参照） |
 | [`ai/claude/hooks/`](ai/claude/hooks/) | `~/.claude/hooks/` | タスク完了通知フック |
 | [`ai/skills/`](ai/skills/) | `~/.claude/skills/<skill-name>/` | Codex と共有する個人 skill |
 | [`ai/claude/skills/`](ai/claude/skills/) | `~/.claude/skills/<skill-name>/` | Claude Code 専用の個人 skill |
@@ -141,7 +150,7 @@ IDE/app と local/project scope のMCPは検出するが `prune` の対象外と
 
 | ファイル | リンク先 | 説明 |
 |---------|---------|------|
-| [`ai/codex/AGENTS.md`](ai/codex/AGENTS.md) | `~/.codex/AGENTS.md` | グローバル指示の読み込み指示（`~/.ai/AI_CONTEXT.md`、`~/.ai/AI_CONTEXT_CLI.md` を順に参照） |
+| [`ai/codex/AGENTS.md`](ai/codex/AGENTS.md) | `~/.codex/AGENTS.md` | 共通contextの読み込み指示（補完規約はContext Routingで参照） |
 | [`ai/skills/`](ai/skills/) | `~/.agents/skills/<skill-name>/` | Claude Code と共有する個人 skill |
 | [`ai/codex/skills/`](ai/codex/skills/) | `~/.agents/skills/<skill-name>/` | Codex 専用の個人 skill |
 | [`ai/codex/mcp/`](ai/codex/mcp/) | `~/.codex/config.toml` 内の MCP 設定 | 公式 MCP の宣言と実態との差分・追加 |

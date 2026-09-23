@@ -1,1 +1,1 @@
-`~/.ai/AI_CONTEXT.md` および `~/.ai/AI_CONTEXT_CLI.md` を参照。
+`~/.ai/AI_CONTEXT.md` を参照し、同ファイルの Context Routing に従う。

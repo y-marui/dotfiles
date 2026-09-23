@@ -7,7 +7,7 @@ description: "Consolidate durable knowledge from Claude and Codex local memories
 
 `memory` は想起の補助であり、恒久的なルールの正本は手動管理の指示ファイルである。別のmemoryストアへ移動しない。保存場所ごとの操作境界を守り、必要な内容を正本へ昇格する。
 
-- 正本: `~/.ai/AI_CONTEXT.md`（全体）、`~/.ai/AI_CONTEXT_CLI.md`（CLI固有）、`~/.claude/CLAUDE.md`（Claude Code固有）、各プロジェクトの `AI_CONTEXT.md`。
+- 正本: `~/.ai/AI_CONTEXT.md`（常時読む共通原則とルーター）、`~/.ai/AI_CONTEXT_COMPUTER_USE.md`（Computer Use固有）、`~/.ai/AI_CONTEXT_CLI.md`（CLI・Coding・リポジトリ・Git/GitHub固有）、`~/.claude/CLAUDE.md`（Claude Code固有）、各プロジェクトの `AI_CONTEXT.md`。
 - このユーザーのプロジェクトでは `<project-root>/CLAUDE.md` は `@AI_CONTEXT.md` のimport shimである。shimではなく `AI_CONTEXT.md` を編集する。
 
 ## Memory Stores
@@ -32,10 +32,11 @@ bash <skill-dir>/scripts/list-memories.sh
 
 各候補の内容全体を読み、最も広く適用できる層を選ぶ。
 
-1. **Universal + CLI-specific** — CLIコーディングagentに特化するが（例: ツール呼び出しのバッチ化、コミットのタイミング）、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_CLI.md`。
-2. **Universal** — 任意のプロジェクト、ツール、画面に適用できる内容（コーディングスタイル、git規約、ユーザーの一般的な作業方法）。対象は `~/.ai/AI_CONTEXT.md`。
-3. **Claude-Code-only** — 一般のCLI agentではなく、CodexやGemini CLIにも当てはまらない、Claude Code製品だけに真に固有の内容。対象は `~/.claude/CLAUDE.md`（`@` importの後に追記）。
-4. **One project only** — そのプロジェクトの `AI_CONTEXT.md`。エスケープされたパスは `-` を `/` に置換して候補を試し、存在と可能なら `.git` を確認する。
+1. **Universal + Computer-Use-specific** — ブラウザやネイティブアプリの許可・操作・検証に特化するが、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_COMPUTER_USE.md`。
+2. **Universal + CLI/Coding-specific** — CLI、コーディング、リポジトリ、Git/GitHubに特化するが（例: コーディングスタイル、ツール呼び出し、コミットのタイミング、Issue・PR運用）、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_CLI.md`。
+3. **Universal core** — 任意のプロジェクト、ツール、画面に常時適用する対話・安全・文章・ツール選択の原則と、補完規約のルーティング。対象は `~/.ai/AI_CONTEXT.md`。
+4. **Claude-Code-only** — 一般のCLI agentではなく、CodexやGemini CLIにも当てはまらない、Claude Code製品だけに真に固有の内容。対象は `~/.claude/CLAUDE.md`（`@` importの後に追記）。
+5. **One project only** — そのプロジェクトの `AI_CONTEXT.md`。エスケープされたパスは `-` を `/` に置換して候補を試し、存在と可能なら `.git` を確認する。
 
 `feedback` に限らず、`user`、`reference`、`project` を含むすべてのmemory種別に適用する。真の矛盾は解決せず、両方を残して最終報告で示す。
 
