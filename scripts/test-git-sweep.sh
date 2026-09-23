@@ -110,6 +110,32 @@ git fetch -q --prune
 output=$("$SWEEP" 2>&1)
 check "feature-extra preserved (extra local commit not covered by squash)" branch_exists feature-extra
 
+section "local main behind origin/main (merged remotely) is fast-forwarded before the merge check"
+git checkout -q main
+git checkout -q -b feature-remote-merge
+echo "remote-merge-change" >> README.md
+git commit -q -am "feat: remote-merge change"
+git push -q -u origin feature-remote-merge
+git clone -q ../origin.git ../merger-clone
+(
+  cd ../merger-clone
+  git config user.email "merger@example.com"
+  git config user.name "merger"
+  git config hooks.skip-policy-check true
+  git checkout -q feature-remote-merge
+  git checkout -q main
+  git merge -q feature-remote-merge
+  git push -q origin main
+)
+# Local main is intentionally NOT pulled here, simulating a PR merged on the
+# remote (e.g. via GitHub) before the local clone's main branch caught up.
+git checkout -q feature-remote-merge
+output=$("$SWEEP" 2>&1)
+check "reports local main fast-forward" contains "$output" "Updated main (fast-forward)"
+check "feature-remote-merge deleted" branch_absent feature-remote-merge
+check "switched back to main" [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]
+check "local main now matches origin/main" [ "$(git rev-parse main)" = "$(git rev-parse origin/main)" ]
+
 section "dirty worktree on a merged branch is preserved untouched"
 git checkout -q main
 git checkout -q -b feature-dirty

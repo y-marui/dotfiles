@@ -20,14 +20,16 @@
 #   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
 #      削除を一切行わずスキップし、理由を表示する
 #   3. 現在のブランチが保護対象（PROTECTED）なら fast-forward pull するだけ
-#   4. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
+#   4. マージ済み判定の前に、ローカル $MAIN を origin/$MAIN へ fast-forward 同期
+#      する（他の worktree で checkout 済みなら同期しない）
+#   5. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
 #      （$MAIN が他の worktree で checkout 済みの場合は切り替えをスキップする）
-#   5. PROTECTED のうち現在のブランチ以外は、ローカルに既にあれば HEAD を動かさず
+#   6. PROTECTED のうち現在のブランチ以外は、ローカルに既にあれば HEAD を動かさず
 #      fast-forward fetch で同期する（コンフリクトがあれば警告のみ、自動マージは
 #      しない）。ローカルにまだ無ければ origin から新規作成し、それが $MAIN なら
 #      checkout する（develop 運用に気づかず main のまま作業を続ける事故を防ぐ）
-#   6. --all の場合、他のマージ済みブランチも削除
-#   7. 保護ブランチ以外の残存ブランチを表示
+#   7. --all の場合、他のマージ済みブランチも削除
+#   8. 保護ブランチ以外の残存ブランチを表示
 #
 # 安全性の保証:
 #   - dirty な worktree（staged/unstaged/untracked のいずれか）は checkout・pull・
@@ -252,6 +254,20 @@ _delete_branch() {
   fi
 }
 
+# _is_merged の判定基準はローカルの $MAIN。fetch --prune はリモート追跡ブランチ
+# しか更新しないため、ローカル $MAIN が origin/$MAIN より古いままだと、実際は
+# マージ済みでも stale な $MAIN を基準に「マージ済みでない」と誤判定してしまう。
+# 判定前にローカル $MAIN を origin/$MAIN へ fast-forward 同期する（他の worktree
+# で checkout 済みなら同期しない。fast-forward できない場合は何もせず、既存の
+# ローカル $MAIN のまま判定を続ける）。
+_sync_main_before_merge_check() {
+  git rev-parse --verify -q "$MAIN" >/dev/null 2>&1 || return 0
+  _branch_in_other_worktree "$MAIN" && return 0
+  if git fetch . "origin/${MAIN}:${MAIN}" --quiet 2>/dev/null; then
+    echo "Updated $MAIN (fast-forward)."
+  fi
+}
+
 _pull_current() {
   if git pull --ff-only --quiet; then
     echo "Updated $(git rev-parse --abbrev-ref HEAD)."
@@ -308,22 +324,25 @@ if [[ "$DIRTY" == true ]]; then
 elif _is_protected "$current"; then
   _pull_current
   _sync_other_protected "$current"
-elif _is_merged "$current"; then
-  kind="$MERGE_KIND"
-  if _branch_in_other_worktree "$MAIN"; then
-    echo "warning: '$MAIN' is checked out in another worktree; skipping switch/cleanup for '$current'." >&2
-  else
-    echo "Branch '$current' is merged. Switching to $MAIN..."
-    if git checkout "$MAIN" 2>/dev/null; then
-      _pull_current
-      _delete_branch "$current" "$kind"
-    else
-      echo "warning: failed to checkout $MAIN; leaving '$current' in place." >&2
-    fi
-  fi
-  _sync_other_protected "$MAIN"
 else
-  echo "Branch '$current' is not yet merged into $MAIN."
+  _sync_main_before_merge_check
+  if _is_merged "$current"; then
+    kind="$MERGE_KIND"
+    if _branch_in_other_worktree "$MAIN"; then
+      echo "warning: '$MAIN' is checked out in another worktree; skipping switch/cleanup for '$current'." >&2
+    else
+      echo "Branch '$current' is merged. Switching to $MAIN..."
+      if git checkout "$MAIN" 2>/dev/null; then
+        _pull_current
+        _delete_branch "$current" "$kind"
+      else
+        echo "warning: failed to checkout $MAIN; leaving '$current' in place." >&2
+      fi
+    fi
+    _sync_other_protected "$MAIN"
+  else
+    echo "Branch '$current' is not yet merged into $MAIN."
+  fi
 fi
 
 # --all: 他のマージ済みブランチも削除

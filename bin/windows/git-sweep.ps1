@@ -20,13 +20,15 @@
 #   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
 #      削除を一切行わずスキップし、理由を表示する
 #   3. 現在のブランチが保護対象（PROTECTED）なら fast-forward pull するだけ
-#   4. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
+#   4. マージ済み判定の前に、ローカル $MAIN を origin/$MAIN へ fast-forward 同期
+#      する（他の worktree で checkout 済みなら同期しない）
+#   5. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
 #      （$MAIN が他の worktree で checkout 済みの場合は切り替えをスキップする）
-#   5. PROTECTED のうち現在のブランチ以外は、HEAD を動かさず fast-forward fetch
+#   6. PROTECTED のうち現在のブランチ以外は、HEAD を動かさず fast-forward fetch
 #      で同期する（コンフリクトがあれば警告のみ、自動マージはしない）。ローカルに
 #      まだ無ければ origin から新規作成し、それが $MAIN であれば checkout する
-#   6. --all の場合、他のマージ済みブランチも削除
-#   7. 保護ブランチ以外の残存ブランチを表示
+#   7. --all の場合、他のマージ済みブランチも削除
+#   8. 保護ブランチ以外の残存ブランチを表示
 #
 # 安全性の保証:
 #   - dirty な worktree（staged/unstaged/untracked のいずれか）は checkout・pull・
@@ -285,6 +287,23 @@ function Remove-Branch([string]$Branch, [string]$Kind) {
     }
 }
 
+# Test-Merged の判定基準はローカルの $MAIN。fetch --all --prune はリモート追跡
+# ブランチしか更新しないため、ローカル $MAIN が origin/$MAIN より古いままだと、
+# 実際はマージ済みでも stale な $MAIN を基準に「マージ済みでない」と誤判定して
+# しまう。判定前にローカル $MAIN を origin/$MAIN へ fast-forward 同期する
+# （他の worktree で checkout 済みなら同期しない。fast-forward できない場合は
+# 何もせず、既存のローカル $MAIN のまま判定を続ける）。
+function Sync-MainBeforeMergeCheck {
+    & git rev-parse --verify -q $MAIN *> $null
+    if ($LASTEXITCODE -ne 0) { return }
+    if (Test-BranchInOtherWorktree $MAIN) { return }
+    $global:LASTEXITCODE = $null
+    & git fetch . "origin/${MAIN}:${MAIN}" --quiet *> $null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Updated $MAIN (fast-forward)."
+    }
+}
+
 function Invoke-PullCurrent {
     $global:LASTEXITCODE = $null
     & git pull --ff-only --quiet
@@ -348,24 +367,27 @@ if ($script:Dirty) {
 } elseif (Test-Protected $current) {
     Invoke-PullCurrent
     Sync-OtherProtected $current
-} elseif (Test-Merged $current) {
-    $kind = $script:MergeKind
-    if (Test-BranchInOtherWorktree $MAIN) {
-        Write-Stderr "warning: '$MAIN' is checked out in another worktree; skipping switch/cleanup for '$current'."
-    } else {
-        Write-Host "Branch '$current' is merged. Switching to $MAIN..."
-        $global:LASTEXITCODE = $null
-        & git checkout $MAIN *> $null
-        if ($LASTEXITCODE -eq 0) {
-            Invoke-PullCurrent
-            Remove-Branch $current $kind
-        } else {
-            Write-Stderr "warning: failed to checkout $MAIN; leaving '$current' in place."
-        }
-    }
-    Sync-OtherProtected $MAIN
 } else {
-    Write-Host "Branch '$current' is not yet merged into $MAIN."
+    Sync-MainBeforeMergeCheck
+    if (Test-Merged $current) {
+        $kind = $script:MergeKind
+        if (Test-BranchInOtherWorktree $MAIN) {
+            Write-Stderr "warning: '$MAIN' is checked out in another worktree; skipping switch/cleanup for '$current'."
+        } else {
+            Write-Host "Branch '$current' is merged. Switching to $MAIN..."
+            $global:LASTEXITCODE = $null
+            & git checkout $MAIN *> $null
+            if ($LASTEXITCODE -eq 0) {
+                Invoke-PullCurrent
+                Remove-Branch $current $kind
+            } else {
+                Write-Stderr "warning: failed to checkout $MAIN; leaving '$current' in place."
+            }
+        }
+        Sync-OtherProtected $MAIN
+    } else {
+        Write-Host "Branch '$current' is not yet merged into $MAIN."
+    }
 }
 
 if ($ALL) {

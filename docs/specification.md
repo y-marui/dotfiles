@@ -157,9 +157,10 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
 
 回帰テストは[scripts/test-git-sweep.sh](../scripts/test-git-sweep.sh)（Unix版のみ。
 使い捨てのbare origin + 作業用クローンをテンポラリディレクトリに作成し、
-fast-forward/squash-merge検出・未マージ保持・dirty worktree保持・他worktree
-使用中ブランチの保持・分岐したprotectedブランチの保持を検証する。ネットワーク
-アクセスなし、リポジトリ外への影響なし）を実行する。Windows版
+fast-forward/squash-merge検出・未マージ保持・ローカル`$MAIN`が遅れている場合の
+fast-forward同期・dirty worktree保持・他worktree使用中ブランチの保持・分岐した
+protectedブランチの保持を検証する。ネットワークアクセスなし、リポジトリ外への
+影響なし）を実行する。Windows版
 （`bin/windows/git-sweep.ps1`）の同等テストは、pwsh実行環境で動作確認できる
 ようになってから追加する。
 
