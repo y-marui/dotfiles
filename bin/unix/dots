@@ -524,7 +524,12 @@ _ghq() {
   _require_no_args "$@"
 
   case "${action}" in
-    diff) bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff || true ;;
+    diff)
+      # 終了コード1は「差分あり」（他の diff と同様に正常終了）。2 以上のエラーは伝える。
+      local rc=0
+      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff || rc=$?
+      (( rc <= 1 )) || return "${rc}"
+      ;;
     apply|sync|merge) bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}" ;;
     *) _error "unknown ghq action: ${action}" ;;
   esac
@@ -784,7 +789,7 @@ _check_verbose() {
   _brew diff
   _package_file npm diff
   _package_file pipx diff
-  _ghq diff
+  _ghq diff || true
   _dock diff
   _shortcuts diff
   echo ""

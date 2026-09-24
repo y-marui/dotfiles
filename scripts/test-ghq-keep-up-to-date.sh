@@ -41,7 +41,7 @@ set_true() { git -C "$(repo_path "$1")" config --local --bool local.keep-up-to-d
 set_false() { git -C "$(repo_path "$1")" config --local --bool local.keep-up-to-date false; }
 
 reset_env() {
-  rm -rf "$GHQ_ROOT" "$DOTFILES_PRIVATE_DIR"
+  rm -rf "$GHQ_ROOT" "$WORK/ghq2" "$DOTFILES_PRIVATE_DIR"
   mkdir -p "$DOTFILES_PRIVATE_DIR/ghq"
   local r
   for r in github.com/o/alpha github.com/o/beta github.com/o/Gamma github.com/o/delta; do
@@ -144,7 +144,36 @@ output=$(run diff --summary) && rc=0 || rc=$?
 check "summary is silent without declaration" [ "$rc" -eq 0 ]
 check "summary prints nothing without declaration" [ -z "$output" ]
 output=$(run apply) && rc=0 || rc=$?
-check "apply refuses without declaration" [ "$rc" -ne 0 ]
+check "apply refuses without declaration" [ "$rc" -eq 2 ]
+output=$(run diff) && rc=0 || rc=$?
+check "diff reports an error (not a difference) without declaration" [ "$rc" -eq 2 ]
+
+section "exit codes"
+reset_env
+printf '%s\n' 'github.com/o/alpha' > "$DECL"
+output=$(run diff) && rc=0 || rc=$?
+check "diff exits 1 for a difference" [ "$rc" -eq 1 ]
+output=$(run bogus) && rc=0 || rc=$?
+check "unknown action exits 2" [ "$rc" -eq 2 ]
+output=$(PATH=/usr/bin:/bin run diff) && rc=0 || rc=$?
+check "missing ghq exits 2" [ "$rc" -eq 2 ]
+output=$(PATH=/usr/bin:/bin run diff --summary) && rc=0 || rc=$?
+check "missing ghq is silent for --summary" [ "$rc" -eq 0 ]
+printf '%s\n' 'github.com/o/alpha' > "$DECL"
+output=$(cd "$WORK" && "$KEEP" diff 2>&1) && rc=0 || rc=$?
+check "diff from another cwd still exits 1 for a difference" [ "$rc" -eq 1 ]
+
+section "multiple ghq roots"
+reset_env
+mkdir -p "$WORK/ghq2/github.com/o/second"
+git init -q "$WORK/ghq2/github.com/o/second"
+git -C "$WORK/ghq2/github.com/o/second" config --local --bool local.keep-up-to-date true
+printf '%s\n' 'github.com/o/second' > "$DECL"
+output=$(GHQ_ROOT="$GHQ_ROOT:$WORK/ghq2" run diff) && rc=0 || rc=$?
+check "repo under a secondary root matches its relative declaration" [ "$rc" -eq 0 ]
+: > "$DECL"
+GHQ_ROOT="$GHQ_ROOT:$WORK/ghq2" run merge >/dev/null
+check "merge writes a root-relative path" grep -qx 'github.com/o/second' "$DECL"
 
 echo
 if [[ "$FAILURES" -gt 0 ]]; then

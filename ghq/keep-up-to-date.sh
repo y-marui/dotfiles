@@ -11,6 +11,7 @@
 #
 # 使い方:
 #   keep-up-to-date.sh diff [--summary]   宣言と実状態の差分を表示（差分があれば終了コード1）
+#                                         （宣言なし・ghq なし・想定外の失敗などのエラーは終了コード2）
 #   keep-up-to-date.sh apply              宣言 → 実状態（完全一致。宣言外の true は --unset）
 #   keep-up-to-date.sh sync               実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）
 #   keep-up-to-date.sh merge              実状態 → 共通宣言（追加のみ。削除しない）
@@ -20,7 +21,7 @@
 #   GHQ_ROOT               ghq root（ghq 自体も参照する）
 #   DOTFILES_PRIVATE_DIR   dotfiles-private の場所（既定: <dotfiles>-private）
 
-set -euo pipefail
+set -eEuo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 PRIVATE_DIR="${DOTFILES_PRIVATE_DIR:-${DOTFILES_DIR}-private}"
@@ -30,30 +31,33 @@ CONFIG_KEY="local.keep-up-to-date"
 
 export LC_ALL=C
 
+# 想定外の失敗は、差分あり（終了コード1）と区別できるよう終了コード2にする。
+trap 'exit 2' ERR
+
 ACTION="${1:-}"
-[[ -n "${ACTION}" ]] || { echo "usage: keep-up-to-date.sh {apply|diff|sync|merge}" >&2; exit 1; }
+[[ -n "${ACTION}" ]] || { echo "usage: keep-up-to-date.sh {apply|diff|sync|merge}" >&2; exit 2; }
 shift
 SUMMARY=false
 while (( $# > 0 )); do
   case "$1" in
     --summary)
-      [[ "${ACTION}" == diff ]] || { echo "error: --summary は diff でのみ使えます" >&2; exit 1; }
+      [[ "${ACTION}" == diff ]] || { echo "error: --summary は diff でのみ使えます" >&2; exit 2; }
       SUMMARY=true
       shift
       ;;
-    *) echo "error: unknown option: $1" >&2; exit 1 ;;
+    *) echo "error: unknown option: $1" >&2; exit 2 ;;
   esac
 done
 case "${ACTION}" in
   apply|diff|sync|merge) ;;
-  *) echo "error: unknown action: ${ACTION}" >&2; exit 1 ;;
+  *) echo "error: unknown action: ${ACTION}" >&2; exit 2 ;;
 esac
 
 # --summary（dots check 用）は、対象外の環境では何も出さずに正常終了する。
 _unavailable() {
   [[ "${SUMMARY}" == true ]] && exit 0
   echo "error: $1" >&2
-  exit 1
+  exit 2
 }
 
 command -v ghq >/dev/null 2>&1 || _unavailable "'ghq' が見つかりません。"
@@ -69,11 +73,18 @@ _keys() {
       -e 's#/*$##' "$1" | grep -v '^$' | tr '[:upper:]' '[:lower:]' | sort -u || true
 }
 
-ghq_root="$(ghq root)"
+# 複数の ghq root が設定されていても、各リポジトリを所属する root からの相対パスにする。
+ghq root --all > "${TMP}/roots"
 
 # 取得済みリポジトリ: <キー>\t<パス>\t<相対パス>
 ghq list -p | while IFS= read -r path; do
-  rel="${path#"${ghq_root}"/}"
+  rel="${path}"
+  while IFS= read -r root; do
+    if [[ "${path}" == "${root}"/* ]]; then
+      rel="${path#"${root}"/}"
+      break
+    fi
+  done < "${TMP}/roots"
   printf '%s\t%s\t%s\n' "$(printf '%s' "${rel}" | tr '[:upper:]' '[:lower:]')" "${path}" "${rel}"
 done | sort -t $'\t' -k1,1 > "${TMP}/fetched.tsv"
 cut -f1 "${TMP}/fetched.tsv" | sort -u > "${TMP}/fetched"
@@ -107,6 +118,8 @@ _rels() {
 
 _count() { grep -c . "$1" || true; }
 
+HAS_DIFF=false
+
 _diff() {
   local n_plus n_minus
   n_plus="$(_count "${TMP}/plus")"
@@ -124,6 +137,7 @@ _diff() {
     echo "No diff: 宣言と各リポジトリの ${CONFIG_KEY} は一致しています。"
     return 0
   fi
+  HAS_DIFF=true
   if (( n_plus > 0 )); then
     echo "${CONFIG_KEY}=true だが宣言なし (+actual のみ):"
     _rels "${TMP}/plus" | sort -f | sed 's/^/  [+actual]  /'
@@ -133,7 +147,6 @@ _diff() {
     echo "宣言済みだが ${CONFIG_KEY} が true でない (-file のみ):"
     _rels "${TMP}/minus" | sort -f | sed 's/^/  [-file]  /'
   fi
-  return 1
 }
 
 # 共通宣言ファイルを書き戻す。コメント・空行は先頭にまとめ、エントリは重複を除いて
@@ -209,7 +222,7 @@ _apply() {
 }
 
 case "${ACTION}" in
-  diff)  _diff ;;
+  diff)  _diff; [[ "${HAS_DIFF}" == false ]] || exit 1 ;;
   apply) _apply ;;
   sync)  _write_decl true ;;
   merge) _write_decl false ;;

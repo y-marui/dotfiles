@@ -209,8 +209,9 @@ switch ($commandName) {
             throw "unexpected argument: $($commandArgs[1])"
         }
         & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" $ghqAction
-        # diff は差分があると終了コード1を返すが、dots としては正常終了として扱う
-        if ($ghqAction -ne 'diff' -and $LASTEXITCODE -ne 0) {
+        # diff の終了コード1は「差分あり」で、dots としては正常終了として扱う（2 以上はエラー）
+        $ghqLimit = if ($ghqAction -eq 'diff') { 1 } else { 0 }
+        if ($LASTEXITCODE -gt $ghqLimit) {
             exit $LASTEXITCODE
         }
     }

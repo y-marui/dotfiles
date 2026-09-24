@@ -12,6 +12,7 @@
 #
 # 使い方:
 #   keep-up-to-date.ps1 diff [--summary]   宣言と実状態の差分を表示（差分があれば終了コード1）
+#                                          （宣言なし・ghq なし・想定外の失敗などのエラーは終了コード2）
 #   keep-up-to-date.ps1 apply              宣言 → 実状態（完全一致。宣言外の true は --unset）
 #   keep-up-to-date.ps1 sync               実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）
 #   keep-up-to-date.ps1 merge              実状態 → 共通宣言（追加のみ。削除しない）
@@ -23,6 +24,12 @@
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# 想定外の失敗は、差分あり（終了コード1）と区別できるよう終了コード2にする。
+trap {
+    [Console]::Error.WriteLine("error: $_")
+    exit 2
+}
 
 $ConfigKey = 'local.keep-up-to-date'
 
@@ -38,23 +45,23 @@ $declLocalFile = "$declFile.local"
 $action = if ($args.Count -gt 0) { [string]$args[0] } else { '' }
 if ($action -eq '') {
     Write-KeepStderr 'usage: keep-up-to-date.ps1 {apply|diff|sync|merge}'
-    exit 1
+    exit 2
 }
 if ($action -notin @('apply', 'diff', 'sync', 'merge')) {
     Write-KeepStderr "error: unknown action: $action"
-    exit 1
+    exit 2
 }
 $summary = $false
 foreach ($argument in @($args | Select-Object -Skip 1)) {
     if ($argument -eq '--summary') {
         if ($action -ne 'diff') {
             Write-KeepStderr 'error: --summary は diff でのみ使えます'
-            exit 1
+            exit 2
         }
         $summary = $true
     } else {
         Write-KeepStderr "error: unknown option: $argument"
-        exit 1
+        exit 2
     }
 }
 
@@ -62,7 +69,7 @@ foreach ($argument in @($args | Select-Object -Skip 1)) {
 function Stop-Unavailable([string]$Message) {
     if ($summary) { exit 0 }
     Write-KeepStderr "error: $Message"
-    exit 1
+    exit 2
 }
 
 if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
@@ -100,18 +107,20 @@ function Sort-Entries([string[]]$Entries) {
     return @($list)
 }
 
-$ghqRoot = (@(& ghq root) | Select-Object -First 1) -replace '\\', '/'
-$ghqRoot = $ghqRoot.TrimEnd('/')
+# 複数の ghq root が設定されていても、各リポジトリを所属する root からの相対パスにする。
+$ghqRoots = @(& ghq root --all | ForEach-Object { ($_ -replace '\\', '/').TrimEnd('/') })
 
 # 取得済みリポジトリ: キー -> @{ Path; Rel }
 $fetched = @{}
 foreach ($path in @(& ghq list -p)) {
     $norm = $path -replace '\\', '/'
-    $prefix = "$ghqRoot/"
-    $rel = if ($norm.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
-        $norm.Substring($prefix.Length)
-    } else {
-        $norm
+    $rel = $norm
+    foreach ($root in $ghqRoots) {
+        $prefix = "$root/"
+        if ($norm.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $rel = $norm.Substring($prefix.Length)
+            break
+        }
     }
     $fetched[$rel.ToLowerInvariant()] = [pscustomobject]@{ Path = $path; Rel = $rel }
 }
