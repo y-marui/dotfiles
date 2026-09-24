@@ -1,0 +1,9 @@
+# ghq-update の更新対象（local.keep-up-to-date=true にするリポジトリ）の宣言。
+# ghq root からの相対パス（github.com/<owner>/<repo>）を1行1件で書く。# 以降はコメント。
+# この端末だけの追加分は ghq/keep-up-to-date.local（コミット対象外）へ書く。
+# ghq root に取得されていないリポジトリは無視される。
+#
+# 実状態との差分確認・適用: dots ghq {diff|apply}
+# 実状態からの書き出し:     dots ghq {merge|sync}
+#
+# github.com/example-owner/example-repo

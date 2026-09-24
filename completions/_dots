@@ -1,7 +1,7 @@
 #compdef dots
 
 _dots() {
-  local -a commands actions shortcuts_actions ai_actions expl
+  local -a commands actions ghq_actions shortcuts_actions ai_actions expl
   commands=(
     'status:dotfiles・dotfiles-privateのGit状態を確認'
     'update:dotfilesとOS別パッケージを更新'
@@ -10,6 +10,7 @@ _dots() {
     'shortcuts:macOSのアプリケーションショートカット設定を操作'
     'npm:npmグローバルパッケージ設定を操作'
     'pipx:pipxパッケージ設定を操作'
+    'ghq:ghq-updateの更新対象(keep-up-to-date)を宣言で管理'
     'ai:Claude Code・CodexのMCP・plugin・skillを一括操作'
     'claude:Claude CodeのMCP・plugin・skillを操作'
     'codex:CodexのMCP・plugin・skillを操作'
@@ -24,6 +25,12 @@ _dots() {
     'diff:差分を表示'
     'sync:現在の状態を管理ファイルへ同期'
     'cache:現在の状態をキャッシュ'
+  )
+  ghq_actions=(
+    'apply:宣言を各リポジトリへ適用'
+    'diff:差分を表示'
+    'sync:現在の状態を宣言へ同期'
+    'merge:現在の状態を宣言へ追加(削除しない)'
   )
   shortcuts_actions=(
     'apply:設定を適用'
@@ -89,6 +96,11 @@ _dots() {
     npm|pipx)
       if (( CURRENT == 3 )); then
         _describe 'action' actions
+      fi
+      ;;
+    ghq)
+      if (( CURRENT == 3 )); then
+        _describe 'action' ghq_actions
       fi
       ;;
     claude|codex)

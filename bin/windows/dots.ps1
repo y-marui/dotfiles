@@ -27,9 +27,10 @@ Usage:
   dots status [-NoFetch]
   dots update
   dots winget {apply|diff|cache}
+  dots ghq {apply|diff|sync|merge}
   dots help
 
-Windowsでは status / update / winget を利用できます。
+Windowsでは status / update / winget / ghq を利用できます。
 '@
 }
 
@@ -197,6 +198,21 @@ switch ($commandName) {
             default {
                 throw "usage: dots winget {apply|diff|cache}"
             }
+        }
+    }
+    'ghq' {
+        $ghqAction = if ($commandArgs.Count -gt 0) { $commandArgs[0] } else { $null }
+        if ($ghqAction -notin @('apply', 'diff', 'sync', 'merge')) {
+            throw "usage: dots ghq {apply|diff|sync|merge}"
+        }
+        if ($commandArgs.Count -gt 1) {
+            throw "unexpected argument: $($commandArgs[1])"
+        }
+        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" $ghqAction
+        # diff の終了コード1は「差分あり」で、dots としては正常終了として扱う（2 以上はエラー）
+        $ghqLimit = if ($ghqAction -eq 'diff') { 1 } else { 0 }
+        if ($LASTEXITCODE -gt $ghqLimit) {
+            exit $LASTEXITCODE
         }
     }
     { $_ -in @('help', '-h', '--help') } {

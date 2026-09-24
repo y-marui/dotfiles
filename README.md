@@ -50,6 +50,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots shortcuts {apply\|diff\|sync\|merge\|cache}` | macOSのアプリケーションショートカットを管理（applyは管理ファイルと完全一致、mergeで現在値を先に取り込める） |
 | `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
 | `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
+| `dots ghq {apply\|diff\|sync\|merge}` | `ghq-update`の更新対象（`local.keep-up-to-date`）をdotfiles-privateの宣言ファイル（`ghq/keep-up-to-date`・`.local`）で管理（applyは宣言と完全一致、mergeで現在値を追記のみで取り込める） |
 | `dots ai {apply\|diff\|prune}` | Claude Code・Codex の MCP・plugin・skill を一括管理 |
 | `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
 | `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |

@@ -20,6 +20,13 @@ Windows 向け変更（`bin/windows/`、`*.ps1`）は PowerShell 上で動作確
 scripts/test-git-sweep.sh
 ```
 
+`ghq/keep-up-to-date.sh` を変更した場合も、同様に使い捨ての ghq root で回帰テストを実行する
+（`ghq` コマンドが必要。無ければスキップされる）:
+
+```bash
+scripts/test-ghq-keep-up-to-date.sh
+```
+
 ## Conventions
 
 詳細は [AI_CONTEXT.md](AI_CONTEXT.md) を参照。要点のみ:
@@ -65,7 +72,10 @@ scripts/test-git-sweep.sh
 旧`git-sweep-main`・`git-sweep-protected`属性と
 `local.status-allowed-remote-branch`は既存リポジトリ向けの互換fallbackとしてのみ扱う。
 `local.keep-up-to-date`と`local.status-ignore-charter-outdated`は端末・表示固有なので、
-引き続きGit configで管理する。
+引き続きGit configで管理する。ただし`local.keep-up-to-date`は、更新対象のリポジトリ
+一覧をdotfiles-privateの`ghq/keep-up-to-date`（端末固有分は`.local`）に宣言し、
+`dots ghq {diff|apply|sync|merge}`でGit configとの差分確認・同期ができる
+（詳細は[specification.md](docs/specification.md#dots-ghq)）。
 
 ## Fork Upstream Sync / PR
 

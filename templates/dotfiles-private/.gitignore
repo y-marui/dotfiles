@@ -1,3 +1,4 @@
 .DS_Store
 macos/dockfile.cache
 gitconfig.d/local
+ghq/keep-up-to-date.local
