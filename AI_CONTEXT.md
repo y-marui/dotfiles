@@ -139,6 +139,7 @@ dotfiles/
 ├── macos/          # Brewfile、macOS defaults スクリプト
 ├── windows/        # WingetPin（winget一時pin宣言）
 ├── host/           # マシン固有設定（コミット対象外）
+├── ghq/            # ghq-update の更新対象（keep-up-to-date）の宣言管理スクリプト（宣言ファイルは dotfiles-private）
 ├── scripts/        # install / uninstall / check / init スクリプト
 ├── docs/           # 設計ドキュメント
 └── .github/        # GitHub / Copilot 設定
@@ -193,6 +194,9 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `dots winget apply/diff/cache`: Windows専用。`windows/WingetPin` に宣言したパッケージの
   一時pinをwinget側の実際の状態と同期する（macOSの `dots brew` におけるBrewfile-pin相当）
 - `macos/Brewfile-pin`: 一時的に更新を止める formula/Cask を宣言。`dots brew apply/diff/cache` で実pin状態と同期する
+- `dots ghq {diff|apply|sync|merge}`: ghq-update の更新対象（`local.keep-up-to-date`）を、
+  dotfiles-private の宣言（`ghq/keep-up-to-date`・`.local`）と突き合わせる。
+  `dots check` は差分だけを要約表示する
 - `dots {claude|codex} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
 - `dots {claude|codex} apply`: 宣言済みの不足・設定不一致を追加または更新
 - `dots {claude|codex} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避

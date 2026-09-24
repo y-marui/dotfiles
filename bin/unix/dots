@@ -42,6 +42,7 @@ Usage:
   dots shortcuts {apply|diff|sync|merge|cache} [--backup-dir DIR]
   dots npm {apply|diff|sync|cache}
   dots pipx {apply|diff|sync|cache}
+  dots ghq {apply|diff|sync|merge}
   dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots {claude|codex} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
   dots copilot {apply|diff|prune} [--mcp-only]
@@ -58,6 +59,7 @@ Commands:
   shortcuts  macOSのアプリケーションショートカット設定を操作
   npm     npmグローバルパッケージ設定を操作
   pipx    pipxパッケージ設定を操作
+  ghq     ghq-update の更新対象（local.keep-up-to-date）を dotfiles-private の宣言で管理
   ai      Claude Code・Codex の MCP・plugin・skill を一括管理
   claude  Claude Code の MCP・plugin・skill を宣言的に管理
   codex   Codex の MCP・plugin・skill を宣言的に管理
@@ -515,6 +517,19 @@ _package_file() {
   esac
 }
 
+_ghq() {
+  local action="${1:-}"
+  [[ -n "${action}" ]] || _error "usage: dots ghq {apply|diff|sync|merge}"
+  shift
+  _require_no_args "$@"
+
+  case "${action}" in
+    diff) bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff || true ;;
+    apply|sync|merge) bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}" ;;
+    *) _error "unknown ghq action: ${action}" ;;
+  esac
+}
+
 _ai_agent() {
   local agent="$1" action="${2:-}"
   local mcp_only=false plugin_only=false skill_only=false only_count=0
@@ -700,6 +715,8 @@ _check_summary() {
     bash "${DOTFILES_DIR}/npm/diff_npmfile.sh" || found=1
   _check_script_summary "pipx" "dots pipx diff で確認" \
     bash "${DOTFILES_DIR}/pipx/diff_pipxfile.sh" || found=1
+  _check_script_summary "ghq keep-up-to-date" "dots ghq diff で確認" \
+    bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff || found=1
   _check_script_summary "dock" "dots dock diff で確認" \
     bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" || found=1
   _check_script_summary "application shortcuts" "dots shortcuts diff で確認" \
@@ -762,11 +779,12 @@ _check_verbose() {
   fi
 
   echo "=========================================="
-  echo " Checking brew / npm / pipx / dock / application shortcuts ..."
+  echo " Checking brew / npm / pipx / ghq / dock / application shortcuts ..."
   echo "=========================================="
   _brew diff
   _package_file npm diff
   _package_file pipx diff
+  _ghq diff
   _dock diff
   _shortcuts diff
   echo ""
@@ -857,6 +875,7 @@ case "${command_name}" in
   dock) _dock "$@" ;;
   shortcuts) _shortcuts "$@" ;;
   npm|pipx) _package_file "${command_name}" "$@" ;;
+  ghq) _ghq "$@" ;;
   ai) _ai "$@" ;;
   claude|codex) _ai_agent "${command_name}" "$@" ;;
   copilot) _copilot "$@" ;;

@@ -112,8 +112,9 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
   自動生成してcommitする
 - 対象外のファイルが1つでも変更に含まれる場合は、対象ファイルも含めて一切commitせず
   （部分commitはしない）、対象外ファイルの一覧を表示して手動commitを促す
-- `Brewfile-pin` やAI（claude/codex/copilot）のMCP・plugin・skill宣言ファイルは
-  人間が意図して編集するため対象外
+- `Brewfile-pin` やAI（claude/codex/copilot）のMCP・plugin・skill宣言ファイル、
+  `dots ghq`の宣言ファイル（`ghq/keep-up-to-date`）は人間が意図して編集する
+  （更新対象とするかどうかの判断そのもの）ため対象外
 
 `dots push [--no-fetch]`:
 - 既定では各リポジトリを`git fetch --prune`してから、upstreamに対してunpushedな
@@ -255,6 +256,55 @@ Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/setting
 - `~/.claude/claude-perms.json`の`forbiddenAllow`に列挙したエントリ（例:
   `Bash(run-quiet:*)`のような無制限wildcard）は、`format`/`format-global`が
   ローカル・グローバルどちらのallowからも自動削除する
+
+## dots ghq
+
+`ghq-update`の更新対象は各リポジトリの`git config local.keep-up-to-date`（`true`のみが
+対象。未設定はグローバル既定の`false`）で決まる。リポジトリごとにGit configを手で
+設定するとどれが対象か分からなくなるため、対象リポジトリの一覧を
+dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態と突き合わせる。
+リポジトリ名（privateリポジトリを含む）を公開リポジトリへ書かないため、
+宣言ファイルはdotfiles-privateに置き、ロジックだけをdotfiles（`ghq/keep-up-to-date.sh` /
+`.ps1`）に置く。
+
+**宣言ファイル**（dotfiles-private配下）:
+
+- `ghq/keep-up-to-date`: 共通の宣言。1行1件でghq rootからの相対パス
+  （`github.com/<owner>/<repo>`）を書く。`#`以降はコメント
+- `ghq/keep-up-to-date.local`: この端末だけの追加分（`.gitignore`対象、手編集専用）。
+  `Brewfile.local`と同様に追加のみで、打ち消し（`!`等）やglobは持たない
+- 宣言の集合は両ファイルの和集合。比較は大文字小文字と末尾スラッシュを区別しない
+- 雛形は`templates/dotfiles-private/ghq/keep-up-to-date.example`
+
+**実状態**は各リポジトリの`git config --local --get local.keep-up-to-date`が`true`かどうか
+（グローバル設定の影響を受けない）。`false`は書かず、対象から外すときは`--unset`する。
+
+**コマンド**（`dots ghq {apply|diff|sync|merge}`。`cache`は実状態をGit configから直接読めるため持たない）:
+
+| 動詞 | 動作 |
+|---|---|
+| `diff` | 宣言と実状態の差分を表示（差分があれば終了コード1）。`+actual`は`true`だが宣言なし、`-file`は宣言済みだが`true`でない |
+| `apply` | 宣言 → 実状態。宣言済みの取得済みリポジトリを`true`にし、宣言にない`true`は`--unset`する（完全一致）。明示的な`false`は触らない |
+| `sync` | 実状態 → 共通宣言（完全一致）。宣言にない`true`を追加し、`true`でない取得済みエントリを削除する |
+| `merge` | 実状態 → 共通宣言。追加のみで削除しない |
+
+- `sync` / `merge`の書き込み先は共通宣言のみ。`.local`は書き換えず、`.local`で宣言済みの
+  リポジトリは共通宣言へ昇格させない。書き戻しではコメント・空行を先頭にまとめ、
+  エントリは重複を除いて大文字小文字を無視してソートする
+- ghq rootに取得されていないリポジトリは、宣言にあっても全動詞で無視する（`diff`で
+  警告せず、`sync`でも削除しない）。取得された時点で次の`apply`から有効になる
+- `.local`にだけ宣言され`true`でないリポジトリは、`sync`では共通宣言に関係ないため
+  `diff`に残り続ける（`apply`で解消する）
+- 宣言ファイル（共通）が無い、または`ghq`が無い場合、`dots check`のサマリは何も表示せず、
+  `dots ghq`各動詞はエラーで終了する
+- `dots check`は差分があるとき`⚠ ghq keep-up-to-date: +N 宣言なし / -N 未適用`を表示する。
+  Windowsには`dots check`が無いため、サマリはUnixのみ
+- 未決定（`.venv`/`node_modules`はあるが宣言も`true`もない）リポジトリの検出は行わない。
+  全体の状態は`ghq-status`のKEEP列で確認する
+
+テスト用に`GHQ_ROOT`（ghq root）と`DOTFILES_PRIVATE_DIR`（dotfiles-privateの場所）で
+上書きできる。回帰テストは[scripts/test-ghq-keep-up-to-date.sh](../scripts/test-ghq-keep-up-to-date.sh)
+（Unix版のみ）。
 
 ## ghq-status
 
