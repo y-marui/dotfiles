@@ -60,7 +60,9 @@ Claude CodeとCodexから同じキャッシュへリンクする。
 
 MCP と plugin は `ai/{claude,codex}/{mcp,plugin}/` に公開可能な宣言を置き、CLI で
 統合済みの実態またはアプリと共有する実体ファイルを検査する。`apply` は不足・設定不一致を
-追加または更新し、削除は明示的な `prune` だけが行う。MCP は local（stdio）/ remote
+追加または更新するスクリプトで、宣言にない項目の削除は `prune` が担う。`dots
+{claude|codex|copilot} apply` は他の `apply` と同様に完全一致させるため、この2つを続けて実行する
+（`--no-prune` で追加・更新のみにできる）。MCP は local（stdio）/ remote
 （HTTP）の両方を検知する。Claude Code は user scope に加え、既知 project の local scopeと
 `.mcp.json` も検査するが、local scopeは端末・リポジトリ固有、project scopeは
 リポジトリ共有設定として区別し、どちらも削除しない。loopback IDE MCP、

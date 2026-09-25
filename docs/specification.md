@@ -96,7 +96,7 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
 ## dots commit / dots push
 
 `sync` 系コマンド（`dots brew sync` / `dots npm sync` / `dots pipx sync` /
-`dots dock sync` / `dots shortcuts sync`）は、システムの実態をそのまま管理ファイルへ
+`dots dock sync` / `dots shortcuts sync`、および追加のみの `dots {brew|npm|pipx|shortcuts} merge`）は、システムの実態をそのまま管理ファイルへ
 書き写すだけで、記述内容に人間の判断を伴わない。この種の変更を都度手動commitする
 手間を省くためのコマンド。
 

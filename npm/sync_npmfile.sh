@@ -8,11 +8,24 @@
 #   3. キャッシュにないパッケージを npmfile から削除
 #   4. パッケージ行をアルファベット順にソート
 #
+# --add-only（dots npm merge）:
+#   キャッシュにないパッケージを削除せず、追加とソートのみ行う（手順3を省く）
+#
 # 使い方:
-#   bash npm/sync_npmfile.sh
+#   bash npm/sync_npmfile.sh [--add-only]
 #   dots npm sync
+#   dots npm merge
 
 set -euo pipefail
+
+ADD_ONLY=0
+case "${1:-}" in
+  "") ;;
+  --add-only) ADD_ONLY=1 ;;
+  *) echo "usage: sync_npmfile.sh [--add-only]" >&2; exit 2 ;;
+esac
+MODE=synced
+if [[ "$ADD_ONLY" -eq 1 ]]; then MODE=merged; fi
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 NPMFILE="$DOTFILES_DIR/npm/npmfile"
@@ -27,6 +40,7 @@ load_names() {
 
 to_add=$(comm -23 <(load_names "$NPMFILE_CACHE") <(load_names "$NPMFILE"))
 to_remove=$(comm -13 <(load_names "$NPMFILE_CACHE") <(load_names "$NPMFILE"))
+if [[ "$ADD_ONLY" -eq 1 ]]; then to_remove=""; fi
 
 if [[ -n "$to_add"    ]]; then while IFS= read -r p; do echo "[add]    $p"; done <<< "$to_add"; fi
 if [[ -n "$to_remove" ]]; then while IFS= read -r p; do echo "[remove] $p"; done <<< "$to_remove"; fi
@@ -51,4 +65,4 @@ mv "$NPMFILE.tmp" "$NPMFILE"
 added=$(echo "$to_add" | grep -c '.' || true)
 removed=$(echo "$to_remove" | grep -c '.' || true)
 echo ""
-echo "npmfile synced: +${added} added / -${removed} removed"
+echo "npmfile ${MODE}: +${added} added / -${removed} removed"
