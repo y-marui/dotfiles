@@ -17,8 +17,14 @@
 #   システムに存在しない既存エントリを削除せず、追加・重複除去・ソートのみ行う。
 #   Brewfile.local も「システムから削除済」の除去をしない（昇格済の重複除去は行う）
 #
+# --dry-run:
+#   Brewfile / Brewfile.local / Brewfile.cache のいずれも書き換えず、変更予定だけを表示する
+# --yes:
+#   Brewfile / Brewfile.local から項目を削除する場合に必要（削除がなければ不要）。
+#   --add-only は削除しないので不要
+#
 # 使い方:
-#   DOTFILES_DIR=~/dotfiles bash sync_brewfile.sh [--add-only]
+#   DOTFILES_DIR=~/dotfiles bash sync_brewfile.sh [--add-only] [--dry-run] [--yes]
 #
 # brew のラッパー関数から自動呼び出しする場合は .zshrc に以下を追加:
 #   brew() {
@@ -33,20 +39,47 @@
 set -euo pipefail
 
 ADD_ONLY=0
-case "${1:-}" in
-  "") ;;
-  --add-only) ADD_ONLY=1 ;;
-  *) echo "usage: sync_brewfile.sh [--add-only]" >&2; exit 2 ;;
-esac
-export ADD_ONLY
+DRY_RUN=0
+YES=0
+while (( $# > 0 )); do
+  case "$1" in
+    --add-only) ADD_ONLY=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --yes) YES=1 ;;
+    *) echo "usage: sync_brewfile.sh [--add-only] [--dry-run] [--yes]" >&2; exit 2 ;;
+  esac
+  shift
+done
+export ADD_ONLY DRY_RUN
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 export BREWFILE="$DOTFILES_DIR/macos/Brewfile"
 export BREWFILE_CACHE="$DOTFILES_DIR/macos/Brewfile.cache"
 export BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
 
-# ── Brewfile.cache を最新状態に更新 ────────────────────────────────────────────
-bash "$DOTFILES_DIR/macos/update_brewcache.sh"
+# ── 削除を伴う sync は --yes が必要（先に --dry-run で削除予定を確認する） ─────
+# システムから削除済みのエントリを Brewfile / Brewfile.local から外すのが「削除」。
+# Brewfile.local から Brewfile への昇格に伴う重複除去はデータを失わないので対象外。
+if [[ "$ADD_ONLY" -eq 0 && "$DRY_RUN" -eq 0 && "$YES" -eq 0 ]]; then
+  planned="$(bash "$0" --dry-run)"
+  removals="$(printf '%s\n' "$planned" | grep -E '^\[remove\]|^\[local remove\].*システムから削除済' || true)"
+  if [[ -n "$removals" ]]; then
+    printf '%s\n' "$removals"
+    echo "error: Brewfile / Brewfile.local から上記のエントリを削除します。実行するには --yes を付けてください" >&2
+    echo "  （削除せず追加だけ行う場合は dots brew merge）" >&2
+    exit 2
+  fi
+fi
+
+# ── Brewfile.cache を最新状態に更新（--dry-run では一時ファイルへ） ───────────
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  BREWFILE_CACHE="$(mktemp)"
+  export BREWFILE_CACHE
+  trap 'rm -f "$BREWFILE_CACHE"' EXIT
+  brew bundle dump --force --file="$BREWFILE_CACHE"
+else
+  bash "$DOTFILES_DIR/macos/update_brewcache.sh"
+fi
 
 # ── Brewfile を Brewfile.cache と同期 ──────────────────────────────────────────
 python3 << 'PYEOF'
@@ -55,6 +88,7 @@ import re, os, sys
 BREWFILE       = os.environ['BREWFILE']
 BREWFILE_CACHE = os.environ['BREWFILE_CACHE']
 ADD_ONLY       = os.environ.get('ADD_ONLY') == '1'
+DRY_RUN        = os.environ.get('DRY_RUN') == '1'
 
 ENTRY_PAT    = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 SECTION_PAT  = re.compile(r'^# ──')
@@ -172,10 +206,12 @@ for header, entries in sections:
 while output and output[-1] == '\n':
     output.pop()
 
-with open(BREWFILE, 'w', encoding='utf-8') as f:
-    f.writelines(output)
+if not DRY_RUN:
+    with open(BREWFILE, 'w', encoding='utf-8') as f:
+        f.writelines(output)
 
-print(f'\nBrewfile {"merged" if ADD_ONLY else "synced"}: +{added} added / -{removed} removed')
+label = "merged" if ADD_ONLY else "synced"
+print(f'\nBrewfile {label}: +{added} added / -{removed} removed' + (' (dry-run: 変更していません)' if DRY_RUN else ''))
 PYEOF
 
 # ── Brewfile.local を整合（存在する場合のみ） ─────────────────────────────────
@@ -187,6 +223,7 @@ BREWFILE        = os.environ['BREWFILE']
 BREWFILE_CACHE  = os.environ['BREWFILE_CACHE']
 BREWFILE_LOCAL  = os.environ['BREWFILE_LOCAL']
 ADD_ONLY        = os.environ.get('ADD_ONLY') == '1'
+DRY_RUN         = os.environ.get('DRY_RUN') == '1'
 
 ENTRY_PAT = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 
@@ -229,9 +266,10 @@ for line in lines:
 while new_lines and new_lines[-1] == '\n':
     new_lines.pop()
 
-with open(BREWFILE_LOCAL, 'w', encoding='utf-8') as f:
-    f.writelines(new_lines)
+if not DRY_RUN:
+    with open(BREWFILE_LOCAL, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
 
-print(f'Brewfile.local synced: -{removed} removed')
+print(f'Brewfile.local synced: -{removed} removed' + (' (dry-run: 変更していません)' if DRY_RUN else ''))
 PYEOF
 fi

@@ -195,6 +195,7 @@ _commit_targets_private() {
   cat <<'EOF'
 macos/dockfile
 macos/keyboard-shortcuts.plist
+ghq/keep-up-to-date
 EOF
 }
 
@@ -205,6 +206,7 @@ _commit_label_for_file() {
     pipx/pipxfile) printf 'pipxfile' ;;
     macos/dockfile) printf 'dockfile' ;;
     macos/keyboard-shortcuts.plist) printf 'アプリケーションショートカット' ;;
+    ghq/keep-up-to-date) printf 'ghq keep-up-to-date' ;;
     *) printf '%s' "$1" ;;
   esac
 }
@@ -351,26 +353,41 @@ _update() {
   esac
 }
 
-_backup_dir_arg() {
-  local backup_dir=""
+# diff 系ハンドラの共通ラッパー。終了コード1（差分あり）は正常終了として扱い、
+# --exit-code が指定された場合に備えて DOTS_DIFF_FOUND に記録する。
+# 2 以上（想定外の失敗）は従来どおり握りつぶさず、そのまま表示だけする。
+DOTS_DIFF_FOUND=0
+_diff_run() {
+  local rc=0
+  "$@" || rc=$?
+  (( rc != 1 )) || DOTS_DIFF_FOUND=1
+  return 0
+}
+
+# --backup-dir DIR と --dry-run だけを受け付ける動詞（dock/shortcuts の apply・prune）用。
+# 結果は PARSED_BACKUP_DIR / PARSED_DRY_RUN / PARSED_NO_PRUNE に入る。
+_parse_backup_dry_run() {
+  PARSED_BACKUP_DIR=""
+  PARSED_DRY_RUN=false
+  PARSED_NO_PRUNE=false
 
   while (( $# > 0 )); do
     case "$1" in
       --backup-dir)
         (( $# >= 2 )) || _error "--backup-dir requires a directory"
-        backup_dir="$2"
+        PARSED_BACKUP_DIR="$2"
         shift 2
         ;;
+      --dry-run) PARSED_DRY_RUN=true; shift ;;
+      --no-prune) PARSED_NO_PRUNE=true; shift ;;
       *) _error "unknown option: $1" ;;
     esac
   done
-
-  printf '%s' "${backup_dir}"
 }
 
 _brew() {
-  local action="${1:-}" backup_dir full=false no_prune=false
-  [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|merge|cache}"
+  local action="${1:-}" backup_dir full=false no_prune=false dry_run=false
+  [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|merge|prune|cache}"
   shift
 
   case "${action}" in
@@ -386,6 +403,10 @@ _brew() {
             no_prune=true
             shift
             ;;
+          --dry-run)
+            dry_run=true
+            shift
+            ;;
           --backup-dir)
             (( $# >= 2 )) || _error "--backup-dir requires a directory"
             backup_dir="$2"
@@ -394,6 +415,20 @@ _brew() {
           *) _error "unknown brew apply option: $1" ;;
         esac
       done
+
+      local brew_args=(--force)
+      [[ "${full}" == true ]] || brew_args+=(--diff-only)
+      [[ "${no_prune}" == false ]] || brew_args+=(--no-cleanup)
+
+      if [[ "${dry_run}" == true ]]; then
+        if [[ "${full}" == false && ! -f "${DOTFILES_DIR}/macos/Brewfile.cache" ]]; then
+          _error "Brewfile.cache がありません。先に dots brew cache を実行してください"
+        fi
+        printf '[dry-run] Brewfile-pin の差分:\n'
+        _diff_run bash "${DOTFILES_DIR}/macos/diff_brewpin.sh"
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" "${brew_args[@]}" --dry-run
+        return 0
+      fi
 
       if [[ "${full}" == false && ! -f "${DOTFILES_DIR}/macos/Brewfile.cache" ]]; then
         bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
@@ -409,27 +444,50 @@ _brew() {
         brew bundle dump --force --file="${backup_dir}/Brewfile" 2>/dev/null && \
           printf '  BACKUP  %s\n' "${backup_dir}/Brewfile" || true
       fi
-      local brew_args=(--force)
-      [[ "${full}" == true ]] || brew_args+=(--diff-only)
-      [[ "${no_prune}" == false ]] || brew_args+=(--no-cleanup)
       bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" "${brew_args[@]}"
       bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
       bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
+    prune)
+      backup_dir=""
+      while (( $# > 0 )); do
+        case "$1" in
+          --dry-run)
+            dry_run=true
+            shift
+            ;;
+          --backup-dir)
+            (( $# >= 2 )) || _error "--backup-dir requires a directory"
+            backup_dir="$2"
+            shift 2
+            ;;
+          *) _error "unknown brew prune option: $1" ;;
+        esac
+      done
+
+      if [[ "${dry_run}" == true ]]; then
+        bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --prune-only --dry-run
+        return 0
+      fi
+      if [[ -n "${backup_dir}" ]]; then
+        mkdir -p "${backup_dir}"
+        brew bundle dump --force --file="${backup_dir}/Brewfile" 2>/dev/null && \
+          printf '  BACKUP  %s\n' "${backup_dir}/Brewfile" || true
+      fi
+      bash "${DOTFILES_DIR}/macos/apply_brewfile.sh" --prune-only --force
+      bash "${DOTFILES_DIR}/macos/update_brewcache.sh"
+      ;;
     diff)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" || true
-      bash "${DOTFILES_DIR}/macos/diff_brewpin.sh" || true
+      _diff_run bash "${DOTFILES_DIR}/macos/diff_brewfile.sh" "$@"
+      _diff_run bash "${DOTFILES_DIR}/macos/diff_brewpin.sh" "$@"
       ;;
     sync)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh"
-      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
+      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh" "$@"
+      [[ " $* " == *" --dry-run "* ]] || bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     merge)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh" --add-only
-      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
+      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh" --add-only "$@"
+      [[ " $* " == *" --dry-run "* ]] || bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     cache)
       _require_no_args "$@"
@@ -441,31 +499,41 @@ _brew() {
 }
 
 _dock() {
-  local action="${1:-}" backup_dir
-  [[ -n "${action}" ]] || _error "usage: dots dock {apply|diff|sync|cache}"
+  local action="${1:-}"
+  [[ -n "${action}" ]] || _error "usage: dots dock {apply|diff|sync|merge|cache}"
   shift
 
   case "${action}" in
     apply)
-      backup_dir="$(_backup_dir_arg "$@")"
+      _parse_backup_dry_run "$@"
+      if [[ "${PARSED_NO_PRUNE}" == true ]]; then
+        _error "dots dock apply は --no-prune を受け付けません"
+      fi
+      if [[ "${PARSED_DRY_RUN}" == true ]]; then
+        # apply は差分のある側を丸ごと再構築するため、変更予定は diff と同じになる
+        printf '[dry-run] Dock・サイドバーの差分（apply はこれを再構築します）:\n'
+        _diff_run bash "${DOTFILES_DIR}/macos/diff_dockfile.sh"
+        return 0
+      fi
       if bash "${DOTFILES_DIR}/macos/diff_dockfile.sh"; then
         printf '差分なし: Dock はすでに適用済みです。\n'
         return 0
       fi
-      if [[ -n "${backup_dir}" && -f "${PRIVATE_DIR}/macos/dockfile.cache" ]]; then
-        mkdir -p "${backup_dir}"
-        cp "${PRIVATE_DIR}/macos/dockfile.cache" "${backup_dir}/dockfile.cache"
-        printf '  BACKUP  %s\n' "${backup_dir}/dockfile.cache"
+      if [[ -n "${PARSED_BACKUP_DIR}" && -f "${PRIVATE_DIR}/macos/dockfile.cache" ]]; then
+        mkdir -p "${PARSED_BACKUP_DIR}"
+        cp "${PRIVATE_DIR}/macos/dockfile.cache" "${PARSED_BACKUP_DIR}/dockfile.cache"
+        printf '  BACKUP  %s\n' "${PARSED_BACKUP_DIR}/dockfile.cache"
       fi
       bash "${DOTFILES_DIR}/macos/apply_dockfile.sh"
       ;;
     diff)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" || true
+      _diff_run bash "${DOTFILES_DIR}/macos/diff_dockfile.sh" "$@"
       ;;
     sync)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/sync_dockfile.sh"
+      bash "${DOTFILES_DIR}/macos/sync_dockfile.sh" "$@"
+      ;;
+    merge)
+      bash "${DOTFILES_DIR}/macos/sync_dockfile.sh" --merge "$@"
       ;;
     cache)
       _require_no_args "$@"
@@ -475,38 +543,57 @@ _dock() {
   esac
 }
 
+# _parse_backup_dry_run 済みの --backup-dir があれば、現在のアプリケーションショートカットを退避する。
+_shortcuts_backup() {
+  [[ -n "${PARSED_BACKUP_DIR}" ]] || return 0
+  mkdir -p "${PARSED_BACKUP_DIR}"
+  python3 "${DOTFILES_DIR}/macos/keyboard_shortcuts.py" capture \
+    --output "${PARSED_BACKUP_DIR}/keyboard-shortcuts.plist"
+  printf '  BACKUP  %s\n' "${PARSED_BACKUP_DIR}/keyboard-shortcuts.plist"
+}
+
 _shortcuts() {
-  local action="${1:-}" backup_dir
+  local action="${1:-}" args=()
   [[ "$(uname -s)" == "Darwin" ]] || _error "shortcuts is supported on macOS only"
-  [[ -n "${action}" ]] || _error "usage: dots shortcuts {apply|diff|sync|merge|cache}"
+  [[ -n "${action}" ]] || _error "usage: dots shortcuts {apply|diff|sync|merge|prune|cache}"
   shift
 
   case "${action}" in
     apply)
-      backup_dir="$(_backup_dir_arg "$@")"
+      _parse_backup_dry_run "$@"
+      [[ "${PARSED_DRY_RUN}" == false ]] || args+=(--dry-run)
+      [[ "${PARSED_NO_PRUNE}" == false ]] || args+=(--no-prune)
+      if [[ "${PARSED_DRY_RUN}" == true ]]; then
+        bash "${DOTFILES_DIR}/macos/apply_keyboard_shortcuts.sh" "${args[@]}"
+        return 0
+      fi
       if bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh"; then
         printf '差分なし: アプリケーションショートカットはすでに適用済みです。\n'
         return 0
       fi
-      if [[ -n "${backup_dir}" ]]; then
-        mkdir -p "${backup_dir}"
-        python3 "${DOTFILES_DIR}/macos/keyboard_shortcuts.py" capture \
-          --output "${backup_dir}/keyboard-shortcuts.plist"
-        printf '  BACKUP  %s\n' "${backup_dir}/keyboard-shortcuts.plist"
+      _shortcuts_backup
+      bash "${DOTFILES_DIR}/macos/apply_keyboard_shortcuts.sh" ${args[@]+"${args[@]}"}
+      ;;
+    prune)
+      _parse_backup_dry_run "$@"
+      if [[ "${PARSED_NO_PRUNE}" == true ]]; then
+        _error "dots shortcuts prune は --no-prune を受け付けません"
       fi
-      bash "${DOTFILES_DIR}/macos/apply_keyboard_shortcuts.sh"
+      if [[ "${PARSED_DRY_RUN}" == true ]]; then
+        bash "${DOTFILES_DIR}/macos/prune_keyboard_shortcuts.sh" --dry-run
+        return 0
+      fi
+      _shortcuts_backup
+      bash "${DOTFILES_DIR}/macos/prune_keyboard_shortcuts.sh"
       ;;
     diff)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh" || true
+      _diff_run bash "${DOTFILES_DIR}/macos/diff_keyboard_shortcuts.sh" "$@"
       ;;
     sync)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/sync_keyboard_shortcuts.sh"
+      bash "${DOTFILES_DIR}/macos/sync_keyboard_shortcuts.sh" "$@"
       ;;
     merge)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/macos/merge_keyboard_shortcuts.sh"
+      bash "${DOTFILES_DIR}/macos/merge_keyboard_shortcuts.sh" "$@"
       ;;
     cache)
       _require_no_args "$@"
@@ -529,7 +616,7 @@ _package_file() {
       # スクリプト自身が冪等なので、事前の diff による早期終了は行わない。
       bash "${DOTFILES_DIR}/${package}/apply_${package}file.sh" "$@"
       ;;
-    diff)  bash "${DOTFILES_DIR}/${package}/diff_${package}file.sh" "$@" || true ;;
+    diff)  _diff_run bash "${DOTFILES_DIR}/${package}/diff_${package}file.sh" "$@" ;;
     sync)  bash "${DOTFILES_DIR}/${package}/sync_${package}file.sh" "$@" ;;
     merge) bash "${DOTFILES_DIR}/${package}/sync_${package}file.sh" --add-only "$@" ;;
     prune) bash "${DOTFILES_DIR}/${package}/prune_${package}file.sh" "$@" ;;
@@ -542,16 +629,19 @@ _ghq() {
   local action="${1:-}"
   [[ -n "${action}" ]] || _error "usage: dots ghq {apply|diff|sync|merge}"
   shift
-  _require_no_args "$@"
 
   case "${action}" in
     diff)
       # 終了コード1は「差分あり」（他の diff と同様に正常終了）。2 以上のエラーは伝える。
       local rc=0
-      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff || rc=$?
+      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" diff "$@" || rc=$?
+      (( rc != 1 )) || DOTS_DIFF_FOUND=1
       (( rc <= 1 )) || return "${rc}"
       ;;
-    apply|sync|merge) bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}" ;;
+    apply|sync|merge)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}"
+      ;;
     *) _error "unknown ghq action: ${action}" ;;
   esac
 }
@@ -591,7 +681,7 @@ _ai_agent() {
   if [[ "${run_mcp}" == true ]]; then
     echo "--- mcp ---"
     case "${action}" in
-      diff) bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true ;;
+      diff) _diff_run bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" ;;
       apply)
         bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh"
         [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/${agent}/mcp/prune.sh"
@@ -602,7 +692,7 @@ _ai_agent() {
   if [[ "${run_plugin}" == true ]]; then
     echo "--- plugin ---"
     case "${action}" in
-      diff) bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true ;;
+      diff) _diff_run bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" ;;
       apply)
         bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh"
         [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/${agent}/plugin/prune.sh"
@@ -613,7 +703,7 @@ _ai_agent() {
   if [[ "${run_skill}" == true ]]; then
     echo "--- skill ---"
     case "${action}" in
-      diff) bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true ;;
+      diff) _diff_run bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" ;;
       apply)
         bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}"
         [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/skills/prune.sh" "${agent}"
@@ -659,7 +749,7 @@ _copilot() {
 
   echo "--- mcp ---"
   case "${action}" in
-    diff) bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" || true ;;
+    diff) _diff_run bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" ;;
     apply)
       bash "${DOTFILES_DIR}/ai/copilot/mcp/apply.sh"
       [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/copilot/mcp/prune.sh"
@@ -913,6 +1003,7 @@ _check() {
 
 command_name="${1:-help}"
 shift || true
+exit_code_requested=false
 
 case "${command_name}" in
   brew|dock|shortcuts|npm|pipx|ghq|ai|claude|codex|copilot)
@@ -921,6 +1012,18 @@ case "${command_name}" in
     case "${gate}" in
       10|11) exit 0 ;;  # N/A または help は表示済み
     esac
+    # --exit-code（diff で差分があれば終了コード1）は各ハンドラへ渡さず、ここで扱う
+    if [[ "${1:-}" == diff ]]; then
+      filtered=()
+      for arg in "$@"; do
+        if [[ "${arg}" == --exit-code ]]; then
+          exit_code_requested=true
+        else
+          filtered+=("${arg}")
+        fi
+      done
+      set -- "${filtered[@]}"
+    fi
     ;;
 esac
 
@@ -942,3 +1045,6 @@ case "${command_name}" in
   help|-h|--help) _require_no_args "$@"; _usage ;;
   *) _error "unknown command: ${command_name}" ;;
 esac
+
+# diff --exit-code: 差分があれば終了コード1（既定の diff は差分があっても0）
+[[ "${exit_code_requested}" == false || "${DOTS_DIFF_FOUND}" == 0 ]] || exit 1

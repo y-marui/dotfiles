@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # dots の動詞契約（bin/unix/_dots-verbs.sh のテーブル、N/A・未実装・オプションゲート、
-# npm / pipx の apply・prune・sync・merge の --dry-run・--no-prune・--yes）の回帰テスト。
+# npm / pipx の apply・prune・sync・merge の --dry-run・--no-prune・--yes、
+# brew の sync・merge・prune、dock の sync・merge、shortcuts の適用計画、diff --exit-code）の回帰テスト。
 #
-# dots 本体と npm/pipx のスクリプトを一時ディレクトリへコピーし、npm・pipx コマンドは
-# 状態をファイルで持つスタブに差し替えて検証する。実環境のパッケージ・宣言ファイル・
+# dots 本体と各ドメインのスクリプトを一時ディレクトリへコピーし、npm・pipx・brew・dockutil・
+# mysides コマンドはスタブに差し替えて検証する。実環境のパッケージ・宣言ファイル・
 # ~/.dotfiles-backup には一切影響しない。ネットワークアクセスも行わない。
 set -euo pipefail
 
@@ -21,10 +22,12 @@ STUBS="$WORK/stubs"
 STATE="$WORK/state"
 export HOME="$WORK/home"
 export STATE
-mkdir -p "$ROOT/bin/unix" "$ROOT/npm" "$ROOT/pipx" "$STUBS" "$STATE" "$HOME"
+PRIVATE="$ROOT-private"
+mkdir -p "$ROOT/bin/unix" "$ROOT/npm" "$ROOT/pipx" "$ROOT/macos" "$PRIVATE/macos" "$STUBS" "$STATE" "$HOME"
 cp "$REPO/bin/unix/dots" "$REPO/bin/unix/_dots-verbs.sh" "$ROOT/bin/unix/"
 cp "$REPO"/npm/*.sh "$ROOT/npm/"
 cp "$REPO"/pipx/*.sh "$ROOT/pipx/"
+cp "$REPO"/macos/*.sh "$REPO"/macos/*.py "$ROOT/macos/"
 export PATH="$STUBS:$PATH"
 DOTS="$ROOT/bin/unix/dots"
 
@@ -59,7 +62,32 @@ case "$1" in
   uninstall) grep -vxF "$2" "$f" > "$f.tmp" || true; mv "$f.tmp" "$f" ;;
 esac
 STUB
-chmod +x "$STUBS/npm" "$STUBS/pipx"
+# brew: `bundle dump` は $STATE/brew_dump を書き出し、`bundle cleanup` / `install` は呼び出しを記録する
+cat > "$STUBS/brew" <<'STUB'
+#!/usr/bin/env bash
+case "$1 ${2:-}" in
+  "bundle dump")
+    for a in "$@"; do case "$a" in --file=*) f="${a#--file=}" ;; esac; done
+    cp "$STATE/brew_dump" "$f" ;;
+  "bundle cleanup") echo "cleanup $*" >> "$STATE/brew_calls" ;;
+  "bundle install") echo "install $*" >> "$STATE/brew_calls" ;;
+  "list --pinned") : ;;
+esac
+STUB
+# dockutil / mysides: 現在の Dock・サイドバーを $STATE から返す
+cat > "$STUBS/dockutil" <<'STUB'
+#!/usr/bin/env bash
+[[ "$1" == "--list" ]] || exit 0
+while IFS= read -r p; do
+  [[ -n "$p" ]] && printf '%s\tfile://%s/\tpersistentApps\t/x\n' "$(basename "$p")" "$p"
+done < "$STATE/dock"
+STUB
+cat > "$STUBS/mysides" <<'STUB'
+#!/usr/bin/env bash
+[[ "$1" == "list" ]] || exit 0
+cat "$STATE/sidebar"
+STUB
+chmod +x "$STUBS/npm" "$STUBS/pipx" "$STUBS/brew" "$STUBS/dockutil" "$STUBS/mysides"
 
 check() {
   local desc="$1"
@@ -110,7 +138,7 @@ check "N/A は標準エラーに理由を出す" contains "$ERR" "N/A: dots clau
 check "N/A は標準出力に何も出さない" eq "$OUT" ""
 run_dots ghq cache
 check "ghq cache は N/A" contains "$ERR" "N/A: dots ghq cache"
-run_dots brew prune
+run_dots ghq prune
 check "未実装はエラー" eq "$RC" 1
 check "未実装のメッセージ" contains "$ERR" "未実装"
 run_dots npm bogus
@@ -118,9 +146,15 @@ check "未知の動詞はエラー" eq "$RC" 1
 check "未知の動詞のメッセージ" contains "$ERR" "unknown npm action: bogus"
 run_dots npm
 check "動詞なしは usage エラー" eq "$RC" 1
-run_dots dock apply --dry-run
+run_dots dock apply --yes
 check "受け付けないオプションはエラー" eq "$RC" 1
-check "受け付けないオプションのメッセージ" contains "$ERR" "--dry-run を受け付けません"
+check "受け付けないオプションのメッセージ" contains "$ERR" "--yes を受け付けません"
+run_dots dock prune
+check "dock prune は N/A" contains "$ERR" "N/A: dots dock prune"
+run_dots brew apply --exit-code
+check "apply は --exit-code を受け付けない" eq "$RC" 1
+run_dots claude diff --summary
+check "ai の diff は --summary を受け付けない" eq "$RC" 1
 run_dots npm merge --yes
 check "merge は --yes を受け付けない" eq "$RC" 1
 run_dots npm prune --no-prune
@@ -219,7 +253,151 @@ for tool in npm pipx; do
   check "diff は差分を表示する" contains "$OUT" "[+cache]"
   run_dots "$tool" diff --summary
   check "diff --summary は1行で示す" contains "$OUT" "cache のみ"
+  run_dots "$tool" diff --exit-code
+  check "diff --exit-code は差分があれば終了コード1" eq "$RC" 1
+  check "diff --exit-code でも差分を表示する" contains "$OUT" "[+cache]"
+  set_state "$tool" a c
+  DOTFILES_DIR="$ROOT" bash "$ROOT/$tool/update_${tool}cache.sh" >/dev/null
+  run_dots "$tool" diff --exit-code
+  check "diff --exit-code は差分がなければ終了コード0" eq "$RC" 0
 done
+
+# ── brew ──────────────────────────────────────────────────────────────────────
+section "brew: sync / merge / prune"
+BREWFILE="$ROOT/macos/Brewfile"
+reset_brew() {
+  cat > "$BREWFILE" <<'BF'
+# Brewfile
+# ── 基本 ──────────────────────────────────────────────────────────────────────
+brew "kept"
+brew "gone"
+BF
+  rm -f "$ROOT/macos/Brewfile.local" "$STATE/brew_calls"
+  printf 'brew "kept"\nbrew "fresh"\n' > "$STATE/brew_dump"
+}
+reset_brew
+before="$(cat "$BREWFILE")"
+
+run_dots brew sync --dry-run
+check "brew sync --dry-run は成功する" eq "$RC" 0
+check "brew sync --dry-run は削除予定を表示する" contains "$OUT" '[remove]    brew "gone"'
+check "brew sync --dry-run は追加予定を表示する" contains "$OUT" '[add]       brew "fresh"'
+check "brew sync --dry-run は Brewfile を変えない" eq "$(cat "$BREWFILE")" "$before"
+check "brew sync --dry-run はキャッシュを書かない" test ! -e "$ROOT/macos/Brewfile.cache"
+
+run_dots brew sync
+check "削除を伴う brew sync は --yes なしで失敗する" eq "$RC" 2
+check "brew sync の失敗メッセージが --yes を示す" contains "$ERR" "--yes"
+check "失敗時は Brewfile を変えない" eq "$(cat "$BREWFILE")" "$before"
+
+run_dots brew merge
+check "brew merge は --yes なしで成功する" eq "$RC" 0
+check "brew merge は削除しない" contains "$(cat "$BREWFILE")" 'brew "gone"'
+check "brew merge は追加する" contains "$(cat "$BREWFILE")" 'brew "fresh"'
+
+reset_brew
+run_dots brew sync --yes
+check "brew sync --yes は成功する" eq "$RC" 0
+check "brew sync --yes は削除する" not_contains "$(cat "$BREWFILE")" 'brew "gone"'
+check "brew sync --yes は追加する" contains "$(cat "$BREWFILE")" 'brew "fresh"'
+
+run_dots brew prune --dry-run
+check "brew prune --dry-run は成功する" eq "$RC" 0
+check "brew prune --dry-run は --force なしで cleanup する" contains "$(cat "$STATE/brew_calls")" "cleanup bundle cleanup --file="
+check "brew prune --dry-run は削除しない" not_contains "$(cat "$STATE/brew_calls")" "--force"
+: > "$STATE/brew_calls"
+run_dots brew prune
+check "brew prune は成功する" eq "$RC" 0
+check "brew prune は --force で cleanup する" contains "$(cat "$STATE/brew_calls")" "--force"
+check "brew prune はインストールしない" not_contains "$(cat "$STATE/brew_calls")" "install"
+
+: > "$STATE/brew_calls"
+run_dots brew apply --no-prune --dry-run
+check "brew apply --no-prune --dry-run は cleanup しない" not_contains "$(cat "$STATE/brew_calls")" "cleanup"
+
+# ── dock ──────────────────────────────────────────────────────────────────────
+section "dock: sync / merge"
+DOCKFILE="$PRIVATE/macos/dockfile"
+reset_dock() {
+  printf 'dock\t/Applications/Foo.app\ndock\t/nonexistent/Other.app\n' > "$DOCKFILE"
+  printf '/Applications/Foo.app\n/Applications/Bar.app\n' > "$STATE/dock"
+  printf 'Home -> file:///sidebar-fixture/home/\n' > "$STATE/sidebar"
+}
+reset_dock
+before="$(cat "$DOCKFILE")"
+
+run_dots dock sync --dry-run
+check "dock sync --dry-run は成功する" eq "$RC" 0
+check "dock sync --dry-run は他マシン由来の項目の削除予定を表示する" contains "$OUT" "[remove] dock"$'\t'"/nonexistent/Other.app"
+check "dock sync --dry-run は追加予定を表示する" contains "$OUT" "[add]    dock"$'\t'"/Applications/Bar.app"
+check "dock sync --dry-run は dockfile を変えない" eq "$(cat "$DOCKFILE")" "$before"
+
+run_dots dock sync
+check "削除を伴う dock sync は --yes なしで失敗する" eq "$RC" 2
+check "dock merge の案内を出す" contains "$ERR" "dots dock merge"
+check "失敗時は dockfile を変えない" eq "$(cat "$DOCKFILE")" "$before"
+
+run_dots dock merge
+check "dock merge は --yes なしで成功する" eq "$RC" 0
+check "dock merge は他マシン由来の項目を保持する" contains "$(cat "$DOCKFILE")" "/nonexistent/Other.app"
+check "dock merge は実機の項目を追加する" contains "$(cat "$DOCKFILE")" "/Applications/Bar.app"
+
+reset_dock
+run_dots dock sync --yes
+check "dock sync --yes は成功する" eq "$RC" 0
+check "dock sync --yes は他マシン由来の項目を削除する" not_contains "$(cat "$DOCKFILE")" "/nonexistent/Other.app"
+check "dock sync --yes は実機の項目を追加する" contains "$(cat "$DOCKFILE")" "/Applications/Bar.app"
+run_dots dock sync
+check "削除がなければ dock sync は --yes なしで成功する" eq "$RC" 0
+
+# ── shortcuts（適用計画は純粋関数なので直接検証する） ─────────────────────────
+section "shortcuts: 適用計画（plan_apply / plan_sync）"
+if python3 - "$REPO/macos" <<'PYTEST'
+import sys
+
+sys.path.insert(0, sys.argv[1])
+import keyboard_shortcuts as ks
+
+managed = {"A": {"x": "1", "y": "2"}}
+current = {"A": {"y": "9", "z": "3"}, "B": {"q": "4"}}
+
+
+def by_domain(plans):
+    return {plan["domain"]: plan for plan in plans}
+
+
+full = by_domain(ks.plan_apply(managed, current, "apply"))
+assert full["A"]["final"] == {"x": "1", "y": "2"}, full
+assert (full["A"]["added"], full["A"]["updated"], full["A"]["removed"]) == (["x"], ["y"], ["z"])
+assert full["B"]["final"] is None and full["B"]["removed"] == ["q"], full
+
+keep = by_domain(ks.plan_apply(managed, current, "apply-keep"))
+assert keep["A"]["final"] == {"x": "1", "y": "2", "z": "3"}, keep
+assert keep["A"]["removed"] == [] and "B" not in keep, keep
+
+prune = by_domain(ks.plan_apply(managed, current, "prune"))
+assert prune["A"]["final"] == {"y": "9"} and prune["A"]["removed"] == ["z"], prune
+assert prune["A"]["added"] == [] and prune["A"]["updated"] == [], prune
+assert prune["B"]["final"] is None and prune["B"]["removed"] == ["q"], prune
+
+assert ks.plan_apply({"A": {"x": "1"}}, {"A": {"x": "1"}}, "apply") == []
+
+result, changes = ks.plan_sync(managed, current, add_only=False)
+assert result == {"A": {"y": "9", "z": "3"}, "B": {"q": "4"}}, result
+assert "[remove] A: x" in changes and "[add]    A: z = 3" in changes, changes
+
+result, changes = ks.plan_sync(managed, current, add_only=True)
+assert result["A"] == {"x": "1", "y": "9", "z": "3"}, result
+assert not [c for c in changes if c.startswith("[remove]")], changes
+PYTEST
+then
+  echo "  ok   - plan_apply（apply / apply-keep / prune）と plan_sync（sync / merge）"
+else
+  echo "  FAIL - plan_apply / plan_sync" >&2
+  FAILURES=$((FAILURES + 1))
+fi
+run_dots shortcuts prune --yes
+check "shortcuts prune は --yes を受け付けない" eq "$RC" 1
 
 echo
 if (( FAILURES > 0 )); then

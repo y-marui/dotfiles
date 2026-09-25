@@ -19,9 +19,9 @@ DOTS_DOMAINS="brew dock shortcuts npm pipx ghq ai claude codex copilot winget"
 # ドメインごとの動詞の状態。1行1ドメインの `verb=state` の並び。
 _dots_domain_spec() {
   case "$1" in
-    brew)      echo "apply=ok diff=ok sync=ok merge=ok prune=todo cache=ok" ;;
-    dock)      echo "apply=ok diff=ok sync=ok merge=todo prune=na cache=ok" ;;
-    shortcuts) echo "apply=ok diff=ok sync=ok merge=ok prune=todo cache=ok" ;;
+    brew)      echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=ok" ;;
+    dock)      echo "apply=ok diff=ok sync=ok merge=ok prune=na cache=ok" ;;
+    shortcuts) echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=ok" ;;
     npm|pipx)  echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=ok" ;;
     ghq)       echo "apply=ok diff=ok sync=ok merge=ok prune=todo cache=na" ;;
     ai|claude|codex|copilot)
@@ -63,18 +63,24 @@ _dots_na_reason() {
 # ここに載らない共通オプションはゲートがエラーにする（--full などドメイン固有のものは対象外）。
 _dots_verb_options() {
   case "$1:$2" in
-    npm:apply|pipx:apply) echo "--dry-run --no-prune --backup-dir" ;;
-    npm:prune|pipx:prune) echo "--dry-run --backup-dir" ;;
-    npm:sync|pipx:sync)   echo "--dry-run --yes" ;;
-    npm:merge|pipx:merge) echo "--dry-run" ;;
-    brew:apply)           echo "--no-prune --backup-dir" ;;
-    dock:apply|shortcuts:apply) echo "--backup-dir" ;;
+    npm:apply|pipx:apply)       echo "--dry-run --no-prune --backup-dir" ;;
+    npm:prune|pipx:prune)       echo "--dry-run --backup-dir" ;;
+    npm:sync|pipx:sync)         echo "--dry-run --yes" ;;
+    npm:merge|pipx:merge)       echo "--dry-run" ;;
+    npm:diff|pipx:diff)         echo "--exit-code --summary" ;;
+    brew:apply|shortcuts:apply) echo "--dry-run --no-prune --backup-dir" ;;
+    brew:prune|shortcuts:prune) echo "--dry-run --backup-dir" ;;
+    brew:sync|shortcuts:sync|dock:sync) echo "--dry-run --yes" ;;
+    brew:merge|shortcuts:merge|dock:merge) echo "--dry-run" ;;
+    brew:diff|shortcuts:diff|dock:diff|ghq:diff) echo "--exit-code --summary" ;;
+    dock:apply)                 echo "--dry-run --backup-dir" ;;
     ai:apply|claude:apply|codex:apply|copilot:apply) echo "--no-prune" ;;
+    ai:diff|claude:diff|codex:diff|copilot:diff)     echo "--exit-code" ;;
     *) echo "" ;;
   esac
 }
 
-DOTS_COMMON_OPTIONS="--dry-run --yes --no-prune --backup-dir"
+DOTS_COMMON_OPTIONS="--dry-run --yes --no-prune --backup-dir --exit-code --summary"
 
 # `dots verbs`（README の表との整合チェック用）: domain<TAB>verb<TAB>state<TAB>理由
 _dots_print_verb_matrix() {

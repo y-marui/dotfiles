@@ -134,10 +134,35 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 `sync` が宣言から項目を削除する場合は `--yes` を要求し、なければ何も書き換えずに終了コード2で終わる。
 `--dry-run` はキャッシュも書き換えない。
 
+### brew / dock / shortcuts
+
+- **brew**: `prune` は `brew bundle cleanup`（未管理パッケージの削除）と、cleanupの対象外である
+  mas アプリの未管理警告を行い、インストールはしない。`apply` は差分だけのインストールに続けて
+  cleanupし、`--no-prune` でcleanupを省く。`sync` が `Brewfile` / `Brewfile.local` からエントリを
+  削除する場合（システムから削除済みのもの）は `--yes` が必要で、`Brewfile.local` から `Brewfile`
+  への昇格に伴う重複除去は削除として扱わない。`--dry-run` はキャッシュも管理ファイルも書き換えない
+- **dock**: `sync` は `dockfile` を実機と完全一致させ、他マシン由来の項目（実機に存在しない
+  アプリ）も削除する。削除が1件でもあれば `--yes` が必要。他マシン由来の項目を保持して更新する
+  従来の挙動は `merge` に移した。サイドバーの取得ツールが使えないときは、既存のサイドバーの
+  項目を空で上書きせず保持する。`apply` は差分のある側を丸ごと再構築するため `prune` は
+  N/A で、`apply --dry-run` は `diff` と同じ表示になる
+- **shortcuts**: `apply` は宣言と完全一致（追加・更新に加えローカルのみの設定を削除）で、
+  `--no-prune` は追加・更新のみを行い、`prune` はローカルのみの設定の削除だけを行う
+  （残す設定の値は変更しない）。書き込みは差分のあるドメインだけに行う。`sync` が管理ファイルから
+  エントリを削除する場合は `--yes` が必要
+
+### Exit code of diff
+
+`dots <domain> diff` は差分があっても終了コード0で、差分の表示だけを行う。`--exit-code` を付けると、
+差分があれば終了コード1を返す（想定外の失敗は従来どおり表示のみで、終了コードに影響しない）。
+`--summary` は差分の件数を1行で示し、`dots check` の要約と同じ形式である。aiの `diff`
+（複数の対象を順に処理する）は `--summary` を受け付けない。
+
 ### Migration status
 
-`--dry-run` / `--yes` は現在npm・pipxのみが受け付ける。brew・dock・shortcuts・ghq・winget の
-`prune` と `--dry-run`、`dots dock merge`、`--exit-code` は、READMEの表で「未実装」と示している。
+`--dry-run` / `--yes` は brew・dock・shortcuts・npm・pipx が受け付ける。ghq・winget の `prune`
+と `--dry-run`、Windows の `--exit-code` / `--summary` は、READMEの表で「未実装」または未対応と
+示している（Windows側の実装は別作業）。
 
 ## dots {claude|codex} diff / apply / prune
 
@@ -163,14 +188,15 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
 ## dots commit / dots push
 
 `sync` 系コマンド（`dots brew sync` / `dots npm sync` / `dots pipx sync` /
-`dots dock sync` / `dots shortcuts sync`、および追加のみの `dots {brew|npm|pipx|shortcuts} merge`）は、システムの実態をそのまま管理ファイルへ
+`dots dock sync` / `dots shortcuts sync` / `dots ghq sync`、および追加のみの
+`dots {brew|npm|pipx|shortcuts|dock|ghq} merge`）は、システムの実態をそのまま管理ファイルへ
 書き写すだけで、記述内容に人間の判断を伴わない。この種の変更を都度手動commitする
 手間を省くためのコマンド。
 
 **自動commit対象ファイル**（これ以外のファイルは対象外）:
 
 - dotfiles: `macos/Brewfile`, `macos/Brewfile.local`, `npm/npmfile`, `pipx/pipxfile`
-- dotfiles-private: `macos/dockfile`, `macos/keyboard-shortcuts.plist`
+- dotfiles-private: `macos/dockfile`, `macos/keyboard-shortcuts.plist`, `ghq/keep-up-to-date`
 
 `dots commit`:
 - dotfiles / dotfiles-private それぞれのworking treeを確認する
@@ -180,8 +206,9 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
 - 対象外のファイルが1つでも変更に含まれる場合は、対象ファイルも含めて一切commitせず
   （部分commitはしない）、対象外ファイルの一覧を表示して手動commitを促す
 - `Brewfile-pin` やAI（claude/codex/copilot）のMCP・plugin・skill宣言ファイル、
-  `dots ghq`の宣言ファイル（`ghq/keep-up-to-date`）は人間が意図して編集する
-  （更新対象とするかどうかの判断そのもの）ため対象外
+  `ghq/keep-up-to-date.local`（端末固有の手編集専用）は人間が意図して編集する
+  （更新対象とするかどうかの判断そのもの）ため対象外。`ghq/keep-up-to-date`は
+  `dots ghq sync` / `merge` が実状態から機械的に書くため対象に含める
 
 `dots push [--no-fetch]`:
 - 既定では各リポジトリを`git fetch --prune`してから、upstreamに対してunpushedな

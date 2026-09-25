@@ -81,7 +81,11 @@ def preference_domains() -> list[str]:
     result = run_defaults("domains")
     domains = {GLOBAL_DOMAIN}
     if result.returncode == 0:
-        domains.update(domain.strip() for domain in result.stdout.decode().split(",") if domain.strip())
+        domains.update(
+            domain.strip()
+            for domain in result.stdout.decode().split(",")
+            if domain.strip()
+        )
 
     home = Path.home()
     preference_dirs = [
@@ -93,7 +97,10 @@ def preference_domains() -> list[str]:
         if not directory.is_dir():
             continue
         for plist in directory.glob("*.plist"):
-            if plist.stem != ".GlobalPreferences" and plist.stem not in CF_PSEUDO_DOMAINS:
+            if (
+                plist.stem != ".GlobalPreferences"
+                and plist.stem not in CF_PSEUDO_DOMAINS
+            ):
                 domains.add(plist.stem)
     return sorted(domains)
 
@@ -163,7 +170,9 @@ def write_shortcuts(path: Path, shortcuts: dict[str, dict[str, str]]) -> None:
 
 
 def print_diff(
-    managed: dict[str, dict[str, str]], current: dict[str, dict[str, str]], summary: bool
+    managed: dict[str, dict[str, str]],
+    current: dict[str, dict[str, str]],
+    summary: bool,
 ) -> int:
     differences: list[str] = []
     for domain in sorted(set(managed) | set(current)):
@@ -175,7 +184,9 @@ def print_diff(
             if wanted is None:
                 differences.append(f"  [+current] {domain}: {title} = {found}")
             elif found is None:
-                differences.append(f"  [-current] {domain}: {title} (expected {wanted})")
+                differences.append(
+                    f"  [-current] {domain}: {title} (expected {wanted})"
+                )
             elif wanted != found:
                 differences.append(
                     f"  [changed] {domain}: {title} = {found} (expected {wanted})"
@@ -202,29 +213,81 @@ def command_cache() -> int:
     return command_capture(cache_path())
 
 
-def command_sync() -> int:
-    captured = current_shortcuts()
-    write_shortcuts(managed_path(), captured)
-    write_shortcuts(cache_path(), captured)
-    print(f"keyboard shortcuts synced to {managed_path()}")
+Shortcuts = dict[str, dict[str, str]]
+
+
+def plan_sync(
+    managed: Shortcuts, current: Shortcuts, add_only: bool
+) -> tuple[Shortcuts, list[str]]:
+    """Return the new managed shortcuts and the human-readable changes.
+
+    sync makes the managed file match this Mac; merge (add_only) keeps every entry
+    the managed file already has.
+    """
+    result = (
+        merge_shortcuts(managed, current)
+        if add_only
+        else {
+            domain: dict(sorted(entries.items()))
+            for domain, entries in sorted(current.items())
+        }
+    )
+    changes: list[str] = []
+    for domain in sorted(set(managed) | set(result)):
+        before = managed.get(domain, {})
+        after = result.get(domain, {})
+        for title in sorted(set(before) | set(after)):
+            if title not in before:
+                changes.append(f"[add]    {domain}: {title} = {after[title]}")
+            elif title not in after:
+                changes.append(f"[remove] {domain}: {title}")
+            elif before[title] != after[title]:
+                changes.append(f"[update] {domain}: {title} = {after[title]}")
+    return result, changes
+
+
+def command_sync(dry_run: bool, yes: bool) -> int:
+    return sync_managed(add_only=False, dry_run=dry_run, yes=yes)
+
+
+def sync_managed(add_only: bool, dry_run: bool, yes: bool) -> int:
+    managed = load_shortcuts(managed_path())
+    current = current_shortcuts()
+    result, changes = plan_sync(managed, current, add_only)
+    for change in changes:
+        print(change)
+    removals = [change for change in changes if change.startswith("[remove]")]
+    if dry_run:
+        print("[dry-run] managed shortcuts were not changed")
+        return 0
+    if removals and not yes:
+        print(
+            "Error: the managed file would lose the entries above. "
+            "Pass --yes to continue (use dots shortcuts merge to keep them).",
+            file=sys.stderr,
+        )
+        return 2
+    write_shortcuts(managed_path(), result)
+    if not add_only:
+        write_shortcuts(cache_path(), current)
+        print(f"keyboard shortcuts synced to {managed_path()}")
+    else:
+        print(f"keyboard shortcuts merged into {managed_path()}")
     return 0
 
 
-def merge_shortcuts(
-    managed: dict[str, dict[str, str]], current: dict[str, dict[str, str]]
-) -> dict[str, dict[str, str]]:
+def merge_shortcuts(managed: Shortcuts, current: Shortcuts) -> Shortcuts:
     merged = {domain: dict(entries) for domain, entries in managed.items()}
     for domain, entries in current.items():
         merged.setdefault(domain, {}).update(entries)
-    return {domain: dict(sorted(entries.items())) for domain, entries in sorted(merged.items())}
+    return {
+        domain: dict(sorted(entries.items()))
+        for domain, entries in sorted(merged.items())
+    }
 
 
-def command_merge() -> int:
-    managed = load_shortcuts(managed_path())
-    merged = merge_shortcuts(managed, current_shortcuts())
-    write_shortcuts(managed_path(), merged)
-    print(f"keyboard shortcuts merged into {managed_path()}")
-    return 0
+def command_merge(dry_run: bool) -> int:
+    return sync_managed(add_only=True, dry_run=dry_run, yes=True)
 
 
 def command_diff(summary: bool) -> int:
@@ -233,42 +296,105 @@ def command_diff(summary: bool) -> int:
     return 0 if summary else result
 
 
-def command_apply() -> int:
-    managed = load_shortcuts(managed_path())
-    current = current_shortcuts()
+def plan_apply(
+    managed: Shortcuts, current: Shortcuts, mode: str
+) -> list[dict[str, Any]]:
+    """Plan the writes needed per domain.
+
+    mode "apply" adds and updates managed entries and removes the ones the managed
+    file does not have (full match); "apply-keep" adds and updates only; "prune"
+    only removes.  Each plan item has the domain, the entries to write (None to
+    delete the key), and the added / updated / removed titles.
+    """
+    plans: list[dict[str, Any]] = []
     for domain in sorted(set(managed) | set(current)):
         entries = managed.get(domain, {})
         existing = current.get(domain, {})
+        added = sorted(set(entries) - set(existing))
+        updated = sorted(
+            title
+            for title in entries
+            if title in existing and existing[title] != entries[title]
+        )
         removed = sorted(set(existing) - set(entries))
+        if mode == "prune":
+            added, updated = [], []
+            final: dict[str, str] | None = {
+                t: existing[t] for t in existing if t in entries
+            }
+        elif mode == "apply-keep":
+            removed = []
+            final = {**existing, **entries}
+        else:
+            final = dict(entries)
+        if not (added or updated or removed):
+            continue
+        plans.append(
+            {
+                "domain": domain,
+                "final": final or None,
+                "added": added,
+                "updated": updated,
+                "removed": removed,
+            }
+        )
+    return plans
+
+
+def command_apply(mode: str, dry_run: bool) -> int:
+    managed = load_shortcuts(managed_path())
+    plans = plan_apply(managed, current_shortcuts(), mode)
+    for plan in plans:
+        domain = plan["domain"]
+        for label, titles in (
+            ("ADD", plan["added"]),
+            ("UPDATE", plan["updated"]),
+            ("REMOVE", plan["removed"]),
+        ):
+            for title in titles:
+                prefix = "[dry-run] " if dry_run else "  "
+                print(f"{prefix}{label:<6} {domain}: {title}")
+    if dry_run:
+        if not plans:
+            print("No change: application shortcuts are already up to date.")
+        return 0
+    for plan in plans:
+        domain = plan["domain"]
         domain_flag = ["-globalDomain"] if domain == GLOBAL_DOMAIN else [domain]
-        if entries:
+        if plan["final"]:
             command = ["write", *domain_flag, KEY, "-dict"]
-            for title, equivalent in entries.items():
+            for title, equivalent in plan["final"].items():
                 command.extend([title, equivalent])
             result = run_defaults(*command)
             if result.returncode != 0:
                 print(f"Error: failed to update {domain}", file=sys.stderr)
                 return result.returncode
-            if removed:
-                print(f"  REMOVED  {domain} ({len(removed)} shortcut(s)): {', '.join(removed)}")
-            print(f"  APPLIED  {domain} ({len(entries)} shortcut(s))")
-        elif removed:
+        else:
             result = run_defaults("delete", *domain_flag, KEY)
             if result.returncode != 0:
                 print(f"Error: failed to clear {domain}", file=sys.stderr)
                 return result.returncode
-            print(f"  REMOVED  {domain} ({len(removed)} shortcut(s)): {', '.join(removed)}")
     command_cache()
-    print("Done. Quit and reopen affected applications to use the new shortcuts.")
+    if plans:
+        print("Done. Quit and reopen affected applications to use the new shortcuts.")
+    else:
+        print("No change: application shortcuts are already up to date.")
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("apply")
-    subparsers.add_parser("sync")
-    subparsers.add_parser("merge")
+    apply_parser = subparsers.add_parser("apply")
+    apply_parser.add_argument("--no-prune", action="store_true")
+    apply_parser.add_argument("--dry-run", action="store_true")
+    prune_parser = subparsers.add_parser("prune")
+    prune_parser.add_argument("--dry-run", action="store_true")
+    sync_parser = subparsers.add_parser("sync")
+    sync_parser.add_argument("--dry-run", action="store_true")
+    sync_parser.add_argument("--yes", action="store_true")
+    merge_parser = subparsers.add_parser("merge")
+    merge_parser.add_argument("--dry-run", action="store_true")
     subparsers.add_parser("cache")
     diff_parser = subparsers.add_parser("diff")
     diff_parser.add_argument("--summary", action="store_true")
@@ -278,11 +404,15 @@ def main() -> int:
 
     try:
         if arguments.command == "apply":
-            return command_apply()
+            return command_apply(
+                "apply-keep" if arguments.no_prune else "apply", arguments.dry_run
+            )
+        if arguments.command == "prune":
+            return command_apply("prune", arguments.dry_run)
         if arguments.command == "sync":
-            return command_sync()
+            return command_sync(arguments.dry_run, arguments.yes)
         if arguments.command == "merge":
-            return command_merge()
+            return command_merge(arguments.dry_run)
         if arguments.command == "cache":
             return command_cache()
         if arguments.command == "diff":
