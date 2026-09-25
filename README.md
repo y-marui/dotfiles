@@ -49,6 +49,7 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 | `dots pipx` | 不足をinstall。余分は一覧表示のみで削除しない | ◯ | ◯ | ◯ | × | ◯ | pipxパッケージ |
 | `dots ghq` | ◯ | ◯ | ◯ | ◯ | × | ×（Git configを直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
 | `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯（apply単独の削除部分） | × | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
+| `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致） | ◯（`--summary`あり） | × | × | × | ◯ | `windows/WingetPin`の一時pin宣言 |
 | `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯ | × | Copilot CLIのuser scope MCPのみ |
 | 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
 
