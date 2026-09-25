@@ -9,9 +9,11 @@
 #   --diff-only（dots brew apply）:
 #     1. Brewfile.cacheとの差分から不足エントリだけを適用
 #     2. 余分なエントリがある場合だけcleanup
+#   --no-cleanup（dots brew apply --no-prune）:
+#     cleanupとmasの未管理アプリ確認を行わない（追加・更新のみ）。無人経路で使う
 #
 # 使い方:
-#   DOTFILES_DIR=~/dotfiles bash apply_brewfile.sh [--diff-only] [--force]
+#   DOTFILES_DIR=~/dotfiles bash apply_brewfile.sh [--diff-only] [--no-cleanup] [--force]
 
 set -euo pipefail
 
@@ -21,6 +23,7 @@ BREWFILE_CACHE="$DOTFILES_DIR/macos/Brewfile.cache"
 BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
 FORCE=0
 DIFF_ONLY=0
+NO_CLEANUP=0
 YELLOW=$'\033[1;33m'
 RESET=$'\033[0m'
 
@@ -28,6 +31,7 @@ for arg in "$@"; do
   case "$arg" in
     --force) FORCE=1 ;;
     --diff-only) DIFF_ONLY=1 ;;
+    --no-cleanup) NO_CLEANUP=1 ;;
     *) echo "error: unknown option: $arg" >&2; exit 1 ;;
   esac
 done
@@ -116,7 +120,9 @@ else
 fi
 
 # ── 不要パッケージの削除 ─────────────────────────────────────────────────────
-if [[ $DIFF_ONLY -eq 0 || $extra_count -gt 0 ]]; then
+if [[ $NO_CLEANUP -eq 1 ]]; then
+  echo "==> Skipping cleanup (--no-prune: 未管理のパッケージは削除しません)."
+elif [[ $DIFF_ONLY -eq 0 || $extra_count -gt 0 ]]; then
   echo ""
   echo "==> Checking for packages not in Brewfile or Brewfile.local..."
   if [[ $FORCE -eq 1 ]]; then
@@ -130,7 +136,7 @@ fi
 
 # ── mas アンインストール対象の警告 ────────────────────────────────────────────
 # brew bundle cleanup は mas を対象外にするため、手動対応が必要なものを表示する
-if command -v mas &>/dev/null && [[ $DIFF_ONLY -eq 0 || $extra_count -gt 0 ]]; then
+if [[ $NO_CLEANUP -eq 0 ]] && command -v mas &>/dev/null && [[ $DIFF_ONLY -eq 0 || $extra_count -gt 0 ]]; then
   echo ""
   echo "==> Checking for mas apps not in Brewfile..."
   # Brewfile(s) に記載されている mas ID を収集

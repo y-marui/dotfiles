@@ -11,6 +11,16 @@ _最終更新: 2026-09-15_
 | `bin/unix/claude-perms` | `settings.local.json`/`settings.json`のpermissions整理、pathRuleベースの一括配布（`merge`＝追記／`apply`＝置き換え、pathGlobは文字列/配列いずれも可）、`candidates --json`/`remove --json`によるローカル未カバーallowのJSON出力・一括削除、run-quiet修飾版の自動補完 | `~/.claude/settings.json`、`~/.claude/claude-perms.json`（実体は`dotfiles-private/ai/claude/claude-perms.json`） |
 | `completions/_claude-perms` | `claude-perms`のzsh補完 | `bin/unix/claude-perms` |
 
+## dots verb table
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `bin/unix/_dots-verbs.sh` | ドメイン×動詞（apply/diff/sync/merge/prune/cache）の状態（ok/na/todo）、N/Aの理由、共通オプションの許可、動詞ゲート、`dots help`・`dots verbs` の生成元（正本） | `bin/unix/dots`（source） |
+| `bin/windows/dots.ps1`（`$verbSpecs`） | Windowsで使えるドメイン（ghq・winget）の同形式のテーブルと動詞ゲート | `scripts/check-dots-verb-table.sh`（Unix側との一致を検証） |
+| `scripts/check-dots-verb-table.sh` | Unix側テーブルを正本に、READMEの動詞表とWindows側テーブルの一致を検証（pre-commit） | `README.md`、`bin/unix/dots verbs`、`bin/windows/dots.ps1` |
+| `scripts/test-dots-verbs.sh` | 動詞ゲートとnpm/pipxの`apply`・`prune`・`sync`・`merge`の回帰テスト（Unix版のみ。偽の`npm`/`pipx`を使う） | `bin/unix/dots`、`npm/*.sh`、`pipx/*.sh` |
+| `npm/{apply,diff,prune,sync,update_npmcache}...sh` / `pipx/...` | npm・pipxの動詞実装。`--dry-run`・`--no-prune`・`--yes`・`--backup-dir` を受け付ける | `npm/npmfile`・`pipx/pipxfile`、各`*.cache`（gitignore） |
+
 ## ghq-status / ghq-update
 
 | ファイル | 役割 | 主な依存先 |

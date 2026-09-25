@@ -36,22 +36,37 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 
 初回セットアップ後の日常操作は、カレントディレクトリに依存しない `dots` を使用する。
 
-状態を管理ファイルと突き合わせるコマンドは、動詞ごとの実装状況を次の表にまとめる。
-◯は実装あり、×は実装なし、それ以外は部分的な実装で、内容を各セルに書く。
-最下行は各動詞の標準動作で、セルの記述はこの標準動作との違いを表す。
+状態を管理ファイルと突き合わせるコマンドは、`apply` `diff` `sync` `merge` `prune` `cache` の
+6動詞を共通の入口として持つ。各セルは次のいずれかで、かっこ内は標準動作との違いを表す。
+
+- `◯`: 実装あり
+- `N/A（理由）`: 意図的に存在しない。実行しても終了コード0で、標準エラーに理由を1行出す
+- `未実装`: 実装予定。実行するとエラーになる
+
+この表と `dots help` / `dots <domain> help` は `bin/unix/_dots-verbs.sh`（Windowsは
+`bin/windows/dots.ps1`）の動詞テーブルを正本とし、`scripts/check-dots-verb-table.sh` が
+pre-commitで一致を検証する。動詞の意味は [docs/specification.md](docs/specification.md#dots-verbs) を参照。
 
 | コマンド | apply | diff | sync | merge | prune | cache | 説明 |
 |---------|-------|------|------|-------|-------|-------|------|
-| `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup） | ◯ | ◯ | ◯ | × | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
-| `dots dock` | ◯ | ◯ | 他マシン由来の項目は保持（実質merge） | × | × | ◯ | Dock・Finderサイドバー（dotfiles-private） |
-| `dots shortcuts` | ◯（ローカルのみの設定は消える） | ◯ | ◯ | ◯ | × | ◯ | macOSのアプリケーションショートカット |
-| `dots npm` | 不足をinstall。余分は一覧表示のみで削除しない | ◯ | ◯ | ◯ | × | ◯ | npmグローバルパッケージ |
-| `dots pipx` | 不足をinstall。余分は一覧表示のみで削除しない | ◯ | ◯ | ◯ | × | ◯ | pipxパッケージ |
-| `dots ghq` | ◯ | ◯ | ◯ | ◯ | × | ×（Git configを直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
-| `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯（apply単独の削除部分） | × | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
-| `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致） | ◯（`--summary`あり） | × | × | × | ◯ | `windows/WingetPin`の一時pin宣言 |
-| `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯ | × | Copilot CLIのuser scope MCPのみ |
+| `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup。`--no-prune`でcleanupを省略） | ◯ | ◯ | ◯ | 未実装（applyのcleanupで代用） | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
+| `dots dock` | ◯（差分のある側を再構築） | ◯ | ◯（他マシン由来の項目は保持） | 未実装（syncが実質merge） | N/A（applyが全体を再構築するため削除だけを分離できない） | ◯ | Dock・Finderサイドバー（dotfiles-private） |
+| `dots shortcuts` | ◯（ローカルのみの設定は消える） | ◯ | ◯ | ◯ | 未実装（applyが完全一致） | ◯ | macOSのアプリケーションショートカット |
+| `dots npm` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯ | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | npmグローバルパッケージ |
+| `dots pipx` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯ | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | pipxパッケージ |
+| `dots ghq` | ◯（宣言外は`--unset`） | ◯ | ◯ | ◯ | 未実装（applyが完全一致） | N/A（実状態をGit configから直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
+| `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯（apply単独の削除部分） | N/A（実状態を直接読む） | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
+| `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯ | N/A（実状態を直接読む） | Copilot CLIのuser scope MCPのみ |
+| `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致） | ◯（`--summary`あり） | N/A（宣言は理由コメント付きで人が編集する） | N/A（宣言は理由コメント付きで人が編集する） | 未実装（applyが完全一致） | ◯ | `windows/WingetPin`の一時pin宣言 |
 | 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
+
+共通オプション（各動詞が受け付けるものはドメインごとに決まっており、受け付けないものはエラー）:
+
+- `--no-prune`: `apply` で削除を行わず、追加・更新のみ行う。`make install`など無人で実行される経路は、
+  dock・shortcutsを除いてこれを付ける
+- `--dry-run`: 何も変更せず、実行した場合の変更予定だけを表示する（現在はnpm・pipxのみ。他は順次対応）
+- `--yes`: 宣言側の項目を削除する `sync` に必要（削除がなければ不要。現在はnpm・pipxのみ）
+- `--backup-dir DIR`: 削除・上書きの前に退避するディレクトリ（既定は `~/.dotfiles-backup/<timestamp>/`）
 
 その他のコマンド:
 

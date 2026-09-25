@@ -10,20 +10,30 @@
 #
 # --add-only（dots pipx merge）:
 #   キャッシュにないパッケージを削除せず、追加とソートのみ行う（手順3を省く）
+# --dry-run:
+#   pipxfile もキャッシュも書き換えず、変更予定（[add] / [remove]）だけを表示する
+# --yes:
+#   pipxfile からの削除を伴う場合に必要（削除がなければ不要）。--add-only では不要
 #
 # 使い方:
-#   bash pipx/sync_pipxfile.sh [--add-only]
+#   bash pipx/sync_pipxfile.sh [--add-only] [--dry-run] [--yes]
 #   dots pipx sync
 #   dots pipx merge
 
 set -euo pipefail
 
 ADD_ONLY=0
-case "${1:-}" in
-  "") ;;
-  --add-only) ADD_ONLY=1 ;;
-  *) echo "usage: sync_pipxfile.sh [--add-only]" >&2; exit 2 ;;
-esac
+DRY_RUN=0
+YES=0
+while (( $# > 0 )); do
+  case "$1" in
+    --add-only) ADD_ONLY=1 ;;
+    --dry-run) DRY_RUN=1 ;;
+    --yes) YES=1 ;;
+    *) echo "usage: sync_pipxfile.sh [--add-only] [--dry-run] [--yes]" >&2; exit 2 ;;
+  esac
+  shift
+done
 MODE=synced
 if [[ "$ADD_ONLY" -eq 1 ]]; then MODE=merged; fi
 
@@ -31,8 +41,14 @@ DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 PIPXFILE="$DOTFILES_DIR/pipx/pipxfile"
 PIPXFILE_CACHE="$DOTFILES_DIR/pipx/pipxfile.cache"
 
-# ── pipxfile.cache を最新状態に更新 ───────────────────────────────────────────
-bash "$DOTFILES_DIR/pipx/update_pipxcache.sh"
+# ── 現在の状態を取得（--dry-run ではキャッシュも書き換えない） ────────────────
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  PIPXFILE_CACHE="$(mktemp)"
+  trap 'rm -f "$PIPXFILE_CACHE"' EXIT
+  bash "$DOTFILES_DIR/pipx/update_pipxcache.sh" --print > "$PIPXFILE_CACHE"
+else
+  bash "$DOTFILES_DIR/pipx/update_pipxcache.sh"
+fi
 
 load_names() {
   awk '!/^[[:space:]]*(#|$)/ { print $1 }' "$1" | sort
@@ -44,6 +60,18 @@ if [[ "$ADD_ONLY" -eq 1 ]]; then to_remove=""; fi
 
 if [[ -n "$to_add"    ]]; then while IFS= read -r p; do echo "[add]    $p"; done <<< "$to_add"; fi
 if [[ -n "$to_remove" ]]; then while IFS= read -r p; do echo "[remove] $p"; done <<< "$to_remove"; fi
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  echo ""
+  echo "[dry-run] pipxfile は変更していません"
+  exit 0
+fi
+
+if [[ -n "$to_remove" && "$YES" -eq 0 ]]; then
+  echo "error: pipxfile から上記のパッケージを削除します。実行するには --yes を付けてください" >&2
+  echo "  （削除せず追加だけ行う場合は dots pipx merge）" >&2
+  exit 2
+fi
 
 # ── pipxfile を書き戻す ───────────────────────────────────────────────────────
 # コメント行・空行を保持しつつ、削除対象を除去、追加分を末尾に加えてソート。
@@ -57,7 +85,7 @@ grep -E '^\s*(#|$)' "$PIPXFILE" > "$PIPXFILE.tmp" || true
     grep -Fqx "$name" <<< "$to_remove" || printf '%s\n' "$entry"
   done < "$PIPXFILE"
 
-  [[ -n "$to_add" ]] && printf '%s\n' "$to_add"
+  if [[ -n "$to_add" ]]; then printf '%s\n' "$to_add"; fi
 } | sort -f >> "$PIPXFILE.tmp"
 
 mv "$PIPXFILE.tmp" "$PIPXFILE"

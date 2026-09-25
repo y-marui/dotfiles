@@ -92,7 +92,52 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 
 `sync` / `merge` が書き換える管理ファイルのうち、`dots commit` の自動commit対象は
 [dots commit / dots push](#dots-commit--dots-push) に列挙したものだけである。
-実装にない動詞は `unknown <domain> action` のエラーになる。
+
+### Verb states and the verb gate
+
+`bin/unix/_dots-verbs.sh` の動詞テーブルが、ドメイン×動詞の状態を定義する単一の正本である。
+`dots help`・`dots <domain> help`・`dots verbs`・READMEの動詞表との整合チェック
+（`scripts/check-dots-verb-table.sh`）はすべてここから導く。Windowsは `bin/windows/dots.ps1` の
+`$verbSpecs`（ghq・winget）が同じ書式で持つ。
+
+| 状態 | 意味 | `dots <domain> <verb>` を実行したとき |
+|---|---|---|
+| `ok` | 実装済み | 通常どおり実行する |
+| `na` | 意図的に存在しない（理由付き） | 終了コード0。標準出力には何も出さず、標準エラーに `N/A: dots <domain> <verb> — <理由>` を1行出す |
+| `todo` | 実装予定 | エラー（終了コード1）。`未実装です` を出す |
+
+未知の動詞は `unknown <domain> action` のエラーになる。動詞を省略すると、実装済みの動詞を
+示すusageエラーになる。全ドメインの動詞の実行前に、この動詞ゲートを通す。
+
+### Common options
+
+| オプション | 意味 |
+|---|---|
+| `--no-prune` | `apply` で削除を行わず、追加・更新のみ行う |
+| `--dry-run` | 何も変更せず、実行した場合の変更予定だけを表示する。`diff`（宣言と実状態の全差分）とは別で、他のオプション（`--no-prune`など）を反映した変更予定を出す |
+| `--yes` | 宣言側の項目を削除する `sync` に必要（削除がなければ不要）。`merge` は削除しないので受け付けない |
+| `--backup-dir DIR` | 削除・上書きの前に退避するディレクトリ。既定は `~/.dotfiles-backup/<timestamp>/` |
+
+各動詞が受け付ける共通オプションは `_dots_verb_options` で(ドメイン, 動詞)ごとに決まっており、
+受け付けないものは動詞ゲートがエラーにする。ドメイン固有のオプション（`brew apply --full`、
+`--mcp-only` など）はゲートの対象外で、各実装が検証する。
+
+`make install` や `dots update` のように人が見ていない経路では、`apply` に `--no-prune` を付けて
+削除を避ける。例外は、現状の `apply` が完全一致で動くdockとshortcuts。
+
+### npm / pipx
+
+`apply` は宣言にあって未導入のものを入れ、続けて `prune` を実行して宣言と一致させる。
+`prune` は宣言にない導入済みパッケージを削除し、削除前に一覧を `<backup-dir>/npm-removed.txt`
+（pipxは `pipx-removed.txt`）へ保存する。npm本体は導入済み一覧から除外される。
+差分の有無はキャッシュではなく実状態で判定する（`apply` は事前のdiffによる早期終了をしない）。
+`sync` が宣言から項目を削除する場合は `--yes` を要求し、なければ何も書き換えずに終了コード2で終わる。
+`--dry-run` はキャッシュも書き換えない。
+
+### Migration status
+
+`--dry-run` / `--yes` は現在npm・pipxのみが受け付ける。brew・dock・shortcuts・ghq・winget の
+`prune` と `--dry-run`、`dots dock merge`、`--exit-code` は、READMEの表で「未実装」と示している。
 
 ## dots {claude|codex} diff / apply / prune
 
