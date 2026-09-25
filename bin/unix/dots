@@ -627,7 +627,7 @@ _package_file() {
 
 _ghq() {
   local action="${1:-}"
-  [[ -n "${action}" ]] || _error "usage: dots ghq {apply|diff|sync|merge}"
+  [[ -n "${action}" ]] || _error "usage: dots ghq {apply|diff|sync|merge|prune}"
   shift
 
   case "${action}" in
@@ -638,9 +638,9 @@ _ghq() {
       (( rc != 1 )) || DOTS_DIFF_FOUND=1
       (( rc <= 1 )) || return "${rc}"
       ;;
-    apply|sync|merge)
-      _require_no_args "$@"
-      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}"
+    apply|prune|sync|merge)
+      # 共通オプション（--dry-run / --no-prune / --yes）は動詞ゲートが検証済み
+      bash "${DOTFILES_DIR}/ghq/keep-up-to-date.sh" "${action}" "$@"
       ;;
     *) _error "unknown ghq action: ${action}" ;;
   esac

@@ -26,8 +26,8 @@ function Show-Usage {
 Usage:
   dots status [-NoFetch]
   dots update
-  dots winget {apply|diff|cache}  # N/A: sync merge; 未実装: prune
-  dots ghq    {apply|diff|sync|merge}  # N/A: cache; 未実装: prune
+  dots winget {apply|diff|prune|cache}  # N/A: sync merge
+  dots ghq    {apply|diff|sync|merge|prune}  # N/A: cache
   dots verbs
   dots help
 
@@ -36,6 +36,13 @@ Windowsでは status / update / winget / ghq を利用できます。
 実装状況は README.md の動詞表を参照してください。
 `dots <domain> help` でそのドメインの実装状況を表示します。
 「N/A」は意図的に存在しない動詞（終了コード0）、「未実装」は実装予定の動詞（エラー）です。
+
+Options:
+  --no-prune          apply で削除（prune）を行わず、追加・更新のみ行う
+  --dry-run           何も変更せず、実行した場合の変更予定だけを表示する
+  --yes               宣言側の項目を削除する sync に必要（ghq。削除がなければ不要）
+  --summary           diff の差分の件数を1行で示す
+  --exit-code         diff で差分があれば終了コード1を返す（既定は差分があっても0）
 '@
 }
 
@@ -138,16 +145,27 @@ function Show-RepositoryStatus {
 #   ok 実装済み / na 対象外（理由を $verbNaReasons に書く） / todo 未実装
 $verbs = @('apply', 'diff', 'sync', 'merge', 'prune', 'cache')
 $verbSpecs = @{
-    'ghq'    = 'apply=ok diff=ok sync=ok merge=ok prune=todo cache=na'
-    'winget' = 'apply=ok diff=ok sync=na merge=na prune=todo cache=ok'
+    'ghq'    = 'apply=ok diff=ok sync=ok merge=ok prune=ok cache=na'
+    'winget' = 'apply=ok diff=ok sync=na merge=na prune=ok cache=ok'
 }
 $verbNaReasons = @{
     'ghq:cache'    = '実状態をGit configから直接読むためキャッシュ不要'
     'winget:sync'  = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
     'winget:merge' = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
 }
-# どのドメインも今は受け付ける共通オプションがない（Unix側の _dots_verb_options に相当）
-$commonOptions = @('--dry-run', '--yes', '--no-prune', '--backup-dir')
+# 動詞ごとに受け付ける共通オプション（Unix側の _dots_verb_options に相当。
+# scripts/check-dots-verb-table.sh が同じ書式で一致を検証する）。
+$verbOptions = @{
+    'ghq:apply'    = '--dry-run --no-prune'
+    'ghq:prune'    = '--dry-run'
+    'ghq:sync'     = '--dry-run --yes'
+    'ghq:merge'    = '--dry-run'
+    'ghq:diff'     = '--exit-code --summary'
+    'winget:apply' = '--dry-run --no-prune'
+    'winget:prune' = '--dry-run'
+    'winget:diff'  = '--exit-code --summary'
+}
+$commonOptions = @('--dry-run', '--yes', '--no-prune', '--backup-dir', '--exit-code', '--summary')
 
 function Get-VerbState {
     param([string]$Domain, [string]$Verb)
@@ -202,8 +220,12 @@ function Test-VerbGate {
     if ($state -eq 'todo') {
         throw "dots $Domain $verb は未実装です"
     }
+    $allowed = @()
+    if ($verbOptions.ContainsKey("${Domain}:${verb}")) {
+        $allowed = @($verbOptions["${Domain}:${verb}"] -split ' ')
+    }
     foreach ($argument in @($VerbArgs | Select-Object -Skip 1)) {
-        if ($argument -in $commonOptions) {
+        if (($argument -in $commonOptions) -and ($argument -notin $allowed)) {
             throw "dots $Domain $verb は $argument を受け付けません"
         }
     }
@@ -257,16 +279,34 @@ switch ($commandName) {
 
         switch ($wingetAction) {
             'apply' {
-                if ($wingetArgs.Count -gt 0) {
-                    throw "unexpected argument: $($wingetArgs[0])"
+                # 共通オプションは動詞ゲートが検証済み。スクリプトのスイッチへ読み替える。
+                $applyArgs = @()
+                foreach ($argument in $wingetArgs) {
+                    switch ($argument) {
+                        '--no-prune' { $applyArgs += '-NoPrune' }
+                        '--dry-run' { $applyArgs += '-DryRun' }
+                        default { throw "unknown winget apply option: $argument" }
+                    }
                 }
-                Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$wingetDir\apply_wingetpin.ps1"
+                Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$wingetDir\apply_wingetpin.ps1" @applyArgs
+            }
+            'prune' {
+                $pruneArgs = @('-PruneOnly')
+                foreach ($argument in $wingetArgs) {
+                    switch ($argument) {
+                        '--dry-run' { $pruneArgs += '-DryRun' }
+                        default { throw "unknown winget prune option: $argument" }
+                    }
+                }
+                Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$wingetDir\apply_wingetpin.ps1" @pruneArgs
             }
             'diff' {
                 $summary = $false
+                $exitCodeRequested = $false
                 foreach ($argument in $wingetArgs) {
                     switch ($argument) {
                         '--summary' { $summary = $true }
+                        '--exit-code' { $exitCodeRequested = $true }
                         default { throw "unknown winget diff option: $argument" }
                     }
                 }
@@ -275,7 +315,10 @@ switch ($commandName) {
                 } else {
                     & pwsh -NoLogo -NoProfile -File "$wingetDir\diff_wingetpin.ps1"
                 }
-                exit $LASTEXITCODE
+                # diff_wingetpin.ps1 の終了コード1は「差分あり」。既定では正常終了として扱い、
+                # --exit-code のときだけ1を返す（2 以上はエラー）。
+                if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }
+                if ($exitCodeRequested -and $LASTEXITCODE -eq 1) { exit 1 }
             }
             'cache' {
                 if ($wingetArgs.Count -gt 0) {
@@ -290,16 +333,26 @@ switch ($commandName) {
     }
     'ghq' {
         $ghqAction = if ($commandArgs.Count -gt 0) { $commandArgs[0] } else { $null }
-        if ($ghqAction -notin @('apply', 'diff', 'sync', 'merge')) {
-            throw "usage: dots ghq {apply|diff|sync|merge}"
+        if ($ghqAction -notin @('apply', 'diff', 'sync', 'merge', 'prune')) {
+            throw "usage: dots ghq {apply|diff|sync|merge|prune}"
         }
-        if ($commandArgs.Count -gt 1) {
-            throw "unexpected argument: $($commandArgs[1])"
+        # 共通オプションは動詞ゲートが検証済み。--exit-code だけは dots 側で扱い、残りをスクリプトへ渡す。
+        $ghqExitCodeRequested = $false
+        $ghqPass = @()
+        foreach ($argument in @($commandArgs | Select-Object -Skip 1)) {
+            if ($argument -eq '--exit-code') {
+                $ghqExitCodeRequested = $true
+            } else {
+                $ghqPass += $argument
+            }
         }
-        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" $ghqAction
-        # diff の終了コード1は「差分あり」で、dots としては正常終了として扱う（2 以上はエラー）
-        $ghqLimit = if ($ghqAction -eq 'diff') { 1 } else { 0 }
-        if ($LASTEXITCODE -gt $ghqLimit) {
+        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" $ghqAction @ghqPass
+        # diff の終了コード1は「差分あり」で、dots としては正常終了として扱う（2 以上はエラー）。
+        # --exit-code のときだけ、差分ありを終了コード1で返す。
+        if ($ghqAction -eq 'diff') {
+            if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }
+            if ($ghqExitCodeRequested -and $LASTEXITCODE -eq 1) { exit 1 }
+        } elseif ($LASTEXITCODE -gt 0) {
             exit $LASTEXITCODE
         }
     }

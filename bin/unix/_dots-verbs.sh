@@ -23,10 +23,10 @@ _dots_domain_spec() {
     dock)      echo "apply=ok diff=ok sync=ok merge=ok prune=na cache=ok" ;;
     shortcuts) echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=ok" ;;
     npm|pipx)  echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=ok" ;;
-    ghq)       echo "apply=ok diff=ok sync=ok merge=ok prune=todo cache=na" ;;
+    ghq)       echo "apply=ok diff=ok sync=ok merge=ok prune=ok cache=na" ;;
     ai|claude|codex|copilot)
                echo "apply=ok diff=ok sync=na merge=na prune=ok cache=na" ;;
-    winget)    echo "apply=ok diff=ok sync=na merge=na prune=todo cache=ok" ;;
+    winget)    echo "apply=ok diff=ok sync=na merge=na prune=ok cache=ok" ;;
     *) return 1 ;;
   esac
 }
@@ -72,7 +72,11 @@ _dots_verb_options() {
     brew:prune|shortcuts:prune) echo "--dry-run --backup-dir" ;;
     brew:sync|shortcuts:sync|dock:sync) echo "--dry-run --yes" ;;
     brew:merge|shortcuts:merge|dock:merge) echo "--dry-run" ;;
-    brew:diff|shortcuts:diff|dock:diff|ghq:diff) echo "--exit-code --summary" ;;
+    brew:diff|shortcuts:diff|dock:diff|ghq:diff|winget:diff) echo "--exit-code --summary" ;;
+    ghq:apply|winget:apply)     echo "--dry-run --no-prune" ;;
+    ghq:prune|winget:prune)     echo "--dry-run" ;;
+    ghq:sync)                   echo "--dry-run --yes" ;;
+    ghq:merge)                  echo "--dry-run" ;;
     dock:apply)                 echo "--dry-run --backup-dir" ;;
     ai:apply|claude:apply|codex:apply|copilot:apply) echo "--no-prune" ;;
     ai:diff|claude:diff|codex:diff|copilot:diff)     echo "--exit-code" ;;

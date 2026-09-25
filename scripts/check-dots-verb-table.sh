@@ -6,7 +6,8 @@ set -euo pipefail
 #   1. README.md の動詞表（apply/diff/sync/merge/prune/cache × ドメイン）の各セルが、
 #      bin/unix/_dots-verbs.sh のテーブル（`dots verbs`）と一致する
 #      （◯ = ok、N/A（理由） = na、未実装 = todo）
-#   2. bin/windows/dots.ps1 の $verbSpecs（ghq / winget）が Unix 側と一致する
+#   2. bin/windows/dots.ps1 の $verbSpecs（ghq / winget）と、動詞ごとの共通オプションの表
+#      $verbOptions が Unix 側（_dots_verb_options）と一致する
 #   3. README に載っていないドメイン、テーブルに無いドメインがない
 # 動詞テーブルを正本とし、表の書き写し間違い・実装追加時の更新漏れを防ぐ。
 
@@ -107,6 +108,7 @@ if [[ -z "${ps1_specs}" ]]; then
   fail "bin/windows/dots.ps1 に \$verbSpecs が見つからない"
 fi
 
+ps1_domains=""
 while IFS= read -r line; do
   [[ -n "${line}" ]] || continue
   domain="$(printf '%s' "${line}" | sed -n "s/^[[:space:]]*'\([a-z]*\)'[[:space:]]*=.*/\1/p")"
@@ -115,11 +117,40 @@ while IFS= read -r line; do
     fail "bin/windows/dots.ps1 の \$verbSpecs を解釈できない: ${line}"
     continue
   fi
+  ps1_domains="${ps1_domains} ${domain}"
   expected="$(spec_of "${domain}")"
   if [[ "${expected}" != "${spec}" ]]; then
     fail "bin/windows/dots.ps1 の '${domain}' がテーブルと異なる: ps1='${spec}' unix='${expected}'"
   fi
 done <<< "${ps1_specs}"
+
+# 共通オプションの表（$verbOptions）。書式 'domain:verb' = '--opt1 --opt2'
+ps1_options="$(awk '
+  /^\$verbOptions = @\{/ { in_block = 1; next }
+  in_block && /^\}/ { exit }
+  in_block { print }
+' "${PS1_FILE}")"
+
+unix_options_of() {
+  bash -c 'source "$1"; _dots_verb_options "$2" "$3"' _ "${DOTFILES_DIR}/bin/unix/_dots-verbs.sh" "$1" "$2"
+}
+ps1_options_of() {
+  printf '%s\n' "${ps1_options}" |
+    sed -n "s/^[[:space:]]*'$1:$2'[[:space:]]*=[[:space:]]*'\(.*\)'[[:space:]]*$/\1/p"
+}
+normalize_options() {
+  tr ' ' '\n' | grep -v '^$' | sort | tr '\n' ' ' | sed 's/ $//' || true
+}
+
+for domain in ${ps1_domains}; do
+  for verb in ${VERBS}; do
+    unix_opts="$(unix_options_of "${domain}" "${verb}" | normalize_options)"
+    ps1_opts="$(ps1_options_of "${domain}" "${verb}" | normalize_options)"
+    if [[ "${unix_opts}" != "${ps1_opts}" ]]; then
+      fail "bin/windows/dots.ps1 の \$verbOptions '${domain}:${verb}' が Unix 側と異なる: ps1='${ps1_opts}' unix='${unix_opts}'"
+    fi
+  done
+done
 
 if (( errors > 0 )); then
   echo "dots の動詞テーブルの不整合が ${errors} 件ある。" >&2

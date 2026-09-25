@@ -109,4 +109,6 @@ Windows版の更新は次の順に実行する。
 （宣言から外れたpinは自動で解除される）。既知の不具合でアップグレードが失敗する
 パッケージを一時的に除外したい場合は`windows/WingetPin`に追記する
 （macOSの`macos/Brewfile-pin`に相当。`dots winget apply`で手動適用、
-`dots winget diff`で宣言と実際のpin状態の差分を確認できる）。
+`dots winget diff`で宣言と実際のpin状態の差分を確認できる。`dots winget apply --no-prune`は
+pinだけ、`dots winget prune`は未宣言のpin解除だけを行い、どちらも`--dry-run`で変更予定だけを
+表示できる。`diff`は差分があっても終了コード0で、`--exit-code`を付けると差分ありで1を返す）。
