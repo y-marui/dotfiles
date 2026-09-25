@@ -54,21 +54,22 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 | `dots shortcuts` | ◯（ローカルのみの設定は消える。`--no-prune`で追加・更新のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（ローカルのみの設定を削除。`--dry-run`あり） | ◯ | macOSのアプリケーションショートカット |
 | `dots npm` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | npmグローバルパッケージ |
 | `dots pipx` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | pipxパッケージ |
-| `dots ghq` | ◯（宣言外は`--unset`） | ◯（`--summary`・`--exit-code`あり） | ◯ | ◯ | 未実装（applyが完全一致） | N/A（実状態をGit configから直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
+| `dots ghq` | ◯（宣言外は`--unset`。`--no-prune`で設定のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（共通宣言から削除する場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（宣言外の`--unset`のみ。`--dry-run`あり） | N/A（実状態をGit configから直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
 | `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯（apply単独の削除部分） | N/A（実状態を直接読む） | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
 | `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯ | N/A（実状態を直接読む） | Copilot CLIのuser scope MCPのみ |
-| `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致） | ◯（`--summary`あり） | N/A（宣言は理由コメント付きで人が編集する） | N/A（宣言は理由コメント付きで人が編集する） | 未実装（applyが完全一致） | ◯ | `windows/WingetPin`の一時pin宣言 |
+| `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致。`--no-prune`でpinのみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | N/A（宣言は理由コメント付きで人が編集する） | N/A（宣言は理由コメント付きで人が編集する） | ◯（未宣言のpinを解除。`--dry-run`あり） | ◯ | `windows/WingetPin`の一時pin宣言 |
 | 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
 
 共通オプション（各動詞が受け付けるものはドメインごとに決まっており、受け付けないものはエラー）:
 
 - `--no-prune`: `apply` で削除を行わず、追加・更新のみ行う。`make install`など無人で実行される経路は、
   dock・shortcutsを除いてこれを付ける
-- `--dry-run`: 何も変更せず、実行した場合の変更予定だけを表示する（brew・dock・shortcuts・npm・pipxが対象。
-  ghq・winget・ai系は未対応）
-- `--yes`: 宣言側の項目を削除する `sync` に必要（削除がなければ不要。brew・dock・shortcuts・npm・pipxが対象）
+- `--dry-run`: 何も変更せず、実行した場合の変更予定だけを表示する（brew・dock・shortcuts・npm・pipx・ghq・
+  wingetが対象。ai系は未対応）
+- `--yes`: 宣言側の項目を削除する `sync` に必要（削除がなければ不要。brew・dock・shortcuts・npm・pipx・
+  ghqが対象）
 - `--summary` / `--exit-code`: `diff` 専用。`--summary` は差分の件数を1行で示し（aiの`diff`を除く）、
-  `--exit-code` は差分があれば終了コード1を返す（既定は差分があっても0）。Windowsは未対応
+  `--exit-code` は差分があれば終了コード1を返す（既定は差分があっても0）
 - `--backup-dir DIR`: 削除・上書きの前に退避するディレクトリ（既定は `~/.dotfiles-backup/<timestamp>/`）
 
 その他のコマンド:

@@ -12,10 +12,16 @@
 # 使い方:
 #   keep-up-to-date.sh diff [--summary]   宣言と実状態の差分を表示（差分があれば終了コード1）
 #                                         （宣言なし・ghq なし・想定外の失敗などのエラーは終了コード2）
-#   keep-up-to-date.sh apply              宣言 → 実状態（完全一致。宣言外の true は --unset）
-#   keep-up-to-date.sh sync               実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）
-#   keep-up-to-date.sh merge              実状態 → 共通宣言（追加のみ。削除しない）
-#   dots ghq {apply|diff|sync|merge}
+#   keep-up-to-date.sh apply [--no-prune] [--dry-run]
+#                                         宣言 → 実状態（完全一致。宣言外の true は --unset）。
+#                                         --no-prune は宣言済みを true にするだけで --unset しない
+#   keep-up-to-date.sh prune [--dry-run]  宣言にない true を --unset するだけ（true にはしない）
+#   keep-up-to-date.sh sync [--dry-run] [--yes]
+#                                         実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）。
+#                                         共通宣言から削除する場合は --yes が必要
+#   keep-up-to-date.sh merge [--dry-run]  実状態 → 共通宣言（追加のみ。削除しない）
+#   --dry-run は何も変更せず、実行した場合の変更予定だけを表示する
+#   dots ghq {apply|diff|sync|merge|prune}
 #
 # 環境変数（テスト用の上書き）:
 #   GHQ_ROOT               ghq root（ghq 自体も参照する）
@@ -35,23 +41,38 @@ export LC_ALL=C
 trap 'exit 2' ERR
 
 ACTION="${1:-}"
-[[ -n "${ACTION}" ]] || { echo "usage: keep-up-to-date.sh {apply|diff|sync|merge}" >&2; exit 2; }
+[[ -n "${ACTION}" ]] || { echo "usage: keep-up-to-date.sh {apply|diff|sync|merge|prune}" >&2; exit 2; }
 shift
+case "${ACTION}" in
+  apply|diff|sync|merge|prune) ;;
+  *) echo "error: unknown action: ${ACTION}" >&2; exit 2 ;;
+esac
 SUMMARY=false
+NO_PRUNE=false
+DRY_RUN=false
+YES=false
 while (( $# > 0 )); do
   case "$1" in
     --summary)
       [[ "${ACTION}" == diff ]] || { echo "error: --summary は diff でのみ使えます" >&2; exit 2; }
       SUMMARY=true
-      shift
+      ;;
+    --no-prune)
+      [[ "${ACTION}" == apply ]] || { echo "error: --no-prune は apply でのみ使えます" >&2; exit 2; }
+      NO_PRUNE=true
+      ;;
+    --dry-run)
+      [[ "${ACTION}" != diff ]] || { echo "error: --dry-run は diff では使えません" >&2; exit 2; }
+      DRY_RUN=true
+      ;;
+    --yes)
+      [[ "${ACTION}" == sync ]] || { echo "error: --yes は sync でのみ使えます" >&2; exit 2; }
+      YES=true
       ;;
     *) echo "error: unknown option: $1" >&2; exit 2 ;;
   esac
+  shift
 done
-case "${ACTION}" in
-  apply|diff|sync|merge) ;;
-  *) echo "error: unknown action: ${ACTION}" >&2; exit 2 ;;
-esac
 
 # --summary（dots check 用）は、対象外の環境では何も出さずに正常終了する。
 _unavailable() {
@@ -193,37 +214,67 @@ _write_decl() {
     echo "No change: 共通宣言はすでに実状態と整合しています。"
     return 0
   fi
+  if [[ "${DRY_RUN}" == true ]]; then
+    echo
+    echo "[dry-run] 共通宣言は変更していません"
+    return 0
+  fi
+  if (( n_remove > 0 )) && [[ "${YES}" == false ]]; then
+    echo "error: 共通宣言から上記のエントリを削除します。実行するには --yes を付けてください" >&2
+    echo "  （削除せず追加だけ行う場合は dots ghq merge）" >&2
+    exit 2
+  fi
   _rewrite "${TMP}/remove" "${TMP}/add"
   echo
   echo "keep-up-to-date ${ACTION}: +${n_add} added / -${n_remove} removed"
 }
 
+# apply: 宣言済みを true にし（minus）、宣言外の true を --unset する（plus）。
+# prune: --unset だけ行う。--no-prune（apply）: true にするだけで --unset しない。
+# --dry-run は git config を書き換えず、予定だけを表示する。
 _apply() {
-  local path rel n_set=0 n_unset=0
-  while IFS= read -r rel; do
-    path="$(awk -F'\t' -v r="${rel}" '$3 == r { print $2; exit }' "${TMP}/fetched.tsv")"
-    git -C "${path}" config --local --bool "${CONFIG_KEY}" true
-    printf '[set]    %s\n' "${rel}"
-    n_set=$((n_set + 1))
-  done < <(_rels "${TMP}/minus")
-  while IFS= read -r rel; do
-    path="$(awk -F'\t' -v r="${rel}" '$3 == r { print $2; exit }' "${TMP}/fetched.tsv")"
-    git -C "${path}" config --local --unset "${CONFIG_KEY}"
-    printf '[unset]  %s\n' "${rel}"
-    n_unset=$((n_unset + 1))
-  done < <(_rels "${TMP}/plus")
+  local mode="$1" path rel n_set=0 n_unset=0 tag=""
+  [[ "${DRY_RUN}" == false ]] || tag="[dry-run] "
+
+  if [[ "${mode}" == apply ]]; then
+    while IFS= read -r rel; do
+      path="$(awk -F'\t' -v r="${rel}" '$3 == r { print $2; exit }' "${TMP}/fetched.tsv")"
+      [[ "${DRY_RUN}" == true ]] || git -C "${path}" config --local --bool "${CONFIG_KEY}" true
+      printf '%s[set]    %s\n' "${tag}" "${rel}"
+      n_set=$((n_set + 1))
+    done < <(_rels "${TMP}/minus")
+  fi
+  if [[ "${NO_PRUNE}" == true ]]; then
+    if (( $(_count "${TMP}/plus") > 0 )); then
+      echo "--no-prune: 宣言にない ${CONFIG_KEY}=true は解除しません（dots ghq prune で解除）:"
+      _rels "${TMP}/plus" | sort -f | sed 's/^/  /'
+    fi
+  else
+    while IFS= read -r rel; do
+      path="$(awk -F'\t' -v r="${rel}" '$3 == r { print $2; exit }' "${TMP}/fetched.tsv")"
+      [[ "${DRY_RUN}" == true ]] || git -C "${path}" config --local --unset "${CONFIG_KEY}"
+      printf '%s[unset]  %s\n' "${tag}" "${rel}"
+      n_unset=$((n_unset + 1))
+    done < <(_rels "${TMP}/plus")
+  fi
 
   if (( n_set == 0 && n_unset == 0 )); then
-    echo "No change: 宣言はすでに各リポジトリへ適用済みです。"
+    if [[ "${mode}" == prune ]]; then
+      echo "No change: 宣言にない ${CONFIG_KEY} はありません。"
+    else
+      echo "No change: 宣言はすでに各リポジトリへ適用済みです。"
+    fi
     return 0
   fi
   echo
-  echo "keep-up-to-date apply: ${n_set} set / ${n_unset} unset"
+  echo "keep-up-to-date ${mode}: ${n_set} set / ${n_unset} unset"
+  [[ "${DRY_RUN}" == false ]] || echo "[dry-run] 各リポジトリの ${CONFIG_KEY} は変更していません"
 }
 
 case "${ACTION}" in
   diff)  _diff; [[ "${HAS_DIFF}" == false ]] || exit 1 ;;
-  apply) _apply ;;
+  apply) _apply apply ;;
+  prune) _apply prune ;;
   sync)  _write_decl true ;;
   merge) _write_decl false ;;
 esac

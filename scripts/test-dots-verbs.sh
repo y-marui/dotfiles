@@ -138,7 +138,8 @@ check "N/A は標準エラーに理由を出す" contains "$ERR" "N/A: dots clau
 check "N/A は標準出力に何も出さない" eq "$OUT" ""
 run_dots ghq cache
 check "ghq cache は N/A" contains "$ERR" "N/A: dots ghq cache"
-run_dots ghq prune
+# 実テーブルには todo（未実装）が残っていないため、テーブルを差し替えてゲートの分岐を検証する
+ERR="$(bash -c 'source "$1"; _dots_domain_spec() { echo "apply=todo diff=ok sync=ok merge=ok prune=ok cache=ok"; }; _dots_gate demo apply' _ "$ROOT/bin/unix/_dots-verbs.sh" 2>&1 >/dev/null)" && RC=0 || RC=$?
 check "未実装はエラー" eq "$RC" 1
 check "未実装のメッセージ" contains "$ERR" "未実装"
 run_dots npm bogus
@@ -155,6 +156,14 @@ run_dots brew apply --exit-code
 check "apply は --exit-code を受け付けない" eq "$RC" 1
 run_dots claude diff --summary
 check "ai の diff は --summary を受け付けない" eq "$RC" 1
+run_dots ghq apply --yes
+check "ghq apply は --yes を受け付けない" eq "$RC" 1
+run_dots ghq sync --no-prune
+check "ghq sync は --no-prune を受け付けない" eq "$RC" 1
+run_dots ghq diff --dry-run
+check "diff は --dry-run を受け付けない" eq "$RC" 1
+run_dots ghq help
+check "ghq help に prune が載る" contains "$OUT" "prune"
 run_dots npm merge --yes
 check "merge は --yes を受け付けない" eq "$RC" 1
 run_dots npm prune --no-prune

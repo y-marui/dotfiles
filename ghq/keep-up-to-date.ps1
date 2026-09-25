@@ -13,10 +13,16 @@
 # 使い方:
 #   keep-up-to-date.ps1 diff [--summary]   宣言と実状態の差分を表示（差分があれば終了コード1）
 #                                          （宣言なし・ghq なし・想定外の失敗などのエラーは終了コード2）
-#   keep-up-to-date.ps1 apply              宣言 → 実状態（完全一致。宣言外の true は --unset）
-#   keep-up-to-date.ps1 sync               実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）
-#   keep-up-to-date.ps1 merge              実状態 → 共通宣言（追加のみ。削除しない）
-#   dots ghq {apply|diff|sync|merge}
+#   keep-up-to-date.ps1 apply [--no-prune] [--dry-run]
+#                                          宣言 → 実状態（完全一致。宣言外の true は --unset）。
+#                                          --no-prune は宣言済みを true にするだけで --unset しない
+#   keep-up-to-date.ps1 prune [--dry-run]  宣言にない true を --unset するだけ（true にはしない）
+#   keep-up-to-date.ps1 sync [--dry-run] [--yes]
+#                                          実状態 → 共通宣言（完全一致。取得済みのみ追加・削除）。
+#                                          共通宣言から削除する場合は --yes が必要
+#   keep-up-to-date.ps1 merge [--dry-run]  実状態 → 共通宣言（追加のみ。削除しない）
+#   --dry-run は何も変更せず、実行した場合の変更予定だけを表示する
+#   dots ghq {apply|diff|sync|merge|prune}
 #
 # 環境変数（テスト用の上書き）:
 #   GHQ_ROOT               ghq root（ghq 自体も参照する）
@@ -44,24 +50,51 @@ $declLocalFile = "$declFile.local"
 
 $action = if ($args.Count -gt 0) { [string]$args[0] } else { '' }
 if ($action -eq '') {
-    Write-KeepStderr 'usage: keep-up-to-date.ps1 {apply|diff|sync|merge}'
+    Write-KeepStderr 'usage: keep-up-to-date.ps1 {apply|diff|sync|merge|prune}'
     exit 2
 }
-if ($action -notin @('apply', 'diff', 'sync', 'merge')) {
+if ($action -notin @('apply', 'diff', 'sync', 'merge', 'prune')) {
     Write-KeepStderr "error: unknown action: $action"
     exit 2
 }
 $summary = $false
+$noPrune = $false
+$dryRun = $false
+$yes = $false
 foreach ($argument in @($args | Select-Object -Skip 1)) {
-    if ($argument -eq '--summary') {
-        if ($action -ne 'diff') {
-            Write-KeepStderr 'error: --summary は diff でのみ使えます'
+    switch ($argument) {
+        '--summary' {
+            if ($action -ne 'diff') {
+                Write-KeepStderr 'error: --summary は diff でのみ使えます'
+                exit 2
+            }
+            $summary = $true
+        }
+        '--no-prune' {
+            if ($action -ne 'apply') {
+                Write-KeepStderr 'error: --no-prune は apply でのみ使えます'
+                exit 2
+            }
+            $noPrune = $true
+        }
+        '--dry-run' {
+            if ($action -eq 'diff') {
+                Write-KeepStderr 'error: --dry-run は diff では使えません'
+                exit 2
+            }
+            $dryRun = $true
+        }
+        '--yes' {
+            if ($action -ne 'sync') {
+                Write-KeepStderr 'error: --yes は sync でのみ使えます'
+                exit 2
+            }
+            $yes = $true
+        }
+        default {
+            Write-KeepStderr "error: unknown option: $argument"
             exit 2
         }
-        $summary = $true
-    } else {
-        Write-KeepStderr "error: unknown option: $argument"
-        exit 2
     }
 }
 
@@ -213,38 +246,74 @@ function Invoke-WriteDecl([bool]$DoRemove) {
         Write-Host 'No change: 共通宣言はすでに実状態と整合しています。'
         return
     }
+    if ($dryRun) {
+        Write-Host ''
+        Write-Host '[dry-run] 共通宣言は変更していません'
+        return
+    }
+    if ($remove.Count -gt 0 -and -not $yes) {
+        Write-KeepStderr 'error: 共通宣言から上記のエントリを削除します。実行するには --yes を付けてください'
+        Write-KeepStderr '  （削除せず追加だけ行う場合は dots ghq merge）'
+        exit 2
+    }
     Write-Decl $removeKeys $add
     Write-Host ''
     Write-Host "keep-up-to-date ${action}: +$($add.Count) added / -$($remove.Count) removed"
 }
 
-function Invoke-Apply {
+# apply: 宣言済みを true にし（minus）、宣言外の true を --unset する（plus）。
+# prune: --unset だけ行う。--no-prune（apply）: true にするだけで --unset しない。
+# --dry-run は git config を書き換えず、予定だけを表示する。
+function Invoke-Apply([string]$Mode) {
     $nSet = 0
     $nUnset = 0
-    foreach ($key in $minus) {
-        & git -C $fetched[$key].Path config --local --bool $ConfigKey true
-        if ($LASTEXITCODE -ne 0) { throw "git config failed: $($fetched[$key].Rel)" }
-        Write-Host "[set]    $($fetched[$key].Rel)"
-        $nSet++
+    $tag = if ($dryRun) { '[dry-run] ' } else { '' }
+
+    if ($Mode -eq 'apply') {
+        foreach ($key in $minus) {
+            if (-not $dryRun) {
+                & git -C $fetched[$key].Path config --local --bool $ConfigKey true
+                if ($LASTEXITCODE -ne 0) { throw "git config failed: $($fetched[$key].Rel)" }
+            }
+            Write-Host "${tag}[set]    $($fetched[$key].Rel)"
+            $nSet++
+        }
     }
-    foreach ($key in $plus) {
-        & git -C $fetched[$key].Path config --local --unset $ConfigKey
-        if ($LASTEXITCODE -ne 0) { throw "git config --unset failed: $($fetched[$key].Rel)" }
-        Write-Host "[unset]  $($fetched[$key].Rel)"
-        $nUnset++
+    if ($noPrune) {
+        if ($plus.Count -gt 0) {
+            Write-Host "--no-prune: 宣言にない $ConfigKey=true は解除しません（dots ghq prune で解除）:"
+            foreach ($rel in (Sort-Entries (Get-Rels $plus))) { Write-Host "  $rel" }
+        }
+    } else {
+        foreach ($key in $plus) {
+            if (-not $dryRun) {
+                & git -C $fetched[$key].Path config --local --unset $ConfigKey
+                if ($LASTEXITCODE -ne 0) { throw "git config --unset failed: $($fetched[$key].Rel)" }
+            }
+            Write-Host "${tag}[unset]  $($fetched[$key].Rel)"
+            $nUnset++
+        }
     }
 
     if ($nSet -eq 0 -and $nUnset -eq 0) {
-        Write-Host 'No change: 宣言はすでに各リポジトリへ適用済みです。'
+        if ($Mode -eq 'prune') {
+            Write-Host "No change: 宣言にない $ConfigKey はありません。"
+        } else {
+            Write-Host 'No change: 宣言はすでに各リポジトリへ適用済みです。'
+        }
         return
     }
     Write-Host ''
-    Write-Host "keep-up-to-date apply: $nSet set / $nUnset unset"
+    Write-Host "keep-up-to-date ${Mode}: $nSet set / $nUnset unset"
+    if ($dryRun) {
+        Write-Host "[dry-run] 各リポジトリの $ConfigKey は変更していません"
+    }
 }
 
 switch ($action) {
     'diff' { Invoke-Diff }
-    'apply' { Invoke-Apply }
+    'apply' { Invoke-Apply 'apply' }
+    'prune' { Invoke-Apply 'prune' }
     'sync' { Invoke-WriteDecl $true }
     'merge' { Invoke-WriteDecl $false }
 }

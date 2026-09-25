@@ -98,7 +98,8 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 `bin/unix/_dots-verbs.sh` の動詞テーブルが、ドメイン×動詞の状態を定義する単一の正本である。
 `dots help`・`dots <domain> help`・`dots verbs`・READMEの動詞表との整合チェック
 （`scripts/check-dots-verb-table.sh`）はすべてここから導く。Windowsは `bin/windows/dots.ps1` の
-`$verbSpecs`（ghq・winget）が同じ書式で持つ。
+`$verbSpecs`（ghq・winget）と、動詞ごとの共通オプションの表 `$verbOptions` が同じ書式で持つ。
+どちらもUnix側のテーブルとの一致を `scripts/check-dots-verb-table.sh` が検証する。
 
 | 状態 | 意味 | `dots <domain> <verb>` を実行したとき |
 |---|---|---|
@@ -160,9 +161,21 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 
 ### Migration status
 
-`--dry-run` / `--yes` は brew・dock・shortcuts・npm・pipx が受け付ける。ghq・winget の `prune`
-と `--dry-run`、Windows の `--exit-code` / `--summary` は、READMEの表で「未実装」または未対応と
-示している（Windows側の実装は別作業）。
+すべてのドメインで、READMEの表の「未実装」はなくなった。`--dry-run` は ai 系を除く全ドメイン、
+`--yes` は宣言側の項目を削除する `sync` を持つ全ドメイン（brew・dock・shortcuts・npm・pipx・ghq）が
+受け付ける。ai 系（claude・codex・copilot）の `apply` / `prune` は `--dry-run` を受け付けない。
+
+### ghq / winget
+
+- **ghq**: `apply` は宣言済みを `true` にし、宣言にない `true` を `--unset` する（完全一致）。
+  `--no-prune` は `true` にするだけで、宣言にない `true` は一覧表示だけにする。`prune` は
+  `--unset` だけを行い、宣言済みのリポジトリを `true` にはしない。`sync` が共通宣言から
+  エントリを削除する場合は `--yes` が必要。`--dry-run` は Git config も宣言も書き換えない
+  （`keep-up-to-date.sh` と `.ps1` は同じ規則）
+- **winget**（Windowsのみ）: `apply` は `WingetPin` の宣言に実際の pin を一致させる（宣言外の pin は
+  解除する）。`--no-prune` は pin だけを行い、`prune` は解除だけを行う。判定の前に `WingetPin.cache`
+  （gitignore対象のスナップショット）を更新する。`diff` の終了コードは既定で0になった
+  （従来は差分ありで1）。差分ありを終了コード1で返すには `--exit-code` を付ける
 
 ## dots {claude|codex} diff / apply / prune
 

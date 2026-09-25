@@ -126,7 +126,14 @@ reset_env
 printf '%s\n' '# keep me' '' 'github.com/o/zeta' 'github.com/o/alpha' 'github.com/o/missing' > "$DECL"
 set_true github.com/o/Gamma
 set_true github.com/o/beta
-output=$(run sync)
+output=$(run sync) && rc=0 || rc=$?
+check "sync that removes entries needs --yes" [ "$rc" -eq 2 ]
+check "sync failure asks for --yes" contains "$output" "--yes"
+check "sync failure leaves the declaration alone" not_contains "$(cat "$DECL")" "beta"
+output=$(run sync --dry-run)
+check "sync --dry-run lists the removal" contains "$output" "[remove] github.com/o/alpha"
+check "sync --dry-run leaves the declaration alone" grep -qx 'github.com/o/alpha' "$DECL"
+output=$(run sync --yes)
 check "sync adds true repos" grep -qx 'github.com/o/beta' "$DECL"
 check "sync adds with original spelling" grep -qx 'github.com/o/Gamma' "$DECL"
 check "sync removes fetched non-true repo" not_contains "$(cat "$DECL")" "alpha"
@@ -136,6 +143,41 @@ check "sync sorts entries" [ "$(grep -v '^#' "$DECL" | grep -v '^$')" = "$(grep 
 check "sync makes diff clean" run diff >/dev/null
 output=$(run sync)
 check "second sync changes nothing" contains "$output" "No change"
+
+section "apply --no-prune / prune / --dry-run"
+reset_env
+printf '%s\n' 'github.com/o/alpha' > "$DECL"
+set_true github.com/o/beta
+output=$(run apply --dry-run)
+check "apply --dry-run lists the set" contains "$output" "[dry-run] [set]    github.com/o/alpha"
+check "apply --dry-run lists the unset" contains "$output" "[dry-run] [unset]  github.com/o/beta"
+check "apply --dry-run does not set" [ -z "$(value_of github.com/o/alpha)" ]
+check "apply --dry-run does not unset" [ "$(value_of github.com/o/beta)" = "true" ]
+output=$(run apply --no-prune)
+check "apply --no-prune sets declared repo" [ "$(value_of github.com/o/alpha)" = "true" ]
+check "apply --no-prune keeps undeclared true repo" [ "$(value_of github.com/o/beta)" = "true" ]
+check "apply --no-prune points to prune" contains "$output" "dots ghq prune"
+output=$(run prune --dry-run)
+check "prune --dry-run lists the unset" contains "$output" "[dry-run] [unset]  github.com/o/beta"
+check "prune --dry-run does not unset" [ "$(value_of github.com/o/beta)" = "true" ]
+output=$(run prune)
+check "prune unsets undeclared true repo" [ -z "$(value_of github.com/o/beta)" ]
+check "prune keeps declared true repo" [ "$(value_of github.com/o/alpha)" = "true" ]
+set_false github.com/o/delta
+set_true github.com/o/beta
+printf '%s\n' 'github.com/o/alpha' 'github.com/o/delta' > "$DECL"
+output=$(run prune)
+check "prune does not set declared repos" [ "$(value_of github.com/o/delta)" = "false" ]
+output=$(run prune)
+check "second prune changes nothing" contains "$output" "No change"
+output=$(run merge --dry-run)
+check "merge --dry-run leaves the declaration alone" not_contains "$(cat "$DECL")" "beta"
+output=$(run apply --yes) && rc=0 || rc=$?
+check "--yes is only for sync" [ "$rc" -eq 2 ]
+output=$(run prune --no-prune) && rc=0 || rc=$?
+check "--no-prune is only for apply" [ "$rc" -eq 2 ]
+output=$(run diff --dry-run) && rc=0 || rc=$?
+check "--dry-run is not for diff" [ "$rc" -eq 2 ]
 
 section "missing declaration"
 reset_env
