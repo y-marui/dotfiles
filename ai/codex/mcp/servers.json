@@ -28,6 +28,12 @@
     "args": ["mcp", "serve"]
   },
   {
+    "name": "computer-use",
+    "type": "stdio",
+    "command": "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient",
+    "args": ["mcp"]
+  },
+  {
     "name": "openaiDeveloperDocs",
     "type": "http",
     "url": "https://developers.openai.com/mcp"

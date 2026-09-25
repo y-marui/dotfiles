@@ -1,5 +1,6 @@
 {
   "plugins": [
+    "app-6a3c407853888191beddc2151c2b6f8b@openai-curated-remote",
     "browser@openai-bundled",
     "chrome@openai-bundled",
     "codex-app-tools@openai-bundled",
