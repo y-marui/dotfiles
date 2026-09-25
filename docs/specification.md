@@ -75,13 +75,35 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 - ❌が1件以上あった実行ではmacOS通知を1回出す（該当タスク名と件数を含む）
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 
+## dots verbs
+
+状態を管理ファイルと突き合わせるコマンド（`dots brew|dock|shortcuts|npm|pipx|ghq|claude|codex|copilot|winget`）
+が持つ動詞の標準的な意味。どの動詞をどのコマンドが実装しているか、および標準動作との違いは
+[README.md](../README.md#command-list) の動詞表を正本とする。
+
+| 動詞 | 標準動作 |
+|---|---|
+| `apply` | 管理ファイル → 実状態へ適用する。差分がなければ何もしない |
+| `diff` | 差分を表示するだけで何も変更しない。差分があっても終了コードは 0（`dots ghq diff` も同様に、スクリプトの終了コード 1 を正常終了として扱う） |
+| `sync` | 実状態 → 管理ファイル。実状態と完全一致させる（追加・削除の両方） |
+| `merge` | 実状態 → 管理ファイル。追加のみで削除しない |
+| `prune` | 管理ファイルにない項目を削除・退避する |
+| `cache` | 実状態のキャッシュを更新する（`diff` の比較基準） |
+
+`sync` / `merge` が書き換える管理ファイルのうち、`dots commit` の自動commit対象は
+[dots commit / dots push](#dots-commit--dots-push) に列挙したものだけである。
+実装にない動詞は `unknown <domain> action` のエラーになる。
+
 ## dots {claude|codex} diff / apply / prune
 
 MCP・plugin・skill の「宣言（dotfiles 内の設定ファイル）」と「実状態（各ツールの実際の設定）」を比較・同期する。
 
 - `diff`: 差分のみ表示（変更なし）
-- `apply`: 宣言済みだが未反映の項目を追加・更新する（宣言にない実状態の項目には触れない）
-- `prune`: 未宣言かつ dotfiles 管理境界内の項目だけを削除・退避する（管理境界外のユーザー独自設定は対象外）
+- `apply`: 宣言済みだが未反映の項目を追加・更新し、続けて `prune` を実行して宣言と完全一致させる。
+  `--no-prune` を付けると追加・更新のみを行う（各 `ai/<agent>/*/apply.sh` は追加・更新だけを担当し、
+  削除は `prune.sh` が担当する。`dots` がこの2つを順に呼ぶ）
+- `prune`: 未宣言かつ dotfiles 管理境界内の項目だけを削除・退避する（管理境界外のユーザー独自設定は対象外）。
+  単独でも実行できる
 
 ## dots ai diff / apply / prune
 
