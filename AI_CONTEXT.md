@@ -190,7 +190,12 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 - `make private-validate`: 隣接する dotfiles-private の雛形・必須構造を検証
 - `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
 - `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
-- `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用）
+- `dots verbs` / `dots <domain> help`: apply/diff/sync/merge/prune/cache の実装状況（実装済み・N/A・未実装）を表示。
+  正本は `bin/unix/_dots-verbs.sh` の動詞テーブルで、README の動詞表と `bin/windows/dots.ps1` を
+  `scripts/check-dots-verb-table.sh`（pre-commit）が検証する
+- `dots {npm|pipx} prune`: 宣言にないパッケージを削除（`--dry-run`・`--backup-dir`）。`apply` は追加後にpruneし、
+  無人経路は `--no-prune` を付ける
+- `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用、`--no-prune` でcleanupを省略）
 - `dots winget apply/diff/cache`: Windows専用。`windows/WingetPin` に宣言したパッケージの
   一時pinをwinget側の実際の状態と同期する（macOSの `dots brew` におけるBrewfile-pin相当）
 - `macos/Brewfile-pin`: 一時的に更新を止める formula/Cask を宣言。`dots brew apply/diff/cache` で実pin状態と同期する

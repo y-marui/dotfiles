@@ -27,6 +27,18 @@ scripts/test-git-sweep.sh
 scripts/test-ghq-keep-up-to-date.sh
 ```
 
+`bin/unix/dots`・`bin/unix/_dots-verbs.sh` や `npm/`・`pipx/` の動詞スクリプトを変更した場合は、
+動詞テーブル（N/A・未実装・オプションゲート）と npm / pipx の `apply` `prune` `sync` `merge` を、
+一時ディレクトリと偽の `npm` / `pipx` で検証する（実環境には影響しない）:
+
+```bash
+scripts/test-dots-verbs.sh
+```
+
+動詞の実装状況を変えたときは、`bin/unix/_dots-verbs.sh` のテーブルを更新し、README の動詞表と
+`bin/windows/dots.ps1` の `$verbSpecs` を合わせる（`scripts/check-dots-verb-table.sh` が
+pre-commitで検証する。`dots verbs` で現在のテーブルを確認できる）。
+
 ## Conventions
 
 詳細は [AI_CONTEXT.md](AI_CONTEXT.md) を参照。要点のみ:

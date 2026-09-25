@@ -30,7 +30,7 @@ install-macos: ## macOS 向けフルセットアップ（Prezto + シンボリ�
 	@bash macos/setup_museum_status_launchagent.sh install
 	@bash scripts/setup-zellij.sh
 	@bash macos/defaults.sh
-	@bash bin/unix/dots brew apply --backup-dir "$(BACKUP_DIR)"
+	@bash bin/unix/dots brew apply --no-prune --backup-dir "$(BACKUP_DIR)"
 	@bash bin/unix/dots dock apply --backup-dir "$(BACKUP_DIR)"
 	@bash bin/unix/dots shortcuts apply --backup-dir "$(BACKUP_DIR)"
 
@@ -38,7 +38,7 @@ install-rpi: ## Raspberry Pi 向けセットアップ（シンボリックリン
 	@bash scripts/install.sh
 	@DOTFILES_DIR="$(DOTFILES_DIR)" bash rpi/apply_packages.sh
 	@bash scripts/setup-prezto.sh
-	@bash bin/unix/dots pipx apply
+	@bash bin/unix/dots pipx apply --no-prune
 	@bash rpi/repos/setup_claude-code.sh
 	@bash rpi/repos/setup_homebridge.sh
 	@bash rpi/repos/setup_tailscale.sh

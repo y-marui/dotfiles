@@ -26,11 +26,16 @@ function Show-Usage {
 Usage:
   dots status [-NoFetch]
   dots update
-  dots winget {apply|diff|cache}
-  dots ghq {apply|diff|sync|merge}
+  dots winget {apply|diff|cache}  # N/A: sync merge; 未実装: prune
+  dots ghq    {apply|diff|sync|merge}  # N/A: cache; 未実装: prune
+  dots verbs
   dots help
 
 Windowsでは status / update / winget / ghq を利用できます。
+動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
+実装状況は README.md の動詞表を参照してください。
+`dots <domain> help` でそのドメインの実装状況を表示します。
+「N/A」は意図的に存在しない動詞（終了コード0）、「未実装」は実装予定の動詞（エラー）です。
 '@
 }
 
@@ -128,10 +133,93 @@ function Show-RepositoryStatus {
     return $needsAttention
 }
 
+# ドメイン×動詞のテーブル。bin/unix/_dots-verbs.sh の _dots_domain_spec と同じ書式で、
+# scripts/check-dots-verb-table.sh が両者の一致を検証する。
+#   ok 実装済み / na 対象外（理由を $verbNaReasons に書く） / todo 未実装
+$verbs = @('apply', 'diff', 'sync', 'merge', 'prune', 'cache')
+$verbSpecs = @{
+    'ghq'    = 'apply=ok diff=ok sync=ok merge=ok prune=todo cache=na'
+    'winget' = 'apply=ok diff=ok sync=na merge=na prune=todo cache=ok'
+}
+$verbNaReasons = @{
+    'ghq:cache'    = '実状態をGit configから直接読むためキャッシュ不要'
+    'winget:sync'  = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
+    'winget:merge' = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
+}
+# どのドメインも今は受け付ける共通オプションがない（Unix側の _dots_verb_options に相当）
+$commonOptions = @('--dry-run', '--yes', '--no-prune', '--backup-dir')
+
+function Get-VerbState {
+    param([string]$Domain, [string]$Verb)
+
+    foreach ($entry in ($verbSpecs[$Domain] -split ' ')) {
+        $name, $state = $entry -split '=', 2
+        if ($name -eq $Verb) { return $state }
+    }
+    return $null
+}
+
+function Get-OkVerbs {
+    param([string]$Domain)
+
+    (@($verbs | Where-Object { (Get-VerbState -Domain $Domain -Verb $_) -eq 'ok' })) -join '|'
+}
+
+function Show-DomainHelp {
+    param([string]$Domain)
+
+    'Usage:'
+    "  dots $Domain {$(Get-OkVerbs -Domain $Domain)}"
+    foreach ($verb in $verbs) {
+        switch (Get-VerbState -Domain $Domain -Verb $verb) {
+            'na' { "    ${verb}: N/A（$($verbNaReasons["${Domain}:${verb}"])）" }
+            'todo' { "    ${verb}: 未実装" }
+        }
+    }
+}
+
+# 動詞ゲート。実行してよければ $true、N/A・helpを表示済みなら $false を返す。
+# 未実装・未知の動詞・受け付けないオプションは例外にする。
+function Test-VerbGate {
+    param([string]$Domain, [string[]]$VerbArgs)
+
+    if ($VerbArgs.Count -eq 0) {
+        throw "usage: dots $Domain {$(Get-OkVerbs -Domain $Domain)}"
+    }
+    $verb = $VerbArgs[0]
+    if ($verb -in @('help', '-h', '--help')) {
+        Show-DomainHelp -Domain $Domain
+        return $false
+    }
+    $state = Get-VerbState -Domain $Domain -Verb $verb
+    if (-not $state) {
+        throw "unknown $Domain action: $verb"
+    }
+    if ($state -eq 'na') {
+        [Console]::Error.WriteLine("N/A: dots $Domain $verb — $($verbNaReasons["${Domain}:${verb}"])")
+        return $false
+    }
+    if ($state -eq 'todo') {
+        throw "dots $Domain $verb は未実装です"
+    }
+    foreach ($argument in @($VerbArgs | Select-Object -Skip 1)) {
+        if ($argument -in $commonOptions) {
+            throw "dots $Domain $verb は $argument を受け付けません"
+        }
+    }
+    return $true
+}
+
 $commandName = if ($args.Count -gt 0) { $args[0] } else { 'help' }
 # 空配列を if 式の出力として代入すると PowerShell のパイプライン展開で $null に潰れる
 # （Set-StrictMode 下で $null.Count がエラーになる）ため、@() でパイプ全体を包んで防ぐ。
 $commandArgs = @($args | Select-Object -Skip 1)
+
+if ($verbSpecs.ContainsKey($commandName)) {
+    if (-not (Test-VerbGate -Domain $commandName -VerbArgs $commandArgs)) {
+        exit 0
+    }
+}
 
 switch ($commandName) {
     'status' {
@@ -213,6 +301,18 @@ switch ($commandName) {
         $ghqLimit = if ($ghqAction -eq 'diff') { 1 } else { 0 }
         if ($LASTEXITCODE -gt $ghqLimit) {
             exit $LASTEXITCODE
+        }
+    }
+    'verbs' {
+        if ($commandArgs.Count -gt 0) {
+            throw "unexpected argument: $($commandArgs[0])"
+        }
+        foreach ($domain in ($verbSpecs.Keys | Sort-Object)) {
+            foreach ($verb in $verbs) {
+                $state = Get-VerbState -Domain $domain -Verb $verb
+                $reason = if ($state -eq 'na') { $verbNaReasons["${domain}:${verb}"] } else { '' }
+                "$domain`t$verb`t$state`t$reason"
+            }
         }
     }
     { $_ -in @('help', '-h', '--help') } {

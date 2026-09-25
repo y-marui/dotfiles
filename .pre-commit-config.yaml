@@ -231,6 +231,20 @@ repos:
         pass_filenames: false
         files: \.(sh|ps1)$
 
+  # ============================================================
+  # [7b] dots の動詞テーブルの整合チェック
+  #      bin/unix/_dots-verbs.sh を正本として、README.md の動詞表と
+  #      bin/windows/dots.ps1 の $verbSpecs が一致することを検証する。
+  # ============================================================
+  - repo: local
+    hooks:
+      - id: check-dots-verb-table
+        name: "dots の動詞テーブル整合チェック"
+        language: system
+        entry: bash scripts/check-dots-verb-table.sh
+        pass_filenames: false
+        files: ^(README\.md|bin/unix/(dots|_dots-verbs\.sh)|bin/windows/dots\.ps1)$
+
   # dotfiles-private が同じ親ディレクトリに checkout されている場合だけ、
   # 公開側の雛形・構造契約との一致を検証する。public 単独のCIでは成功扱いでskipする。
   - repo: local
