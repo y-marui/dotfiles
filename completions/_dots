@@ -1,7 +1,7 @@
 #compdef dots
 
 _dots() {
-  local -a commands actions ghq_actions shortcuts_actions ai_actions expl
+  local -a commands actions merge_actions ghq_actions shortcuts_actions ai_actions expl
   commands=(
     'status:dotfiles・dotfiles-privateのGit状態を確認'
     'update:dotfilesとOS別パッケージを更新'
@@ -26,6 +26,13 @@ _dots() {
     'sync:現在の状態を管理ファイルへ同期'
     'cache:現在の状態をキャッシュ'
   )
+  merge_actions=(
+    'apply:設定を適用'
+    'diff:差分を表示'
+    'sync:現在の状態を管理ファイルへ同期'
+    'merge:現在の状態を管理ファイルへ追加（削除しない）'
+    'cache:現在の状態をキャッシュ'
+  )
   ghq_actions=(
     'apply:宣言を各リポジトリへ適用'
     'diff:差分を表示'
@@ -40,7 +47,7 @@ _dots() {
     'cache:現在の状態をキャッシュ'
   )
   ai_actions=(
-    'apply:不足しているMCP・plugin・skillを追加'
+    'apply:MCP・plugin・skillを宣言と一致させる(追加・更新+prune。--no-pruneで追加のみ)'
     'diff:実際の状態と管理ファイルの差分を表示'
     'prune:管理ファイルから外れたMCP・plugin・skillを削除または退避'
   )
@@ -69,13 +76,15 @@ _dots() {
       if (( CURRENT == 3 )); then
         _describe 'action' ai_actions
       elif (( CURRENT == 4 )); then
-        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
+        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only --no-prune
       fi
       ;;
     brew|dock|shortcuts)
       if (( CURRENT == 3 )); then
         if [[ "${words[2]}" == shortcuts ]]; then
           _describe 'action' shortcuts_actions
+        elif [[ "${words[2]}" == brew ]]; then
+          _describe 'action' merge_actions
         else
           _describe 'action' actions
         fi
@@ -95,7 +104,7 @@ _dots() {
       ;;
     npm|pipx)
       if (( CURRENT == 3 )); then
-        _describe 'action' actions
+        _describe 'action' merge_actions
       fi
       ;;
     ghq)
@@ -107,14 +116,14 @@ _dots() {
       if (( CURRENT == 3 )); then
         _describe 'action' ai_actions
       elif (( CURRENT == 4 )); then
-        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only
+        _wanted options expl 'option' compadd -- --mcp-only --plugin-only --skill-only --no-prune
       fi
       ;;
     copilot)
       if (( CURRENT == 3 )); then
         _describe 'action' ai_actions
       elif (( CURRENT == 4 )); then
-        _wanted options expl 'option' compadd -- --mcp-only
+        _wanted options expl 'option' compadd -- --mcp-only --no-prune
       fi
       ;;
   esac

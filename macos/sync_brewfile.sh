@@ -13,8 +13,12 @@
 #      - システムから削除されたエントリを除去（Brewfile.dump にない）
 #      - Brewfile に昇格したエントリを除去（重複防止）
 #
+# --add-only（dots brew merge）:
+#   システムに存在しない既存エントリを削除せず、追加・重複除去・ソートのみ行う。
+#   Brewfile.local も「システムから削除済」の除去をしない（昇格済の重複除去は行う）
+#
 # 使い方:
-#   DOTFILES_DIR=~/dotfiles bash sync_brewfile.sh
+#   DOTFILES_DIR=~/dotfiles bash sync_brewfile.sh [--add-only]
 #
 # brew のラッパー関数から自動呼び出しする場合は .zshrc に以下を追加:
 #   brew() {
@@ -27,6 +31,14 @@
 #   }
 
 set -euo pipefail
+
+ADD_ONLY=0
+case "${1:-}" in
+  "") ;;
+  --add-only) ADD_ONLY=1 ;;
+  *) echo "usage: sync_brewfile.sh [--add-only]" >&2; exit 2 ;;
+esac
+export ADD_ONLY
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
 export BREWFILE="$DOTFILES_DIR/macos/Brewfile"
@@ -42,6 +54,7 @@ import re, os, sys
 
 BREWFILE       = os.environ['BREWFILE']
 BREWFILE_CACHE = os.environ['BREWFILE_CACHE']
+ADD_ONLY       = os.environ.get('ADD_ONLY') == '1'
 
 ENTRY_PAT    = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 SECTION_PAT  = re.compile(r'^# ──')
@@ -96,6 +109,9 @@ while i < len(lines):
             seen_keys.add(key)
             # Brewfile.dump の行（id つき等）で上書き
             current_entries.append(dump_entries[key])
+        elif ADD_ONLY:
+            seen_keys.add(key)
+            current_entries.append(line)
         else:
             removed += 1
             print(f'[remove]    {line.rstrip()}')
@@ -159,7 +175,7 @@ while output and output[-1] == '\n':
 with open(BREWFILE, 'w', encoding='utf-8') as f:
     f.writelines(output)
 
-print(f'\nBrewfile synced: +{added} added / -{removed} removed')
+print(f'\nBrewfile {"merged" if ADD_ONLY else "synced"}: +{added} added / -{removed} removed')
 PYEOF
 
 # ── Brewfile.local を整合（存在する場合のみ） ─────────────────────────────────
@@ -170,6 +186,7 @@ import re, os
 BREWFILE        = os.environ['BREWFILE']
 BREWFILE_CACHE  = os.environ['BREWFILE_CACHE']
 BREWFILE_LOCAL  = os.environ['BREWFILE_LOCAL']
+ADD_ONLY        = os.environ.get('ADD_ONLY') == '1'
 
 ENTRY_PAT = re.compile(r'^(brew|cask|tap|mas|vscode) "([^"]+)"')
 
@@ -199,7 +216,7 @@ for line in lines:
         new_lines.append(line)
         continue
     key = f'{m.group(1)}|{m.group(2)}'
-    if key not in dump_keys:
+    if key not in dump_keys and not ADD_ONLY:
         print(f'[local remove] {line.rstrip()} (システムから削除済)')
         removed += 1
     elif key in main_keys:

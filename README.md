@@ -36,22 +36,28 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 
 初回セットアップ後の日常操作は、カレントディレクトリに依存しない `dots` を使用する。
 
+状態を管理ファイルと突き合わせるコマンドは、動詞ごとの実装状況を次の表にまとめる。
+◯は実装あり、×は実装なし、それ以外は部分的な実装で、内容を各セルに書く。
+最下行は各動詞の標準動作で、セルの記述はこの標準動作との違いを表す。
+
+| コマンド | apply | diff | sync | merge | prune | cache | 説明 |
+|---------|-------|------|------|-------|-------|-------|------|
+| `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup） | ◯ | ◯ | ◯ | × | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
+| `dots dock` | ◯ | ◯ | 他マシン由来の項目は保持（実質merge） | × | × | ◯ | Dock・Finderサイドバー（dotfiles-private） |
+| `dots shortcuts` | ◯（ローカルのみの設定は消える） | ◯ | ◯ | ◯ | × | ◯ | macOSのアプリケーションショートカット |
+| `dots npm` | 不足をinstall。余分は一覧表示のみで削除しない | ◯ | ◯ | ◯ | × | ◯ | npmグローバルパッケージ |
+| `dots pipx` | 不足をinstall。余分は一覧表示のみで削除しない | ◯ | ◯ | ◯ | × | ◯ | pipxパッケージ |
+| `dots ghq` | ◯ | ◯ | ◯ | ◯ | × | ×（Git configを直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
+| `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯（apply単独の削除部分） | × | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
+| `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | × | × | ◯ | × | Copilot CLIのuser scope MCPのみ |
+| 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
+
+その他のコマンド:
+
 | コマンド | 説明 |
 |---------|------|
 | `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
 | `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
-| `dots brew apply` | Brewfileと現在のHomebrew状態の差分だけを適用 |
-| `dots brew apply --full` | Brewfile / Brewfile.localを従来どおり全件適用 |
-| `dots brew diff` | Brewfileの差分を表示 |
-| `dots brew sync` | 現在のHomebrew状態をBrewfileに同期 |
-| `dots dock apply` | Dock・Finderサイドバーを適用 |
-| `dots dock diff` | Dock・Finderサイドバーの差分を表示 |
-| `dots dock sync` | 現在のDock・Finderサイドバーを管理ファイルに同期 |
-| `dots shortcuts {apply\|diff\|sync\|merge\|cache}` | macOSのアプリケーションショートカットを管理（applyは管理ファイルと完全一致、mergeで現在値を先に取り込める） |
-| `dots npm {apply\|diff\|sync\|cache}` | npmグローバルパッケージ設定を操作 |
-| `dots pipx {apply\|diff\|sync\|cache}` | pipxパッケージ設定を操作 |
-| `dots ghq {apply\|diff\|sync\|merge}` | `ghq-update`の更新対象（`local.keep-up-to-date`）をdotfiles-privateの宣言ファイル（`ghq/keep-up-to-date`・`.local`）で管理（applyは宣言と完全一致、mergeで現在値を追記のみで取り込める） |
-| `dots ai {apply\|diff\|prune}` | Claude Code・Codex の MCP・plugin・skill を一括管理 |
 | `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
 | `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |
 
@@ -139,8 +145,9 @@ CLI・Coding・リポジトリ・Git/GitHub の作業は
 
 `dots claude {diff|apply|prune}` は MCP・plugin・skill をまとめて処理する。
 `--mcp-only`、`--plugin-only`、`--skill-only` で対象を1種類に限定できる。
-`apply` は追加・更新だけを行い、`prune` は未宣言の user scope MCP / plugin と
-dotfiles 所有の skill リンクだけを削除またはバックアップへ退避する。
+`apply` は追加・更新に続けて `prune` を実行して宣言と完全一致させる（`--no-prune` で追加・更新のみ）。
+`prune` は未宣言の user scope MCP / plugin と dotfiles 所有の skill リンクだけを
+削除またはバックアップへ退避し、単独でも実行できる。
 IDE/app と local/project scope のMCPは検出するが `prune` の対象外とする。local scopeは
 `~/.claude.json` 内の端末・リポジトリ固有設定、project scopeは各リポジトリの
 `.mcp.json` にある共有設定として区別して表示する。
@@ -198,7 +205,7 @@ LaunchAgentのplistと実行スクリプトはdotfilesで共有し、既存Mac�
 
 Claude Code・Codex の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、
-`--skill-only` は3エージェントすべてへ渡される。Copilot は管理対象が user scope MCP
+`--skill-only`、`--no-prune` は3エージェントすべてへ渡される。Copilot は管理対象が user scope MCP
 のみで引数体系が異なるため、`dots ai` には含めず `dots copilot` で個別に操作する。
 
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、

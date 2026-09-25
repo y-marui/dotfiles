@@ -37,15 +37,15 @@ Usage:
   dots status [--no-fetch]
   dots update
   dots brew apply [--full] [--backup-dir DIR]
-  dots brew {diff|sync|cache}
+  dots brew {diff|sync|merge|cache}
   dots dock {apply|diff|sync|cache} [--backup-dir DIR]
   dots shortcuts {apply|diff|sync|merge|cache} [--backup-dir DIR]
-  dots npm {apply|diff|sync|cache}
-  dots pipx {apply|diff|sync|cache}
+  dots npm {apply|diff|sync|merge|cache}
+  dots pipx {apply|diff|sync|merge|cache}
   dots ghq {apply|diff|sync|merge}
-  dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
-  dots {claude|codex} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]
-  dots copilot {apply|diff|prune} [--mcp-only]
+  dots ai {apply|diff|prune} [--no-prune] [--mcp-only|--plugin-only|--skill-only]
+  dots {claude|codex} {apply|diff|prune} [--no-prune] [--mcp-only|--plugin-only|--skill-only]
+  dots copilot {apply|diff|prune} [--no-prune] [--mcp-only]
   dots check [--verbose]
   dots commit
   dots push [--no-fetch]
@@ -358,7 +358,7 @@ _backup_dir_arg() {
 
 _brew() {
   local action="${1:-}" backup_dir full=false
-  [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|cache}"
+  [[ -n "${action}" ]] || _error "usage: dots brew {apply|diff|sync|merge|cache}"
   shift
 
   case "${action}" in
@@ -409,6 +409,11 @@ _brew() {
     sync)
       _require_no_args "$@"
       bash "${DOTFILES_DIR}/macos/sync_brewfile.sh"
+      bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
+      ;;
+    merge)
+      _require_no_args "$@"
+      bash "${DOTFILES_DIR}/macos/sync_brewfile.sh" --add-only
       bash "${DOTFILES_DIR}/macos/update_brewpin_cache.sh"
       ;;
     cache)
@@ -498,7 +503,7 @@ _shortcuts() {
 
 _package_file() {
   local package="$1" action="${2:-}"
-  [[ -n "${action}" ]] || _error "usage: dots ${package} {apply|diff|sync|cache}"
+  [[ -n "${action}" ]] || _error "usage: dots ${package} {apply|diff|sync|merge|cache}"
   shift 2
   _require_no_args "$@"
 
@@ -512,6 +517,7 @@ _package_file() {
       ;;
     diff)  bash "${DOTFILES_DIR}/${package}/diff_${package}file.sh" || true ;;
     sync)  bash "${DOTFILES_DIR}/${package}/sync_${package}file.sh" ;;
+    merge) bash "${DOTFILES_DIR}/${package}/sync_${package}file.sh" --add-only ;;
     cache) bash "${DOTFILES_DIR}/${package}/update_${package}cache.sh" ;;
     *) _error "unknown ${package} action: ${action}" ;;
   esac
@@ -537,8 +543,8 @@ _ghq() {
 
 _ai_agent() {
   local agent="$1" action="${2:-}"
-  local mcp_only=false plugin_only=false skill_only=false only_count=0
-  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]"
+  local mcp_only=false plugin_only=false skill_only=false only_count=0 no_prune=false
+  [[ -n "${action}" ]] || _error "usage: dots ${agent} {apply|diff|prune} [--no-prune] [--mcp-only|--plugin-only|--skill-only]"
   shift 2
 
   [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
@@ -550,6 +556,7 @@ _ai_agent() {
       --mcp-only) mcp_only=true ;;
       --plugin-only) plugin_only=true ;;
       --skill-only) skill_only=true ;;
+      --no-prune) no_prune=true ;;
       *) _error "unknown ${agent} option: ${arg}" ;;
     esac
   done
@@ -557,6 +564,7 @@ _ai_agent() {
   [[ "${plugin_only}" == true ]] && (( only_count++ )) || true
   [[ "${skill_only}" == true ]] && (( only_count++ )) || true
   (( only_count <= 1 )) || _error "--mcp-only / --plugin-only / --skill-only は同時指定できない"
+  [[ "${no_prune}" == false || "${action}" == apply ]] || _error "--no-prune は apply でだけ指定できる"
 
   local run_mcp=true run_plugin=true run_skill=true
   if (( only_count == 1 )); then
@@ -569,7 +577,10 @@ _ai_agent() {
     echo "--- mcp ---"
     case "${action}" in
       diff) bash "${DOTFILES_DIR}/ai/${agent}/mcp/diff.sh" || true ;;
-      apply) bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh" ;;
+      apply)
+        bash "${DOTFILES_DIR}/ai/${agent}/mcp/apply.sh"
+        [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/${agent}/mcp/prune.sh"
+        ;;
       prune) bash "${DOTFILES_DIR}/ai/${agent}/mcp/prune.sh" ;;
     esac
   fi
@@ -577,7 +588,10 @@ _ai_agent() {
     echo "--- plugin ---"
     case "${action}" in
       diff) bash "${DOTFILES_DIR}/ai/${agent}/plugin/diff.sh" || true ;;
-      apply) bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh" ;;
+      apply)
+        bash "${DOTFILES_DIR}/ai/${agent}/plugin/apply.sh"
+        [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/${agent}/plugin/prune.sh"
+        ;;
       prune) bash "${DOTFILES_DIR}/ai/${agent}/plugin/prune.sh" ;;
     esac
   fi
@@ -585,7 +599,10 @@ _ai_agent() {
     echo "--- skill ---"
     case "${action}" in
       diff) bash "${DOTFILES_DIR}/ai/skills/diff.sh" "${agent}" || true ;;
-      apply) bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}" ;;
+      apply)
+        bash "${DOTFILES_DIR}/ai/skills/apply.sh" "${agent}"
+        [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/skills/prune.sh" "${agent}"
+        ;;
       prune) bash "${DOTFILES_DIR}/ai/skills/prune.sh" "${agent}" ;;
     esac
   fi
@@ -594,7 +611,7 @@ _ai_agent() {
 _ai() {
   local action="${1:-}"
   [[ -n "${action}" ]] || \
-    _error "usage: dots ai {apply|diff|prune} [--mcp-only|--plugin-only|--skill-only]"
+    _error "usage: dots ai {apply|diff|prune} [--no-prune] [--mcp-only|--plugin-only|--skill-only]"
   shift
 
   [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
@@ -610,19 +627,28 @@ _ai() {
 
 _copilot() {
   local action="${1:-}"
-  [[ -n "${action}" ]] || _error "usage: dots copilot {apply|diff|prune} [--mcp-only]"
+  [[ -n "${action}" ]] || _error "usage: dots copilot {apply|diff|prune} [--no-prune] [--mcp-only]"
   shift
 
   [[ "${action}" == apply || "${action}" == diff || "${action}" == prune ]] || \
     _error "unknown copilot action: ${action} (apply/diff/prune are supported)"
-  if (( $# > 0 )); then
-    [[ "$1" == "--mcp-only" && $# -eq 1 ]] || _error "unknown copilot option: $1"
-  fi
+  local no_prune=false arg
+  for arg in "$@"; do
+    case "${arg}" in
+      --mcp-only) ;;
+      --no-prune) no_prune=true ;;
+      *) _error "unknown copilot option: ${arg}" ;;
+    esac
+  done
+  [[ "${no_prune}" == false || "${action}" == apply ]] || _error "--no-prune は apply でだけ指定できる"
 
   echo "--- mcp ---"
   case "${action}" in
     diff) bash "${DOTFILES_DIR}/ai/copilot/mcp/diff.sh" || true ;;
-    apply) bash "${DOTFILES_DIR}/ai/copilot/mcp/apply.sh" ;;
+    apply)
+      bash "${DOTFILES_DIR}/ai/copilot/mcp/apply.sh"
+      [[ "${no_prune}" == true ]] || bash "${DOTFILES_DIR}/ai/copilot/mcp/prune.sh"
+      ;;
     prune) bash "${DOTFILES_DIR}/ai/copilot/mcp/prune.sh" ;;
   esac
 }
