@@ -49,12 +49,12 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 
 | コマンド | apply | diff | sync | merge | prune | cache | 説明 |
 |---------|-------|------|------|-------|-------|-------|------|
-| `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup。`--no-prune`でcleanupを省略） | ◯ | ◯ | ◯ | 未実装（applyのcleanupで代用） | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
-| `dots dock` | ◯（差分のある側を再構築） | ◯ | ◯（他マシン由来の項目は保持） | 未実装（syncが実質merge） | N/A（applyが全体を再構築するため削除だけを分離できない） | ◯ | Dock・Finderサイドバー（dotfiles-private） |
-| `dots shortcuts` | ◯（ローカルのみの設定は消える） | ◯ | ◯ | ◯ | 未実装（applyが完全一致） | ◯ | macOSのアプリケーションショートカット |
-| `dots npm` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯ | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | npmグローバルパッケージ |
-| `dots pipx` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯ | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | pipxパッケージ |
-| `dots ghq` | ◯（宣言外は`--unset`） | ◯ | ◯ | ◯ | 未実装（applyが完全一致） | N/A（実状態をGit configから直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
+| `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup。`--no-prune`でcleanupを省略。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（cleanup。`--dry-run`あり） | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
+| `dots dock` | ◯（差分のある側を再構築。`--dry-run`はdiffと同じ表示） | ◯（`--summary`・`--exit-code`あり） | ◯（実機と完全一致。他マシン由来の項目も消えるため、削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（他マシン由来の項目を保持。`--dry-run`あり） | N/A（applyが全体を再構築するため削除だけを分離できない） | ◯ | Dock・Finderサイドバー（dotfiles-private） |
+| `dots shortcuts` | ◯（ローカルのみの設定は消える。`--no-prune`で追加・更新のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（ローカルのみの設定を削除。`--dry-run`あり） | ◯ | macOSのアプリケーションショートカット |
+| `dots npm` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | npmグローバルパッケージ |
+| `dots pipx` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | pipxパッケージ |
+| `dots ghq` | ◯（宣言外は`--unset`） | ◯（`--summary`・`--exit-code`あり） | ◯ | ◯ | 未実装（applyが完全一致） | N/A（実状態をGit configから直接読む） | `ghq-update`の更新対象（`local.keep-up-to-date`） |
 | `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯（apply単独の削除部分） | N/A（実状態を直接読む） | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
 | `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯ | N/A（実状態を直接読む） | Copilot CLIのuser scope MCPのみ |
 | `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致） | ◯（`--summary`あり） | N/A（宣言は理由コメント付きで人が編集する） | N/A（宣言は理由コメント付きで人が編集する） | 未実装（applyが完全一致） | ◯ | `windows/WingetPin`の一時pin宣言 |
@@ -64,8 +64,11 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 
 - `--no-prune`: `apply` で削除を行わず、追加・更新のみ行う。`make install`など無人で実行される経路は、
   dock・shortcutsを除いてこれを付ける
-- `--dry-run`: 何も変更せず、実行した場合の変更予定だけを表示する（現在はnpm・pipxのみ。他は順次対応）
-- `--yes`: 宣言側の項目を削除する `sync` に必要（削除がなければ不要。現在はnpm・pipxのみ）
+- `--dry-run`: 何も変更せず、実行した場合の変更予定だけを表示する（brew・dock・shortcuts・npm・pipxが対象。
+  ghq・winget・ai系は未対応）
+- `--yes`: 宣言側の項目を削除する `sync` に必要（削除がなければ不要。brew・dock・shortcuts・npm・pipxが対象）
+- `--summary` / `--exit-code`: `diff` 専用。`--summary` は差分の件数を1行で示し（aiの`diff`を除く）、
+  `--exit-code` は差分があれば終了コード1を返す（既定は差分があっても0）。Windowsは未対応
 - `--backup-dir DIR`: 削除・上書きの前に退避するディレクトリ（既定は `~/.dotfiles-backup/<timestamp>/`）
 
 その他のコマンド:
@@ -83,7 +86,7 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 
 `dots commit` は dotfiles / dotfiles-private それぞれの working tree を確認し、
 `macos/Brewfile` / `macos/Brewfile.local` / `npm/npmfile` / `pipx/pipxfile`
-（dotfiles-private側は `macos/dockfile` / `macos/keyboard-shortcuts.plist`）
+（dotfiles-private側は `macos/dockfile` / `macos/keyboard-shortcuts.plist` / `ghq/keep-up-to-date`）
 だけが変更されている場合に限り、自動生成した Conventional Commits 形式のメッセージで
 commitする。これら以外のファイルが1つでも変更に含まれる場合は何もcommitせず、
 手動でのcommitを促す（自動commit対象のファイルだけを部分的にcommitすることはしない）。

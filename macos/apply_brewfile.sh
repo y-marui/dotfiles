@@ -11,9 +11,13 @@
 #     2. 余分なエントリがある場合だけcleanup
 #   --no-cleanup（dots brew apply --no-prune）:
 #     cleanupとmasの未管理アプリ確認を行わない（追加・更新のみ）。無人経路で使う
+#   --prune-only（dots brew prune）:
+#     インストールは行わず、cleanupとmasの未管理アプリ確認だけを行う
+#   --dry-run:
+#     何も変更しない。追加予定のエントリを表示し、cleanupは --force なし（一覧表示のみ）で実行する
 #
 # 使い方:
-#   DOTFILES_DIR=~/dotfiles bash apply_brewfile.sh [--diff-only] [--no-cleanup] [--force]
+#   DOTFILES_DIR=~/dotfiles bash apply_brewfile.sh [--diff-only] [--no-cleanup] [--prune-only] [--dry-run] [--force]
 
 set -euo pipefail
 
@@ -24,6 +28,8 @@ BREWFILE_LOCAL="$DOTFILES_DIR/macos/Brewfile.local"
 FORCE=0
 DIFF_ONLY=0
 NO_CLEANUP=0
+PRUNE_ONLY=0
+DRY_RUN=0
 YELLOW=$'\033[1;33m'
 RESET=$'\033[0m'
 
@@ -32,9 +38,20 @@ for arg in "$@"; do
     --force) FORCE=1 ;;
     --diff-only) DIFF_ONLY=1 ;;
     --no-cleanup) NO_CLEANUP=1 ;;
+    --prune-only) PRUNE_ONLY=1 ;;
+    --dry-run) DRY_RUN=1 ;;
     *) echo "error: unknown option: $arg" >&2; exit 1 ;;
   esac
 done
+
+if [[ $PRUNE_ONLY -eq 1 && $NO_CLEANUP -eq 1 ]]; then
+  echo "error: --prune-only と --no-cleanup は同時に指定できません" >&2
+  exit 1
+fi
+# --prune-only は差分判定を使わず、常に cleanup を確認する
+[[ $PRUNE_ONLY -eq 0 ]] || DIFF_ONLY=0
+# --dry-run では削除しない（brew bundle cleanup は --force なしだと一覧表示のみ）
+[[ $DRY_RUN -eq 0 ]] || FORCE=0
 
 # Brewfile と Brewfile.local を合わせて cleanup（local のパッケージを誤削除しない）
 COMBINED=$(mktemp)
@@ -48,7 +65,9 @@ fi
 missing_count=0
 extra_count=0
 
-if [[ $DIFF_ONLY -eq 1 ]]; then
+if [[ $PRUNE_ONLY -eq 1 ]]; then
+  echo "==> Skipping install (--prune-only)."
+elif [[ $DIFF_ONLY -eq 1 ]]; then
   if [[ ! -f "$BREWFILE_CACHE" ]]; then
     echo "error: Brewfile.cache not found: $BREWFILE_CACHE" >&2
     exit 1
@@ -101,12 +120,17 @@ print(len(missing_lines), len(cache_keys - managed_keys))
 PYEOF
   )
 
-  if [[ $missing_count -gt 0 ]]; then
+  if [[ $missing_count -gt 0 && $DRY_RUN -eq 1 ]]; then
+    echo "==> [dry-run] ${missing_count} missing Brewfile entries would be installed:"
+    sed 's/^/  [dry-run] install  /' "$DELTA"
+  elif [[ $missing_count -gt 0 ]]; then
     echo "==> Installing ${missing_count} missing Brewfile entries..."
     brew bundle install --file="$DELTA"
   else
     echo "==> No missing Brewfile entries."
   fi
+elif [[ $DRY_RUN -eq 1 ]]; then
+  echo "==> [dry-run] brew bundle install (Brewfile / Brewfile.local の全件) は実行しません。"
 else
   # 現在のdots brew apply --fullと同じ全件適用。
   echo "==> Installing packages from Brewfile..."
