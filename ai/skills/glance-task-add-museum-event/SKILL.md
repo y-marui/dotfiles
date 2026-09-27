@@ -40,13 +40,6 @@ python3 <skill-dir>/scripts/museum_events.py add \
 
 正規化後のメモと希望する順序を確認する。ユーザーが作成を許可しており、プレビュー結果が曖昧でなければ、同一コマンドに `--apply` を付けて適用する。
 
-```bash
-python3 <skill-dir>/scripts/museum_events.py add \
-  --group "美術展: 関東" \
-  --title "展示名" --start 2026/08/15 --end 2026/10/12 \
-  --venue "根津美術館" --apply
-```
-
 CLIは書き込み前に未完了の最上位タスクをすべて事前確認する。既存メモを解析できない、またはグループの順序がすでに不正な場合は、新規タスクを作成せず、先に整形skillで修復する。
 
 ## Position the Event
