@@ -48,7 +48,7 @@ fi
 while IFS= read -r f; do
   echo ""
   echo "==> $f"
-  _ghq_sync_upstream_fork "$f"
+  _git_fork_sync_upstream "$f"
   if ! git -C "$f" fetch origin --prune; then
     echo "  [skip pull] fetch failed"
     continue

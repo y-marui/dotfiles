@@ -149,7 +149,7 @@ foreach ($f in $repos) {
     if ($UV_SYNC_ONLY) {
         $pulled = $true
     } else {
-        Sync-GhqUpstreamFork $f
+        Sync-GitForkUpstream $f
 
         $global:LASTEXITCODE = $null
         & git -C $f fetch origin --prune
