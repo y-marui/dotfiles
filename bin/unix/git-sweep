@@ -16,6 +16,9 @@
 # 旧 git-sweep-main / git-sweep-protected 属性も互換fallbackとして読み取る。
 #
 # 動作:
+#   0. upstream という名前の remote があれば、fetch の前に `gh repo sync` で
+#      upstream のデフォルトブランチを origin へ fast-forward 反映する
+#      （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
 #   1. fetch --prune でリモートの削除済みブランチを反映
 #   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
 #      削除を一切行わずスキップし、理由を表示する
@@ -55,6 +58,10 @@
 #     コミットがある場合は不一致になり対象外のまま残る）
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=bin/unix/_git-fork-lib.sh
+source "${SCRIPT_DIR}/_git-fork-lib.sh"
 
 ALL=false
 MAIN=""
@@ -155,6 +162,8 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
   echo "error: not a git repository" >&2
   exit 1
 fi
+
+_git_fork_sync_upstream "$(pwd)"
 
 git fetch --all --prune --quiet
 

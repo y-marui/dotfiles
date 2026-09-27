@@ -28,11 +28,13 @@ _最終更新: 2026-09-15_
 | `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリの fetch + pull、upstream fork sync | `upstream` remote |
-| `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、upstream fork sync、自動PRのPR先解決） | `upstream` remote、`bin/ghq-upstream-pr-allow` |
+| `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行、upstream fork sync | `upstream` remote |
+| `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、自動PRのPR先解決） | `bin/unix/_git-fork-lib.sh`、`bin/ghq-upstream-pr-allow` |
+| `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1` | GitHub標準のfork運用（`upstream` remote）の共通関数（owner/repo解決、`gh repo sync`によるupstream→origin同期）。ghqを前提としないため`git-sweep`からも直接利用する | `upstream` remote |
 | `bin/ghq-upstream-pr-allow` | 自動PR機能がfork元（upstream）へPRしてよい`owner/repo`パターンの許可リスト | `bin/unix/_ghq-lib.sh`、`bin/windows/_ghq-lib.ps1`、`shell/zshrc`（`gh()`） |
 | `shell/zshrc`（`gh()`関数） | `upstream` remoteがあり許可リストに一致するリポジトリで、`gh pr create --repo <origin>`を拒否（うっかり防止） | `bin/ghq-upstream-pr-allow` |
 | `ghq/keep-up-to-date.sh` / `ghq/keep-up-to-date.ps1` | `local.keep-up-to-date`の宣言管理（`dots ghq {apply\|diff\|sync\|merge}`と`dots check`の要約。詳細は[specification.md#dots-ghq](specification.md#dots-ghq)） | `dotfiles-private/ghq/keep-up-to-date`・`.local`、`git config local.keep-up-to-date`、`ghq root`/`ghq list -p`、`scripts/test-ghq-keep-up-to-date.sh`（Unix版回帰テスト） |
-| `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証、fast-forward-only同期。詳細は[specification.md#git-sweep](specification.md#git-sweep)） | `.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
+| `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証、fast-forward-only同期、upstream fork sync。詳細は[specification.md#git-sweep](specification.md#git-sweep)） | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1`、`.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
 
 ## dev-charter Installation
 

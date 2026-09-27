@@ -16,6 +16,9 @@
 # 旧 git-sweep-main / git-sweep-protected 属性も互換fallbackとして読み取る。
 #
 # 動作:
+#   0. upstream という名前の remote があれば、fetch の前に `gh repo sync` で
+#      upstream のデフォルトブランチを origin へ fast-forward 反映する
+#      （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
 #   1. fetch --prune でリモートの削除済みブランチを反映
 #   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
 #      削除を一切行わずスキップし、理由を表示する
@@ -54,6 +57,8 @@
 #     コミットがある場合は不一致になり対象外のまま残る）
 
 Set-StrictMode -Version Latest
+
+. "$PSScriptRoot\_git-fork-lib.ps1"
 
 function Write-Stderr([string]$Message) {
     [Console]::Error.WriteLine($Message)
@@ -161,6 +166,8 @@ if ($LASTEXITCODE -ne 0) {
     Write-Stderr "error: not a git repository"
     exit 1
 }
+
+Sync-GitForkUpstream (Get-Location).Path
 
 & git fetch --all --prune --quiet
 

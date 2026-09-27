@@ -117,7 +117,7 @@ while IFS= read -r f; do
   if [[ "$UV_SYNC_ONLY" == true ]]; then
     pulled=true
   else
-    _ghq_sync_upstream_fork "$f"
+    _git_fork_sync_upstream "$f"
     if ! git -C "$f" fetch origin --prune; then
       echo "  [skip pull] fetch failed"
       continue

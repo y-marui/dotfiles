@@ -68,7 +68,7 @@ foreach ($f in $repos) {
     Write-Host ""
     Write-Host "==> $f"
 
-    Sync-GhqUpstreamFork $f
+    Sync-GitForkUpstream $f
 
     $global:LASTEXITCODE = $null
     & git -C $f fetch origin --prune
