@@ -14,9 +14,9 @@
 #   ghq list -p のリポジトリ（-s 指定時は ghq-status --paths-only の結果）に対して
 #   git-sweep --all を実行する。
 #   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
-#   upstream という名前の remote があれば、git-sweep 実行前に `gh repo sync` で
-#   upstream のデフォルトブランチを origin へ fast-forward 反映する
-#   （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）。
+#   upstream という名前の remote があれば、git-sweep 自体が fetch の前に
+#   `gh repo sync` で upstream のデフォルトブランチを origin へ fast-forward
+#   反映する（diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）。
 #   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
 #   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
 #   それら以外にも dirty な変更がある場合はスキップする。
@@ -95,8 +95,6 @@ foreach ($repo in $repos) {
         $skipped++
         continue
     }
-
-    Sync-GitForkUpstream $repo
 
     if (-not (Push-GhqLockfileStash $repo)) {
         Write-Host "  [skip] dirty working tree"
