@@ -33,7 +33,7 @@ AI はタスク開始時に以下の順で参照する:
     （GitHub App `chatgpt-codex-connector` がこのリポジトリに導入済み）。結果は
     インクリメンタルに表示されず、完了時に一括で反映される
   - tokenを消費するため、AIがこのコメントを投稿する場合は依頼前に必ずユーザーへ確認する
-    （codex MCP経由でのレビュー依頼も同様に、実行前にユーザーへ確認する）
+    （`codex review` / `codex exec` 経由でのレビュー依頼も同様に、実行前にユーザーへ確認する）
 
 ## Purpose of This Repository
 
