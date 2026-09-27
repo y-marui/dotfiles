@@ -2,12 +2,13 @@
 set -euo pipefail
 # Claude Code PreToolUse hook
 # stdin: JSON { "tool_input": { "command": "..." }, ... }
+# コマンドを書き換えた場合だけ、hookSpecificOutput.updatedInput（tool_input全体）をstdoutへ出す。
+# 書き換えない場合は何も出力せず、そのまま実行させる。
 
 input=$(cat)
 cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty')
 
 if [ -z "$cmd" ]; then
-  printf '%s' "$input"
   exit 0
 fi
 
@@ -21,7 +22,6 @@ new_cmd=$(printf '%s' "$cmd" | sed -E \
 )
 
 if [ "$new_cmd" != "$cmd" ]; then
-  printf '%s' "$input" | jq --arg c "$new_cmd" '.tool_input.command = $c'
-else
-  printf '%s' "$input"
+  printf '%s' "$input" | jq --arg c "$new_cmd" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", updatedInput: (.tool_input | .command = $c)}}'
 fi
