@@ -1,6 +1,6 @@
 ---
 name: docx-proofreading
-description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofread multilingual text or Microsoft Word (.docx) documents for research, academic, business, and general use with paragraph-level language and locale detection, minimal meaning-preserving edits, Word tracked-change safeguards, and optional Word-based layout verification. Use for proofreading, copyediting, or Word layout review; do not use for translation or substantive changes to facts, scientific claims, or argument conclusions."
+description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofread multilingual text or Microsoft Word (.docx) documents with minimal meaning-preserving edits, tracked-change safeguards, and optional Word-based layout verification. Use for proofreading, copyediting, or Word layout review; do not use for translation or substantive changes to facts, scientific claims, or conclusions."
 ---
 
 # Word Proofreading
@@ -9,20 +9,10 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 
 ## Local proofreading instructions
 
-ファイルを対象とする校正では、レビューや編集の前に同階層の `PROOFREADING.md` と、DOCX向けの `PROOFREADING.docx.md` を順に探す。この手順で、文書がGitリポジトリ内にある必要はない。
+レビューや編集の前に [../_proofreading-common/local-instructions.md](../_proofreading-common/local-instructions.md) を全文読み、`<fmt>` を `docx` として適用する。加えて次を守る。
 
-- 同階層のファイルは、そのフォルダ内のすべての文書に適用する。文書へ追加する本文ではなく、レビュー方針として扱う。
-- `PROOFREADING.md` の先頭にある `@<relative-path>` 行は、`$OBSIDIAN_ROOT/writing/` を基準にした執筆・校閲ガイドの必須参照である。各参照先を本文より先に読む。`@` 行には相対パスだけを許可し、絶対パス・`..` を含むパス・先頭以外の `@` 行は参照として扱わない。
-- `PROOFREADING.docx.md` は `PROOFREADING.md` の後に、DOCX文書だけへ適用する。ここに書かれた `@` 行は外部参照として解決せず、通常のローカル指示として扱う。
-- `@` 行がある場合は、通常のシェル初期化を読まずに `zsh -f` で `$HOME/.ai/zsh_path.local` だけを source し、そこで export された `OBSIDIAN_ROOT` を参照先の解決に用いる。この設定ファイルは AI 用のパス設定に限定し、対話処理、標準出力、ネットワークアクセス、ファイル変更を含めない。雛形は `dotfiles/ai/zsh_path.local.example` に置く。
-- `@` 行があるにもかかわらず `$HOME/.ai/zsh_path.local` が存在しない・読めない、source 後も `OBSIDIAN_ROOT` が未設定、または `$OBSIDIAN_ROOT/writing/<relative-path>` が存在しない・読めない場合は、校閲・編集を開始しない。設定ファイルのパス、未設定の変数名、または解決しようとした完全パスを示して、設定または参照の修正をユーザーに求める。同名ファイルの探索や、ローカルルールだけでの続行はしない。
-- 指示は、skillの既定、同階層の `PROOFREADING.md`、`PROOFREADING.docx.md`、今回のユーザー依頼の順に適用する。競合時は後のものを優先する。
 - 明示されたローカルの対象範囲、組版、用語方針に従う。ローカルルールが未検証の科学的または実質的な判断を要求する場合は、本文を保持して代わりにアンカー付きコメントを付ける。
-- フォームや雛形の未記入欄は、ユーザーが明示的に依頼しない限り補完・編集しない。
-- ユーザーがファイルを添付またはドロップした場合、元の場所を確実に特定でき、読み書きできるときは、その場所の原本を処理対象とし、校正コピーも同じ場所に保存する。元の場所を特定できない、アクセスできない、または同じ場所に保存できない場合は、添付コピーを原本の場所とみなさず、編集前にユーザーへ処理対象と出力先を確認する。
 - 特別な範囲指定がない限り、変更履歴の有無にかかわらず、ローカルルールと依頼で対象となる文書全体を確認する。既存の変更履歴がある箇所だけをレビュー対象に限定しない。
-- 同階層の `proofreading/HANDOFF.md` がある場合は、ローカルルールの後に読み、対象文書・版・更新時刻が一致する作業状況だけを再開時の補助情報として使う。引き継ぎメモは恒久ルールではなく、現在の文書状態と矛盾する場合は現物確認を優先する。
-- 納品時に適用したローカルファイル（`PROOFREADING.md` / `PROOFREADING.docx.md`）を明記する。どちらも存在しない場合は、このskillの既定手順で進める。
 
 ## Word document safeguards
 
@@ -41,7 +31,7 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 - `.docx` への実際の変更履歴・コメントの追加は、その場でPythonスクリプトを書かず、`pipx` で導入された `docx-redline` コマンド（実体は [y-marui/python-docx-redline](https://github.com/y-marui/python-docx-redline)）のサブコマンドで行う。`docx-redline inspect` で編集前の段落・既存コメント・変更履歴を確認し、既存変更履歴の承諾には `accept-revisions`、編集には `replace`（一致1件が既定、複数箇所は `--occurrence`/`--all`）、`replace-batch`（複数の置換をJSONでまとめて適用）、`replace-paragraph`、`insert-paragraph`、`add-comment`、`strip-comments`、`strip-format-revisions` を用いて編集し、納品前に `validate` で安全確認する。コメント・変更履歴の著者名は、実行中のコードエージェント名を `--author` で明示して用いる。名前を確認できない場合、汎用の既定名で記録せず、ユーザーに確認する。既存のコメント著者になりすましてはならない。
 - `docx-redline inspect` のテキストに、図表キャプション等が同一段落内で2回連続して現れることがある（フロート画像・テキストボックスがアンカー段落に文字位置として重複反映されるため）。これは抽出結果の見かけ上の重複であり、本文の実際の重複とは限らない。編集前にレンダリングPDF（Wordでの`export-pdf`、または既存の同時点PDF）で実際の表示を確認してから、重複と誤認して削除・修正しない。
 - `docx-redline` のサブコマンドで安全に表現できない編集（数式・コンテンツコントロール・フィールドをまたぐ置換など）だけ、その場限りの補助スクリプトを書いてよい。実行して検証に成功したコードは保存する。保存先は `<source-directory>/proofreading/scripts/<source-document-stem>/` とし、importの相対構造を維持する。作業開始時にディレクトリの有無を確認せず、保存が必要になった時点で作成する。同じ種類の欠落に繰り返し遭遇する場合は、使い捨てスクリプトを積み上げる代わりに `docx-redline` 側への機能追加（Issue・PR）を検討する。
-- 補助スクリプトが生成した一時ファイル・中間出力（レンダリングページ、デバッグ用の途中生成物、検証に使った一時DOCX等）は、`<source-directory>/proofreading/cache/<source-document-stem>/` に保存する。スクリプト自体は `<source-directory>/proofreading/scripts/<source-document-stem>/` に保存し、再現に必要な入出力関係だけをコメントで示す。
+- 補助スクリプトの一時ファイル・中間出力（レンダリングページ、途中生成物、検証用の一時DOCX等）は `<source-directory>/proofreading/cache/<source-document-stem>/` に保存する。スクリプトには再現に必要な入出力関係だけをコメントで示す。
 - 納品前に、出力が開けてレンダリングできること、今回の編集がWordの変更履歴として表示・受諾・却下可能なこと、既存のレビュー状態が依頼どおり保持または処理されたこと、保護対象が原本と一致すること、原本が未変更であることを確認する。確認できない項目は成功として扱わず、制約を明記する。
 
 ## Retain durable proofreading knowledge
@@ -58,19 +48,13 @@ description: "Modes: Light / Standard / Deep / Deep-Auto / Layout-Check. Proofre
 
 ## Select the mode
 
-ユーザーが指定したモードを使う。モードが指定されていない場合は、校閲・編集を開始せず、次の選択肢を提示して選択を確認する。`Layout-Check` は文章校正の深さとは独立しており、1〜4の選択に `+ Layout-Check` として明示的に組み合わせられる。レイアウト確認を暗黙に追加しない。
+ユーザーが指定したモードを使う。モードが指定されていない場合は、校閲・編集を開始せず、次の1〜4から選択を確認する。`Layout-Check` は文章校正の深さとは独立しており、1〜4に `+ Layout-Check` として明示的に組み合わせられる。レイアウト確認を暗黙に追加しない。
 
-1. `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。
-2. `Standard`: Lightに加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。
-3. `Deep`: Standardに加え、論理、構成、学術文体、主張と根拠の対応をレビューする。
-4. `Deep-Auto`: DOCXの安全な変更履歴として適用できる、意味を変えない一意な修正を自動適用する。
-5. `Layout-Check`: 本文を編集せず、組版と表示だけを確認する。
-
-- `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
-- `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。既定値はこれである。
-- `Deep`: Standardの修正に加え、論理のつながり、曖昧さ、段落構成、学術文体、読者が誤解しやすい点を確認する。さらに、本文中の事実関係・主張・論拠・方法・結論について、文書内の整合性、根拠の十分性、因果関係、文書の目的との対応、引用・図表との対応をレビューする。意味、論拠、根拠、構成の変更を要する問題は、編集ではなくコメントとして扱う。
-- `Deep-Auto`: `Deep` と同じ文章・内容レビューを行うが、著者の判断を必要とせず意味を変えずに一意に直せるもの（曖昧な指示語の解消、接続の補強、段落の入れ替えなど）は、コメントに留めず実際のWord変更履歴として直接適用する。事実・主張・論拠の当否・根拠の十分性・大きな再構成の要否など、著者の判断が必要な問題は `Deep` と同様に本文を変更せずコメントのまま残す。共通の意味保護は、モードによらず常に適用する。
-- `Layout-Check`: `.docx` を編集せず、WordでPDFを出力してPNGへレンダリングし、全ページを視覚確認する。文字化け、フォント置換、文字・図表の欠け、重なり、改ページ、コメント表示、余白、ページ数を確認し、指定フォントがある場合は検出結果も照合する。問題は本文を直さず、位置と内容を報告する。
+1. `Light`: 誤字脱字、文法、句読点、明らかに不自然な表現だけを修正する。任意の文体変更はしない。
+2. `Standard`: Lightの修正に加え、明瞭さ、簡潔さ、自然な表現、用語の一貫性を改善する。
+3. `Deep`: Standardの修正に加え、論理のつながり、曖昧さ、段落構成、学術文体、読者が誤解しやすい点を確認する。さらに、本文中の事実関係・主張・論拠・方法・結論について、文書内の整合性、根拠の十分性、因果関係、文書の目的との対応、引用・図表との対応をレビューする。意味、論拠、根拠、構成の変更を要する問題は、編集ではなくコメントとして扱う。
+4. `Deep-Auto`: `Deep` と同じ文章・内容レビューを行うが、著者の判断を必要とせず意味を変えずに一意に直せるもの（曖昧な指示語の解消、接続の補強、段落の入れ替えなど）は、コメントに留めず実際のWord変更履歴として直接適用する。事実・主張・論拠の当否・根拠の十分性・大きな再構成の要否など、著者の判断が必要な問題は `Deep` と同様に本文を変更せずコメントのまま残す。共通の意味保護は、モードによらず常に適用する。
+5. `Layout-Check`: `.docx` を編集せず、WordでPDFを出力してPNGへレンダリングし、全ページを視覚確認する。文字化け、フォント置換、文字・図表の欠け、重なり、改ページ、コメント表示、余白、ページ数を確認し、指定フォントがある場合は検出結果も照合する。問題は本文を直さず、位置と内容を報告する。
 
 `Deep` と `Deep-Auto` で本文中の主張・論拠・方法・結論を確認する際、対応する `references/<domain>.md` があれば、その観点を追加で適用する。現時点では研究論文・学位論文・研究計画書・研究報告書などの科学的文書向けに [references/science.md](references/science.md)、装置マニュアル・ソフトウェアマニュアルなどの操作・手順文書向けに [references/manual.md](references/manual.md) がある。専用の参照ファイルがない文書種別では、この節までの一般的な観点だけを適用し、独自の観点をその場で作らない。文書種別の判定に確信が持てない場合は、推測でファイルを選ばずユーザーに確認する。
 
