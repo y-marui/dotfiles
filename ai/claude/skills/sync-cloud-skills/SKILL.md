@@ -27,11 +27,10 @@ claude.aiのSettings > Capabilities > Skills（またはそれに相当する現
 - 不一致 → ローカルが前回同期後に変更されている（メモリー反映等によるバグ修正の可能性を含む）
 - `synced_hash` が `null` → このskillは未同期。cloud側に同名Skillが既にあるか探すところから始める
 
-対象skillが[Private Dataパターン](../../skills/README.md#private-data)を使っている場合、
-`synced_hash` はローカルファイル（`~/.identity/<name>.yaml` 等への参照を含む形）のハッシュである。
-cloud側は末尾に「Private Data (cloud-only)」節を持つ別内容になるため、両者のハッシュが一致する
-ことはそもそも想定しない。比較する際は、下記「Private Data: When Local and Cloud May Diverge」の
-とおり正規化してから行う。
+[Private Dataパターン](../../skills/README.md#private-data)を使うskillでは、`synced_hash` は
+ローカルファイル（`~/.identity/<name>.yaml` 等への参照を含む形）のハッシュで、cloud側は末尾に
+「Private Data (cloud-only)」節を持つ別内容になる。両者のハッシュは一致しないため、比較前に
+下記「Private Data: When Local and Cloud May Diverge」のとおり正規化する。
 
 ## Read the cloud side
 
@@ -62,11 +61,9 @@ cat "$SKILLS_BASE/<name>/SKILL.md"
 
 ## Write the cloud side
 
-**ブラウザの編集画面へ直接タイピングしない。** 数十行を超えるSKILL.mdをキー入力で流し込むと、
-CDPのタイムアウトや、エディタの自動インデント機能によるインデント破壊が実際に発生した
-（本文を1文字ずつ打鍵で送ると、ネストした箇条書きのインデントが行ごとに累積してずれる）。
-クリップボード経由の貼り付けも、`navigator.clipboard`がドキュメントのフォーカス状態に敏感で
-安定しなかった。
+**ブラウザの編集画面へ直接タイピングしない。** キー入力で流し込むと、CDPのタイムアウトや、
+エディタの自動インデントによるネストした箇条書きのずれが実際に発生した。クリップボード経由の
+貼り付けも、`navigator.clipboard`がフォーカス状態に敏感で安定しなかった。
 
 反映には **`skill-publish`** skill（Anthropic公式、ローカルの`package_skill.py`でskillを
 `.skill`ファイルへパッケージ化し、`SendUserFile`で届ける）を使う。ユーザーがカードの
@@ -127,8 +124,7 @@ CDPのタイムアウトや、エディタの自動インデント機能によ�
    異なる場合は、どちらを正とするかをユーザーに確認してから決める（自動で片方を選ばない）。
 3. **ローカル不変・cloud不変**（両方が `synced_hash` の内容と一致） — 何もしない。
 4. **ローカル不変・cloud変化** — cloud側が正本の更新とみなし、cloudの内容をローカルの
-   `ai/skills/<name>/SKILL.md` へ反映する。末尾の「Private Data (cloud-only)」節は反映せず、
-   参照文言を `~/.identity/<name>.yaml` に戻す。
+   `ai/skills/<name>/SKILL.md` へ反映する（Private Data の扱いは同節に従う）。
 5. **ローカル変化・cloud不変** — ローカルの内容をcloudへ反映する（「Write the cloud side」参照）。
 6. **ローカル変化・cloud変化かつ内容が異なる** — 衝突。両方の差分をユーザーに提示し、どちらを
    採用するか、または手動マージが必要かを確認する。自動で一方を破棄しない。
@@ -151,8 +147,7 @@ CDPのタイムアウトや、エディタの自動インデント機能によ�
   がpre-commitで機械的にもブロックする）。
 - ローカルの `SKILL.md` が `~/.identity/<name>.yaml` 等（[Private Data](../../skills/README.md#private-data)
   パターン）を既定値として読む設計に変わっていないか確認する。`scripts/check-skills.sh` の
-  cloud portabilityチェックはこのパターンを機械的には検知しない（`ローカルファイル`等の
-  キーワードに一致しないため）。該当し、かつ `scheduled_tasks` が非空の場合、上記の
-  「Private Data: When Local and Cloud May Diverge」に従って対応する。
+  cloud portabilityチェックはこのパターンを検知しない。該当し、かつ `scheduled_tasks` が非空の
+  場合は、上記「Private Data: When Local and Cloud May Diverge」に従う。
 - claude.aiのSkills UIの実際の構成が想定と異なる場合（項目名、操作手順など）は、
   推測で進めずユーザーに確認する。

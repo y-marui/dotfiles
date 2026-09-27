@@ -16,8 +16,6 @@ description: "Consolidate durable knowledge from Claude and Codex local memories
 - **Codex local**: `${CODEX_HOME:-~/.codex}/memories/`。`MEMORY.md`、`memory_summary.md`、`raw_memories.md`、`rollout_summaries/` を読んで昇格候補を見つける。これらは生成済み状態なので、手編集・削除しない。現在または将来のchatへの利用は `/memories`、有効化は Settings > Personalization または `config.toml` のmemory設定でユーザーが管理する。
 - **ChatGPT Work**: アカウントまたはワークスペースのmemory設定を使い、ローカルCodex memoryやローカル制御を使わない。ローカルファイルを探索・変更・削除しない。ユーザーが提供したmemory内容だけを正本へ昇格し、設定変更・削除は Settings > Personalization でユーザーが管理する。
 
-必須ルールは常に `AGENTS.md` または管理対象ドキュメントへ置き、memoryを唯一の正本にしない。
-
 ## Phase 1 — Inventory memory
 
 Claude CodeとCodex localの候補は、同梱スクリプトで一度に一覧する。
