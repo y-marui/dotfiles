@@ -91,33 +91,20 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   `scripts/check-sh-ps1-parity.sh` が pre-commit でこの対応関係を検証する。
   片方専用にする場合はスクリプト内の `EXCEPTIONS` に理由を追記する
 
-## Zellij Auto-Attach Conditions
+## Zellij Auto-Attach and SSH Wrapper
 
-| プラットフォーム | シェル | 起動条件 |
-|---|---|---|
-| macOS | zsh / bash | `$TERM_PROGRAM == "iTerm.app"` または `$SSH_CONNECTION` |
-| Raspberry Pi | zsh / bash | `$SSH_CONNECTION`（SSH 経由のみで使用） |
-| Windows | pwsh | `$env:WT_SESSION`（Windows Terminal）または `$env:SSH_CONNECTION` |
+挙動の説明は README の「Zellij Auto-Attach & SSH Wrapper」を参照する。実装で守る点:
 
-- `NO_ZELLIJ=1` でどの環境でもスキップ可
-- `$ZELLIJ` が設定済みの場合は既にセッション内なのでスキップ
-- エディタ等のサブプロセスでシェルが起動した場合は上記条件に合わないためスキップ
-- Windowsは対話的なWindows Terminal/SSH接続でホスト名セッションを作成し、切断後はZellijサーバーを維持する
-- Windowsでは入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成を使わない
-- WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`へ設定し、Zellijの新規ペインもPowerShellにする
-- Windows専用Zellij設定は`terminal/zellij/windows/config.kdl`を使用し、`default_shell "pwsh.exe"`を明示する
-- ZellijはmacOS/Raspberry Piで`0.43.1`、ネイティブWindowsで`0.44.3`を固定する
-
-## SSH Wrapper (Common to zsh / bash / pwsh)
-
-Zellij セッション内で `ssh` を実行すると、新しいペインを作成して SSH を起動する。
-接続先ではデフォルトで zellij auto-attach（`NO_ZELLIJ=''` を渡す）。
-
-| フラグ | 動作 |
-|---|---|
-| （なし） / `--new` | 新規タブで SSH（デフォルト） |
-| `--same` | 現在のタブに縦分割ペインで SSH |
-| `--no-zellij` | 接続先の zellij auto-attach を無効化（`NO_ZELLIJ=1` を渡す） |
+- 起動条件: macOS は `$TERM_PROGRAM == "iTerm.app"` または `$SSH_CONNECTION`、Raspberry Pi は
+  `$SSH_CONNECTION` のみ、Windows(pwsh) は `$env:WT_SESSION` または `$env:SSH_CONNECTION`
+- `NO_ZELLIJ=1` または `$ZELLIJ` 設定済みならスキップ。エディタ等のサブプロセスのシェルも条件外でスキップ
+- Windowsは対話的なWindows Terminal/SSH接続でホスト名セッションを作成し、切断後もZellijサーバーを維持する。
+  入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成は使わない
+- WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`にし、専用設定
+  `terminal/zellij/windows/config.kdl`でも`default_shell "pwsh.exe"`を明示する
+- Zellijは macOS/Raspberry Pi で`0.43.1`、ネイティブWindowsで`0.44.3`に固定する
+- `ssh` ラッパー（zsh/bash/pwsh共通）は Zellij 内で新タブ（既定・`--new`）、`--same` で縦分割ペインに接続し、
+  接続先では auto-attach する。`--no-zellij` は `NO_ZELLIJ=1` を渡して無効化する
 
 ## Directory Structure and Responsibilities
 
@@ -181,34 +168,17 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 
 ## Frequently Used Commands
 
-- `make install`  : dotfiles をホームに展開（シンボリックリンク作成）
-- `make links`    : public/privateのシンボリックリンクだけを再適用
-- `make check`    : public/privateのリンク整合性確認
-- `make launchagent`: macOSの`dots check`定期監視LaunchAgentを再登録
-- `make init`     : ホスト固有設定テンプレートを生成
-- `make private-scaffold`: `.example` 付きの未有効化 dotfiles-private 雛形を新規生成
-- `make private-validate`: 隣接する dotfiles-private の雛形・必須構造を検証
-- `dots status`   : dotfiles / dotfiles-private の未コミット・未push・未pullを確認
-- `dots update`   : dotfiles を fast-forward 更新・再リンクし、Prezto と OS 別パッケージを更新
-- `dots verbs` / `dots <domain> help`: apply/diff/sync/merge/prune/cache の実装状況（実装済み・N/A・未実装）を表示。
-  正本は `bin/unix/_dots-verbs.sh` の動詞テーブルで、README の動詞表と `bin/windows/dots.ps1` を
-  `scripts/check-dots-verb-table.sh`（pre-commit）が検証する
-- `dots {npm|pipx} prune`: 宣言にないパッケージを削除（`--dry-run`・`--backup-dir`）。`apply` は追加後にpruneし、
-  無人経路は `--no-prune` を付ける
-- `dots brew apply`: Homebrew の管理状態との差分だけを適用（`--full` で全件適用、`--no-prune` でcleanupを省略）
-- `dots winget apply/diff/cache`: Windows専用。`windows/WingetPin` に宣言したパッケージの
-  一時pinをwinget側の実際の状態と同期する（macOSの `dots brew` におけるBrewfile-pin相当）
-- `macos/Brewfile-pin`: 一時的に更新を止める formula/Cask を宣言。`dots brew apply/diff/cache` で実pin状態と同期する
-- `dots ghq {diff|apply|sync|merge}`: ghq-update の更新対象（`local.keep-up-to-date`）を、
-  dotfiles-private の宣言（`ghq/keep-up-to-date`・`.local`）と突き合わせる。
-  `dots check` は差分だけを要約表示する
-- `dots {claude|codex} diff`: MCP・plugin・skillの宣言と実状態を所有元別に比較
-- `dots {claude|codex} apply`: 宣言済みの不足・設定不一致を追加または更新
-- `dots {claude|codex} prune`: 未宣言かつdotfiles管理境界内の項目だけを削除・退避
-- `dots ai {diff|apply|prune}`: Claude Code・Codex の同じ操作を順番に一括実行
-- `dots check`    : リンク・dotfiles状態・パッケージ・macOSの sudo Touch ID・全 AI Agentの差分を一括確認
-  macOSではLaunchAgentがログイン時と1時間ごとに実行し、状態変化時だけ通知する。zshは
-  `~/.cache/dots/check-summary`を表示するだけで、チェック完了を待たない
+コマンド一覧は [README.md](README.md)（`make` 表・`dots` 動詞表）、動作定義は
+[docs/specification.md](docs/specification.md) を参照する。変更時に外せない点:
+
+- `dots verbs` / `dots <domain> help` の正本は `bin/unix/_dots-verbs.sh` の動詞テーブル。
+  README の動詞表と `bin/windows/dots.ps1` は `scripts/check-dots-verb-table.sh`（pre-commit）が検証する
+- `dots {npm|pipx} prune` は宣言にないパッケージを削除する（`--dry-run`・`--backup-dir`）。
+  `apply` は追加後にpruneするため、無人経路は `--no-prune` を付ける
+- `dots brew apply` は管理状態との差分だけを適用する（`--full` で全件、`--no-prune` でcleanup省略）
+- `dots {claude|codex} apply/prune` と `dots ai` は、dotfiles管理境界内の宣言済み項目だけを対象にする
+- `dots check` は zsh 起動時に `~/.cache/dots/check-summary` を表示するだけで、完了を待たない
+  （macOSはLaunchAgentがログイン時と1時間ごとに実行し、状態変化時だけ通知）
 
 ## About zprezto
 
