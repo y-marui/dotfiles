@@ -5,15 +5,14 @@
     "commit-commands@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
-    "swift-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "swift-lsp@claude-plugins-official": true
   },
   "hooks": {
     "PreToolUse": [
       {
         "hooks": [
           {
-            "command": "${DOTFILES_DIR}/scripts/run_quiet_hook.sh",
+            "command": "${DOTFILES_DIR:-$HOME/src/github.com/y-marui/dotfiles}/scripts/run_quiet_hook.sh",
             "type": "command"
           }
         ],
@@ -38,7 +37,8 @@
       "Bash(which:*)",
       "WebFetch",
       "WebSearch"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "statusLine": {
     "command": "$HOME/.claude/hooks/status.sh",
