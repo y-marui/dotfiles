@@ -1,0 +1,3 @@
+interface:
+  display_name: "クラウドスキル同期"
+  short_description: "dotfiles管理skillとclaude.ai上のskillの差分を安全に同期"

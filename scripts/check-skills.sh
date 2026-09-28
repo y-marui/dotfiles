@@ -45,6 +45,7 @@ for skill_dir in "${skill_dirs[@]}"; do
 done
 
 printf 'OK: %d skill(s) validated.\n' "${#skill_dirs[@]}"
+python3 "${DOTFILES_DIR}/scripts/check-skill-naming.py"
 
 # cloud.json で claude.ai Skills 登録対象として宣言された skill は、
 # computer use（ブラウザGUI操作）やローカル専用MCP・ローカルファイルパスに
