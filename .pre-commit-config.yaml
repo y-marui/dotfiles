@@ -182,6 +182,13 @@ repos:
         pass_filenames: false
         files: ^ai/skills/cloud\.json$
 
+      - id: check-skill-naming
+        name: "Agent Skill の命名・UIメタデータ整合チェック"
+        language: system
+        entry: python3 scripts/check-skill-naming.py
+        pass_filenames: false
+        files: ^(ai/(skills|claude/skills|codex/skills)/|scripts/check-skill-naming\.py$)
+
   # ============================================================
   # [5] ShellCheck — シェルスクリプト静的解析
   #     CLAUDE.md の必須ルールに準拠

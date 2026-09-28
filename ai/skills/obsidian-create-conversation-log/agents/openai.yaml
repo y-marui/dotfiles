@@ -1,4 +1,4 @@
 interface:
-  display_name: "会話ログ作成"
+  display_name: "Obsidian 会話ログ作成"
   short_description: "参照チャットを忠実な会話ログとして保存"
   default_prompt: "Use $obsidian-create-conversation-log to save the referenced chat as a faithful conversation log."

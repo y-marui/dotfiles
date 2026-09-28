@@ -1,0 +1,87 @@
+{
+  "skills": {
+    "bookmeter-add-want-to-read": {
+      "kind": "service",
+      "skill_name_prefix": "bookmeter",
+      "display_name_prefix": "読書メーター"
+    },
+    "consolidate-global-memory": {"kind": "generic"},
+    "docx-proofreading": {"kind": "generic"},
+    "docx-proofreading-handoff": {"kind": "generic"},
+    "filmarks-add-want-to-watch": {
+      "kind": "service",
+      "skill_name_prefix": "filmarks",
+      "display_name_prefix": "Filmarks"
+    },
+    "glance-task-add-museum-event": {
+      "kind": "service",
+      "skill_name_prefix": "glance-task",
+      "display_name_prefix": "Glance Task"
+    },
+    "glance-task-format-museum-events": {
+      "kind": "service",
+      "skill_name_prefix": "glance-task",
+      "display_name_prefix": "Glance Task"
+    },
+    "google-maps-add-saved-place": {
+      "kind": "service",
+      "skill_name_prefix": "google-maps",
+      "display_name_prefix": "Google Maps"
+    },
+    "morning-brief": {"kind": "generic"},
+    "obsidian-create-conversation-log": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
+    "obsidian-restructure-idea-notes": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
+    "obsidian-save-chat-notes": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
+    "obsidian-update-conversation-log": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
+    "optimize-ai-skills": {"kind": "generic"},
+    "pptx-proofreading": {"kind": "generic"},
+    "pptx-proofreading-handoff": {"kind": "generic"},
+    "review-dotfiles-backup": {"kind": "generic"},
+    "sendaicmc-add-practices": {
+      "kind": "domain",
+      "skill_name_prefix": "sendaicmc",
+      "display_name_prefix": "仙台室内楽の会"
+    },
+    "sendaicmc-create-chouseisan-page": {
+      "kind": "domain",
+      "skill_name_prefix": "sendaicmc",
+      "display_name_prefix": "仙台室内楽の会"
+    },
+    "sendaicmc-create-jimoty-post": {
+      "kind": "domain",
+      "skill_name_prefix": "sendaicmc",
+      "display_name_prefix": "仙台室内楽の会"
+    },
+    "session-handoff": {"kind": "generic"},
+    "spotify-distribute-liked-songs": {
+      "kind": "service",
+      "skill_name_prefix": "spotify",
+      "display_name_prefix": "Spotify"
+    },
+    "spotify-reorder-playlist-by-key": {
+      "kind": "service",
+      "skill_name_prefix": "spotify",
+      "display_name_prefix": "Spotify"
+    },
+    "sync-cloud-skills": {"kind": "generic"},
+    "travel-departure-check": {"kind": "generic"},
+    "travel-packing-checklist": {"kind": "generic"},
+    "weather-check": {"kind": "generic"}
+  }
+}

@@ -1,0 +1,3 @@
+interface:
+  display_name: "天気チェック"
+  short_description: "日本国内の天気・健康リスク・警報を日次ブリーフィングに整理"

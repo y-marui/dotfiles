@@ -6,7 +6,7 @@
 
 ## Writing Policy
 
-各 `SKILL.md` は、トリガー用の frontmatter `name` / `description` とMarkdown見出しを英語で書き、本文の説明・手順・判断基準は日本語で書く。コード、パス、コマンド、実際のUI文言は変えない。UI用の `agents/openai.yaml` では、`display_name` と `short_description` を日本語で書く。
+各 `SKILL.md` は、トリガー用の frontmatter `name` / `description` とMarkdown見出しを英語で書き、本文の説明・手順・判断基準は日本語で書く。コード、パス、コマンド、実際のUI文言は変えない。すべての管理対象skillにUI用の `agents/openai.yaml` を置き、`display_name` と `short_description` を日本語で書く。
 
 Claude Code と Codex の両方で使える skill は `ai/skills/<skill-name>/SKILL.md` として追加する。
 
@@ -84,11 +84,18 @@ skill本体に直接書かない。
 
 ## Naming
 
-特定のサービス・アプリと連携する skill は `<service>-<verb>-<object>` の順にし、
-サービス名を先頭に置く（例: `spotify-distribute-liked-songs`、`glance-task-add-museum-event`）。
-関連するskill同士が名前順で並ぶようにするため。コロン区切り（`service:verb`）は
-plugin skillの表記（`plugin:skill`）と紛らわしいため使わない。
+特定のサービス・アプリと連携するskillは `<service>-<verb>-<object>`、特定の団体・業務ドメインを
+起点に複数サービスを扱うskillは `<domain>-<verb>-<object>` の順にする。接頭辞を先頭に置き、
+関連するskill同士が名前順で並ぶようにするため。コロン区切り（`service:verb`）はplugin skillの
+表記（`plugin:skill`）と紛らわしいため使わない。
 
-特定のサービス・アプリに紐づかない汎用skill（`consolidate-global-memory`、
-`docx-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める
-従来通りの命名でよい。
+サービス・業務ドメインskillの `display_name` も、`<表示用接頭辞> <動作>`（接頭辞の直後は半角
+スペース1つ）で始める。表示用接頭辞は日本語の定着名を優先し、自然な日本語名がないものは英語名を
+使う。汎用skillはこの接頭辞規則の対象外だが、UIメタデータは必要である。
+
+[`naming.json`](naming.json) は各管理対象skillの種別と、サービス・業務ドメインskillの正規接頭辞を
+定義する唯一の正本である。skillを追加・改名・種別変更するときは同時に更新し、
+`scripts/check-skill-naming.py` と `make check-skills` で検証する。
+
+特定のサービス・アプリや業務ドメインに紐づかない汎用skill（`consolidate-global-memory`、
+`docx-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める従来通りの命名でよい。
