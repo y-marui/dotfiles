@@ -132,6 +132,9 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - PR・Issue の操作は GitHub MCP サーバーを優先し、使えない場合は `gh` CLI を使う。
   いずれも Web UI から直接作成・更新・マージしない（`AI_CONTEXT.md` の Tool Selection 参照）
 - `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
+- リモートが `github-public:owner/repo` のような SSH Host エイリアス形式の場合、ユーザーの対話シェルの `gh`
+  は `gh pr merge` 等で「No default remote repository has been set」を出すことがある
+  （リポジトリ直下でも発生し得る）。`gh repo set-default owner/repo` の実行を案内する
 - PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
 - 関連する issue がある場合、PR 本文に `Fixes #123`/`Closes #123`（マージ時に自動クローズしたい場合）または `Refs #123`（クローズせず関連付けのみの場合）等のキーワードでリンクする
 - PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
