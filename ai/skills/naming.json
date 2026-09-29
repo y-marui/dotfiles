@@ -34,6 +34,11 @@
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
+    "obsidian-save-tarot-reading": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
     "obsidian-restructure-idea-notes": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
