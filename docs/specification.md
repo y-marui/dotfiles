@@ -187,6 +187,8 @@ MCP・plugin・skill の「宣言（dotfiles 内の設定ファイル）」と�
   削除は `prune.sh` が担当する。`dots` がこの2つを順に呼ぶ）
 - `prune`: 未宣言かつ dotfiles 管理境界内の項目だけを削除・退避する（管理境界外のユーザー独自設定は対象外）。
   単独でも実行できる
+- Codex plugin のうち、`plugin/list` で remote かつ `INSTALLED_BY_DEFAULT` と判定されるものは
+  Codex 管理のため、宣言との差分・`apply`・`prune` の対象外とする
 
 ## dots ai diff / apply / prune
 

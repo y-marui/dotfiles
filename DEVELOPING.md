@@ -35,6 +35,12 @@ scripts/test-ghq-keep-up-to-date.sh
 scripts/test-dots-verbs.sh
 ```
 
+Codex plugin の差分・適用・削除ロジックを変更した場合は、偽の app-server で回帰テストする:
+
+```bash
+scripts/test-codex-plugin.sh
+```
+
 動詞の実装状況を変えたときは、`bin/unix/_dots-verbs.sh` のテーブルを更新し、README の動詞表と
 `bin/windows/dots.ps1` の `$verbSpecs` を合わせる（`scripts/check-dots-verb-table.sh` が
 pre-commitで検証する。`dots verbs` で現在のテーブルを確認できる）。

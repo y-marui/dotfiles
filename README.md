@@ -199,6 +199,8 @@ Claude Code と同じく `--mcp-only`、`--plugin-only`、`--skill-only` を指�
 plugin は `codex app-server` の `plugin/list` が返す統合済みの実態を使うため、Codex
 アプリまたは CLI から追加された local / remote plugin を検知する。remote plugin の
 追加・削除には同じ app-server の `plugin/install` / `plugin/uninstall` を使用する。
+ただし、remote かつ `INSTALLED_BY_DEFAULT` の plugin は Codex 管理として宣言との差分・
+`apply`・`prune` の対象外にする。
 skill は実際の個人 skill ディレクトリを検査する。plugin内包MCPとChatGPT/Codexアプリの
 内部MCPは所有元を表示し、直接MCPの差分や`prune`対象には含めない。
 
