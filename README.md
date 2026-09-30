@@ -116,6 +116,7 @@ pre-commitで両者の対応関係を検証する。
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
 | `ghq-update [--all\|--pull-all\|--uv-sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
 | `ghq-sweep` | ghq管理リポジトリ全件に`git-sweep --all`を実行 |
+| `ghq-hosts [--update\|--no-pull\|--no-sweep\|--no-status\|-H host\|--dry-run]` | 宣言した他のMacで`ghq-pull`→`ghq-sweep`→`ghq-status`をssh経由で実行（ホスト間は並列、macOS専用、対象は`dotfiles-private`の`ghq/hosts`で実行元ごとに宣言） |
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
 | `sync-labpc <job-name\|host-ip\|all\|list>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`。`list`でジョブ一覧表示） |

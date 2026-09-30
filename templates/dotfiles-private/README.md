@@ -12,8 +12,9 @@ public installer cannot apply placeholder settings.
 3. Copy `shell/profile.private.example` to `shell/profile.private` before enabling links, then add only personal settings shared across your machines.
 4. Copy `spotify-tools/groups.toml.example` to `spotify-tools/groups.toml` before using Spotify write commands, then classify editable and protected playlists by ID.
 5. Copy `ghq/keep-up-to-date.example` to `ghq/keep-up-to-date` and list the repositories `ghq-update` should keep current (`dots ghq merge` can fill it from the current state). Machine-specific additions go in the git-ignored `ghq/keep-up-to-date.local`.
-6. Copy `links.conf.example` to `links.conf` only after every linked source exists.
-7. Remove `.dotfiles-private-scaffold` when configuration is complete.
+6. Copy `ghq/hosts.example` to `ghq/hosts` and declare, per machine, the ssh hosts `ghq-hosts` operates on. Machine-specific additions go in the git-ignored `ghq/hosts.local`.
+7. Copy `links.conf.example` to `links.conf` only after every linked source exists.
+8. Remove `.dotfiles-private-scaffold` when configuration is complete.
 8. From the sibling `dotfiles`, run `make private-validate` and then `make links`.
 
 The public contract is `dotfiles/templates/dotfiles-private.contract`. The

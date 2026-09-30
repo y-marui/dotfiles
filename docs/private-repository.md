@@ -40,6 +40,7 @@ main ブランチの空の Git リポジトリを初期化する。生成直後�
 | `macos/dockfile.example` | `macos/dockfile` | Dock・Finder sidebar の宣言 |
 | `macos/keyboard-shortcuts.plist.example` | `macos/keyboard-shortcuts.plist` | アプリケーションショートカットの宣言 |
 | `macos/menubarfile.example` | `macos/menubarfile` | メニューバーの宣言 |
+| `ghq/hosts.example` | `ghq/hosts` | `ghq-hosts`が操作するホストを実行元ごとに宣言（端末固有の追加分は`ghq/hosts.local`） |
 | `labpc/jobs.d/job.conf.example` | `labpc/jobs.d/<job-name>.conf` | `sync-labpc` のジョブ設定 |
 
 ## Shell Settings Layers
