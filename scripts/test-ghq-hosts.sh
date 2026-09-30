@@ -177,6 +177,10 @@ printf 'alpha: -oProxyCommand=x\n' > "$WORK/private/ghq/hosts.local"
 run --from alpha --dry-run
 check "option-like host rejected" rc_is 1
 rm "$WORK/private/ghq/hosts.local"
+printf 'alpha: Local\n' > "$WORK/private/ghq/hosts.local"
+run --from alpha --dry-run
+check "reserved host name 'local' rejected" rc_is 1
+rm "$WORK/private/ghq/hosts.local"
 mv "$WORK/private/ghq/hosts" "$WORK/private/ghq/hosts.bak"
 run --from alpha --dry-run
 check "missing declaration is an error" rc_is 1

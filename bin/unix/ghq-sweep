@@ -20,6 +20,7 @@
 #   uv.lock/package-lock.json のみ dirty な場合は一時的に stash して実行し、
 #   実行後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）。
 #   それら以外にも dirty な変更がある場合はスキップする。
+#   失敗したリポジトリが1つでもあれば、最後に終了コード1で終了する。
 
 set -euo pipefail
 
@@ -81,3 +82,6 @@ done < <(
 
 echo ""
 printf '完了: 成功 %d / スキップ %d / 失敗 %d\n' "$ok" "$skipped" "$failed"
+
+# 失敗したリポジトリがあれば呼び出し元（ghq-hosts 等）が検出できるよう非0で終了する
+[[ "$failed" -eq 0 ]] || exit 1

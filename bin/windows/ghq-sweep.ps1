@@ -122,3 +122,6 @@ foreach ($repo in $repos) {
 
 Write-Host ""
 Write-Host "完了: 成功 $ok / スキップ $skipped / 失敗 $failed"
+
+# 失敗したリポジトリがあれば呼び出し元が検出できるよう非0で終了する
+if ($failed -gt 0) { exit 1 }

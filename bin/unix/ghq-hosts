@@ -116,6 +116,8 @@ MATCHED=0
 add_target() {
   local t="$1" existing
   [[ "$t" =~ ^[A-Za-z0-9._@][A-Za-z0-9._@-]*$ ]] || die "不正なホスト名です: ${t}"
+  # "local" は実行元自身を表す内部名。同名のsshホストは区別できないため使えない
+  [[ "$(lower "$t")" != local ]] || die "'local' はホスト名として使えません（実行元自身を表す予約名）: ${t}"
   for existing in ${TARGETS[@]+"${TARGETS[@]}"}; do
     [[ "$existing" == "$t" ]] && return 0
   done
