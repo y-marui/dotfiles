@@ -35,6 +35,8 @@
 #     全出力は ~/.cache/dots/ghq-hosts/<host>.log に残る
 #   - 標準エラー出力が端末のときは、ホストごとの進捗（ステップの状態）を1行ずつ更新表示する。
 #     完了後に進捗を消し、宣言順の出力と結果表を出す
+#   - 成功したステップでも [skip ...] [warn] [conflict] [failed] のタグ行は表示し、
+#     結果表では ok! と表示する（終了コードには影響しない）
 #   - 最後にホスト × ステップの結果表を出し、失敗が1つでもあれば終了コード1で終了する
 #
 # 環境変数:
@@ -240,6 +242,12 @@ run_step() {
 
 indent() { sed 's/^/    /'; }
 
+# スキップ・警告のタグ行を、直前の "==> リポジトリ" 見出し付きで抜き出す
+tagged_lines() {
+  awk '/^==> /{h=$0; printed=0; next}
+    /^[[:space:]]*\[(skip|warn|conflict|failed)[] ]/{ if (!printed) { print h; printed=1 } print }'
+}
+
 # process_host IDX HOST: 1ホスト分のステップを順に実行する。
 # 表示は標準出力へ、セル（結果表の行）と失敗数は $WORK_DIR/IDX.{cells,failed} へ書く
 process_host() {
@@ -266,9 +274,22 @@ process_host() {
       cat "$tmp"
     } >> "$log"
     if [[ "$rc" -eq 0 ]]; then
-      cells+=("ok")
+      # ghq-pull / ghq-sweep 等はスキップや警告を [skip ...] 等のタグ行で出し、終了コードは0のまま。
+      # 成功扱いで出力を隠すと見落とすため、タグ行（と直前のリポジトリ見出し）は必ず表示する
+      warn_lines=""
+      [[ "$step" != "status" ]] && warn_lines="$(tagged_lines < "$tmp")"
+      if [[ -n "$warn_lines" ]]; then
+        cells+=("ok!")
+      else
+        cells+=("ok")
+      fi
       echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
-      echo "  [ok] ${step}"
+      if [[ -n "$warn_lines" ]]; then
+        echo "  [ok] ${step}（スキップ・警告あり）"
+        if [[ "$VERBOSE" != 1 ]]; then printf '%s\n' "$warn_lines" | indent; fi
+      else
+        echo "  [ok] ${step}"
+      fi
       if [[ "$VERBOSE" == 1 || ( "$step" == "status" && -s "$tmp" ) ]]; then indent < "$tmp"; fi
     else
       failed=$((failed + 1))
@@ -400,6 +421,9 @@ for row in "${ROWS[@]}"; do
   echo "$line"
 done
 echo ""
+if [[ "${ROWS[*]}" == *"ok!"* ]]; then
+  echo "ok! = 成功したがスキップ・警告あり（上の出力か -v、ログで確認）"
+fi
 echo "ログ: ${LOG_DIR}/"
 
 if [[ "$FAILED" -gt 0 ]]; then

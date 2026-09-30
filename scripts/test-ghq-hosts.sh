@@ -18,6 +18,7 @@ for c in ghq-pull ghq-update ghq-sweep ghq-status; do
 #!/usr/bin/env bash
 echo "local $c \$*" >> "\$CALLS"
 echo "local-out $c"
+[[ "\${WARN_LOCAL:-}" == "$c" ]] && { echo "==> /repo/a"; echo "  [skip pull] dirty working tree"; }
 [[ "\${FAIL_LOCAL:-}" == "$c" ]] && exit 1
 exit 0
 STUB
@@ -32,6 +33,7 @@ echo "$host $*" >> "$CALLS"
 [[ "$host" == slow* ]] && sleep 2
 [[ "$host" == down ]] && { echo "ssh: connect timed out" >&2; exit 255; }
 [[ "$host" == badsweep && "$*" == ghq-sweep ]] && { echo "sweep broke" >&2; exit 1; }
+[[ "$host" == warnhost && "$*" == ghq-pull ]] && { echo "==> /repo/b"; echo "  [skip pull] dirty working tree"; }
 echo "remote-out $host $*"
 STUB
 chmod +x "$WORK/ssh"
@@ -45,6 +47,7 @@ beta:   gamma
 gamma:  beta
 mixed:  beta down badsweep gamma
 par:    slow1 slow2
+warn:   warnhost beta
 DECL
 
 check() {
@@ -133,6 +136,20 @@ if command -v python3 >/dev/null 2>&1; then
 else
   echo "  skip - python3 が無いため端末表示のテストを省略"
 fi
+
+section "skip/warn lines of successful steps"
+run --from warn --no-local -j 1
+check "exit 0 (warnings do not fail)" rc_is 0
+check "skip line shown" contains "$OUT" "[skip pull] dirty working tree"
+check "repo header shown" contains "$OUT" "==> /repo/b"
+check "step flagged" contains "$OUT" "[ok] pull（スキップ・警告あり）"
+check "summary marks ok!" contains "$OUT" "ok!"
+check "legend shown" contains "$OUT" "ok! = "
+check "clean host not flagged" not_contains "$OUT" "==> /repo/a"
+WARN_LOCAL=ghq-pull run --from alpha -H beta -j 1 --no-sweep --no-status
+check "local skip line shown" contains "$OUT" "==> /repo/a"
+run --from alpha --no-local -j 1
+check "no warn legend when clean" not_contains "$OUT" "ok! = "
 
 section "step selection"
 run --from alpha --update --no-sweep --no-status -H beta --no-local
