@@ -12,6 +12,12 @@ description: Audit, split, merge, or reorganize existing Obsidian Knowledge in k
 - ユーザーが別のvaultを指定しない限り、`${HOME}/src/github.com/y-marui/obsidian-vault` を候補とし、存在を確認する。
 - 対象となる `knowledge/` のフォルダまたはノートを確認する。ユーザーが範囲を明示していない場合は必ず確認する。
 - vaultと対象ディレクトリの指示ファイルを、定められた順序で全文読む。特にノート構成、frontmatter、命名、Git運用の規則を優先する。
+- vaultの`README.md`、`AI_CONTEXT.md`、Home、対象ディレクトリの指示ファイル、構造・Private・
+  移行に関する正本文書を、定められた順序で全文読む。特にノート構成、frontmatter、命名、
+  Git運用の規則を優先する。
+- `private/**`とvaultが指定する移行前Private対象は、通常のインベントリと検索から読み取り前に
+  除外する。通常領域全体という指定だけではPrivate対象の読み取りを許可されたと扱わない。
+  ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を処理する。
 - 再構成の依頼は、対象範囲内のノートの作成、統合、分割、移動、置換、不要になった旧ノートの削除を許可する。ただし、対象外ノート、取り込み元、添付ファイル、commit、pushまで許可したとは扱わない。
 - dirty worktreeの既存変更はユーザーのものとして保全する。自動コミットが発生しても巻き戻さず、開始時点と作業中のコミットを区別する。
 
@@ -33,7 +39,9 @@ description: Audit, split, merge, or reorganize existing Obsidian Knowledge in k
 
 ## Topic boundaries
 
-1トピックは、同じ問い、判断目的、または更新周期を共有する知識のまとまりとする。
+1トピックは、同じ問い、判断目的、または更新周期を共有する知識のまとまりとする。ただし、
+対象vaultがRecords、Project、Area、Knowledge、Decision、Private等の責務を定めている場合は、
+「1トピック1ファイル」よりその責務分離と移行対応表を優先する。
 
 - 独立して更新・判断できる内容は分ける。上位カテゴリが同じという理由だけで一つにしない。
 - 同一対象の現行情報と過去スナップショットは、時系列の同一トピックとして一つのファイルに保持できる。
@@ -62,7 +70,10 @@ description: Audit, split, merge, or reorganize existing Obsidian Knowledge in k
 
 ### 3. Design the destination structure
 
-台帳を基にトピック境界を決め、旧ファイルから新ファイルへの対応表を作る。ノート数の増減を目標にせず、1トピック1ファイルと情報保持の両方を満たす最小構成にする。
+台帳を基にトピック境界を決め、旧ファイルから新ファイルへの対応表を作る。対象vaultに
+移行対応表がある場合は、内容の役割とPrivate区分に従って移行先を決める。単なる再構成では
+Legacy領域内に新カテゴリを増やさず、移行が明示されていないファイルを目標パスへ移動・複製しない。
+ノート数の増減を目標にせず、責務分離と情報保持を満たす最小構成にする。
 
 再構成だけを依頼された場合、古い事実を暗黙に最新化しない。現行情報への更新も依頼された場合は、公式情報など直接的な一次情報で確認し、確認日を明記し、旧情報を履歴として保持する。
 
@@ -101,7 +112,7 @@ description: Audit, split, merge, or reorganize existing Obsidian Knowledge in k
 - 変更前後のノート構成と、統合・分割・移動の対応
 - 情報保持を確認した方法と、復元または訂正した項目
 - 意図的に省いた主題外要素と、その保存場所
-- 1トピック1ファイル、frontmatter、H1、リンク、差分検査の結果
+- 責務分離、トピック境界、frontmatter、H1、リンク、差分検査の結果
 - commit、push、自動コミットを含むGit状態
 
 「情報は減っていない」と報告するのは、coverage gateを通過した場合だけにする。
