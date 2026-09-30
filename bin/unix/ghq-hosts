@@ -13,13 +13,16 @@
 #   --from NAME         実行元の名前を明示する（既定: scutil --get LocalHostName）
 #   --no-local          実行元自身を処理しない
 #   -a, --all           ghq-status に -a を渡し、異常のないリポジトリも表示する
-#   -v, --verbose       全ステップの出力をそのまま表示する
+#   -j, --jobs N        同時に処理するホスト数（既定: 全ホスト同時。1で逐次）
+#   -v, --verbose       成功したステップの出力も表示する
+#   --no-progress       進捗表示を出さない（標準エラー出力が端末のときだけ表示される）
 #   -n, --dry-run       実行内容だけを表示し、何も実行しない（sshも実行しない）
 #   -h, --help          ヘルプを表示
 #
 # 動作:
-#   - 実行順は固定: pull（または update）→ sweep → status。ホストごとに順に実行する
-#   - 処理順は実行元自身（--no-local で省略）→ 宣言順のリモートホスト
+#   - 実行順は固定: pull（または update）→ sweep → status（ホスト内では逐次）
+#   - ホスト間は並列に処理する（実行元自身を含む）。表示と結果表は宣言順
+#     （実行元自身→宣言順のリモートホスト）にまとめて出す
 #   - 対象は dotfiles-private の ghq/hosts で実行元ごとに宣言する。書式は1行1件:
 #       <実行元>: <ホスト> <ホスト> ...
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
@@ -30,6 +33,8 @@
 #     接続できなかったホストの残りのステップは skip として表示する
 #   - 既定では成功したステップの出力を省略し、失敗したステップと status の出力だけを表示する。
 #     全出力は ~/.cache/dots/ghq-hosts/<host>.log に残る
+#   - 標準エラー出力が端末のときは、ホストごとの進捗（ステップの状態）を1行ずつ更新表示する。
+#     完了後に進捗を消し、宣言順の出力と結果表を出す
 #   - 最後にホスト × ステップの結果表を出し、失敗が1つでもあれば終了コード1で終了する
 #
 # 環境変数:
@@ -53,6 +58,8 @@ DO_LOCAL=1
 STATUS_ALL=0
 VERBOSE=0
 DRY_RUN=0
+JOBS=0
+PROGRESS=auto
 FROM=''
 HOST_FILTER=()
 
@@ -68,6 +75,11 @@ while [[ $# -gt 0 ]]; do
     -a|--all)    STATUS_ALL=1; shift ;;
     -v|--verbose) VERBOSE=1; shift ;;
     -n|--dry-run) DRY_RUN=1; shift ;;
+    --no-progress) PROGRESS=off; shift ;;
+    -j|--jobs)
+      [[ $# -lt 2 ]] && die "$1 requires an argument"
+      [[ "$2" =~ ^[1-9][0-9]*$ ]] || die "$1 には1以上の整数を指定してください: $2"
+      JOBS="$2"; shift 2 ;;
     -H|--host)
       [[ $# -lt 2 ]] && die "$1 requires an argument"
       HOST_FILTER+=("$2"); shift 2 ;;
@@ -198,82 +210,178 @@ if [[ "$DRY_RUN" == 1 ]]; then
 fi
 
 mkdir -p "$LOG_DIR"
-TMP_OUT="$(mktemp)"
-trap 'rm -f "$TMP_OUT"' EXIT
+WORK_DIR="$(mktemp -d)"
+cleanup() {
+  local pids
+  pids="$(jobs -p 2>/dev/null || true)"
+  # shellcheck disable=SC2086  # PID のリストを単語分割して渡す
+  [[ -n "$pids" ]] && kill $pids 2>/dev/null || true
+  [[ "${SHOW_PROGRESS:-0}" == 1 ]] && printf '\033[?25h' >&2
+  rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
 
-# run_step HOST STEP -> 終了コードを返す。出力は $TMP_OUT に入る
+# run_step HOST STEP OUTFILE -> 終了コードを返す。出力は OUTFILE に入る
 run_step() {
-  local host="$1" step="$2" cmd rc=0
+  local host="$1" step="$2" out="$3" cmd rc=0
   local words=()
   cmd="$(step_command "$step")"
-  : > "$TMP_OUT"
   if [[ "$host" == "local" ]]; then
     read -r -a words <<< "$cmd"
-    if [[ "$VERBOSE" == 1 ]]; then
-      if "${words[@]}" 2>&1 | tee "$TMP_OUT"; then rc=0; else rc=${PIPESTATUS[0]}; fi
-    else
-      "${words[@]}" > "$TMP_OUT" 2>&1 || rc=$?
-    fi
+    "${words[@]}" > "$out" 2>&1 || rc=$?
   else
-    if [[ "$VERBOSE" == 1 ]]; then
-      if "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" 2>&1 | tee "$TMP_OUT"; then
-        rc=0
-      else
-        rc=${PIPESTATUS[0]}
-      fi
-    else
-      "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" > "$TMP_OUT" 2>&1 || rc=$?
-    fi
+    "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" > "$out" 2>&1 || rc=$?
   fi
   return "$rc"
 }
 
 indent() { sed 's/^/    /'; }
 
-ROWS=()
-FAILED=0
-
-for host in "${HOSTS[@]}"; do
+# process_host IDX HOST: 1ホスト分のステップを順に実行する。
+# 表示は標準出力へ、セル（結果表の行）と失敗数は $WORK_DIR/IDX.{cells,failed} へ書く
+process_host() {
+  local idx="$1" host="$2" step rc log log_name failed=0 unreachable=0
+  local cells=()
+  local tmp="${WORK_DIR}/${idx}.tmp"
+  echo "" > "${WORK_DIR}/${idx}.state"
   echo ""
   echo "==> $(host_label "$host")"
   log_name="$host"
   [[ "$host" == "local" ]] && log_name="${ME}"
   log="${LOG_DIR}/${log_name}.log"
   : > "$log"
-  cells=()
-  unreachable=0
   for step in "${STEPS[@]}"; do
     if [[ "$unreachable" == 1 ]]; then
       cells+=("skip")
+      echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
       continue
     fi
-    [[ "$VERBOSE" == 1 ]] && echo "--- ${step}"
     rc=0
-    run_step "$host" "$step" || rc=$?
+    run_step "$host" "$step" "$tmp" || rc=$?
     {
       echo "--- ${step} (exit ${rc})"
-      cat "$TMP_OUT"
+      cat "$tmp"
     } >> "$log"
     if [[ "$rc" -eq 0 ]]; then
       cells+=("ok")
-      if [[ "$VERBOSE" != 1 ]]; then
-        echo "  [ok] ${step}"
-        if [[ "$step" == "status" && -s "$TMP_OUT" ]]; then indent < "$TMP_OUT"; fi
-      fi
+      echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
+      echo "  [ok] ${step}"
+      if [[ "$VERBOSE" == 1 || ( "$step" == "status" && -s "$tmp" ) ]]; then indent < "$tmp"; fi
     else
-      FAILED=$((FAILED + 1))
+      failed=$((failed + 1))
       if [[ "$host" != "local" && "$rc" -eq 255 ]]; then
         cells+=("ssh")
+        echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
         unreachable=1
         echo "  [FAIL] ${step}: ssh接続に失敗しました（残りのステップはskip）"
       else
         cells+=("FAIL")
+        echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
         echo "  [FAIL] ${step} (exit ${rc})"
       fi
-      if [[ "$VERBOSE" != 1 ]]; then indent < "$TMP_OUT"; fi
+      indent < "$tmp"
     fi
   done
-  ROWS+=("${host}|${cells[*]}")
+  echo "${cells[*]}" > "${WORK_DIR}/${idx}.cells"
+  echo "$failed" > "${WORK_DIR}/${idx}.failed"
+}
+
+# 進捗表示（標準エラー出力が端末のときだけ）
+SHOW_PROGRESS=0
+if [[ "$PROGRESS" == auto && -t 2 ]]; then SHOW_PROGRESS=1; fi
+SPIN=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+SPIN_N=0
+STARTED=0
+DRAWN=0
+
+render_progress() {
+  [[ "$SHOW_PROGRESS" == 1 ]] || return 0
+  local i h label st step n j mark line
+  local done_cells=()
+  if [[ "$DRAWN" == 1 ]]; then printf '\033[%dA' "${#HOSTS[@]}" >&2; fi
+  SPIN_N=$(( (SPIN_N + 1) % ${#SPIN[@]} ))
+  i=0
+  for h in "${HOSTS[@]}"; do
+    label="$(host_label "$h")"
+    done_cells=()
+    if [[ -f "${WORK_DIR}/${i}.state" ]]; then
+      st="$(cat "${WORK_DIR}/${i}.state")"
+      [[ -n "$st" ]] && read -r -a done_cells <<< "$st"
+    fi
+    n=${#done_cells[@]}
+    line="$(printf '%-24s' "$label")"
+    j=0
+    for step in "${STEPS[@]}"; do
+      if [[ "$i" -ge "$STARTED" ]]; then
+        mark="待機"
+      elif [[ "$j" -lt "$n" ]]; then
+        mark="${done_cells[$j]}"
+      elif [[ "$j" -eq "$n" && ! -f "${WORK_DIR}/${i}.failed" ]]; then
+        mark="${SPIN[$SPIN_N]}"
+      else
+        mark="-"
+      fi
+      line+="$(printf '%-14s' "${step}:${mark}")"
+      j=$((j + 1))
+    done
+    printf '\r\033[K%s\n' "$line" >&2
+    i=$((i + 1))
+  done
+  DRAWN=1
+}
+
+clear_progress() {
+  [[ "$DRAWN" == 1 ]] || return 0
+  printf '\033[%dA' "${#HOSTS[@]}" >&2
+  local k
+  for ((k = 0; k < ${#HOSTS[@]}; k++)); do printf '\r\033[K\n' >&2; done
+  printf '\033[%dA' "${#HOSTS[@]}" >&2
+  DRAWN=0
+}
+
+if [[ "$SHOW_PROGRESS" == 1 ]]; then printf '\033[?25l' >&2; fi
+
+# ホストは並列に処理する（ステップの順序はホスト内で固定）。表示は宣言順にまとめて出す
+PIDS=()
+idx=0
+for host in "${HOSTS[@]}"; do
+  if [[ "$JOBS" -gt 0 ]]; then
+    while [[ "$(jobs -r | wc -l | tr -d ' ')" -ge "$JOBS" ]]; do
+      render_progress
+      sleep 0.2
+    done
+  fi
+  process_host "$idx" "$host" > "${WORK_DIR}/${idx}.out" 2>&1 &
+  PIDS+=("$!")
+  idx=$((idx + 1))
+  STARTED=$idx
+done
+
+while [[ "$(jobs -r | wc -l | tr -d ' ')" -gt 0 ]]; do
+  render_progress
+  sleep 0.2
+done
+render_progress
+clear_progress
+if [[ "$SHOW_PROGRESS" == 1 ]]; then printf '\033[?25h' >&2; fi
+
+ROWS=()
+FAILED=0
+idx=0
+for host in "${HOSTS[@]}"; do
+  wait "${PIDS[$idx]}" || true
+  cat "${WORK_DIR}/${idx}.out"
+  row_cells="$(cat "${WORK_DIR}/${idx}.cells" 2>/dev/null || true)"
+  n="$(cat "${WORK_DIR}/${idx}.failed" 2>/dev/null || echo 1)"
+  if [[ -z "$row_cells" ]]; then
+    # 想定外の中断。結果が残っていないホストは失敗として扱う
+    row_cells="FAIL"
+    n=1
+  fi
+  FAILED=$((FAILED + n))
+  ROWS+=("${host}|${row_cells}")
+  idx=$((idx + 1))
 done
 
 echo ""
