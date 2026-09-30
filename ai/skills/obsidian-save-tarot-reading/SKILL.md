@@ -6,8 +6,13 @@ description: "Save a referenced tarot-reading chat as a faithful Obsidian conver
 # Obsidian Save Tarot Reading
 
 参照チャットで行ったタロットリーディングを、会話の文脈とカード画像を保った
-Obsidian の `conversation_log/` として保存する。通常の会話ログ作成や、結論だけを
-`idea_notes/` へ抽出する用途には使わない。
+ObsidianのConversation Recordとして保存する。通常の会話ログ作成や、結論だけを
+Knowledgeへ抽出する用途には使わない。
+
+対象vaultの`README.md`、`AI_CONTEXT.md`、Home、Conversation・assets・Private・移行に関する正本文書を
+定められた順序で読む。通常探索では`private/**`とvaultが指定する移行前Private対象を
+読み取り前に除外し、ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。
+交際・家族・健康・金融・住居・実名等を含むリーディングは通常領域へ書かず、Private内へ保存する。
 
 ## Read and delimit the source
 
@@ -26,13 +31,16 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 
 ## Store the reading
 
-保存先は、ユーザーが別の vault やパスを指定しない限り
-`${HOME}/src/github.com/y-marui/obsidian-vault/conversation_log/<YYYY>/` とする。
+ユーザーが別のvaultやパスを指定せず、対象vaultの規約にも別指定がない場合、新規ノートは
+`records/conversations/<YYYY>/`へ保存する。Private内容は
+`private/records/conversations/<YYYY>/`を候補とする。既存の`conversation_log/`内のノートを
+更新する場合は場所と形式を維持し、明示された移行作業でない限り移動・複製しない。
 
-- ノート名は `YYYY-MM-DD-ft-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
+- ノート名は `YYYY-MM-DD-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
   kebab-case にする。
-- 画像は同名（拡張子なし）の隣接フォルダに置く。たとえば
-  `2026-09-28-ft-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
+- 新規ノートの画像は、通常領域なら`assets/records/conversations/<conversation-id>/`、Privateなら
+  `private/assets/records/conversations/<conversation-id>/`へ置く。既存Legacyノートではリンク切れを
+  防ぐため、既存の隣接画像フォルダを維持する。元の内部IDやカード名をファイル名にしない。
 - 画像は内容を加工せず、カード名と正逆位置を含む代替テキスト付きの通常の Markdown 画像として埋め込む。
   外部 URL は埋め込まない。
 - 同日に同テーマのログがある場合は、既存内容を確認し、同じリーディングなら統合、独立しているなら
@@ -40,8 +48,9 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 
 ## Write faithfully and make the cards learnable
 
-既存のフリートークと同じく `# conversation_dialog`、`date`、`duration`、`role`、`## dialog`、
-`## summary` を使う。
+新規ノートはvaultのConversation templateに従い、Summary、Participants / Source、Related context、
+Detailed record、Extracted Knowledge / Decisionsへのリンクを必要に応じて持たせる。既存Legacyノートは
+`# conversation_dialog`、`date`、`duration`、`role`、`## dialog`、`## summary`の形式を維持する。
 
 - `## dialog` では、問い、カードを引く指示、ユーザーの応答、AIの解釈、次のスプレッドの提案を、
   話題ごとに `USER:` と `AI:` で忠実に残す。会話にない出来事、関係性、行動は足さない。
