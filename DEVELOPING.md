@@ -27,6 +27,13 @@ scripts/test-git-sweep.sh
 scripts/test-ghq-keep-up-to-date.sh
 ```
 
+`bin/unix/ghq-hosts` を変更した場合は、偽の `ssh` と `ghq-*` で回帰テストを実行する
+（実環境のホストには接続しない）:
+
+```bash
+scripts/test-ghq-hosts.sh
+```
+
 `bin/unix/dots`・`bin/unix/_dots-verbs.sh` や `npm/`・`pipx/` の動詞スクリプトを変更した場合は、
 動詞テーブル（N/A・未実装・オプションゲート）と npm / pipx の `apply` `prune` `sync` `merge` を、
 一時ディレクトリと偽の `npm` / `pipx` で検証する（実環境には影響しない）:

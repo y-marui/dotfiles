@@ -29,6 +29,7 @@ _最終更新: 2026-09-15_
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリの fetch + pull、upstream fork sync | `upstream` remote |
 | `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行、upstream fork sync | `upstream` remote |
+| `bin/unix/ghq-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`→`ghq-sweep`→`ghq-status`をssh経由で実行し、結果表を出す（macOS専用。詳細は[specification.md#ghq-hosts](specification.md#ghq-hosts)） | `dotfiles-private/ghq/hosts`・`.local`、`ssh`、`scutil`、`scripts/test-ghq-hosts.sh`（回帰テスト） |
 | `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、自動PRのPR先解決） | `bin/unix/_git-fork-lib.sh`、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1` | GitHub標準のfork運用（`upstream` remote）の共通関数（owner/repo解決、`gh repo sync`によるupstream→origin同期）。ghqを前提としないため`git-sweep`からも直接利用する | `upstream` remote |
 | `bin/ghq-upstream-pr-allow` | 自動PR機能がfork元（upstream）へPRしてよい`owner/repo`パターンの許可リスト | `bin/unix/_ghq-lib.sh`、`bin/windows/_ghq-lib.ps1`、`shell/zshrc`（`gh()`） |

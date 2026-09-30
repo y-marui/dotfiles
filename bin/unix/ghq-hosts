@@ -1,0 +1,298 @@
+#!/usr/bin/env bash
+# ghq-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-statusを順に実行する（macOS専用）
+#
+# 使い方:
+#   ghq-hosts [options]
+#
+# オプション:
+#   --update            pull の代わりに ghq-update を実行する（オプションは既定のまま）
+#   --no-pull           pull（--update 指定時は update）を実行しない
+#   --no-sweep          ghq-sweep を実行しない
+#   --no-status         ghq-status を実行しない
+#   -H, --host NAME     宣言済みの対象のうち、指定したホストだけを対象にする（複数回可）
+#   --from NAME         実行元の名前を明示する（既定: scutil --get LocalHostName）
+#   --no-local          実行元自身を処理しない
+#   -a, --all           ghq-status に -a を渡し、異常のないリポジトリも表示する
+#   -v, --verbose       全ステップの出力をそのまま表示する
+#   -n, --dry-run       実行内容だけを表示し、何も実行しない（sshも実行しない）
+#   -h, --help          ヘルプを表示
+#
+# 動作:
+#   - 実行順は固定: pull（または update）→ sweep → status。ホストごとに順に実行する
+#   - 処理順は実行元自身（--no-local で省略）→ 宣言順のリモートホスト
+#   - 対象は dotfiles-private の ghq/hosts で実行元ごとに宣言する。書式は1行1件:
+#       <実行元>: <ホスト> <ホスト> ...
+#     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
+#     右側は ssh のホスト名。# 以降はコメント。ghq/hosts.local（端末固有の追加分）も読む
+#   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（ghq-hosts は再帰しない）。
+#     BatchMode で接続し、ConnectTimeout は5秒とする
+#   - 接続不能・認証失敗・コマンド失敗は失敗として扱い、残りのホストの処理は続行する。
+#     接続できなかったホストの残りのステップは skip として表示する
+#   - 既定では成功したステップの出力を省略し、失敗したステップと status の出力だけを表示する。
+#     全出力は ~/.cache/dots/ghq-hosts/<host>.log に残る
+#   - 最後にホスト × ステップの結果表を出し、失敗が1つでもあれば終了コード1で終了する
+#
+# 環境変数:
+#   DOTFILES_PRIVATE_DIR   dotfiles-private の場所（既定: <dotfiles>-private）
+#   GHQ_HOSTS_LOG_DIR      ログの保存先（既定: ${XDG_CACHE_HOME:-~/.cache}/dots/ghq-hosts）
+#   GHQ_HOSTS_SSH          ssh コマンド（テスト用。既定: ssh）
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+DOTFILES_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
+PRIVATE_DIR="${DOTFILES_PRIVATE_DIR:-${DOTFILES_DIR}-private}"
+SSH_CMD="${GHQ_HOSTS_SSH:-ssh}"
+LOG_DIR="${GHQ_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/ghq-hosts}"
+
+DO_UPDATE=0
+DO_PULL=1
+DO_SWEEP=1
+DO_STATUS=1
+DO_LOCAL=1
+STATUS_ALL=0
+VERBOSE=0
+DRY_RUN=0
+FROM=''
+HOST_FILTER=()
+
+die() { echo "error: $*" >&2; exit 1; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --update)    DO_UPDATE=1; shift ;;
+    --no-pull)   DO_PULL=0; shift ;;
+    --no-sweep)  DO_SWEEP=0; shift ;;
+    --no-status) DO_STATUS=0; shift ;;
+    --no-local)  DO_LOCAL=0; shift ;;
+    -a|--all)    STATUS_ALL=1; shift ;;
+    -v|--verbose) VERBOSE=1; shift ;;
+    -n|--dry-run) DRY_RUN=1; shift ;;
+    -H|--host)
+      [[ $# -lt 2 ]] && die "$1 requires an argument"
+      HOST_FILTER+=("$2"); shift 2 ;;
+    --from)
+      [[ $# -lt 2 ]] && die "--from requires an argument"
+      FROM="$2"; shift 2 ;;
+    -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+done
+
+lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
+# 実行元の名前を決める
+ME="$FROM"
+if [[ -z "$ME" ]]; then
+  ME="$(scutil --get LocalHostName 2>/dev/null || true)"
+fi
+[[ -n "$ME" ]] || die "実行元の名前を判定できません。--from NAME で指定してください。"
+ME_LC="$(lower "$ME")"
+
+DECL_FILE="${PRIVATE_DIR}/ghq/hosts"
+[[ -f "$DECL_FILE" ]] || die "宣言ファイルがありません: ${DECL_FILE}（雛形: templates/dotfiles-private/ghq/hosts.example）"
+
+TARGETS=()
+MATCHED=0
+
+add_target() {
+  local t="$1" existing
+  [[ "$t" =~ ^[A-Za-z0-9._@][A-Za-z0-9._@-]*$ ]] || die "不正なホスト名です: ${t}"
+  for existing in ${TARGETS[@]+"${TARGETS[@]}"}; do
+    [[ "$existing" == "$t" ]] && return 0
+  done
+  TARGETS+=("$t")
+}
+
+parse_decl() {
+  local file="$1" line src rest word
+  local words=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="$(trim "${line%%#*}")"
+    [[ -z "$line" ]] && continue
+    [[ "$line" == *:* ]] || die "書式が不正です（'<実行元>: <ホスト>...' が必要）: ${file}: ${line}"
+    src="$(trim "${line%%:*}")"
+    rest="${line#*:}"
+    [[ -n "$src" ]] || die "実行元が空です: ${file}: ${line}"
+    [[ "$(lower "$src")" == "$ME_LC" ]] || continue
+    MATCHED=1
+    words=()
+    read -r -a words <<< "$rest" || true
+    for word in ${words[@]+"${words[@]}"}; do
+      add_target "$word"
+    done
+  done < "$file"
+}
+
+parse_decl "$DECL_FILE"
+[[ -f "${DECL_FILE}.local" ]] && parse_decl "${DECL_FILE}.local"
+[[ "$MATCHED" == 1 ]] || die "実行元 '${ME}' が ${DECL_FILE} に宣言されていません。--from NAME で指定できます。"
+
+if [[ ${#HOST_FILTER[@]} -gt 0 ]]; then
+  picked=()
+  for h in "${HOST_FILTER[@]}"; do
+    found=0
+    for t in ${TARGETS[@]+"${TARGETS[@]}"}; do
+      [[ "$t" == "$h" ]] && found=1
+    done
+    [[ "$found" == 1 ]] || die "宣言にないホストです: ${h}（実行元 ${ME} の対象: ${TARGETS[*]:-なし}）"
+  done
+  for t in ${TARGETS[@]+"${TARGETS[@]}"}; do
+    for h in "${HOST_FILTER[@]}"; do
+      if [[ "$t" == "$h" ]]; then
+        picked+=("$t")
+        break
+      fi
+    done
+  done
+  TARGETS=("${picked[@]}")
+fi
+
+STEPS=()
+if [[ "$DO_PULL" == 1 ]]; then
+  if [[ "$DO_UPDATE" == 1 ]]; then STEPS+=(update); else STEPS+=(pull); fi
+fi
+[[ "$DO_SWEEP" == 1 ]] && STEPS+=(sweep)
+[[ "$DO_STATUS" == 1 ]] && STEPS+=(status)
+[[ ${#STEPS[@]} -gt 0 ]] || die "実行するステップがありません。"
+
+HOSTS=()
+[[ "$DO_LOCAL" == 1 ]] && HOSTS+=("local")
+for t in ${TARGETS[@]+"${TARGETS[@]}"}; do HOSTS+=("$t"); done
+[[ ${#HOSTS[@]} -gt 0 ]] || die "対象のホストがありません。"
+
+step_command() {
+  case "$1" in
+    pull)   echo "ghq-pull" ;;
+    update) echo "ghq-update" ;;
+    sweep)  echo "ghq-sweep" ;;
+    status)
+      if [[ "$STATUS_ALL" == 1 ]]; then echo "ghq-status -a"; else echo "ghq-status"; fi ;;
+  esac
+}
+
+host_label() {
+  if [[ "$1" == "local" ]]; then echo "${ME} (local)"; else echo "$1"; fi
+}
+
+if [[ "$DRY_RUN" == 1 ]]; then
+  for host in "${HOSTS[@]}"; do
+    echo ""
+    echo "==> $(host_label "$host")"
+    for step in "${STEPS[@]}"; do
+      cmd="$(step_command "$step")"
+      if [[ "$host" == "local" ]]; then
+        echo "  would run: ${cmd}"
+      else
+        echo "  would run: ${SSH_CMD} -o BatchMode=yes -o ConnectTimeout=5 ${host} ${cmd}"
+      fi
+    done
+  done
+  exit 0
+fi
+
+mkdir -p "$LOG_DIR"
+TMP_OUT="$(mktemp)"
+trap 'rm -f "$TMP_OUT"' EXIT
+
+# run_step HOST STEP -> 終了コードを返す。出力は $TMP_OUT に入る
+run_step() {
+  local host="$1" step="$2" cmd rc=0
+  local words=()
+  cmd="$(step_command "$step")"
+  : > "$TMP_OUT"
+  if [[ "$host" == "local" ]]; then
+    read -r -a words <<< "$cmd"
+    if [[ "$VERBOSE" == 1 ]]; then
+      if "${words[@]}" 2>&1 | tee "$TMP_OUT"; then rc=0; else rc=${PIPESTATUS[0]}; fi
+    else
+      "${words[@]}" > "$TMP_OUT" 2>&1 || rc=$?
+    fi
+  else
+    if [[ "$VERBOSE" == 1 ]]; then
+      if "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" 2>&1 | tee "$TMP_OUT"; then
+        rc=0
+      else
+        rc=${PIPESTATUS[0]}
+      fi
+    else
+      "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" > "$TMP_OUT" 2>&1 || rc=$?
+    fi
+  fi
+  return "$rc"
+}
+
+indent() { sed 's/^/    /'; }
+
+ROWS=()
+FAILED=0
+
+for host in "${HOSTS[@]}"; do
+  echo ""
+  echo "==> $(host_label "$host")"
+  log_name="$host"
+  [[ "$host" == "local" ]] && log_name="${ME}"
+  log="${LOG_DIR}/${log_name}.log"
+  : > "$log"
+  cells=()
+  unreachable=0
+  for step in "${STEPS[@]}"; do
+    if [[ "$unreachable" == 1 ]]; then
+      cells+=("skip")
+      continue
+    fi
+    [[ "$VERBOSE" == 1 ]] && echo "--- ${step}"
+    rc=0
+    run_step "$host" "$step" || rc=$?
+    {
+      echo "--- ${step} (exit ${rc})"
+      cat "$TMP_OUT"
+    } >> "$log"
+    if [[ "$rc" -eq 0 ]]; then
+      cells+=("ok")
+      if [[ "$VERBOSE" != 1 ]]; then
+        echo "  [ok] ${step}"
+        if [[ "$step" == "status" && -s "$TMP_OUT" ]]; then indent < "$TMP_OUT"; fi
+      fi
+    else
+      FAILED=$((FAILED + 1))
+      if [[ "$host" != "local" && "$rc" -eq 255 ]]; then
+        cells+=("ssh")
+        unreachable=1
+        echo "  [FAIL] ${step}: ssh接続に失敗しました（残りのステップはskip）"
+      else
+        cells+=("FAIL")
+        echo "  [FAIL] ${step} (exit ${rc})"
+      fi
+      if [[ "$VERBOSE" != 1 ]]; then indent < "$TMP_OUT"; fi
+    fi
+  done
+  ROWS+=("${host}|${cells[*]}")
+done
+
+echo ""
+echo "== summary =="
+header="$(printf '%-24s' 'HOST')"
+for step in "${STEPS[@]}"; do header+="$(printf '%-8s' "$step")"; done
+echo "$header"
+for row in "${ROWS[@]}"; do
+  host="${row%%|*}"
+  line="$(printf '%-24s' "$(host_label "$host")")"
+  cells=()
+  read -r -a cells <<< "${row#*|}"
+  for cell in "${cells[@]}"; do line+="$(printf '%-8s' "$cell")"; done
+  echo "$line"
+done
+echo ""
+echo "ログ: ${LOG_DIR}/"
+
+if [[ "$FAILED" -gt 0 ]]; then
+  printf '失敗: %d ステップ\n' "$FAILED" >&2
+  exit 1
+fi

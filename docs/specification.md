@@ -418,6 +418,34 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
 上書きできる。回帰テストは[scripts/test-ghq-keep-up-to-date.sh](../scripts/test-ghq-keep-up-to-date.sh)
 （Unix版のみ）。
 
+## ghq-hosts
+
+`bin/unix/ghq-hosts`は、宣言した他のMacで`ghq-pull`（または`ghq-update`）→`ghq-sweep`→
+`ghq-status`をssh経由で順に実行する（macOS専用。`scripts/check-bin-parity.sh`の例外）。
+詳細なオプションは[ghq-hosts](../bin/unix/ghq-hosts)冒頭のコメントを参照。
+
+- **対象の宣言**: dotfiles-privateの`ghq/hosts`に、実行元ごとに1行1件で書く
+  （`<実行元>: <sshホスト名> ...`）。実行元は`scutil --get LocalHostName`と大文字小文字を
+  区別せず照合し、一致しなければ`--from NAME`で指定する。どちらでも決まらない、または
+  宣言にない実行元はエラーとする。対象は実行元ごとに非対称でよい（全ホスト相互とは限らない）。
+  端末固有の追加分は`ghq/hosts.local`（`.gitignore`対象、手編集専用）に書く
+- **処理順**: 実行元自身（`--no-local`で省略）→宣言順のリモート。ステップは`pull`（`--update`で
+  `update`）→`sweep`→`status`で固定し、`--no-pull`/`--no-sweep`/`--no-status`で外す。
+  `-H`は宣言済みの対象だけを絞り込む（宣言にないホストはエラー）
+- **リモート実行**: `ssh -o BatchMode=yes -o ConnectTimeout=5 <host> ghq-pull`のように、
+  リモートの`ghq-*`を直接呼ぶ（`ghq-hosts`は再帰しない）。非対話sshでも`~/.local/bin/dotfiles`が
+  PATHに入っていることを前提とする
+- **失敗の扱い**: 接続不能・認証失敗（鍵ファイルが無い場合を含む）・コマンド失敗はすべて失敗とし、
+  残りのホストは続行する。接続できなかったホストの残りのステップは`skip`と表示する。
+  終了コードは失敗が1つでもあれば1
+- **出力**: 既定は失敗したステップと`status`の出力だけを表示し、`-v`で全出力を表示する。
+  全出力は`~/.cache/dots/ghq-hosts/<host>.log`に残す。最後にホスト×ステップの結果表を出す。
+  `status`は既定で異常のあるリポジトリだけ、`-a`で全件
+- **`--dry-run`**: 実行内容だけを表示し、sshもコマンドも実行しない
+
+回帰テストは[scripts/test-ghq-hosts.sh](../scripts/test-ghq-hosts.sh)（sshと`ghq-*`は偽のコマンドに
+差し替える）。Windows版は作らない。
+
 ## ghq-status
 
 `bin/unix/ghq-status` の BRANCHES 列・DEV-CHARTER 列・keep-up-to-date 判定ロジックは [ghq-status](../bin/unix/ghq-status) 冒頭のコメントと [DEVELOPING.md](../DEVELOPING.md) を参照。
