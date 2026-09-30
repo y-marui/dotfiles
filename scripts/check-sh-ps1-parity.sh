@@ -53,6 +53,7 @@ EXCEPTIONS=(
   "scripts/check-sh-ps1-parity.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-skills.sh:make専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-dots-verb-table.sh:pre-commit専用ツール。git-bash経由で全OS共通実行（Unix側テーブルを正本にWindows側も検証する）"
+  "scripts/test-codex-plugin.sh:TODO: dots.ps1がcodexサブコマンド未実装のためWindows側の回帰テストも未実装"
   "scripts/test-dots-verbs.sh:TODO: dots.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/check-ai-context-reference.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-charter-ci-template.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"

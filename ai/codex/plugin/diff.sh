@@ -137,16 +137,31 @@ def uninstall_plugin(server, plugin_id, plugin):
         return
     subprocess.run(["codex", "plugin", "remove", plugin_id], check=True)
 
+
+def is_codex_managed(plugin):
+    source = plugin.get("source", {})
+    source_type = source.get("type", source.get("source"))
+    return (
+        source_type == "remote"
+        and plugin.get("installPolicy") == "INSTALLED_BY_DEFAULT"
+    )
+
 with open(plugins_path, encoding="utf-8") as file:
     declared = set(json.load(file).get("plugins", []))
 
 server = AppServer()
 try:
     available = load_plugins(server)
+    codex_managed = {
+        plugin_id
+        for plugin_id, (_, plugin) in available.items()
+        if is_codex_managed(plugin)
+    }
+    declared -= codex_managed
     actual = {
         plugin_id
         for plugin_id, (_, plugin) in available.items()
-        if plugin.get("installed", False)
+        if plugin.get("installed", False) and plugin_id not in codex_managed
     }
     only_actual = sorted(actual - declared)
     only_files = sorted(declared - actual)

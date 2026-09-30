@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian タロットRecord 保存"
+  short_description: "タロットの会話・画像・学習メモを保存"
+  default_prompt: "Use $obsidian-save-record-tarot to save the referenced tarot reading as a private Obsidian Record."

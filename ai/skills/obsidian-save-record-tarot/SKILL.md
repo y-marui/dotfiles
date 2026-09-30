@@ -1,13 +1,17 @@
 ---
-name: obsidian-save-tarot-reading
-description: "Save a referenced tarot-reading chat as a faithful Obsidian conversation log with card images and learning notes. Use for preserving tarot spreads; not for general chat logs or topic-note extraction."
+name: obsidian-save-record-tarot
+description: "Save a referenced tarot-reading chat as a faithful private Obsidian Record with card images and learning notes. Use for tarot readings, not general Records or Knowledge synthesis."
 ---
 
-# Obsidian Save Tarot Reading
+# Save Obsidian Tarot Record
 
 参照チャットで行ったタロットリーディングを、会話の文脈とカード画像を保った
-Obsidian の `conversation_log/` として保存する。通常の会話ログ作成や、結論だけを
-`idea_notes/` へ抽出する用途には使わない。
+ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作成やKnowledge抽出には使わない。
+
+対象vaultの`README.md`、`AI_CONTEXT.md`、Home、Conversation・assets・Private・移行に関する正本文書を
+定められた順序で読む。通常探索では`private/**`とvaultが指定する移行前Private対象を
+読み取り前に除外し、ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。
+交際・家族・健康・金融・住居・実名等を含むリーディングは通常領域へ書かず、Private内へ保存する。
 
 ## Read and delimit the source
 
@@ -18,7 +22,7 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 3. ユーザーが誤ったデッキ構成や試行の除外を指定した場合は、除外範囲と残す背景を確認してから書く。
    背景には「何を占いたかったか」を必要最小限で残し、除外された結果の解釈は残さない。
    ユーザーが混ぜ直しや「最初から」の宣言で有効なリーディングを開始している場合は、その発話を
-   `## dialog` の起点として残し、そこからのデッキ構成と進め方を明示する。
+   `## Detailed record` の起点として残し、そこからのデッキ構成と進め方を明示する。
    起点の直後に後から出た絞り込みテーマを置かず、画像付きスプレッド、質問、現実的な相談を元チャットの
    順に並べる。前の読みを受けて生まれた悩みや追加スプレッドは、その前提となるカードと会話を記録してから置く。
 4. 全文、画像、または有効なリーディングの境界を確認できない場合は、推測で補完せず、エクスポートか
@@ -26,13 +30,12 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 
 ## Store the reading
 
-保存先は、ユーザーが別の vault やパスを指定しない限り
-`${HOME}/src/github.com/y-marui/obsidian-vault/conversation_log/<YYYY>/` とする。
+保存先は `${HOME}/src/github.com/y-marui/obsidian-vault/private/records/conversations/<YYYY>/` とし、画像は `private/assets/records/conversations/<record-id>/` に置く。
 
-- ノート名は `YYYY-MM-DD-ft-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
+- ノート名は `YYYY-MM-DD-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
   kebab-case にする。
-- 画像は同名（拡張子なし）の隣接フォルダに置く。たとえば
-  `2026-09-28-ft-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
+- 画像は上記の専用assetsフォルダに置く。たとえば
+  `private/assets/records/conversations/2026-09-28-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
 - 画像は内容を加工せず、カード名と正逆位置を含む代替テキスト付きの通常の Markdown 画像として埋め込む。
   外部 URL は埋め込まない。
 - 同日に同テーマのログがある場合は、既存内容を確認し、同じリーディングなら統合、独立しているなら
@@ -40,10 +43,12 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 
 ## Write faithfully and make the cards learnable
 
-既存のフリートークと同じく `# conversation_dialog`、`date`、`duration`、`role`、`## dialog`、
-`## summary` を使う。
+新規ノートはvaultのConversation templateに従い、`# <題名>`、`## Summary`、
+`## Participants / Source`、`## Related context`、`## Detailed record`、
+`## Extracted Knowledge / Decisions`を必要に応じて持たせる。既存Legacyノートをその場で更新する場合だけ、
+`# conversation_dialog`、`date`、`duration`、`role`、`## dialog`、`## summary`の形式を維持する。
 
-- `## dialog` では、問い、カードを引く指示、ユーザーの応答、AIの解釈、次のスプレッドの提案を、
+- 新規ノートの`## Detailed record`（既存Legacyでは`## dialog`）では、問い、カードを引く指示、ユーザーの応答、AIの解釈、次のスプレッドの提案を、
   話題ごとに `USER:` と `AI:` で忠実に残す。会話にない出来事、関係性、行動は足さない。
 - 各スプレッドは必ず、問いと各位置を決める発話、ユーザーがカードを引いて共有する発話、画像、解釈の順に置く。
   問いまたはカードを引く指示を確認できない場合は、後の解釈から復元・要約して補わない。取得できない
@@ -62,7 +67,7 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 - 一般的な説明の末尾に、`今回の配置と悩みへの読み` をまとめて置く。そこで初めて、今回の問い、
   各位置、カードの並び、繰り返し出たカードを結び付ける。一般論へ今回の結論を混ぜず、
   各位置で何を占ったかと、解釈がどこから出たかを読者が追えるようにする。
-- `## summary` は実際の会話に即して、`theme`、`spreads`、`recurring_symbols`、`takeaways`、
+- 新規ノートの`## Summary`（既存Legacyでは`## summary`）は実際の会話に即して、`theme`、`spreads`、`recurring_symbols`、`takeaways`、
   `open_questions` などを選ぶ。読みの結論を客観的事実に言い換えない。
 
 ## Verify and report

@@ -27,6 +27,34 @@ $countOk     = 0
 $countSkip   = 0
 $countBackup = 0
 
+$obsoleteSkillLinks = @(
+    @{ Src = 'ai\skills\obsidian-create-conversation-log'; Dest = (Join-Path $HOME '.agents\skills\obsidian-create-conversation-log') },
+    @{ Src = 'ai\skills\obsidian-create-conversation-log'; Dest = (Join-Path $HOME '.claude\skills\obsidian-create-conversation-log') },
+    @{ Src = 'ai\skills\obsidian-restructure-idea-notes'; Dest = (Join-Path $HOME '.agents\skills\obsidian-restructure-idea-notes') },
+    @{ Src = 'ai\skills\obsidian-restructure-idea-notes'; Dest = (Join-Path $HOME '.claude\skills\obsidian-restructure-idea-notes') },
+    @{ Src = 'ai\codex\skills\obsidian-save-chat-notes'; Dest = (Join-Path $HOME '.agents\skills\obsidian-save-chat-notes') },
+    @{ Src = 'ai\skills\obsidian-save-tarot-reading'; Dest = (Join-Path $HOME '.agents\skills\obsidian-save-tarot-reading') },
+    @{ Src = 'ai\skills\obsidian-save-tarot-reading'; Dest = (Join-Path $HOME '.claude\skills\obsidian-save-tarot-reading') },
+    @{ Src = 'ai\skills\obsidian-update-conversation-log'; Dest = (Join-Path $HOME '.agents\skills\obsidian-update-conversation-log') },
+    @{ Src = 'ai\skills\obsidian-update-conversation-log'; Dest = (Join-Path $HOME '.claude\skills\obsidian-update-conversation-log') }
+)
+foreach ($link in $obsoleteSkillLinks) {
+    $expected = Join-Path $DOTFILES_DIR $link.Src
+    $item = Get-Item -LiteralPath $link.Dest -ErrorAction SilentlyContinue -Force
+    if (-not $item -or $item.LinkType -ne 'SymbolicLink' -or
+        -not ([string]$item.Target).Equals($expected, [System.StringComparison]::OrdinalIgnoreCase)) {
+        continue
+    }
+
+    $relativeDest = $link.Dest.Substring($HOME.Length).TrimStart('\')
+    $backupPath = Join-Path (Join-Path $backupDir 'obsolete-skills') $relativeDest
+    $backupParent = Split-Path $backupPath -Parent
+    New-Item -ItemType Directory -Path $backupParent -Force | Out-Null
+    Move-Item -LiteralPath $link.Dest -Destination $backupPath
+    Write-Host "  MIGRATE $($link.Dest) -> $backupPath"
+    $countBackup++
+}
+
 function Install-LinkSet {
     param(
         [Parameter(Mandatory)] [string]$SourceRoot,

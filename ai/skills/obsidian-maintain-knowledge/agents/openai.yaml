@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Knowledge 整備"
+  short_description: "既存Knowledgeを情報を保って統合・再構成"
+  default_prompt: "Use $obsidian-maintain-knowledge to audit and reorganize the specified Obsidian Knowledge."
