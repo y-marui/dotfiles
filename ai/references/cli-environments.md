@@ -17,6 +17,10 @@ macOS 成果物も同様に、実際の見た目・動作確認はユーザー�
 オープンな PR 上で反復開発している場合は同じブランチで修正し、承認済みの範囲で
 追いコミット・push と PR 本文更新を行う。再ビルド → `open` → ユーザーの再確認を繰り返す。
 
+## iOS Simulator Moved to Device Hub
+
+このマシンのXcodeには独立した`Simulator.app`が存在しない（`/Applications/Xcode.app/Contents/Developer/Applications/`自体がない）。シミュレータの画面は**「Device Hub」**という別アプリに統合されている（Xcodeメニューの `Open Developer Tool` → `Device Hub`、またはアプリ一覧から直接起動）。`xcrun simctl boot`/`install`/`launch` 等のCLIコマンド自体は従来どおり動作し、Device Hubを開けば起動済みのシミュレータ画面が表示される。`open -a Simulator`は失敗するので使わない。
+
 ## Warp Command Wrappers
 
 Warp ターミナルで `ssh`・`make`・`diff` 等のラッパー由来のエラー
