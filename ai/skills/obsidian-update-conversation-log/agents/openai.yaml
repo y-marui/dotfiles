@@ -1,4 +1,4 @@
 interface:
-  display_name: "Obsidian 会話ログ更新"
-  short_description: "Obsidianの会話ログを校正・再構成して更新"
-  default_prompt: "Use $obsidian-update-conversation-log to proofread and update the requested conversation log."
+  display_name: "Obsidian Record更新"
+  short_description: "指定されたDaily・会話記録を意味を保って校正"
+  default_prompt: "Use $obsidian-update-conversation-log to proofread and update only the requested Daily or Conversation records."

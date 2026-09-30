@@ -1,73 +1,92 @@
 ---
 name: obsidian-update-conversation-log
-description: Proofread and rewrite conversation logs in the conversation_log directory of the obsidian-vault repository, and, when explicitly requested, migrate daily-note tasks to Google Tasks through Glance Task.
+description: Proofread and update existing Daily or Conversation records in an Obsidian vault while preserving meaning and current vault policy. Use for requested record cleanup and, only when explicitly requested, migration of action tasks to Google Tasks; do not use for new chat capture or Knowledge extraction.
 ---
 
-# Conversation Log Update
+# Obsidian Update Conversation Log
 
-## Target Files
+既存のDailyまたはConversation Recordを、意味と判断経緯を失わず校正・更新する。
+新規チャットの保存、Knowledgeへの昇格、Vault全体の一括再構成には使わない。
 
-- 個別指定時は、そのファイルだけを対象にしてブランチ間差分を確認しない。
-- 指定がなければ、`origin/ai/review` があれば `git diff --name-only origin/main origin/ai/review` の差分を取り、そのうち `conversation_log/` 配下の `.md` だけを対象にする。`origin/ai/review` は本スキルの最終pushでのみ更新されるため、main側でローカル自動コミット等の別経路により生じた `idea_notes/` 等の無関係な差分が混ざることがある。それらには一切触れない。
-- `origin/ai/review` が無ければ `conversation_log/` 配下の全 `.md` を対象にする。
+## Scope and authorization
 
-## Flow
+- 対象vaultの`README.md`、`AI_CONTEXT.md`、Home、Records・Private・移行に関する正本文書を、
+  定められた順序で読む。vault側の保存先、形式、安全規則を本skillの既定値より優先する。
+- ユーザーが指定したファイルだけを対象にする。フォルダまたは期間が指定された場合は、変更前に
+  対象一覧、件数、処理内容、検証方法を提示する。対象が不明な場合は、Privateを除外した候補一覧だけを
+  作り、選択を得るまで本文を読んだり変更したりしない。
+- `private/**`とvaultが指定する移行前Private対象を通常探索から読み取り前に除外する。
+  ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。
+- `#no-update`を含むファイルは、ユーザーがそのファイルを明示し、タグを解除または今回だけ更新する
+  意図を確認した場合を除いて変更しない。
+- 校正依頼は対象ファイルの保存を許可するが、移動、削除、Knowledge抽出、外部タスク作成、commit、
+  pushを許可したとは扱わない。それぞれ明示された場合だけ行う。
+- dirty worktreeの既存変更を保全し、開始時点の変更と自分の変更を区別する。
 
-- 個別指定時は、読み込み・校正・保存・コミットを最小限に行い、`origin/ai/review` へpushしない。
-- 自動抽出時は確認を挟まず連続処理し、完了後に一度だけコミット・pushする。
-- 校正後の全文は出力せず、`Updated: filename` のように簡潔に報告する。
+`origin/ai/review`との差分やフォルダ全体を既定の対象にしない。自動commit・自動pushは行わない。
 
-## Google Tasks Migration
+## Preserve the record
 
-日次ログの行動可能な「タスク」は、原則としてGlance Taskを経由してGoogle Tasksへ移管する。移管前には必ずGlance Taskから移管先の既存タスクを取得し、重複がないかを確認する(下記の重複確認ルールを参照)。移管先が明示されていない場合は、候補と移管先を提示し、作成前に一度だけ確認する。移管の依頼または確認が得られた場合、および無人実行(スケジュールタスク等でユーザーに確認できない)場合は、重複確認のうえでログ更新と同じ作業で作成・検証・記録まで自動的に行う。分類や移管先が判断できない場合、または未認証などで実行不能な場合に限り、その項目だけ作成を保留し、候補と想定される移管先を最終報告に含める。
+- 誤字脱字、音声認識の明白な誤り、重複した相槌、読点・段落を整えてよい。
+- 発言者、時系列、断定の強さ、感情、条件、候補、棄却理由、合意、未決事項を変えない。
+- 会話にない診断、評価、結論、アクション、研究アイデアを追加しない。
+- 「追記」「Append」「後日談」は、時点の違いが失われない形で適切な位置へ統合する。
+- コード、参考文献、`Appendix`、`付録`は独立節として残す。
+- 外部情報を最新化する依頼でない限り、その時点の記録を現在情報へ書き換えない。
+- RecordsをAI要約で置換しない。大幅な圧縮や構成変更が必要なら、先に変更案を提示する。
 
-- `#no-update` を含むファイルは移管対象にしない。
-- 時刻が決まった予定はGoogle Calendar、コード・実装を伴うタスクはGitHub、先送りするメモやアイデアはObsidianで扱う。Google Tasksには、これら以外の行動タスクだけを移す。
-- 移管前にGlance Taskからタスクグループと移管先の既存タスクを取得し、安定IDで操作する。同一タイトルの未完了タスクがあれば新規作成せず、そのタスクを使う。似ているだけで目的が異なるタスクは別タスクとして扱う。
-- 移管先の指定を優先する。指定がなければ、研究に直接関係するタスクは「仕事」、それ以外は「趣味」に入れる。
-- タイトルにはログの短い見出し、メモには本文の説明を使う。期限・親タスク・順序は、ユーザーの指定がない限り追加しない。
-- 作成後は、タイトル・未完了状態・タスクIDを再取得して確認する。未認証、移管先不明、または分類を決められない場合は作成せず、必要な対応をユーザーへ尋ねる。
-- Google TasksのWeb URLは安定して参照できないため、ログにはGlance Taskで確認した安定タスクIDを記録する。各タスク本文の直後に次の形式で追記する。
+## Respect current and legacy formats
 
-  `<br><span style="color: var(--text-faint);">Google Tasks: <code style="color: inherit;">{タスクID}</code></span>`
+### Current Daily
 
-## Editing Rules
+`records/daily/`のDailyは、既存構造を尊重しつつ、必要な見出しだけを次から使う。
 
-### Protected Tags
+1. Focus
+2. Timeline / Log
+3. Decisions
+4. Carryovers
+5. Reflection
 
-`#no-update` を含むファイルは校正・要約・再構成をせず、Git操作では現状のまま扱う。
+空の見出しを埋める義務はない。継続タスクの正本をDailyへ移さず、その日の実行履歴だけを残す。
 
-### Daily Notes (`YYYY-MM-DD.md`)
+### Current Conversation
 
-冒頭3節を必ず「タスク」「予定」「課題」にし、次の形式で書く。
+`records/conversations/`のConversationは、必要に応じて次を使う。
 
-- **タスク**: 今日やるべきこと、または現在進行中のタスク。
-- **予定**: **明日以降**に控えている未来の予定。
-- **課題**: 現在直面している問題点や、改善すべき事項。
+1. Summary
+2. Participants / Source
+3. Related context
+4. Faithful transcript or detailed record
+5. Extracted Knowledge / Decisionsへのリンク
 
-`## タスク` (または `## 予定`, `## 課題`)
-`* **短い見出し**: 自然な文章による中身の説明（過度な要約を避け、元のニュアンスを維持・拡張する）`
+読みやすく直しても、意味、選択肢、棄却理由、合意、未決事項を失わせない。
 
-4節目以降は当日の活動・出来事・対話を、抽象カテゴリでなく具体的な話題ごとに書く。
+### Legacy records
 
-`## 具体的なトピック名`
-`自然な文章による中身の説明（過度な要約を避け、論理的な一文または段落として構成する）`
+`conversation_log/`等の既存Legacyファイルは、その場所と基本形式を維持する。今回の依頼が
+移行でない限り、`records/`へ移動・複製したり、現行テンプレートへ全面変換したりしない。
+Legacy Dailyの「タスク」「予定」「課題」等は、既存内容の意味を保って校正できるが、全ファイルへ
+一律に追加・並べ替えしない。
 
-- 明日以降の行動予定は、タスクまたは本文から「予定」へ移す。
-- タスクと本文が重複する場合は、詳細をタスクへ統合して本文側を削除する。
+## Google Tasks migration
 
-### Other Files (`-MJ.md`, `-(topic).md`)
+日次ログからGoogle Tasksへの移管は、ユーザーが今回明示した場合だけ行う。
 
-誤字脱字を直し、構造的な改善が見込める場合だけ論理的で読みやすい構成へ再構成する。
+- 時刻が決まった予定はGoogle Calendar、コード・実装を伴うタスクはGitHub、先送りするメモや
+  アイデアはObsidianで扱い、それ以外の継続タスクだけをGoogle Tasks候補にする。
+- 作成前にGlance Taskから移管先と既存タスクを取得し、同一の未完了タスクがないか確認する。
+- 移管先が明示されていない場合は、候補と移管先を提示し、外部作成前に確認する。無人実行であっても
+  承認を推測せず、作成を保留する。
+- 作成後はタイトル、未完了状態、安定タスクIDを再取得して確認する。
+- Google TasksのWeb URLに依存せず、関連RecordにはGlance Taskで確認した安定IDを記録する。
+- `#no-update`を含むファイルから外部タスクを作成しない。
 
-### Common Rules
+## Verify and report
 
-- 文体は簡潔な「だ・である」調または体言止め。メッセージ、メール、対話文は元の敬体を維持する。
-- 原文の敬称を保ち、ない敬称を追加しない。要約だけにせず、意味を保って文脈を補完する。
-- 「追記」「Append」「後日談」は本文の適切な位置へ統合する。コード、参考文献、`## Appendix`、`## 付録` は末尾の独立節として残す。
-- 指示されない「まとめ」「考察」「追記」などの定型節を作らない。
+1. 更新したファイルを全文読み返し、原文と照合する。
+2. 対象外ファイル、Private、`#no-update`、添付、内部リンクが意図せず変わっていないことを確認する。
+3. `git diff --check`と`git status --short`を実行し、先行変更と自分の変更を区別する。
+4. 外部タスクを作成した場合は、作成先、タイトル、安定ID、検証結果を報告する。
+5. 更新ファイル、主な校正内容、保持したLegacy形式、未確認事項、Git状態を簡潔に報告する。
 
-## Git
-
-- コミットメッセージ: `YYYY-MM-DD HH:MM:SS - Proofread and rewrite conversation logs`
-- 個別指定時は `origin/main` のみ、自動抽出時は `origin/main` と `origin/ai/review` の両方へpushする(このリポジトリのリモート名は `origin` であり、`upstream` という名のリモートは存在しない)。
+commitとpushは、ユーザーが明示的に依頼した場合だけ行う。
