@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Record 保存"
+  short_description: "参照チャットを忠実な会話Recordとして保存"
+  default_prompt: "Use $obsidian-save-record to save the referenced chat as a faithful Obsidian Record."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Record 整備"
+  short_description: "既存Recordを意味を保って校正・整形"
+  default_prompt: "Use $obsidian-maintain-record to proofread and maintain the specified Obsidian Records."

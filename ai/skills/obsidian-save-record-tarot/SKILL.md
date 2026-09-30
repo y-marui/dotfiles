@@ -1,13 +1,12 @@
 ---
-name: obsidian-save-tarot-reading
-description: "Save a referenced tarot-reading chat as a faithful Obsidian conversation log with card images and learning notes. Use for preserving tarot spreads; not for general chat logs or topic-note extraction."
+name: obsidian-save-record-tarot
+description: "Save a referenced tarot-reading chat as a faithful private Obsidian Record with card images and learning notes. Use for tarot readings, not general Records or Knowledge synthesis."
 ---
 
-# Obsidian Save Tarot Reading
+# Save Obsidian Tarot Record
 
 参照チャットで行ったタロットリーディングを、会話の文脈とカード画像を保った
-Obsidian の `conversation_log/` として保存する。通常の会話ログ作成や、結論だけを
-`idea_notes/` へ抽出する用途には使わない。
+Obsidian のPrivate Recordとして保存する。通常のRecord作成やKnowledge抽出には使わない。
 
 ## Read and delimit the source
 
@@ -26,13 +25,12 @@ Obsidian の `conversation_log/` として保存する。通常の会話ログ�
 
 ## Store the reading
 
-保存先は、ユーザーが別の vault やパスを指定しない限り
-`${HOME}/src/github.com/y-marui/obsidian-vault/conversation_log/<YYYY>/` とする。
+保存先は `${HOME}/src/github.com/y-marui/obsidian-vault/private/records/conversations/<YYYY>/` とし、画像は `private/assets/records/conversations/<record-id>/` に置く。
 
 - ノート名は `YYYY-MM-DD-ft-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
   kebab-case にする。
-- 画像は同名（拡張子なし）の隣接フォルダに置く。たとえば
-  `2026-09-28-ft-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
+- 画像は上記の専用assetsフォルダに置く。たとえば
+  `private/assets/records/conversations/2026-09-28-ft-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
 - 画像は内容を加工せず、カード名と正逆位置を含む代替テキスト付きの通常の Markdown 画像として埋め込む。
   外部 URL は埋め込まない。
 - 同日に同テーマのログがある場合は、既存内容を確認し、同じリーディングなら統合、独立しているなら

@@ -1,16 +1,16 @@
 ---
-name: obsidian-restructure-idea-notes
-description: Audit and restructure an Obsidian vault's idea_notes by splitting, merging, moving, or consolidating notes while preserving all non-duplicate information. Use when the user asks to reorganize idea_notes or verify that a reorganization lost nothing; not for conversation_log proofreading or chat-only research ingestion.
+name: obsidian-maintain-knowledge
+description: Audit, split, merge, or reorganize existing Obsidian Knowledge in knowledge while preserving non-duplicate information. Use for existing Knowledge; use obsidian-save-knowledge for new chat-derived synthesis.
 ---
 
-# Restructure Obsidian Idea Notes
+# Maintain Obsidian Knowledge
 
-既存の `idea_notes/` を、情報を減らさず「1トピック1ファイル」へ再構成する。ファイル数、ファイル名、配置、見出し、表現は変更できるが、重複でない内容は判断条件や履歴を含めて保持する。
+既存の `knowledge/` を、情報を減らさず主題ごとに再構成する。旧 `idea_notes/` の移行には使わない。
 
 ## Scope and authorization
 
 - ユーザーが別のvaultを指定しない限り、`${HOME}/src/github.com/y-marui/obsidian-vault` を候補とし、存在を確認する。
-- 対象範囲が `idea_notes/` 全体なのか、`idea_notes/finance` のような特定フォルダまたは特定ノートなのかを確認する。ユーザーが対象範囲を明示していない場合は必ず確認し、回答を得るまでインベントリ作成やファイル変更を始めない。既定vaultが決まっていても、対象範囲まで推測しない。
+- 対象となる `knowledge/` のフォルダまたはノートを確認する。ユーザーが範囲を明示していない場合は必ず確認する。
 - vaultと対象ディレクトリの指示ファイルを、定められた順序で全文読む。特にノート構成、frontmatter、命名、Git運用の規則を優先する。
 - 再構成の依頼は、対象範囲内のノートの作成、統合、分割、移動、置換、不要になった旧ノートの削除を許可する。ただし、対象外ノート、取り込み元、添付ファイル、commit、pushまで許可したとは扱わない。
 - dirty worktreeの既存変更はユーザーのものとして保全する。自動コミットが発生しても巻き戻さず、開始時点と作業中のコミットを区別する。
