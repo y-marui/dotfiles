@@ -22,7 +22,7 @@ ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作
 3. ユーザーが誤ったデッキ構成や試行の除外を指定した場合は、除外範囲と残す背景を確認してから書く。
    背景には「何を占いたかったか」を必要最小限で残し、除外された結果の解釈は残さない。
    ユーザーが混ぜ直しや「最初から」の宣言で有効なリーディングを開始している場合は、その発話を
-   `## dialog` の起点として残し、そこからのデッキ構成と進め方を明示する。
+   `## Detailed record` の起点として残し、そこからのデッキ構成と進め方を明示する。
    起点の直後に後から出た絞り込みテーマを置かず、画像付きスプレッド、質問、現実的な相談を元チャットの
    順に並べる。前の読みを受けて生まれた悩みや追加スプレッドは、その前提となるカードと会話を記録してから置く。
 4. 全文、画像、または有効なリーディングの境界を確認できない場合は、推測で補完せず、エクスポートか
@@ -43,11 +43,12 @@ ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作
 
 ## Write faithfully and make the cards learnable
 
-新規ノートはvaultのConversation templateに従い、Summary、Participants / Source、Related context、
-Detailed record、Extracted Knowledge / Decisionsへのリンクを必要に応じて持たせる。既存Legacyノートは
+新規ノートはvaultのConversation templateに従い、`# <題名>`、`## Summary`、
+`## Participants / Source`、`## Related context`、`## Detailed record`、
+`## Extracted Knowledge / Decisions`を必要に応じて持たせる。既存Legacyノートをその場で更新する場合だけ、
 `# conversation_dialog`、`date`、`duration`、`role`、`## dialog`、`## summary`の形式を維持する。
 
-- `## dialog` では、問い、カードを引く指示、ユーザーの応答、AIの解釈、次のスプレッドの提案を、
+- 新規ノートの`## Detailed record`（既存Legacyでは`## dialog`）では、問い、カードを引く指示、ユーザーの応答、AIの解釈、次のスプレッドの提案を、
   話題ごとに `USER:` と `AI:` で忠実に残す。会話にない出来事、関係性、行動は足さない。
 - 各スプレッドは必ず、問いと各位置を決める発話、ユーザーがカードを引いて共有する発話、画像、解釈の順に置く。
   問いまたはカードを引く指示を確認できない場合は、後の解釈から復元・要約して補わない。取得できない
@@ -66,7 +67,7 @@ Detailed record、Extracted Knowledge / Decisionsへのリンクを必要に応�
 - 一般的な説明の末尾に、`今回の配置と悩みへの読み` をまとめて置く。そこで初めて、今回の問い、
   各位置、カードの並び、繰り返し出たカードを結び付ける。一般論へ今回の結論を混ぜず、
   各位置で何を占ったかと、解釈がどこから出たかを読者が追えるようにする。
-- `## summary` は実際の会話に即して、`theme`、`spreads`、`recurring_symbols`、`takeaways`、
+- 新規ノートの`## Summary`（既存Legacyでは`## summary`）は実際の会話に即して、`theme`、`spreads`、`recurring_symbols`、`takeaways`、
   `open_questions` などを選ぶ。読みの結論を客観的事実に言い換えない。
 
 ## Verify and report
