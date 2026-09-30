@@ -1,4 +1,0 @@
-interface:
-  display_name: "Obsidian チャット内容保存"
-  short_description: "チャットを検証し根拠付きKnowledgeとして保存"
-  default_prompt: "Use $obsidian-save-chat-notes to verify the referenced chats and organize them as evidence-linked Knowledge in my Obsidian vault."

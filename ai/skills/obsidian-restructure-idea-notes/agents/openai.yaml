@@ -1,4 +1,0 @@
-interface:
-  display_name: "Obsidian idea_notes 再構成"
-  short_description: "情報を保全してLegacyのidea_notesを再構成・移行"
-  default_prompt: "Use $obsidian-restructure-idea-notes to audit, reorganize, or migrate legacy idea_notes without losing information."

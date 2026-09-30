@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Project 保存"
+  short_description: "実行を決めた企画のProject Homeを作成"
+  default_prompt: "Use $obsidian-save-project to create a Project Home from the referenced chat."

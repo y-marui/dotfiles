@@ -26,6 +26,33 @@ for skill_name in "${CODEX_LEGACY_SKILLS[@]}"; do
   (( count_backup++ )) || true
 done
 
+# 名称変更済みの管理skillについて、旧名を指すリンクだけを退避する。
+# 別の実体を指す同名リンクやユーザー管理ファイルには触れない。
+obsolete_skill_links=(
+  "ai/skills/obsidian-create-conversation-log|${HOME}/.agents/skills/obsidian-create-conversation-log"
+  "ai/skills/obsidian-create-conversation-log|${HOME}/.claude/skills/obsidian-create-conversation-log"
+  "ai/skills/obsidian-restructure-idea-notes|${HOME}/.agents/skills/obsidian-restructure-idea-notes"
+  "ai/skills/obsidian-restructure-idea-notes|${HOME}/.claude/skills/obsidian-restructure-idea-notes"
+  "ai/codex/skills/obsidian-save-chat-notes|${HOME}/.agents/skills/obsidian-save-chat-notes"
+  "ai/skills/obsidian-save-tarot-reading|${HOME}/.agents/skills/obsidian-save-tarot-reading"
+  "ai/skills/obsidian-save-tarot-reading|${HOME}/.claude/skills/obsidian-save-tarot-reading"
+  "ai/skills/obsidian-update-conversation-log|${HOME}/.agents/skills/obsidian-update-conversation-log"
+  "ai/skills/obsidian-update-conversation-log|${HOME}/.claude/skills/obsidian-update-conversation-log"
+)
+for entry in "${obsolete_skill_links[@]}"; do
+  expected="${DOTFILES_DIR}/${entry%%|*}"
+  dest="${entry##*|}"
+  if [[ ! -L "${dest}" || "$(readlink "${dest}")" != "${expected}" ]]; then
+    continue
+  fi
+
+  legacy_backup_path="${BACKUP_DIR}/obsolete-skills/${dest#"${HOME}/"}"
+  mkdir -p "$(dirname "${legacy_backup_path}")"
+  mv "${dest}" "${legacy_backup_path}"
+  echo "  MIGRATE ${dest} -> ${legacy_backup_path}"
+  (( count_backup++ )) || true
+done
+
 # 現行設定では使わない旧 zsh キャッシュを、削除せずバックアップへ退避する。
 # Prezto の補完キャッシュは ~/.cache/prezto/zcompdump を使用する。
 for legacy_cache in "${HOME}/.zcompdump" "${HOME}/.zcompdump.zwc"; do

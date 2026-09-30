@@ -1,4 +1,0 @@
-interface:
-  display_name: "Obsidian タロット結果保存"
-  short_description: "タロットの会話・画像・学習メモを保存"
-  default_prompt: "Use $obsidian-save-tarot-reading to save the referenced tarot reading as a faithful Obsidian conversation log."

@@ -1,13 +1,12 @@
 ---
-name: obsidian-create-conversation-log
-description: "Create a faithful Conversation record in an Obsidian vault from a referenced Morning Journal or free-talk chat. Use when the user asks to preserve a chat as a conversation record; do not use for topic-note extraction or proofreading an existing log."
+name: obsidian-save-record
+description: "Save a referenced chat as a faithful Obsidian Record in records/conversations or private/records/conversations. Use when preserving the chat itself; use obsidian-save-knowledge for reusable synthesis."
 ---
 
-# Obsidian Create Conversation Log
+# Save Obsidian Record
 
-参照されたモーニングジャーナルまたはフリートークの内容を、Obsidian vault の
-Conversation Recordとして保存する。再利用可能な論点だけをKnowledgeへ抽出する作業ではなく、
-対話の流れと文脈を残す作業に使う。
+参照されたチャット、モーニングジャーナル、またはフリートークの内容を、Obsidian vault の
+`records/conversations/` または `private/records/conversations/` に保存する。Knowledgeへの要約ではなく、対話の流れと文脈を残す作業に使う。
 
 ## Scope
 
@@ -38,62 +37,48 @@ Conversation Recordとして保存する。再利用可能な論点だけをKnow
 
 ## Choose the filename
 
-ユーザーが別のvaultやパスを指定せず、対象vaultの規約にも別指定がない場合、新規ログは
-`records/conversations/<YYYY>/`へ保存する。Private内容は同じ分類をPrivate配下へ写した
-`private/records/conversations/<YYYY>/`を候補とする。
+通常は `${HOME}/src/github.com/y-marui/obsidian-vault/private/records/conversations/<YYYY>/` へ保存する。技術調査、公開前提の企画、または通常領域を指定された会話は `records/conversations/<YYYY>/` とする。判断できなければInboxを含む候補と理由を示してユーザーに聞く。
 
-既存の`conversation_log/`内のログを更新する場合は、その場所と形式を維持する。移行作業が
-明示されていない限り、新パスへ移動・複製しない。旧パスへ新規作成するのは、ユーザーが
-互換性上の理由で明示した場合だけにする。
+- モーニングジャーナル: `YYYY-MM-DD-mj.md`
+- フリートーク: `YYYY-MM-DD-ft-<topic>.md`
+- その他の会話: `YYYY-MM-DD-<topic>.md`
 
-- モーニングジャーナル: `YYYY-MM-DD-morning-journal.md`
-- フリートーク: `YYYY-MM-DD-<topic>.md`
+既存の`conversation_log/`内のログを更新する場合は、その場所と形式を維持する。明示された移行作業でない限り移動・複製しない。
 
 `<topic>` は会話内容を表す短い英小文字の kebab-case にする。例: `monday-mood`、
 `research-planning`。同じ日に同じ種類・話題のログがすでにあるときは、既存ファイルを
 上書きせず、内容を確認して統合できる場合だけ統合する。独立した会話なら、意味の異なる
 topic を付ける。
 
-モーニングジャーナルの実行プロンプトが必要なら、vaultが指定する`system/prompts/`を先に探す。
-移行中で新パスに存在しない場合だけ、既存の`conversation_log/prompt.md`を読む。
+モーニングジャーナルの実行プロンプトが必要なら、vault の `system/prompts/morning-journal.md` を読む。
 
 ## Write the conversation faithfully
 
-新規ログはvaultのConversation templateに従い、少なくともSummary、Participants / Source、
-Related context、Detailed record、Extracted Knowledge / Decisionsへのリンクを必要に応じて持たせる。
-既存Legacyログを更新する場合は、次の`conversation_dialog`形式を維持する。
+VaultのConversation推奨構成に従い、次の形を基本とする。Conversationにはfrontmatterを必須としない。必要なら`description`だけを付ける。
 
 ~~~markdown
-# conversation_dialog
+ # <会話を表す題名>
 
-date: YYYY-MM-DD
-duration: 約N分
-role: USER, AI
+## Summary
 
-## dialog
+## Participants / Source
+
+- Date: YYYY-MM-DD
+- Duration: 約N分
+- Participants: USER, AI
+
+## Detailed record
 
 USER: ...
 
 AI: ...
 
-## summary
+## Related context
 
-mood:
-focus:
-
-life_topic:
-research_topic:
-
-research_observations:
-research_questions:
-research_ideas:
-
-project_ideas:
-
-today_action:
+## Extracted Knowledge / Decisions
 ~~~
 
-- `## dialog` は要約文の連なりにしない。読みやすい大きさで話題ごとに分けながら、`USER:` と
+- `## Detailed record` は要約文の連なりにしない。読みやすい大きさで話題ごとに分けながら、`USER:` と
   `AI:` の発話として書く。元の話し方、質問と応答の往復、判断に至る流れは残す。
 - 音声認識の明白な誤字、言い直し、途中で切れた文、意味のない重複は自然な日本語に直してよい。
   ただし、推測で内容を補わず、話者、意図、感情の強さ、結論を変えない。
@@ -110,7 +95,7 @@ today_action:
   明記する。
 - 画像カルーセルや添付は、会話の意味に影響する内容だけを文章で記録する。画像ファイルそのものを
   保存するのは、ユーザーが明示的に求め、出典・権利・保存先を別途確認できる場合だけにする。
-- `## summary` は dialog の内容からのみ作る。モーニングジャーナルは基本テンプレートの
+- `## Summary` はDetailed recordの内容からのみ作る。モーニングジャーナルは基本テンプレートの
   `mood`、`focus`、`life_topic`、`research_topic` などを使う。一方、フリートークでは
   空欄のテンプレートを機械的に残さず、実際の話題に合う項目（例: `relationship`、`outings`、
   `decisions`、`open_questions`）を選び、必要なら追加する。会話にない診断、評価、アクション、
@@ -123,5 +108,5 @@ today_action:
 保存後、対象ファイルを全文読み返し、会話の主な話題、決定、未解決事項、`today_action` を
 照合する。`git diff --check` と `git status --short` を実行し、先行変更には触れない。
 
-作成・更新したファイル、通常・Private・Legacyの別、会話を忠実に整形した範囲、
-未確認の重要情報、Git状態を簡潔に報告する。commitとpushは明示的に依頼された場合だけ行う。
+作成・更新したファイル、命名の種別、会話を忠実に整形した
+範囲、通常・Private・Legacyの別、未確認の重要情報、Git状態を簡潔に報告する。commitとpushは明示的に依頼された場合だけ行う。

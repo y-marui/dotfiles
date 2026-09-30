@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Knowledge 保存"
+  short_description: "参照チャットを根拠Record付きのKnowledgeへ整理"
+  default_prompt: "Use $obsidian-save-knowledge to verify and save reusable Knowledge from the referenced chats."

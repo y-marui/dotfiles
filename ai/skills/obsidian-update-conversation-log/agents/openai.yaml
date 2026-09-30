@@ -1,4 +1,0 @@
-interface:
-  display_name: "Obsidian Record更新"
-  short_description: "指定されたDaily・会話記録を意味を保って校正"
-  default_prompt: "Use $obsidian-update-conversation-log to proofread and update only the requested Daily or Conversation records."

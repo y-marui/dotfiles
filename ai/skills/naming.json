@@ -29,27 +29,32 @@
       "display_name_prefix": "Google Maps"
     },
     "morning-brief": {"kind": "generic"},
-    "obsidian-create-conversation-log": {
+    "obsidian-save-record": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
-    "obsidian-save-tarot-reading": {
+    "obsidian-save-record-tarot": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
-    "obsidian-restructure-idea-notes": {
+    "obsidian-maintain-knowledge": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
-    "obsidian-save-chat-notes": {
+    "obsidian-save-knowledge": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
-    "obsidian-update-conversation-log": {
+    "obsidian-maintain-record": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
+    "obsidian-save-project": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
