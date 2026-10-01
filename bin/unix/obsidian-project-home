@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# obsidian-project-home: Git repositoryに対応するObsidian Project Homeを一意に解決する
+#
+# Usage:
+#   obsidian-project-home [--repo DIR] [--vault DIR]
+#   obsidian-project-home check [--vault DIR]
+#
+# The command compares the current repository's origin with the `repositories`
+# frontmatter list in normal-vault `projects/**/*.md` files. GitHub HTTPS, SSH,
+# and github-public:/github-private: origin forms normalize to
+# https://github.com/owner/repository. It never searches note bodies or private/
+# paths. Exit status: 0 unique (or check passed), 3 no mapping, 4 duplicates,
+# 5 invalid configuration or frontmatter.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+CONFIG_FILE="${DOTFILES_DIR}-private/obsidian/project-home-resolver.conf"
+MODE="resolve"
+REPO_DIR="$(pwd)"
+VAULT_DIR=""
+
+usage() {
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+die() {
+  printf 'error: %s\n' "$1" >&2
+  exit "${2:-5}"
+}
+
+trim() {
+  local value="$1"
+  value="${value#"${value%%[!$' \t\r\n']*}"}"
+  value="${value%"${value##*[!$' \t\r\n']}"}"
+  REPLY="${value}"
+}
+
+normalize_repository() {
+  local value="$1" path owner repository
+  trim "${value}"
+  value="${REPLY%/}"
+  value="${value%.git}"
+
+  case "${value}" in
+    https://github.com/*|http://github.com/*)
+      path="${value#*://github.com/}"
+      ;;
+    ssh://git@github.com/*)
+      path="${value#ssh://git@github.com/}"
+      ;;
+    git@github.com:*)
+      path="${value#git@github.com:}"
+      ;;
+    github-public:*|github-private:*)
+      path="${value#*:}"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  path="${path%/}"
+  [[ "${path}" == */* ]] || return 1
+  owner="${path%%/*}"
+  repository="${path#*/}"
+  [[ "${repository}" != */* && -n "${owner}" && -n "${repository}" ]] || return 1
+  [[ "${owner}" =~ ^[A-Za-z0-9_.-]+$ && "${repository}" =~ ^[A-Za-z0-9_.-]+$ ]] || return 1
+  printf 'https://github.com/%s/%s\n' \
+    "$(printf '%s' "${owner}" | tr '[:upper:]' '[:lower:]')" \
+    "$(printf '%s' "${repository}" | tr '[:upper:]' '[:lower:]')"
+}
+
+read_project_repositories() {
+  local file="$1" line value normalized
+  local first=true in_frontmatter=false collecting=false found=false
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    if [[ "${first}" == true ]]; then
+      first=false
+      [[ "${line}" == '---' ]] || return 0
+      in_frontmatter=true
+      continue
+    fi
+    [[ "${in_frontmatter}" == true ]] || break
+    if [[ "${line}" == '---' ]]; then
+      collecting=false
+      break
+    fi
+
+    if [[ "${collecting}" == true ]]; then
+      if [[ "${line}" =~ ^[[:space:]]*-[[:space:]]+(.+)$ ]]; then
+        value="${BASH_REMATCH[1]}"
+        trim "${value}"
+        value="${REPLY}"
+        if [[ "${value}" =~ ^\".*\"$ || "${value}" =~ ^\'.*\'$ ]]; then
+          value="${value:1:${#value}-2}"
+        fi
+        normalized="$(normalize_repository "${value}")" || return 5
+        printf '%s\n' "${normalized}"
+        continue
+      fi
+      [[ "${line}" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+      if [[ "${line}" =~ ^[^[:space:]][^:]*: ]]; then
+        collecting=false
+      else
+        return 5
+      fi
+    fi
+
+    if [[ "${line}" =~ ^repositories:[[:space:]]*$ ]]; then
+      [[ "${found}" == false ]] || return 5
+      found=true
+      collecting=true
+    elif [[ "${line}" =~ ^repositories:[[:space:]]*\[\][[:space:]]*$ ]]; then
+      [[ "${found}" == false ]] || return 5
+      found=true
+    elif [[ "${line}" =~ ^repositories: ]]; then
+      return 5
+    fi
+  done < "${file}"
+
+  [[ "${collecting}" == false ]] || return 5
+}
+
+load_vault_dir() {
+  local line key value configured=""
+
+  if [[ -n "${VAULT_DIR}" ]]; then
+    :
+  elif [[ -n "${OBSIDIAN_VAULT_ROOT:-}" ]]; then
+    VAULT_DIR="${OBSIDIAN_VAULT_ROOT}"
+  else
+    [[ -f "${CONFIG_FILE}" ]] || die "resolver config is missing: ${CONFIG_FILE}" 5
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      trim "${line}"
+      line="${REPLY}"
+      [[ -z "${line}" || "${line}" == \#* ]] && continue
+      [[ "${line}" == *=* ]] || die "invalid resolver config: ${CONFIG_FILE}" 5
+      key="${line%%=*}"
+      value="${line#*=}"
+      trim "${key}"; key="${REPLY}"
+      trim "${value}"; value="${REPLY}"
+      [[ "${key}" == vault_root && -n "${value}" && -z "${configured}" ]] || \
+        die "invalid resolver config: ${CONFIG_FILE}" 5
+      configured="${value}"
+    done < "${CONFIG_FILE}"
+    [[ -n "${configured}" ]] || die "resolver config has no vault_root: ${CONFIG_FILE}" 5
+    if [[ "${configured}" == /* ]]; then
+      VAULT_DIR="${configured}"
+    else
+      VAULT_DIR="${HOME}/${configured}"
+    fi
+  fi
+
+  [[ -d "${VAULT_DIR}/projects" ]] || die "vault projects directory is unavailable: ${VAULT_DIR}/projects" 5
+  VAULT_DIR="$(cd "${VAULT_DIR}" && pwd)"
+}
+
+collect_mappings() {
+  local file repositories status
+  MAPPING_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home.XXXXXX")"
+  trap 'rm -f "${MAPPING_FILE}" "${MATCH_FILE:-}" "${DUPLICATE_FILE:-}"' EXIT
+
+  while IFS= read -r -d '' file; do
+    repositories="$(read_project_repositories "${file}")" || status=$?
+    status="${status:-0}"
+    if [[ "${status}" -ne 0 ]]; then
+      die "invalid repositories frontmatter: ${file}" 5
+    fi
+    [[ -z "${repositories}" ]] && continue
+    while IFS= read -r repository; do
+      [[ -n "${repository}" ]] && printf '%s\t%s\n' "${repository}" "${file}" >> "${MAPPING_FILE}"
+    done <<< "${repositories}"
+  done < <(find "${VAULT_DIR}/projects" -type f -name '*.md' -print0 | LC_ALL=C sort -z)
+}
+
+check_mappings() {
+  DUPLICATE_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home-duplicates.XXXXXX")"
+  awk -F '\t' '
+    { paths[$1] = paths[$1] (paths[$1] ? "\n  " : "  ") $2; count[$1]++ }
+    END { for (repository in count) if (count[repository] > 1) print repository "\n" paths[repository] }
+  ' "${MAPPING_FILE}" | LC_ALL=C sort > "${DUPLICATE_FILE}"
+  if [[ -s "${DUPLICATE_FILE}" ]]; then
+    printf 'error: duplicate Project Home mappings:\n' >&2
+    cat "${DUPLICATE_FILE}" >&2
+    return 4
+  fi
+  return 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    check)
+      [[ "${MODE}" == resolve ]] || die 'check may be specified once' 1
+      MODE=check
+      shift
+      ;;
+    --repo)
+      [[ $# -ge 2 ]] || die '--repo requires a directory' 1
+      REPO_DIR="$2"
+      shift 2
+      ;;
+    --vault)
+      [[ $# -ge 2 ]] || die '--vault requires a directory' 1
+      VAULT_DIR="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1" 1
+      ;;
+  esac
+done
+
+load_vault_dir
+collect_mappings
+
+if [[ "${MODE}" == check ]]; then
+  check_mappings
+  printf 'OK: Obsidian Project Home mappings are unique.\n'
+  exit 0
+fi
+
+origin="$(git -C "${REPO_DIR}" config --get remote.origin.url 2>/dev/null)" || \
+  die "origin remote is unavailable: ${REPO_DIR}" 5
+normalized_origin="$(normalize_repository "${origin}")" || \
+  die "unsupported origin remote: ${origin}" 5
+MATCH_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home-matches.XXXXXX")"
+awk -F '\t' -v repository="${normalized_origin}" '$1 == repository { print $2 }' \
+  "${MAPPING_FILE}" > "${MATCH_FILE}"
+match_count="$(wc -l < "${MATCH_FILE}" | tr -d '[:space:]')"
+
+case "${match_count}" in
+  0)
+    exit 3
+    ;;
+  1)
+    cat "${MATCH_FILE}"
+    exit 0
+    ;;
+  *)
+    printf 'error: multiple Project Homes map to %s:\n' "${normalized_origin}" >&2
+    sed 's/^/  /' "${MATCH_FILE}" >&2
+    exit 4
+    ;;
+esac

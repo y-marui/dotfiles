@@ -112,6 +112,7 @@ pre-commitで両者の対応関係を検証する。
 | `dots` | dotfilesとマシン環境を管理 |
 | `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
 | `git-sweep [--all] [main-branch]` | マージ済みブランチを整理（fast-forward・squash・rebase merge 対応） |
+| `obsidian-project-home [check] [--repo DIR] [--vault DIR]` | Git `origin`と通常領域のProject Home `repositories`を照合し、一意の対応先を解決。設定は`dotfiles-private/obsidian/project-home-resolver.conf` |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
 | `ghq-update [--all\|--pull-all\|--uv-sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |

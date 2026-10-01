@@ -14,8 +14,9 @@ public installer cannot apply placeholder settings.
 5. Copy `ghq/keep-up-to-date.example` to `ghq/keep-up-to-date` and list the repositories `ghq-update` should keep current (`dots ghq merge` can fill it from the current state). Machine-specific additions go in the git-ignored `ghq/keep-up-to-date.local`.
 6. Copy `ghq/hosts.example` to `ghq/hosts` and declare, per machine, the ssh hosts `ghq-hosts` operates on. Machine-specific additions go in the git-ignored `ghq/hosts.local`.
 7. Copy `links.conf.example` to `links.conf` only after every linked source exists.
-8. Remove `.dotfiles-private-scaffold` when configuration is complete.
-8. From the sibling `dotfiles`, run `make private-validate` and then `make links`.
+8. Copy `obsidian/project-home-resolver.conf.example` to `obsidian/project-home-resolver.conf`, then set `vault_root` to the Obsidian Vault path. This config is read by `obsidian-project-home`; it is not linked into the home directory.
+9. Remove `.dotfiles-private-scaffold` when configuration is complete.
+10. From the sibling `dotfiles`, run `make private-validate` and then `make links`.
 
 The public contract is `dotfiles/templates/dotfiles-private.contract`. The
 validator accepts either this untouched scaffold state or a fully configured

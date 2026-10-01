@@ -1,0 +1,3 @@
+# Obsidian Project Home resolver configuration.
+# Use a path relative to $HOME (or an absolute path kept only in this private repo).
+vault_root=path/to/obsidian-vault
