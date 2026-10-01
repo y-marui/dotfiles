@@ -58,6 +58,7 @@ EXCEPTIONS=(
   "scripts/test-dots-verbs.sh:TODO: dots.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/check-ai-context-reference.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-charter-ci-template.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
+  "scripts/check-charter-doc-links.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-charter-subtree-edit.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
   "scripts/check-cloud-skill-schedule-removal.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-conventional-commit.sh:dev-charterのpre-commitフック。git-bash経由で全OS共通実行"
