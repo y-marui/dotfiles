@@ -12,6 +12,7 @@ file|ssh/config.d/keychain.conf
 file|ssh/config.d/windows.conf
 file|identity/accounts.yaml
 file|ai/claude/claude-perms.json
+file|obsidian/project-home-resolver.conf
 file|shell/profile.private
 file|spotify-tools/groups.toml
 file|macos/dockfile

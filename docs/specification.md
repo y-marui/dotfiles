@@ -274,6 +274,19 @@ protectedブランチの保持を検証する。ネットワークアクセス�
 （`bin/windows/git-sweep.ps1`）の同等テストは、pwsh実行環境で動作確認できる
 ようになってから追加する。
 
+## obsidian-project-home
+
+`obsidian-project-home`は、Git repositoryの`origin`と通常領域のObsidian Project Home
+`projects/**/*.md`のfrontmatter `repositories`を照合する。リポジトリURLはGitHubのHTTPS、SSH、
+`github-public:`、`github-private:`形式を`https://github.com/owner/repository`へ正規化する。
+
+- Vaultの既定位置はprivate設定`obsidian/project-home-resolver.conf`の`vault_root`で指定する。環境変数`OBSIDIAN_VAULT_ROOT`または`--vault DIR`は明示的な上書きであり、テストにも使う
+- 本文、`External systems`、`private/**`は探索しない。対応付けがない場合はexit `3`、複数ならexit `4`、設定またはfrontmatterが不正ならexit `5`で終了し、推測やProject Home作成を行わない
+- `check`は全mappingの重複を検出する。成功時だけexit `0`とする
+- Unix版とPowerShell版は同じ引数・終了コードを提供する。Windowsでは`obsidian-project-home.cmd`がbare command用のshimとなる
+
+Unix版の回帰テストは[scripts/test-obsidian-project-home.sh](../scripts/test-obsidian-project-home.sh)で、GitHub HTTPS/SSH/alias正規化、一意・未登録・重複・不正frontmatterをネットワークなしで確認する。
+
 ## sync-labpc
 
 - ジョブ定義（`~/.config/labpc/jobs.d/<job-name>.conf`）に基づき、SMB共有からこのMacへ

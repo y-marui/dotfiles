@@ -30,6 +30,11 @@
 通常の会話、説明、文章作成、Computer Use を伴わない調査など、上記に該当しない作業では
 補完規約を読まない。
 
+## Session Closeout
+
+ユーザーが作業セッションの終了・引き継ぎを明示したときは`session-handoff`を使う。
+これは記録先と未解決事項を整える手順であり、commit・push・merge・ブランチ削除を暗黙に承認しない。Gitを伴う終了順序とcleanupの安全条件は`AI_CONTEXT_CLI.md`を正本とする。
+
 ## Interaction Rules
 
 ### Intent

@@ -36,6 +36,7 @@ _最終更新: 2026-10-01_
 | `shell/zshrc`（`gh()`関数） | `upstream` remoteがあり許可リストに一致するリポジトリで、`gh pr create --repo <origin>`を拒否（うっかり防止） | `bin/ghq-upstream-pr-allow` |
 | `ghq/keep-up-to-date.sh` / `ghq/keep-up-to-date.ps1` | `local.keep-up-to-date`の宣言管理（`dots ghq {apply\|diff\|sync\|merge}`と`dots check`の要約。詳細は[specification.md#dots-ghq](specification.md#dots-ghq)） | `dotfiles-private/ghq/keep-up-to-date`・`.local`、`git config local.keep-up-to-date`、`ghq root`/`ghq list -p`、`scripts/test-ghq-keep-up-to-date.sh`（Unix版回帰テスト） |
 | `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証、fast-forward-only同期、upstream fork sync。詳細は[specification.md#git-sweep](specification.md#git-sweep)） | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1`、`.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
+| `bin/unix/obsidian-project-home` / `bin/windows/obsidian-project-home.ps1` | Git `origin`と通常領域Project Homeの`repositories`を正規化して一意に解決。本文・Privateは探索せず、未登録・重複・不正設定を終了コードで明示する | `dotfiles-private/obsidian/project-home-resolver.conf`、`templates/dotfiles-private/obsidian/project-home-resolver.conf.example`、`scripts/test-obsidian-project-home.sh` |
 
 ## dev-charter Installation
 

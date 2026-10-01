@@ -1,0 +1,14 @@
+#compdef obsidian-project-home
+
+_obsidian-project-home() {
+  local -a options
+  options=(
+    'check:validate every Project Home mapping'
+    '--repo=[repository directory]:directory:_files -/'
+    '--vault=[Obsidian Vault directory]:directory:_files -/'
+    '(-h --help)'{-h,--help}'[show help]'
+  )
+  _arguments -S $options
+}
+
+_obsidian-project-home "$@"

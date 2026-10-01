@@ -36,6 +36,16 @@ pre-commit フックのエラーは無視・回避せず原因を修正する
 commit と push は別の操作として扱い、commit の依頼だけでは push しない。
 「push して」「PR を作成して」など、リモートへの反映を含む依頼がある場合に push する。
 
+## Session Closeout
+
+ユーザーが明示的にセッション終了・引き継ぎ・cleanupを依頼した場合、まず`session-handoff`で未完了事項と恒久情報の記録先を整える。skillの実行自体はcommit・push・local merge・PR merge・branch cleanupの承認ではない。
+
+- Git外の作業: `session-handoff`だけで完了する。
+- PRを使わないGit作業: `session-handoff` → 明示承認済みのcommit → 必要なら明示承認済みのlocal merge → 明示承認済みのpush → `git-sweep --all`。
+- PRを使うGit作業: `session-handoff` → 明示承認済みのcommit/push → PR merge → `git-sweep --all`。
+
+`git-sweep --all`は、終了またはcleanupが明示され、対象worktreeがcleanで、現在のtipが安全に統合済みと確認できる場合だけ行う。PR merge後にもう一度handoffを挟んで、AI contextだけを含むPRを作らない。詳細は`session-handoff` skillと`git-sweep`の安全規約に従う。
+
 ## Concise Command Output
 
 ビルド・テスト・lint・pre-commit など出力が多いコマンドは、利用可能なら `run-quiet` で
