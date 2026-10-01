@@ -84,6 +84,19 @@ PR を作成する前、またはブランチに push する前に、そのプ�
 文書だけの変更は文書 lint・リンク検査等、コード変更は影響する build・test を対象とする。
 リポジトリ固有の必須チェックは優先する。実行できない検証は理由と未確認範囲を報告する。
 
+## Draft PRs and Redundant CI Runs
+
+PR を開いた後の push ごとに CI が走る。高額ランナー（macOS 等）の課金や待ち時間を無駄に
+しないため、次のように運用する。draft の間は CI が走らない（`ready_for_review` で 1 回走る）。
+
+- AI が作る PR は、最初から draft で開く。ローカルで lint・test・build を通してから ready にする
+- PR の作成後にバグや仕様変更が判明したら、PR を draft に戻して修正し、揃ってから ready にする
+- レビュー指摘への対応は、複数のコミットをまとめてから push する（指摘ごとに push しない）
+- 自動レビュー（`@codex review`、`@copilot review`）は draft の PR でも動くため、依頼のためだけに
+  ready にしない
+
+詳細は dev-charter の `topics/CI_POLICY-full.md`（Draft PRs・Runner Billing）を参照する。
+
 ## Documentation and Task Management
 
 - 完成後も参照する設計判断、仕様、運用手順、確認方法、復旧・rollback、長期間有効な
