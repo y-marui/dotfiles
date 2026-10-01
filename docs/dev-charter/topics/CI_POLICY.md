@@ -90,6 +90,10 @@ gate:
 `security` だけの単一job構成が多く、その場合はこの節自体が不要（スキップすべき高コストな
 job が無いため）。
 
+macOS ランナー等、単価の高い job を持つ場合は、full 側の
+[Runner Billing](https://github.com/y-marui/dev-charter/blob/full/topics/CI_POLICY.md#runner-billing)
+（macOS は Linux の実質約 10 倍、job ごとに分単位で切り上げ）に従う。
+
 ### Concurrency (Cancel Superseded Runs)
 
 同じブランチ/PRに素早く連続でpushすると、古いrunが完走するまで新しいrunと並行して
@@ -118,6 +122,10 @@ lite は「Require a pull request before merging」を OFF にする運用（[Br
 `.github/workflows/dev-charter-check.yml` も同様に draft をスキップする（[Version Check
 (CI)](../README.md#version-check-ci) 参照）。`check-charter.yml` が作成する
 `update-charter` PR も Draft で始まるため、この `ready_for_review` は更新 PR にも必須である。
+
+PR を開いた後に修正が続く場合は、draft に戻して修正をまとめ、ローカルで検証してから ready に
+する（draft の間は CI が走らない）。AI エージェントが作る PR は最初から draft で開く。
+draft の PR でも自動レビュー（`@codex review`、`@copilot review`）は動く。
 
 **依存ロックファイル（`uv.lock` 等）は skip 対象に含めない。** ロックファイルの更新は
 依存パッケージのバージョン変更そのものであり、実際に lint/test/build を回して初めて
