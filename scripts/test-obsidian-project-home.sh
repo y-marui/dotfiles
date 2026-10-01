@@ -68,6 +68,15 @@ rm -f "${VAULT}/projects/duplicate.md"
 printf '%s\n' '---' 'repositories: https://github.com/y-marui/invalid' '---' > "${VAULT}/projects/invalid.md"
 expect_status 5 "${COMMAND}" check --vault "${VAULT}"
 
+# ディレクトリのシンボリックリンク経由（~/.local/bin/dotfiles 相当）で呼んでも、
+# 設定ファイルの場所をリンク位置から誤って導出しない。
+mkdir -p "${WORK}/a"
+ln -s "$(dirname "${COMMAND}")" "${WORK}/a/link"
+set +e
+LINK_OUTPUT="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/a/link/obsidian-project-home" --repo "${REPOSITORY}" 2>&1)"
+set -e
+[[ "${LINK_OUTPUT}" != *"${WORK}-private"* ]] || fail "resolver config path derived from symlink location: ${LINK_OUTPUT}"
+
 if [[ "${FAILURES}" -eq 0 ]]; then
   printf 'All obsidian-project-home regression checks passed.\n'
 else
