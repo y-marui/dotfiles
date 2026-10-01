@@ -398,3 +398,13 @@ repos:
         entry: bash scripts/check-readme-placeholders.sh
         pass_filenames: false
         always_run: true
+
+  # [20] 自分の Markdown が参照する docs/dev-charter/... パスが実在するかチェック
+  - repo: local
+    hooks:
+      - id: check-charter-doc-links
+        name: "dev-charter: charter ドキュメントリンクチェック"
+        language: system
+        entry: bash scripts/check-charter-doc-links.sh
+        pass_filenames: false
+        always_run: true
