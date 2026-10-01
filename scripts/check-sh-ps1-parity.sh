@@ -33,6 +33,7 @@ EXCEPTIONS=(
   "macos/sync_brewfile.sh:macOS専用（Homebrew）"
   "macos/sync_dockfile.sh:macOS専用（Dock）"
   "macos/sync_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
+  "macos/setup_actions_runner.sh:macOS専用（LaunchDaemon・self-hosted runner）"
   "macos/setup_dots_check_launchagent.sh:macOS専用（LaunchAgent）"
   "macos/setup_museum_status_launchagent.sh:macOS専用（LaunchAgent）"
   "macos/update_brewpin_cache.sh:macOS専用（Homebrew）"
