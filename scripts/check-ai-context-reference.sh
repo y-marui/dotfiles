@@ -11,6 +11,8 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 [ -f "${REPO_ROOT}/AI_CONTEXT.md" ] || exit 0
 
 status=0
+# dotfiles-local deviation from dev-charter's copy: GEMINI.md is not checked
+# because this repo no longer manages Gemini configuration.
 for f in CLAUDE.md AGENTS.md .github/copilot-instructions.md; do
   path="${REPO_ROOT}/${f}"
   [ -f "$path" ] || continue
