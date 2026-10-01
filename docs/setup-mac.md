@@ -224,3 +224,8 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 | `macos/defaults.sh` | macOS システム設定（Dock・Finder・キーボード等） |
 | `dots brew apply` | Brewfileとの差分パッケージをインストール |
 | `dots dock apply` | Dock アプリ・Finder サイドバーを設定 |
+
+## 11. Set Up a Self-hosted GitHub Actions Runner (Optional)
+
+private リポジトリの macOS ジョブを、この Mac で実行したい場合は
+[self-hosted-runner.md](self-hosted-runner.md) の手順に従う（専用ユーザー・Xcode の追加・runner の登録）。

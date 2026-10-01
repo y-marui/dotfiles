@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-09-15_
+_最終更新: 2026-10-01_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -76,6 +76,17 @@ _最終更新: 2026-09-15_
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
+
+## Self-hosted Runner (macOS)
+
+private リポジトリの macOS ジョブを手元の Mac で実行する、ネイティブの GitHub Actions runner の登録・解除。
+専用の標準ユーザーで LaunchDaemon として常駐する。構成・立ち上げ手順・運用は
+[self-hosted-runner.md](self-hosted-runner.md)。
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `macos/setup_actions_runner.sh` | `install`/`status`/`uninstall`。private リポジトリだけを受け付け、runner のアーカイブを公式の sha256 と照合し、`~ghrunner/actions-runner/<repo>` に展開して登録、`DEVELOPER_DIR` を固定、`/Library/LaunchDaemons/com.y-marui.actions-runner.<repo>.plist` を作って常駐させる。`--dry-run` で実行内容だけ表示 | `gh`、`sudo`、`launchctl`、runner の公式リリース（`actions/runner`）、`/Applications/Xcode-<version>.app` |
+| `docs/self-hosted-runner.md` | 構成・設計判断・Mac の追加手順・デプロイキー・運用・トラブルシューティング | `macos/setup_actions_runner.sh` |
 
 ## Museum Status Refresh (macOS)
 
