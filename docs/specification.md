@@ -296,7 +296,8 @@ Unix版の回帰テストは[scripts/test-obsidian-project-home.sh](../scripts/t
   ユーザーの二重マウントを許可しないため）
 - `SMB_USER`にスペース等のURL予約文字が含まれる場合（例: `PPMS-External PC`）は、
   `_labpc_url_encode`が自動的にパーセントエンコードしてから`mount_smbfs`のURLへ
-  渡す。job conf側では生のアカウント名をそのまま書けばよい
+  渡す。非ASCII（日本語等）はUTF-8バイト単位でエンコードする。job conf側では生の
+  アカウント名をそのまま書けばよい
 - `sync-labpc list`で全ジョブ定義（HOST/SHARE/SMB_USER/REMOTE_SUBPATH/DEST）を
   一覧表示できる
 
@@ -321,6 +322,15 @@ LaunchAgentいずれも）、キーチェーンの値がプロンプトなしで
 
 注意点:
 
+- キーチェーン項目のserverは`HOST`（IP）と一致している必要がある。Finderの接続ダイアログや
+  ネットワーク一覧からホスト名（例: `vsm-pc`）で接続して保存すると、項目のserverがホスト名に
+  なり、IPで接続する`sync-labpc`からは参照されず毎回パスワードを求められる。
+  セットアップは必ず`open "smb://<SMB_USER>@<HOST>/<SHARE>"`（IP指定）で行う
+- `sync-labpc`は`mount_smbfs -N`でマウントするため、キーチェーンに使える資格情報が
+  ない場合はパスワードを聞かず`マウントに失敗しました`で終了する。複数ジョブでこの
+  失敗や`Password:`が続く場合は、Finderの「サーバへ接続」（Cmd+K）で各ジョブを
+  IP指定（`smb://<SMB_USER>@<HOST>/<SHARE>`）で接続し直して項目を保存し直すと
+  解消した実績がある（日本語・スペースを含むアカウント名でも同様に動作する）
 - `open smb://`（Finder経由）は、キーチェーンにパスワードが保存済みでも
   **接続のたびに人間の確認（ダイアログの「接続」クリック）を要求する**。これは
   生の`mount_smbfs`とは別経路（NetAuthAgent）のための仕様で、キーチェーンが

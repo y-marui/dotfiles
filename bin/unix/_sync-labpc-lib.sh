@@ -18,7 +18,9 @@ _labpc_url_encode() {
     if [[ "$c" =~ [A-Za-z0-9.~_-] ]]; then
       out+="$c"
     else
-      printf -v c '%%%02X' "'$c"
+      # 非ASCIIバイトは printf '%d' が符号拡張する（0xE6 → -26）ため 0xFF でマスクする
+      printf -v c '%d' "'$c"
+      printf -v c '%%%02X' $((c & 0xFF))
       out+="$c"
     fi
   done
@@ -45,9 +47,11 @@ _labpc_sync_job() {
     mkdir -p "$own_mount_point"
     local encoded_user
     encoded_user="$(_labpc_url_encode "$SMB_USER")"
-    echo "  mount_smbfs //${SMB_USER}@${HOST}/${SHARE} ..."
-    if ! mount_smbfs "//${encoded_user}@${HOST}/${SHARE}" "$own_mount_point"; then
-      echo "  error: マウントに失敗しました" >&2
+    echo "  mount_smbfs -N //${SMB_USER}@${HOST}/${SHARE} ..."
+    # -N: キーチェーンに資格情報がなければパスワードを聞かず即座に失敗する
+    # （無人実行でプロンプト待ちにならない）
+    if ! mount_smbfs -N "//${encoded_user}@${HOST}/${SHARE}" "$own_mount_point"; then
+      echo "  error: マウントに失敗しました（キーチェーン未登録の可能性。docs/specification.md 参照）" >&2
       return 1
     fi
     mount_point="$own_mount_point"
