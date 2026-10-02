@@ -47,16 +47,10 @@ Project Homeは、解決済みの対応付けがあり、Current state・Open qu
 - GitHub Issueの新規作成・更新、対象プロジェクト側のcommit・pushはそれぞれ影響を確認し、ユーザーの承認を得てから行う。
 - 今回の作業の一時的な状態や進行中のタスク詳細はmemoryに書かない。
 
-## Step 4: Finish the Git lifecycle when authorized
+## Step 4: Git lifecycle
 
-ユーザーがセッションの終了またはcleanupを明示したときの順序は、グローバルの`AI_CONTEXT_CLI.md`に従う。
-
-- Git外では、handoffで記録と保留事項を整えて終了する。
-- PRを使わないGit作業は、handoff → 明示承認済みのcommit → 必要なら明示承認済みのlocal merge → 明示承認済みのpush → `git-sweep --all`とする。
-- PRを使うGit作業は、handoff → 明示承認済みのcommit/push → PR merge → `git-sweep --all`とする。
-
-このskillは上記の副作用を自動実行しない。`git-sweep --all`も、clean worktree・統合済みtip・他worktreeの状態を確認し、安全条件を満たす場合だけ実行する。PR merge後にhandoffを再実行してcontext更新だけのPRを作らない。
+このskillはcommit・push・merge・ブランチ整理を実行しない。これらを含めて一度に終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。
 
 ## Completion report
 
-完了・保留した項目、どこに何を記録したか（リポジトリdocs／Obsidian Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開時に見るべき場所（ブランチ・ファイル・Issue番号）を簡潔に報告する。Git終了を依頼された場合は、commit・push・merge・sweepの実行済み／未承認／保留も分けて示す。未解決のまま残った項目は隠さず明示する。
+完了・保留した項目、どこに何を記録したか（リポジトリdocs／Obsidian Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開時に見るべき場所（ブランチ・ファイル・Issue番号）を簡潔に報告する。未コミットの変更が残る場合は、その旨と`session-finish`で終えられることを示す。未解決のまま残った項目は隠さず明示する。

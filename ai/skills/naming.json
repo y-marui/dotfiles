@@ -78,6 +78,7 @@
       "skill_name_prefix": "sendaicmc",
       "display_name_prefix": "仙台室内楽の会"
     },
+    "session-finish": {"kind": "generic"},
     "session-handoff": {"kind": "generic"},
     "spotify-distribute-liked-songs": {
       "kind": "service",
