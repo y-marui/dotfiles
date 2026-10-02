@@ -248,7 +248,7 @@ zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、�
 
 ## Interactive Prompts and Auto-ls in zsh
 
-この環境の zsh には、Bash ツールの出力に影響する挙動が 3 つある。
+この環境の zsh には、Bash ツールの出力に影響する挙動が 4 つある。
 
 - `cd` は、移動後に自動で `ls` を実行する（`dotfiles/shell/zshrc` の関数）。`cd` を含むコマンドの
   出力にディレクトリの一覧が混ざり、`grep` などの結果を読み違えやすい。ディレクトリを変えずに
@@ -259,6 +259,9 @@ zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、�
   `not overwritten` となり、終了コード 1 で上書きされない。`;` や改行で後続コマンドを続けると
   失敗を見落とし、バックアップ復元などで古い内容が残る。上書きが必要な場合は、対象を
   確認したうえで `command cp -f` を使う
+- `log` は zsh の組み込みコマンドで、macOS の統合ログ（`/usr/bin/log`）を隠す。`log show` や
+  `log stream` は `too many arguments` で失敗する。ログを見るときは `/usr/bin/log` と
+  フルパスで呼ぶ
 
 ## Reference Resolution
 
