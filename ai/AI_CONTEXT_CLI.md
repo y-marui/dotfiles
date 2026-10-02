@@ -172,7 +172,8 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
   ローカル等で同等の検証が完了していればマージ判断を進められる。
   代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
-- `y-marui/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する
+- `y-marui/*` および `fukami-lab-sot/*` リポジトリで Issue・PR を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する。
+  Dependabot 等が作る PR は各リポジトリの `auto-assign-self.yml`（`pull_request_target`）が assign する。組織所有リポジトリでは Actions 変数 `AUTO_ASSIGN_USER=y-marui` が必要（未設定だと `repository_owner` が組織名になる）
 - PR での自動レビュー依頼は、PR コメントでのメンションで行う: Codex は `@codex review`、GitHub Copilot は `@copilot review`
 - GitHub Copilot の PR レビューをリクエストした場合、結果はインクリメンタルに表示されず完了時に一括で反映される。数分待たずに「反映されない＝利用不可」と結論づけない（間隔を空けてポーリングする）
 - 自動レビュー（Copilot 等）の指摘は無条件に正しいものとして受け入れない。各指摘を自分で検証し、妥当と判断したものだけ修正する
