@@ -32,8 +32,9 @@
 
 ## Session Closeout
 
-ユーザーが作業セッションの終了・引き継ぎを明示したときは`session-handoff`を使う。
-これは記録先と未解決事項を整える手順であり、commit・push・merge・ブランチ削除を暗黙に承認しない。Gitを伴う終了順序とcleanupの安全条件は`AI_CONTEXT_CLI.md`を正本とする。
+ユーザーが作業セッションの終了・引き継ぎを明示したときは、記録の整理だけなら`session-handoff`、
+Gitの後始末まで含めて終えるなら`session-finish`を使う。`session-handoff`は
+commit・push・merge・ブランチ削除を暗黙に承認しない。詳細は`AI_CONTEXT_CLI.md`を参照する。
 
 ## Interaction Rules
 

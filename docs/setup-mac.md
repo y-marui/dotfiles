@@ -94,7 +94,7 @@ make init
 ```bash
 # ghq でクローンした場合、配置先は ~/dotfiles ではなく
 # ~/src/github.com/y-marui/dotfiles になるため DOTFILES_DIR の設定が必要
-vi ~/.zshrc.local   # DOTFILES_DIR=~/src/github.com/y-marui/dotfiles を設定
+vi ~/.profile.local   # DOTFILES_DIR=~/src/github.com/y-marui/dotfiles を設定（非対話シェルにも届く）
 
 vi ./host/$(hostname -s).zsh
 ```

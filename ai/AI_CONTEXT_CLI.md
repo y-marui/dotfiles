@@ -38,13 +38,10 @@ commit と push は別の操作として扱い、commit の依頼だけでは pu
 
 ## Session Closeout
 
-ユーザーが明示的にセッション終了・引き継ぎ・cleanupを依頼した場合、まず`session-handoff`で未完了事項と恒久情報の記録先を整える。skillの実行自体はcommit・push・local merge・PR merge・branch cleanupの承認ではない。
-
-- Git外の作業: `session-handoff`だけで完了する。
-- PRを使わないGit作業: `session-handoff` → 明示承認済みのcommit → 必要なら明示承認済みのlocal merge → 明示承認済みのpush → `git-sweep --all`。
-- PRを使うGit作業: `session-handoff` → 明示承認済みのcommit/push → PR merge → `git-sweep --all`。
-
-`git-sweep --all`は、終了またはcleanupが明示され、対象worktreeがcleanで、現在のtipが安全に統合済みと確認できる場合だけ行う。PR merge後にもう一度handoffを挟んで、AI contextだけを含むPRを作らない。詳細は`session-handoff` skillと`git-sweep`の安全規約に従う。
+記録の整理だけなら`session-handoff`、記録からcommit・push・branch整理まで一度に終えるなら
+`session-finish`を使う。`session-handoff`の実行自体はcommit・push・merge・branch cleanupの
+承認ではない。`session-finish`はユーザーが明示的に呼び出したときだけ使い、承認の範囲と手順は
+その skill に従う。
 
 ## Concise Command Output
 
