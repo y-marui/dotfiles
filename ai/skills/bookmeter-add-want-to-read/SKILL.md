@@ -21,7 +21,9 @@ description: "Search for a book on Bookmeter (読書メーター) using the acco
 ## Identify the Work
 
 - タイトル・著者名・ISBNなどで検索し、候補を絞る。
+- 既定の「Amazon和書」検索で該当書誌を十分に特定できない場合は、「旧・Amazon和書」に切り替えて同じ条件で再検索する。直接URLを使う場合は `https://bookmeter.com/search?type=japanese&keyword=<検索語>` の形式にする。
 - タイトルだけでは一意に定まらない場合（上下巻、文庫版/単行本違い、同名異著者など）は、著者・出版社・巻数・あらすじで照合する。ユーザーが特定の版を指定していればそれに従う。
+- シリーズ漫画で対象巻・全巻の指定がない場合は、第1巻を対象にする。
 - 十分に特定できなければ追加せず、不足する情報をユーザーに尋ねる。
 
 ## Check Status on Bookmeter
