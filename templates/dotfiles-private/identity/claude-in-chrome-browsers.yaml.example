@@ -1,0 +1,9 @@
+# Claude in Chrome 拡張の接続ブラウザ対応表
+# Claude in Chrome 固有の deviceId。他のエージェントのブラウザ接続には使えない
+# 複数ブラウザが接続されているとき、list_connected_browsers の deviceId と照合して
+# select_browser で選ぶ。「Browser N」の番号は接続順で振り直されるため使わない
+
+browsers:
+  - host: example-host
+    app: Chrome
+    device_id: 00000000-0000-0000-0000-000000000000
