@@ -18,6 +18,10 @@
 # --uninstall / -u フラグ（アンインストールモード）:
 #   引数指定時: 指定アプリを削除
 #   引数なし: このスクリプトでインストールしたアプリをすべて削除
+# --no-gui フラグ（GUI 操作なしモード）:
+#   アプリの終了・ウィジェットキャッシュのクリア・起動・ウィジェット編集画面の表示を省く
+#   （ssh 越し・ログインしていない Mac 向け）。ウィジェット拡張は、そのアプリを
+#   次に起動したときに登録される。他のモードと組み合わせられる
 # -h, --help フラグ:
 #   このヘルプを表示
 
@@ -60,6 +64,8 @@ check_icloud_sync() {
 quit_app() {
     local name="$1"
     local app_path="$APPS_DIR/${name}.app"
+
+    $no_gui && return 0
 
     # AppleScript で終了要求
     if osascript -e "tell application \"$name\" to running" 2>/dev/null | grep -q true; then
@@ -144,6 +150,7 @@ uninstall_app() {
 }
 
 clear_widget_cache() {
+    $no_gui && return 0
     echo ""
     echo "==> ウィジェットキャッシュをクリア..."
     killall NotificationCenter 2>/dev/null || true
@@ -265,6 +272,7 @@ open_widget_editor() {
 reinstall=false
 force=false
 uninstall=false
+no_gui=false
 
 # オプション解析
 args=()
@@ -273,6 +281,7 @@ for arg in "$@"; do
         --reinstall|-r) reinstall=true ;;
         --force|-f)     force=true ;;
         --uninstall|-u) uninstall=true ;;
+        --no-gui)       no_gui=true ;;
         --help|-h)      sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*) echo "不明なオプション: $arg" >&2; exit 1 ;;
         *) args+=("$arg") ;;
@@ -382,11 +391,17 @@ if (( ${#installed_apps[@]} == 0 )); then
     exit 0
 fi
 
-# フェーズ 4: アプリを起動してウィジェット拡張を登録
-relaunch_apps
+if $no_gui; then
+    echo ""
+    echo "注意: --no-gui のため、アプリの起動とウィジェット拡張の登録は行っていません。"
+    echo "  ウィジェットを使う場合は、このMacで該当アプリを一度起動してください。"
+else
+    # フェーズ 4: アプリを起動してウィジェット拡張を登録
+    relaunch_apps
 
-# フェーズ 5: ウィジェット編集画面を開く
-open_widget_editor
+    # フェーズ 5: ウィジェット編集画面を開く
+    open_widget_editor
+fi
 
 echo ""
 joined=$(IFS=', '; echo "${installed_apps[*]}")
