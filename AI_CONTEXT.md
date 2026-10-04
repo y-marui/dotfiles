@@ -102,7 +102,7 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成は使わない
 - WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`にし、専用設定
   `terminal/zellij/windows/config.kdl`でも`default_shell "pwsh.exe"`を明示する
-- Zellijは macOS/Raspberry Pi で`0.43.1`、ネイティブWindowsで`0.44.3`に固定する
+- Zellijは macOS/Raspberry Pi で`0.45.1`、ネイティブWindowsで`0.44.3`に固定する
 - `ssh` ラッパー（zsh/bash/pwsh共通）は Zellij 内で新タブ（既定・`--new`）、`--same` で縦分割ペインに接続し、
   接続先では auto-attach する。`--no-zellij` は `NO_ZELLIJ=1` を渡して無効化する
 

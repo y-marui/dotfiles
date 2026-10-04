@@ -47,7 +47,7 @@ gsudo cache off
 ## Keeping Zellij Running
 
 Windowsではネイティブ対応とWindows固有の修正を含むZellij `0.44.3`を使用する。
-macOS/Raspberry Piで固定している`0.43.1`とは別に管理する。
+macOS/Raspberry Piで固定している`0.45.1`とは別に管理する。
 
 `make install`と`dots update`は`scripts/setup-zellij.ps1`を実行し、公式ZIPと
 展開後の`zellij.exe`のSHA-256を検証して`~\.local\bin`へインストールする。
