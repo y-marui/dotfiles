@@ -12,7 +12,7 @@ public installer cannot apply placeholder settings.
 3. Copy `shell/profile.private.example` to `shell/profile.private` before enabling links, then add only personal settings shared across your machines.
 4. Copy `spotify-tools/groups.toml.example` to `spotify-tools/groups.toml` before using Spotify write commands, then classify editable and protected playlists by ID.
 5. Copy `ghq/keep-up-to-date.example` to `ghq/keep-up-to-date` and list the repositories `ghq-update` should keep current (`dots ghq merge` can fill it from the current state). Machine-specific additions go in the git-ignored `ghq/keep-up-to-date.local`.
-6. Copy `hosts/hosts.example` to `hosts/hosts` and declare, per machine, the ssh hosts `my-hosts` operates on. Machine-specific additions go in the git-ignored `hosts/hosts.local`. (A legacy `ghq/hosts` is still read, with a warning, when `hosts/hosts` is missing.)
+6. Copy `hosts/hosts.example` to `hosts/hosts` and declare, per machine, the ssh hosts `my-hosts` operates on. Machine-specific additions go in the git-ignored `hosts/hosts.local`.
 7. Copy `links.conf.example` to `links.conf` only after every linked source exists.
 8. Copy `obsidian/project-home-resolver.conf.example` to `obsidian/project-home-resolver.conf`, then set `vault_root` to the Obsidian Vault path. This config is read by `obsidian-project-home`; it is not linked into the home directory.
 9. Remove `.dotfiles-private-scaffold` when configuration is complete.

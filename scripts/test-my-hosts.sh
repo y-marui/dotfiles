@@ -259,16 +259,6 @@ run --from alpha --dry-run
 check "missing declaration is an error" rc_is 1
 mv "$WORK/private/hosts/hosts.bak" "$WORK/private/hosts/hosts"
 
-mkdir -p "$WORK/private/ghq"
-cp "$WORK/private/hosts/hosts" "$WORK/private/ghq/hosts"
-mv "$WORK/private/hosts/hosts" "$WORK/private/hosts/hosts.bak"
-run --from alpha --dry-run --no-local
-check "legacy ghq/hosts still read" rc_is 0
-check "legacy ghq/hosts warns" contains "$OUT" "旧宣言ファイル"
-mv "$WORK/private/hosts/hosts.bak" "$WORK/private/hosts/hosts"
-run --from alpha --dry-run --no-local
-check "new hosts/hosts wins silently" not_contains "$OUT" "旧宣言ファイル"
-
 echo
 if [[ "$FAILURES" -ne 0 ]]; then echo "$FAILURES 件失敗" >&2; exit 1; fi
 echo "すべて成功"

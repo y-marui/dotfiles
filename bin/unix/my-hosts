@@ -33,8 +33,7 @@
 #   - ステップはサブコマンドで決まり、ホスト内では逐次に実行する
 #   - ホスト間は並列に処理する（実行元自身を含む）。表示と結果表は宣言順
 #     （実行元自身→宣言順のリモートホスト）にまとめて出す
-#   - 対象は dotfiles-private の hosts/hosts で実行元ごとに宣言する（旧 ghq/hosts も、
-#     hosts/hosts がないときだけ警告つきで読む）。書式は1行1件:
+#   - 対象は dotfiles-private の hosts/hosts で実行元ごとに宣言する。書式は1行1件:
 #       <実行元>: <ホスト> <ホスト> ...
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
 #     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む
@@ -136,11 +135,6 @@ if [[ "$SUBCOMMAND" == apps && -n "$FILTER" ]]; then
 fi
 
 DECL_FILE="${PRIVATE_DIR}/hosts/hosts"
-if [[ ! -f "$DECL_FILE" && -f "${PRIVATE_DIR}/ghq/hosts" ]]; then
-  # 移行期間の暫定措置。dotfiles-private の ghq/hosts を hosts/hosts へ移したら削除する
-  echo "warning: 旧宣言ファイル ${PRIVATE_DIR}/ghq/hosts を使っています。hosts/hosts へ移してください。" >&2
-  DECL_FILE="${PRIVATE_DIR}/ghq/hosts"
-fi
 [[ -f "$DECL_FILE" ]] || die "宣言ファイルがありません: ${DECL_FILE}（雛形: templates/dotfiles-private/hosts/hosts.example）"
 
 TARGETS=()

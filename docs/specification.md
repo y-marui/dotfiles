@@ -525,8 +525,7 @@ ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外�
   （`<実行元>: <sshホスト名> ...`）。実行元は`scutil --get LocalHostName`と大文字小文字を
   区別せず照合し、一致しなければ`--from NAME`で指定する。どちらでも決まらない、または
   宣言にない実行元はエラーとする。対象は実行元ごとに非対称でよい（全ホスト相互とは限らない）。
-  端末固有の追加分は`hosts/hosts.local`（`.gitignore`対象、手編集専用）に書く。
-  `hosts/hosts`がなく旧`ghq/hosts`だけがあるときは、警告つきで旧ファイル（と`.local`）を読む（移行期間の暫定措置）
+  端末固有の追加分は`hosts/hosts.local`（`.gitignore`対象、手編集専用）に書く
 - **処理順**: ホスト間は並列に処理する（`-j N`で同時数を制限、`-j 1`で逐次）。表示と結果表は
   実行元自身（`--no-local`で省略）→宣言順のリモートの順にまとめて出す。ステップはサブコマンドで決まり（`status` / `pull` /
   `sweep`（既定）/ `update`）、ホスト内では逐次に実行する。`--no-status`でstatusを省く
