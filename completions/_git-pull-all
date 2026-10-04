@@ -1,0 +1,16 @@
+#compdef git-pull-all
+
+_git-pull-all_branches() {
+  local -a branches
+  branches=(${(f)"$(git branch --format='%(refname:short)' 2>/dev/null)"})
+  _describe 'branch' branches
+}
+
+_git-pull-all() {
+  _arguments \
+    '--fetch-only[fetch のみ実行し、ローカルブランチは更新しない]' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]' \
+    '1:main branch name:_git-pull-all_branches'
+}
+
+_git-pull-all "$@"

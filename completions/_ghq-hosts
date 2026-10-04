@@ -2,12 +2,13 @@
 
 _ghq-hosts() {
   _arguments \
+    '1:subcommand:(status pull sweep)' \
+    '--only[サブコマンドのステップだけを実行する]' \
     '--update[pull の代わりに ghq-update を実行する]' \
-    '--no-pull[pull（--update 指定時は update）を実行しない]' \
-    '--no-sweep[ghq-sweep を実行しない]' \
-    '--no-status[ghq-status を実行しない]' \
     '*'{-H,--host}'[宣言済みの対象のうち指定したホストだけを対象にする]:host:' \
     '--from[実行元の名前を明示する]:name:' \
+    '--no-status[ghq-status を実行しない]' \
+    '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
     '--no-local[実行元自身を処理しない]' \
     '(-a --all)'{-a,--all}'[ghq-status に -a を渡す]' \
     '(-v --verbose)'{-v,--verbose}'[全ステップの出力を表示する]' \

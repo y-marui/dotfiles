@@ -14,10 +14,19 @@ pre-commit run --all-files          # 全 pre-commit フックを実行
 
 Windows 向け変更（`bin/windows/`、`*.ps1`）は PowerShell 上で動作確認する（`pwsh -File <script>.ps1`）。
 
-`bin/unix/git-sweep` を変更した場合は、使い捨てのgitリポジトリで回帰テストを実行する:
+`bin/unix/git-pull-all`・`git-sweep`・`_git-branch-lib.sh` を変更した場合は、使い捨てのgitリポジトリで
+回帰テストを実行する:
 
 ```bash
+scripts/test-git-pull-all.sh
 scripts/test-git-sweep.sh
+```
+
+`bin/unix/ghq-pull`・`ghq-update`・`ghq-sweep`・`_ghq-lib.sh` を変更した場合は、使い捨ての ghq root で
+回帰テストを実行する（`ghq` コマンドが必要。無ければスキップされる）:
+
+```bash
+scripts/test-ghq-pull-update-sweep.sh
 ```
 
 `ghq/keep-up-to-date.sh` を変更した場合も、同様に使い捨ての ghq root で回帰テストを実行する

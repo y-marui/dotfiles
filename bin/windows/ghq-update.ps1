@@ -8,11 +8,11 @@
 #   --all           sync 対象を「keep-up-to-date=true」から
 #                   「keep-up-to-date=true ∪ .venv/node_modules が存在する」に拡張する
 #   --pull-all      fetch + pull 対象を全リポジトリに拡張する（sync 対象には影響しない）
-#   --uv-sync-only  fetch + pull をスキップし、sync 対象への処理（uv sync --upgrade /
+#   --sync-only     fetch + pull をスキップし、sync 対象への処理（uv sync --upgrade /
 #                   npm update && npm run build --if-present）のみ実行する
 #                   （事前に ghq-pull 等で pull 済みであることが前提）
 #   --pull-only     fetch + pull のみ実行し、sync 対象への処理をスキップする
-#                   （--uv-sync-only と同時指定は不可）
+#                   （--sync-only と同時指定は不可）
 #   --no-auto-pr    uv sync --upgrade / npm update でロックファイルのみ更新された場合の
 #                   自動 PR 作成を無効化し、従来通り working tree に dirty な差分を残す
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
@@ -34,17 +34,22 @@
 #     - デフォルト: sync 対象と同じ
 #     - --pull-all: 全リポジトリに拡張する（旧 --all 相当。--all と併用すると
 #       「全リポジトリ pull + sync 対象を sync」というフル動作になる）
-#     - --uv-sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
+#     - --sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
 #   共通:
 #     - dotfiles・dev-charter は他より先に処理する（ghq-status の基準バージョン等、
 #       他リポジトリの処理より先に最新化しておきたいため）
 #     - upstream という名前の remote があれば、fetch/pull の前に `gh repo sync` で
 #       upstream のデフォルトブランチを origin・ローカル双方へ fast-forward 反映する
 #       （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
-#     - detached HEAD・upstream ブランチ未設定の場合は pull をスキップ（fetch は実行）
+#     - pull は各リポジトリで git-pull-all を実行する（ghq-pull と同じ手順。fetch は
+#       detached HEAD でも実行し、現在のブランチ以外のローカルブランチも fast-forward 同期する）
+#     - detached HEAD・upstream ブランチ未設定の場合は、依存更新（uv/npm）をスキップする
 #     - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
-#       pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
-#     - それら以外にも dirty な変更がある場合は pull をスキップ
+#       pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）
+#     - それら以外にも dirty な変更がある場合は、依存更新をスキップする
+#     - 失敗（fetch・pull・stash 復元・uv sync・npm update/build の失敗）したリポジトリは
+#       [failed] を表示し、そのリポジトリの依存更新は行わず、処理は続行して、最後に
+#       終了コード1で終了する（スキップ・警告は終了コード0）
 #   auto-pr（デフォルト有効。--no-auto-pr で無効化）:
 #     - uv sync --upgrade / npm update の結果、対応するロックファイル（uv.lock /
 #       package-lock.json）のみが dirty な場合、専用ブランチ（chore/uv-lock-update /
@@ -75,7 +80,7 @@ function Get-KeepUpToDate([string]$Repo) {
 
 $ALL = $false
 $PULL_ALL = $false
-$UV_SYNC_ONLY = $false
+$SYNC_ONLY = $false
 $PULL_ONLY = $false
 $AUTO_PR = $true
 $FILTER = ''
@@ -89,8 +94,8 @@ while ($i -lt $args.Count) {
     } elseif ($arg -eq '--pull-all') {
         $PULL_ALL = $true
         $i++
-    } elseif ($arg -eq '--uv-sync-only') {
-        $UV_SYNC_ONLY = $true
+    } elseif ($arg -eq '--sync-only') {
+        $SYNC_ONLY = $true
         $i++
     } elseif ($arg -eq '--pull-only') {
         $PULL_ONLY = $true
@@ -114,8 +119,8 @@ while ($i -lt $args.Count) {
     }
 }
 
-if ($PULL_ONLY -and $UV_SYNC_ONLY) {
-    Write-GhqStderr "error: --pull-only と --uv-sync-only は同時に指定できません"
+if ($PULL_ONLY -and $SYNC_ONLY) {
+    Write-GhqStderr "error: --pull-only と --sync-only は同時に指定できません"
     exit 1
 }
 
@@ -125,6 +130,7 @@ if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
 }
 
 $repos = Get-GhqOrderedList $FILTER
+$failed = 0
 
 foreach ($f in $repos) {
     $kutd = Get-KeepUpToDate $f
@@ -141,47 +147,44 @@ foreach ($f in $repos) {
 
     $global:LASTEXITCODE = $null
     $baseBranch = (& git -C $f symbolic-ref --short HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0) {
+    $detached = ($LASTEXITCODE -ne 0)
+
+    if (-not $SYNC_ONLY) {
+        if (-not (Invoke-GhqPullRepo $f)) {
+            $failed++
+            continue
+        }
+    }
+
+    if ($detached) {
         Write-Host "  [skip] detached HEAD"
         continue
     }
-
-    if ($UV_SYNC_ONLY) {
-        $pulled = $true
-    } else {
-        Sync-GitForkUpstream $f
-
-        $global:LASTEXITCODE = $null
-        & git -C $f fetch origin --prune
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] fetch failed"
+    if (-not $SYNC_ONLY) {
+        if ($Script:GhqPullDirty) {
+            Write-Host "  [skip] dirty working tree"
             continue
         }
-
         $global:LASTEXITCODE = $null
         & git -C $f rev-parse '@{u}' *> $null
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] no upstream"
-            continue
-        }
-        if (-not (Push-GhqLockfileStash $f)) {
-            Write-Host "  [skip pull] dirty working tree"
-            continue
-        }
-
-        $global:LASTEXITCODE = $null
-        & git -C $f pull --ff-only
-        $pulled = ($LASTEXITCODE -eq 0)
-        if (-not (Pop-GhqLockfileStash $f)) {
+            Write-Host "  [skip] no upstream"
             continue
         }
     }
 
-    if ($inSyncTarget -and (-not $PULL_ONLY) -and $pulled) {
+    if ($inSyncTarget -and (-not $PULL_ONLY)) {
         if ($hasVenv) {
             Push-Location $f
-            try { & uv sync --upgrade } finally { Pop-Location }
-            if ($AUTO_PR) {
+            try {
+                $global:LASTEXITCODE = $null
+                & uv sync --upgrade
+                $syncOk = ($LASTEXITCODE -eq 0)
+            } finally { Pop-Location }
+            if (-not $syncOk) {
+                Write-GhqStderr "  [failed] uv sync --upgrade"
+                $failed++
+            } elseif ($AUTO_PR) {
                 Invoke-GhqAutoPrLockfile $f $baseBranch 'uv.lock' 'chore/uv-lock-update' `
                     'chore: update uv.lock' `
                     'uv sync --upgrade により生成された uv.lock の更新です（ghq-update の自動 PR 機能）。'
@@ -199,8 +202,12 @@ foreach ($f in $repos) {
                 $global:LASTEXITCODE = $null
                 & npm update
                 if ($LASTEXITCODE -eq 0) { & npm run build --if-present }
+                $npmOk = ($LASTEXITCODE -eq 0)
             } finally { Pop-Location }
-            if ($AUTO_PR) {
+            if (-not $npmOk) {
+                Write-GhqStderr "  [failed] npm update / build"
+                $failed++
+            } elseif ($AUTO_PR) {
                 Invoke-GhqAutoPrLockfile $f $baseBranch 'package-lock.json' 'chore/npm-lock-update' `
                     'chore: update package-lock.json' `
                     'npm update により生成された package-lock.json の更新です（ghq-update の自動 PR 機能）。'
@@ -213,3 +220,5 @@ foreach ($f in $repos) {
         }
     }
 }
+
+if ($failed -gt 0) { exit 1 }

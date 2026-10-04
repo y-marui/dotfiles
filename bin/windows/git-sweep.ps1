@@ -2,44 +2,38 @@
 # git-sweep: マージ済みブランチを整理する
 #
 # 使い方:
-#   git-sweep [--all] [main-branch]
+#   git-sweep [--all] [--no-pull] [main-branch]
 #
 # オプション:
-#   --all   現在のブランチに加え、他のマージ済みブランチも削除する
+#   --all       現在のブランチに加え、他のマージ済みブランチも削除する
+#   --no-pull   ローカルブランチの fast-forward 更新（pull・同期）を行わない
+#               （fetch --prune とマージ済みブランチの削除は行う）
 #   -h, --help          ヘルプを表示
 #
-# リポジトリのブランチ方針は .gitattributes に宣言する:
-#   * repo-main-branch=develop
-#   * repo-protected-branches=main,develop
-# 優先順位は、コマンドライン引数 [main-branch]、上記属性、ローカルGit config
-# (local.repo-main-branch / local.repo-protected-branches)、origin/HEAD、main。
-# 旧 git-sweep-main / git-sweep-protected 属性も互換fallbackとして読み取る。
+# ブランチ方針（main / protected ブランチの解決順）は git-pull-all と共通で、
+# _git-branch-lib.ps1 の冒頭コメントに従う。
 #
 # 動作:
-#   0. upstream という名前の remote があれば、fetch の前に `gh repo sync` で
-#      upstream のデフォルトブランチを origin へ fast-forward 反映する
-#      （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
-#   1. fetch --prune でリモートの削除済みブランチを反映
-#   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・pull・
-#      削除を一切行わずスキップし、理由を表示する
-#   3. 現在のブランチが保護対象（PROTECTED）なら fast-forward pull するだけ
-#   4. マージ済み判定の前に、ローカル $MAIN を origin/$MAIN へ fast-forward 同期
-#      する（他の worktree で checkout 済みなら同期しない）
-#   5. 現在のブランチがマージ済みなら $MAIN に切り替えて pull、ブランチ削除
+#   1. --no-pull でなければ git-pull-all を実行する（fork の upstream 同期、
+#      fetch --all --prune、現在ブランチ・PROTECTED・その他ローカルブランチの
+#      fast-forward 同期。詳細は git-pull-all を参照）。git-pull-all が失敗
+#      （fetch 失敗・現在ブランチの pull 失敗）しても続行し、最後に終了コード1にする。
+#      --no-pull の場合は fork の upstream 同期と fetch --prune だけ行う
+#   2. 現在の worktree が dirty（staged/unstaged/untracked）なら checkout・削除を
+#      行わずスキップし、理由を表示する
+#   3. 現在のブランチが保護対象（PROTECTED）なら何もしない
+#   4. 現在のブランチがマージ済みなら $MAIN に切り替えてブランチ削除
 #      （$MAIN が他の worktree で checkout 済みの場合は切り替えをスキップする）
-#   6. PROTECTED のうち現在のブランチ以外は、HEAD を動かさず fast-forward fetch
-#      で同期する（コンフリクトがあれば警告のみ、自動マージはしない）。ローカルに
-#      まだ無ければ origin から新規作成し、それが $MAIN であれば checkout する
-#   7. --all の場合、他のマージ済みブランチも削除
-#   8. 保護ブランチ以外の残存ブランチを表示
+#   5. --all の場合、他のマージ済みブランチも削除
+#   6. 保護ブランチ以外の残存ブランチを表示
 #
 # 安全性の保証:
-#   - dirty な worktree（staged/unstaged/untracked のいずれか）は checkout・pull・
-#     ブランチ削除の対象にしない
+#   - dirty な worktree（staged/unstaged/untracked のいずれか）の現在ブランチは
+#     checkout・pull・削除の対象にしない
 #   - 他の worktree で checkout 済みのブランチは切り替え・削除・fast-forward
 #     更新の対象にしない（`git worktree list --porcelain` で明示的に検出する）
-#   - pull は fast-forward-only。暗黙の rebase や autostash は行わず、
-#     診断済みでコンフリクトの可能性がある操作は必ずユーザーの明示操作に委ねる
+#   - pull は fast-forward-only（git-pull-all）。暗黙の rebase や autostash は行わず、
+#     コンフリクトの可能性がある操作は必ずユーザーの明示操作に委ねる
 #   - `git branch -d` の失敗を理由なく `-D` にフォールバックしない。squash/rebase
 #     merge 後の `gone` 判定は、squash された変更が $MAIN 側に実在することを
 #     git-delete-squashed 相当のアルゴリズムで検証してからのみ `-D` を使う
@@ -59,6 +53,7 @@
 Set-StrictMode -Version Latest
 
 . "$PSScriptRoot\_git-fork-lib.ps1"
+. "$PSScriptRoot\_git-branch-lib.ps1"
 
 function Write-Stderr([string]$Message) {
     [Console]::Error.WriteLine($Message)
@@ -72,82 +67,18 @@ function Show-Help {
     }
 }
 
-function Get-Attr([string]$Attr) {
-    $global:LASTEXITCODE = $null
-    $output = & git check-attr $Attr -- . 2>$null
-    if ($output -match ": ${Attr}: (.+)$") {
-        return $Matches[1]
-    }
-    return $null
-}
-
-function Get-ConfigValue([string]$Key) {
-    $global:LASTEXITCODE = $null
-    $value = (& git config --get $Key 2>$null)
-    if ($LASTEXITCODE -eq 0 -and $value) { return $value.Trim() }
-    return $null
-}
-
-function ConvertFrom-BranchCsv([string]$Csv) {
-    if (-not $Csv) { return @() }
-    return @($Csv -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique)
-}
-
 $ALL = $false
-$MAIN = $null
-$PROTECTED = @()
+$NO_PULL = $false
 $script:MergeKind = $null
 $script:Dirty = $false
 
-& git rev-parse --git-dir *> $null
-if ($LASTEXITCODE -eq 0) {
-    $attrMain = Get-Attr 'repo-main-branch'
-    if (-not $attrMain -or $attrMain -eq 'unspecified') {
-        $attrMain = Get-Attr 'git-sweep-main'
-    }
-    if ($attrMain -and $attrMain -ne 'unspecified') {
-        $MAIN = $attrMain
-    } else {
-        $MAIN = Get-ConfigValue 'local.repo-main-branch'
-    }
-    if (-not $MAIN) {
-        $originHead = (& git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
-        if ($LASTEXITCODE -eq 0 -and $originHead) {
-            $originHead = $originHead -replace '^origin/', ''
-            & git show-ref --verify --quiet "refs/remotes/origin/$originHead"
-            if ($LASTEXITCODE -eq 0) { $MAIN = $originHead }
-        }
-    }
-
-    $attrProtected = Get-Attr 'repo-protected-branches'
-    if (-not $attrProtected -or $attrProtected -eq 'unspecified') {
-        $attrProtected = Get-Attr 'git-sweep-protected'
-    }
-    if ($attrProtected -and $attrProtected -ne 'unspecified') {
-        $PROTECTED = @(ConvertFrom-BranchCsv $attrProtected)
-    } else {
-        $configProtected = Get-ConfigValue 'local.repo-protected-branches'
-        if ($configProtected) { $PROTECTED = @(ConvertFrom-BranchCsv $configProtected) }
-    }
-}
-
-if (-not $MAIN) { $MAIN = 'main' }
-if ($PROTECTED.Count -eq 0) {
-    $PROTECTED = @($MAIN)
-    if ($MAIN -ne 'main') {
-        & git show-ref --verify --quiet refs/heads/main
-        $hasMain = ($LASTEXITCODE -eq 0)
-        if (-not $hasMain) {
-            & git show-ref --verify --quiet refs/remotes/origin/main
-            $hasMain = ($LASTEXITCODE -eq 0)
-        }
-        if ($hasMain) { $PROTECTED += 'main' }
-    }
-}
+Resolve-GitBranchPolicy
 
 foreach ($arg in $args) {
     if ($arg -eq '--all') {
         $ALL = $true
+    } elseif ($arg -eq '--no-pull') {
+        $NO_PULL = $true
     } elseif ($arg -eq '-h' -or $arg -eq '--help') {
         Show-Help
         exit 0
@@ -159,7 +90,7 @@ foreach ($arg in $args) {
     }
 }
 
-if ($PROTECTED -notcontains $MAIN) { $PROTECTED += $MAIN }
+Add-GitBranchMainToProtected
 
 & git rev-parse --git-dir *> $null
 if ($LASTEXITCODE -ne 0) {
@@ -167,9 +98,17 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Sync-GitForkUpstream (Get-Location).Path
-
-& git fetch --all --prune --quiet
+# ローカルブランチの更新（pull・同期）は git-pull-all に任せる。--no-pull の場合は
+# 更新せず、fork の upstream 同期と fetch --prune だけ行う（マージ済み判定に必要）。
+$pullFailed = $false
+if ($NO_PULL) {
+    Sync-GitForkUpstream (Get-Location).Path
+    & git fetch --all --prune --quiet
+} else {
+    $global:LASTEXITCODE = $null
+    & "$PSScriptRoot\git-pull-all.ps1" $MAIN
+    if ($LASTEXITCODE -ne 0) { $pullFailed = $true }
+}
 
 $statusOutput = @(& git status --porcelain 2>$null)
 if ($statusOutput.Count -gt 0) {
@@ -178,39 +117,6 @@ if ($statusOutput.Count -gt 0) {
 
 function Get-BranchNames {
     @(& git branch) | ForEach-Object { $_.TrimStart('*', '+', ' ') }
-}
-
-function Test-Protected([string]$Branch) {
-    return $PROTECTED -contains $Branch
-}
-
-# ブランチ Branch が「現在の worktree 以外」で checkout されているパスを返す。
-function Get-WorktreePathForBranch([string]$Branch) {
-    $path = $null
-    $branchName = $null
-    $lines = @(& git worktree list --porcelain 2>$null) + @('')
-    foreach ($line in $lines) {
-        if ($line -like 'worktree *') {
-            $path = $line.Substring(9)
-        } elseif ($line -like 'branch *') {
-            $branchName = $line -replace '^branch refs/heads/', ''
-        } elseif ($line -eq '') {
-            if ($path -and $branchName -eq $Branch) {
-                return $path
-            }
-            $path = $null
-            $branchName = $null
-        }
-    }
-    return $null
-}
-
-function Test-BranchInOtherWorktree([string]$Branch) {
-    $wt = Get-WorktreePathForBranch $Branch
-    if (-not $wt) { return $false }
-    $cur = (& git rev-parse --show-toplevel 2>$null)
-    if (-not $cur) { $cur = (Get-Location).Path }
-    return ($wt -ne $cur)
 }
 
 # squash/rebase merge で $MAIN に取り込まれた内容が、ブランチ Branch の
@@ -294,88 +200,13 @@ function Remove-Branch([string]$Branch, [string]$Kind) {
     }
 }
 
-# Test-Merged の判定基準はローカルの $MAIN。fetch --all --prune はリモート追跡
-# ブランチしか更新しないため、ローカル $MAIN が origin/$MAIN より古いままだと、
-# 実際はマージ済みでも stale な $MAIN を基準に「マージ済みでない」と誤判定して
-# しまう。判定前にローカル $MAIN を origin/$MAIN へ fast-forward 同期する
-# （他の worktree で checkout 済みなら同期しない。fast-forward できない場合は
-# 何もせず、既存のローカル $MAIN のまま判定を続ける）。
-function Sync-MainBeforeMergeCheck {
-    & git rev-parse --verify -q $MAIN *> $null
-    if ($LASTEXITCODE -ne 0) { return }
-    if (Test-BranchInOtherWorktree $MAIN) { return }
-    $global:LASTEXITCODE = $null
-    & git fetch . "origin/${MAIN}:${MAIN}" --quiet *> $null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Updated $MAIN (fast-forward)."
-    }
-}
-
-function Invoke-PullCurrent {
-    $global:LASTEXITCODE = $null
-    & git pull --ff-only --quiet
-    if ($LASTEXITCODE -eq 0) {
-        $cur = (& git rev-parse --abbrev-ref HEAD).Trim()
-        Write-Host "Updated $cur."
-    } else {
-        $cur = (& git rev-parse --abbrev-ref HEAD).Trim()
-        Write-Stderr "warning: could not fast-forward $cur (diverged or conflict). Resolve manually with 'git pull' or 'git merge'."
-    }
-}
-
-function Sync-OtherProtected([string]$Current) {
-    foreach ($b in $PROTECTED) {
-        if ($b -eq $Current) { continue }
-        & git rev-parse --verify -q $b *> $null
-        if ($LASTEXITCODE -eq 0) {
-            if (Test-BranchInOtherWorktree $b) {
-                Write-Host "Skipped: $b (checked out in another worktree; not updated)"
-                continue
-            }
-            $global:LASTEXITCODE = $null
-            & git fetch . "origin/${b}:${b}" --quiet *> $null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Updated $b (fast-forward)."
-            } else {
-                Write-Stderr "warning: could not fast-forward $b. Run 'git checkout $b && git pull' manually."
-            }
-        } else {
-            $global:LASTEXITCODE = $null
-            & git fetch origin "${b}:${b}" --quiet *> $null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Host "Created local branch $b (tracking origin/$b)."
-                if ($b -eq $MAIN) {
-                    if ($script:Dirty) {
-                        Write-Stderr "warning: worktree has uncommitted changes; not switching to $MAIN. Run 'git checkout $MAIN' after committing/stashing."
-                    } elseif (Test-BranchInOtherWorktree $MAIN) {
-                        Write-Stderr "warning: $MAIN is checked out in another worktree; not switching."
-                    } else {
-                        $global:LASTEXITCODE = $null
-                        & git checkout $MAIN *> $null
-                        if ($LASTEXITCODE -eq 0) {
-                            Write-Host "Switched to $MAIN."
-                        } else {
-                            Write-Stderr "warning: failed to checkout $MAIN."
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 $current = (& git rev-parse --abbrev-ref HEAD).Trim()
 
 if ($script:Dirty) {
-    Write-Stderr "warning: worktree has uncommitted changes (staged, unstaged, or untracked); skipping checkout/pull/delete for '$current'. Run 'git status' to review."
-    if (Test-Protected $current) {
-        Sync-OtherProtected $current
-    }
+    Write-Stderr "warning: worktree has uncommitted changes (staged, unstaged, or untracked); skipping checkout/delete for '$current'. Run 'git status' to review."
 } elseif (Test-Protected $current) {
-    Invoke-PullCurrent
-    Sync-OtherProtected $current
+    # 保護対象のブランチは何もしない
 } else {
-    Sync-MainBeforeMergeCheck
     if (Test-Merged $current) {
         $kind = $script:MergeKind
         if (Test-BranchInOtherWorktree $MAIN) {
@@ -385,13 +216,11 @@ if ($script:Dirty) {
             $global:LASTEXITCODE = $null
             & git checkout $MAIN *> $null
             if ($LASTEXITCODE -eq 0) {
-                Invoke-PullCurrent
                 Remove-Branch $current $kind
             } else {
                 Write-Stderr "warning: failed to checkout $MAIN; leaving '$current' in place."
             }
         }
-        Sync-OtherProtected $MAIN
     } else {
         Write-Host "Branch '$current' is not yet merged into $MAIN."
     }
@@ -421,3 +250,5 @@ if ($others.Count -gt 0) {
         Write-Host "  $b"
     }
 }
+
+if ($pullFailed) { exit 1 }

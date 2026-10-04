@@ -8,12 +8,15 @@
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
 #   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
 #                        （ghq-status --paths-only の結果を使う。-f と併用可）
+#   --no-pull            git-sweep に --no-pull を渡し、ローカルブランチの
+#                        fast-forward 更新（pull・同期）を行わない
 #   -h, --help          ヘルプを表示
 #
 # 動作:
 #   ghq list -p のリポジトリ（-s 指定時は ghq-status --paths-only の結果）に対して
 #   git-sweep --all を実行する。
-#   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
+#   各リポジトリのマージ済みブランチをすべて削除し、現在のブランチを含む
+#   ローカルブランチを upstream へ fast-forward で最新に保つ（--no-pull で無効化）。
 #   upstream という名前の remote があれば、git-sweep 自体が fetch の前に
 #   `gh repo sync` で upstream のデフォルトブランチを origin へ fast-forward
 #   反映する（diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）。
@@ -30,6 +33,7 @@ source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 FILTER=''
 STATUS_ONLY=0
+NO_PULL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -37,6 +41,7 @@ while [[ $# -gt 0 ]]; do
       [[ $# -lt 2 ]] && { echo "error: --filter requires an argument" >&2; exit 1; }
       FILTER="$2"; shift 2 ;;
     -s|--status-only) STATUS_ONLY=1; shift ;;
+    --no-pull) NO_PULL=1; shift ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         echo "error: unknown option: $1" >&2; exit 1 ;;
   esac
@@ -52,6 +57,9 @@ if ! command -v ghq >/dev/null 2>&1; then
   exit 1
 fi
 
+SWEEP_ARGS=(--all)
+[[ "$NO_PULL" == 1 ]] && SWEEP_ARGS+=(--no-pull)
+
 ok=0; skipped=0; failed=0
 
 while IFS= read -r repo; do
@@ -64,7 +72,7 @@ while IFS= read -r repo; do
     continue
   fi
   sweep_ok=true
-  (cd "$repo" && git-sweep --all) || sweep_ok=false
+  (cd "$repo" && git-sweep "${SWEEP_ARGS[@]}") || sweep_ok=false
   _ghq_unstash_lockfiles "$repo" || sweep_ok=false
   if [[ "$sweep_ok" == true ]]; then
     (( ok++ )) || true

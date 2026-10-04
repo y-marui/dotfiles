@@ -99,6 +99,32 @@ function Pop-GhqLockfileStash([string]$Repo) {
     return $false
 }
 
+# Invoke-GhqPullRepo <repo> [git-pull-all の引数...]
+# 1リポジトリを git-pull-all で更新する（fork の upstream 同期、fetch、全ローカル
+# ブランチの fast-forward 同期）。ロックファイルのみ dirty な場合は一時的に stash して
+# 実行し、実行後に復元する。ロックファイル以外にも dirty な場合は stash せずに実行し
+# （git-pull-all が現在ブランチの更新を warning 付きで見送る）、$Script:GhqPullDirty を
+# $true にする。
+# 戻り値 $true: 成功（スキップ・警告を含む）、$false: 失敗（fetch 失敗・pull 失敗・
+# stash 復元失敗）。失敗時は "[failed] ..." の行を標準エラー出力に出す。
+$Script:GhqPullDirty = $false
+function Invoke-GhqPullRepo([string]$Repo, [string[]]$PullArgs = @()) {
+    $Script:GhqPullDirty = $false
+    $ok = $true
+    if (-not (Push-GhqLockfileStash $Repo)) { $Script:GhqPullDirty = $true }
+    Push-Location $Repo
+    try {
+        $global:LASTEXITCODE = $null
+        & "$PSScriptRoot\git-pull-all.ps1" @PullArgs
+        if ($LASTEXITCODE -ne 0) { $ok = $false }
+    } finally {
+        Pop-Location
+    }
+    if (-not (Pop-GhqLockfileStash $Repo)) { $ok = $false }
+    if (-not $ok) { Write-GhqStderr "  [failed] pull" }
+    return $ok
+}
+
 # Test-GhqUpstreamPrAllowed <owner/repo>
 # bin/ghq-upstream-pr-allow に列挙された owner/repo パターン（glob可、# 以降はコメント）の
 # いずれかに一致すれば $true を返す。ファイルが無い・一致しなければ $false を返す。

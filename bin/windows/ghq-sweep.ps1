@@ -8,12 +8,15 @@
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
 #   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
 #                        （ghq-status --paths-only の結果を使う。-f と併用可）
+#   --no-pull            git-sweep に --no-pull を渡し、ローカルブランチの
+#                        fast-forward 更新（pull・同期）を行わない
 #   -h, --help          ヘルプを表示
 #
 # 動作:
 #   ghq list -p のリポジトリ（-s 指定時は ghq-status --paths-only の結果）に対して
 #   git-sweep --all を実行する。
-#   各リポジトリのマージ済みブランチをすべて削除し、main を最新に保つ。
+#   各リポジトリのマージ済みブランチをすべて削除し、現在のブランチを含む
+#   ローカルブランチを upstream へ fast-forward で最新に保つ（--no-pull で無効化）。
 #   upstream という名前の remote があれば、git-sweep 自体が fetch の前に
 #   `gh repo sync` で upstream のデフォルトブランチを origin へ fast-forward
 #   反映する（diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）。
@@ -35,6 +38,7 @@ function Show-Help {
 
 $FILTER = ''
 $STATUS_ONLY = $false
+$NO_PULL = $false
 
 $i = 0
 while ($i -lt $args.Count) {
@@ -48,6 +52,9 @@ while ($i -lt $args.Count) {
         $i += 2
     } elseif ($arg -eq '-s' -or $arg -eq '--status-only') {
         $STATUS_ONLY = $true
+        $i++
+    } elseif ($arg -eq '--no-pull') {
+        $NO_PULL = $true
         $i++
     } elseif ($arg -eq '-h' -or $arg -eq '--help') {
         Show-Help
@@ -67,6 +74,9 @@ if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
     Write-GhqStderr "error: 'ghq' が見つかりません。"
     exit 1
 }
+
+$sweepArgs = @('--all')
+if ($NO_PULL) { $sweepArgs += '--no-pull' }
 
 $ok = 0
 $skipped = 0
@@ -105,7 +115,7 @@ foreach ($repo in $repos) {
     $sweepOk = $true
     Push-Location $repo
     try {
-        & git-sweep --all
+        & git-sweep @sweepArgs
         if ($LASTEXITCODE -ne 0) { $sweepOk = $false }
     } finally {
         Pop-Location

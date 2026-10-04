@@ -96,6 +96,26 @@ _ghq_unstash_lockfiles() {
   return 1
 }
 
+# _ghq_pull_repo <repo> [git-pull-all の引数...]
+# 1リポジトリを git-pull-all で更新する（fork の upstream 同期、fetch、全ローカル
+# ブランチの fast-forward 同期）。ロックファイルのみ dirty な場合は一時的に stash して
+# 実行し、実行後に復元する。ロックファイル以外にも dirty な場合は stash せずに実行し
+# （git-pull-all が現在ブランチの更新を warning 付きで見送る）、_GHQ_PULL_DIRTY=true にする。
+# 戻り値 0: 成功（スキップ・警告を含む）、1: 失敗（fetch 失敗・pull 失敗・stash 復元失敗）。
+# 失敗時は "[failed] ..." の行を標準エラー出力に出す。
+_GHQ_PULL_DIRTY=false
+_ghq_pull_repo() {
+  local repo="$1" rc=0
+  shift
+
+  _GHQ_PULL_DIRTY=false
+  _ghq_stash_lockfiles "$repo" || _GHQ_PULL_DIRTY=true
+  (cd "$repo" && "${_GHQ_LIB_DIR}/git-pull-all" "$@") || rc=1
+  _ghq_unstash_lockfiles "$repo" || rc=1
+  [[ "$rc" -eq 0 ]] || echo "  [failed] pull" >&2
+  return "$rc"
+}
+
 _GHQ_UV_LOCK_PR_BRANCH='chore/uv-lock-update'
 _GHQ_NPM_LOCK_PR_BRANCH='chore/npm-lock-update'
 
