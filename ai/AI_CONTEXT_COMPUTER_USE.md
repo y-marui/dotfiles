@@ -36,6 +36,11 @@
   画面を探索しない。ユーザーが既存タブや表示中の画面を明示的に対象にした場合だけ利用する。
 - タスク完了に必要な最小限のページと操作に限定し、関連リンク、プロフィール、推薦結果、
   別サービスを追加で探索しない。
+- Claude in Chrome で複数のブラウザが接続されている場合は、`~/.identity/claude-in-chrome-browsers.yaml`
+  の `device_id` と `list_connected_browsers` の結果を照合して `select_browser` で選ぶ。
+  「Browser N」の番号は接続順で変わるため頼らない。ファイルがない、または照合できない場合は
+  推測せず、ユーザーに確認する。この対応表は Claude in Chrome 固有で、他のエージェントの
+  ブラウザ接続には使えない。
 
 ## Changes and Verification
 
