@@ -73,6 +73,8 @@ EXCEPTIONS=(
   "scripts/init-host.sh:make専用ツール。git-bash経由で全OS共通実行"
   "scripts/setup-private.sh:make専用ツール（gh CLI依存）。git-bash経由で全OS共通実行"
   "scripts/test-git-sweep.sh:TODO: bin/windows/git-sweep.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
+  "scripts/test-git-pull-all.sh:TODO: bin/windows/git-pull-all.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
+  "scripts/test-ghq-pull-update-sweep.sh:TODO: bin/windows/ghq-pull.ps1・ghq-update.ps1・ghq-sweep.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/test-obsidian-project-home.sh:TODO: bin/windows/obsidian-project-home.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/test-ghq-hosts.sh:macOS専用（bin/unix/ghq-hostsはWindows版を作らない）"
   "scripts/test-ghq-keep-up-to-date.sh:TODO: ghq/keep-up-to-date.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"

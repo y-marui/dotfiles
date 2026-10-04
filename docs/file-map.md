@@ -27,15 +27,17 @@ _最終更新: 2026-10-01_
 |---|---|---|
 | `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
-| `bin/unix/ghq-pull` | ghq 管理下リポジトリの fetch + pull、upstream fork sync | `upstream` remote |
-| `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行、upstream fork sync | `upstream` remote |
-| `bin/unix/ghq-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`→`ghq-sweep`→`ghq-status`をssh経由で実行し、結果表を出す（macOS専用。詳細は[specification.md#ghq-hosts](specification.md#ghq-hosts)） | `dotfiles-private/ghq/hosts`・`.local`、`ssh`、`scutil`、`scripts/test-ghq-hosts.sh`（回帰テスト） |
-| `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、自動PRのPR先解決） | `bin/unix/_git-fork-lib.sh`、`bin/ghq-upstream-pr-allow` |
+| `bin/unix/ghq-pull` | ghq 管理下リポジトリ全件に `git-pull-all` を実行（ロックファイル stash 付き） | `bin/unix/git-pull-all`、`bin/unix/_ghq-lib.sh` |
+| `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行 | `bin/unix/git-sweep` |
+| `bin/unix/ghq-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`をサブコマンド（`status`/`pull`/`sweep`/`update`）に応じてssh経由で実行し、結果表を出す（macOS専用。詳細は[specification.md#ghq-hosts](specification.md#ghq-hosts)） | `dotfiles-private/ghq/hosts`・`.local`、`ssh`、`scutil`、`scripts/test-ghq-hosts.sh`（回帰テスト） |
+| `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、`git-pull-all`の呼び出し、自動PRのPR先解決） | `bin/unix/_git-fork-lib.sh`、`bin/unix/git-pull-all`、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1` | GitHub標準のfork運用（`upstream` remote）の共通関数（owner/repo解決、`gh repo sync`によるupstream→origin同期）。ghqを前提としないため`git-sweep`からも直接利用する | `upstream` remote |
 | `bin/ghq-upstream-pr-allow` | 自動PR機能がfork元（upstream）へPRしてよい`owner/repo`パターンの許可リスト | `bin/unix/_ghq-lib.sh`、`bin/windows/_ghq-lib.ps1`、`shell/zshrc`（`gh()`） |
 | `shell/zshrc`（`gh()`関数） | `upstream` remoteがあり許可リストに一致するリポジトリで、`gh pr create --repo <origin>`を拒否（うっかり防止） | `bin/ghq-upstream-pr-allow` |
 | `ghq/keep-up-to-date.sh` / `ghq/keep-up-to-date.ps1` | `local.keep-up-to-date`の宣言管理（`dots ghq {apply\|diff\|sync\|merge}`と`dots check`の要約。詳細は[specification.md#dots-ghq](specification.md#dots-ghq)） | `dotfiles-private/ghq/keep-up-to-date`・`.local`、`git config local.keep-up-to-date`、`ghq root`/`ghq list -p`、`scripts/test-ghq-keep-up-to-date.sh`（Unix版回帰テスト） |
-| `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証、fast-forward-only同期、upstream fork sync。詳細は[specification.md#git-sweep](specification.md#git-sweep)） | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1`、`.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
+| `bin/unix/git-pull-all` / `bin/windows/git-pull-all.ps1` | 1リポジトリの全ローカルブランチのfast-forward同期（現在ブランチはpull、他は作業ツリーを動かさず同期。upstream fork sync含む） | `bin/unix/_git-fork-lib.sh` / `_git-branch-lib.sh`（Windowsは`.ps1`）、`scripts/test-git-pull-all.sh`（Unix版回帰テスト） |
+| `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（`git-pull-all`のあと削除。dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証。詳細は[specification.md](specification.md#git-pull-all--git-sweep--ghq-pull--ghq-update--ghq-sweep--ghq-hosts)） | `bin/unix/git-pull-all`、`_git-branch-lib.sh` / `_git-branch-lib.ps1`、`.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
+| `bin/unix/_git-branch-lib.sh` / `bin/windows/_git-branch-lib.ps1` | ブランチ方針（main/protectedの解決）とworktree判定の共通関数。`git-sweep`と`git-pull-all`が共有する | `.gitattributes`、`local.repo-*` |
 | `bin/unix/obsidian-project-home` / `bin/windows/obsidian-project-home.ps1` | Git `origin`と通常領域Project Homeの`repositories`を正規化して一意に解決。本文・Privateは探索せず、未登録・重複・不正設定を終了コードで明示する | `dotfiles-private/obsidian/project-home-resolver.conf`、`templates/dotfiles-private/obsidian/project-home-resolver.conf.example`、`scripts/test-obsidian-project-home.sh` |
 
 ## dev-charter Installation

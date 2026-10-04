@@ -5,20 +5,23 @@
 #   ghq-pull [options]
 #
 # オプション:
-#   --fetch-only        fetch のみ実行（pull をスキップ）
+#   --fetch-only        fetch のみ実行（ローカルブランチは更新しない）
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
 #   -h, --help          ヘルプを表示
 #
 # 動作:
+#   各リポジトリで git-pull-all を実行する（詳細は git-pull-all を参照）。
 #   - upstream という名前の remote があれば、先に `gh repo sync` で upstream の
-#     デフォルトブランチを origin・ローカル双方へ fast-forward 反映する
+#     デフォルトブランチを origin へ fast-forward 反映する
 #     （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
-#   - git fetch origin --prune を実行する（dirty でも実行）
-#   - fetch 失敗・detached HEAD・upstream ブランチ未設定の場合は pull をスキップ
+#   - git fetch --all --prune を実行する（dirty・detached HEAD でも実行）
+#   - 現在のブランチを pull --ff-only で更新する。dirty・detached HEAD・upstream 未設定の
+#     場合は更新せず warning を出す。現在のブランチ以外（保護ブランチを含む）の
+#     ローカルブランチも、upstream へ fast-forward で同期する
 #   - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
-#     pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
-#   - それら以外にも dirty な変更がある場合は pull をスキップ
-#   - それ以外は git pull --ff-only を実行する
+#     pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）
+#   - 失敗（fetch 失敗・pull 失敗・stash 復元失敗）したリポジトリは [failed] を表示し、
+#     処理は続行して、最後に終了コード1で終了する（スキップ・警告は終了コード0）
 
 Set-StrictMode -Version Latest
 
@@ -64,37 +67,14 @@ if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
 
 $repos = Get-GhqOrderedList $FILTER
 
+$failed = 0
+$pullArgs = @()
+if ($FETCH_ONLY) { $pullArgs += '--fetch-only' }
+
 foreach ($f in $repos) {
     Write-Host ""
     Write-Host "==> $f"
-
-    Sync-GitForkUpstream $f
-
-    $global:LASTEXITCODE = $null
-    & git -C $f fetch origin --prune
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  [skip pull] fetch failed"
-        continue
-    }
-
-    if (-not $FETCH_ONLY) {
-        $global:LASTEXITCODE = $null
-        & git -C $f symbolic-ref --short HEAD *> $null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] detached HEAD"
-            continue
-        }
-        $global:LASTEXITCODE = $null
-        & git -C $f rev-parse '@{u}' *> $null
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  [skip pull] no upstream"
-            continue
-        }
-        if (-not (Push-GhqLockfileStash $f)) {
-            Write-Host "  [skip pull] dirty working tree"
-            continue
-        }
-        & git -C $f pull --ff-only
-        Pop-GhqLockfileStash $f | Out-Null
-    }
+    if (-not (Invoke-GhqPullRepo $f $pullArgs)) { $failed++ }
 }
+
+if ($failed -gt 0) { exit 1 }

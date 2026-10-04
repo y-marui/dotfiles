@@ -24,6 +24,7 @@ check() {
 branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 branch_absent() { ! git show-ref --verify --quiet "refs/heads/$1"; }
 contains() { [[ "$1" == *"$2"* ]]; }
+lacks() { [[ "$1" != *"$2"* ]]; }
 
 section() { echo; echo "== $1 =="; }
 
@@ -200,6 +201,54 @@ output=$("$SWEEP" 2>&1)
 check "local develop commit preserved (not rebased away)" [ "$(git log develop --oneline | command grep -c 'local-only develop change')" = "1" ]
 check "reports could-not-fast-forward warning for develop" contains "$output" "could not fast-forward develop"
 check "develop still 1 commit ahead of merge-base (no rebase happened)" [ "$(git rev-list --count "$(git merge-base develop origin/develop)..develop")" = "1" ]
+
+section "unmerged branches behind origin are fast-forwarded (current and others)"
+git checkout -q main
+for name in feature-pull-cur feature-pull-other feature-pull-div; do
+  git checkout -q -b "$name" main
+  echo "$name" > "$name.txt"
+  git add "$name.txt"
+  git commit -q -m "feat: $name"
+  git push -q -u origin "$name"
+done
+(
+  cd ../other-clone
+  git fetch -q origin
+  for name in feature-pull-cur feature-pull-other feature-pull-div; do
+    git checkout -q -B "$name" "origin/$name"
+    echo "remote-update" >> "$name.txt"
+    git commit -q -am "feat: remote update on $name"
+    git push -q origin "$name"
+  done
+)
+git checkout -q feature-pull-div
+echo "local-only" >> feature-pull-div.txt
+git commit -q -am "feat: local-only commit on feature-pull-div"
+git checkout -q feature-pull-cur
+before_other=$(git rev-parse feature-pull-other)
+output=$("$SWEEP" --no-pull 2>&1)
+check "--no-pull keeps current branch behind" [ "$(git rev-parse feature-pull-cur)" != "$(git rev-parse origin/feature-pull-cur)" ]
+check "--no-pull keeps other branch behind" [ "$(git rev-parse feature-pull-other)" = "$before_other" ]
+check "--no-pull reports no update" lacks "$output" "Updated feature-pull"
+output=$("$SWEEP" 2>&1)
+check "current unmerged branch fast-forwarded" [ "$(git rev-parse feature-pull-cur)" = "$(git rev-parse origin/feature-pull-cur)" ]
+check "stays on current branch" [ "$(git rev-parse --abbrev-ref HEAD)" = "feature-pull-cur" ]
+check "other branch fast-forwarded" [ "$(git rev-parse feature-pull-other)" = "$(git rev-parse origin/feature-pull-other)" ]
+check "reports other branch update" contains "$output" "Updated feature-pull-other (fast-forward)"
+check "diverged branch warned" contains "$output" "could not fast-forward feature-pull-div (diverged)"
+check "diverged branch local commit preserved" [ "$(git log feature-pull-div --oneline | command grep -c 'local-only commit')" = "1" ]
+echo "uncommitted local edit" >> README.md
+(
+  cd ../other-clone
+  git checkout -q feature-pull-other
+  echo "second-update" >> feature-pull-other.txt
+  git commit -q -am "feat: second remote update"
+  git push -q origin feature-pull-other
+)
+output=$("$SWEEP" 2>&1)
+check "dirty worktree: other branch ref still fast-forwarded" [ "$(git rev-parse feature-pull-other)" = "$(git rev-parse origin/feature-pull-other)" ]
+check "dirty worktree: uncommitted change preserved" grep -q "uncommitted local edit" README.md
+git checkout -q -- README.md
 
 echo
 if [[ "$FAILURES" -eq 0 ]]; then

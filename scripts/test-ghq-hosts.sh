@@ -34,6 +34,7 @@ echo "$host $*" >> "$CALLS"
 [[ "$host" == down ]] && { echo "ssh: connect timed out" >&2; exit 255; }
 [[ "$host" == badsweep && "$*" == ghq-sweep ]] && { echo "sweep broke" >&2; exit 1; }
 [[ "$host" == warnhost && "$*" == ghq-pull ]] && { echo "==> /repo/b"; echo "  [skip pull] dirty working tree"; }
+[[ "$host" == warngit && "$*" == ghq-sweep ]] && { echo "==> /repo/c"; echo "warning: could not fast-forward x (diverged)." >&2; }
 echo "remote-out $host $*"
 STUB
 chmod +x "$WORK/ssh"
@@ -48,6 +49,7 @@ gamma:  beta
 mixed:  beta down badsweep gamma
 par:    slow1 slow2
 warn:   warnhost beta
+warng:  warngit
 DECL
 
 check() {
@@ -64,31 +66,28 @@ rc_is() { [[ "$RC" -eq "$1" ]]; }
 section "dry-run"
 run --from alpha --dry-run
 check "exit 0" rc_is 0
-check "lists remote command" contains "$OUT" "BatchMode=yes -o ConnectTimeout=5 beta ghq-pull"
-check "lists local command" contains "$OUT" "would run: ghq-pull"
+check "lists remote command" contains "$OUT" "BatchMode=yes -o ConnectTimeout=5 beta ghq-sweep"
+check "lists local command" contains "$OUT" "would run: ghq-sweep"
 check "nothing executed" test ! -s "$CALLS"
 
 section "default steps and order (case-insensitive --from)"
 run --from ALPHA -j 1
 check "exit 0" rc_is 0
-expected="local ghq-pull
-local ghq-sweep
+expected="local ghq-sweep
 local ghq-status
-beta ghq-pull
 beta ghq-sweep
 beta ghq-status
-gamma ghq-pull
 gamma ghq-sweep
 gamma ghq-status"
 check "call order" [ "$CALLS_OUT" = "$expected" ]
 check "summary shown" contains "$OUT" "== summary =="
-check "success output hidden" not_contains "$OUT" "remote-out beta ghq-pull"
+check "success output hidden" not_contains "$OUT" "remote-out beta ghq-sweep"
 check "status output shown" contains "$OUT" "remote-out beta ghq-status"
 check "log written" test -f "$GHQ_HOSTS_LOG_DIR/beta.log"
 
 section "parallel hosts"
 start=$SECONDS
-run --from par --no-local --no-sweep --no-status
+run pull --no-status --from par --no-local
 elapsed=$((SECONDS - start))
 check "exit 0" rc_is 0
 check "hosts run concurrently (2s sleeps finish well under 4s)" test "$elapsed" -lt 4
@@ -96,14 +95,14 @@ check "both hosts ran" contains "$CALLS_OUT" "slow2 ghq-pull"
 in_order() { [[ "$1" == *"==> slow1"*"==> slow2"* ]]; }
 check "output kept in declared order" in_order "$OUT"
 start=$SECONDS
-run --from par --no-local --no-sweep --no-status -j 1
+run pull --no-status --from par --no-local -j 1
 elapsed=$((SECONDS - start))
 check "-j 1 is sequential (>= 4s)" test "$elapsed" -ge 4
 run --from par --no-local -j 0
 check "invalid --jobs rejected" rc_is 1
 
 section "progress display"
-run --from par --no-local --no-sweep --no-status
+run pull --no-status --from par --no-local
 check "no escape sequences when stderr is not a terminal" not_contains "$OUT" $'\033['
 # 擬似端末（pty）で実行して出力を集める
 run_pty() {
@@ -126,19 +125,19 @@ sys.stdout.write(b"".join(chunks).decode("utf-8", "replace"))
 PY
 }
 if command -v python3 >/dev/null 2>&1; then
-  PTY_OUT="$(run_pty "$HOSTS_CMD" --from par --no-local --no-sweep --no-status || true)"
+  PTY_OUT="$(run_pty "$HOSTS_CMD" pull --no-status --from par --no-local || true)"
   check "progress drawn on a terminal" contains "$PTY_OUT" $'\033[?25l'
   check "cursor restored" contains "$PTY_OUT" $'\033[?25h'
   check "host shown in progress" contains "$PTY_OUT" "slow1"
   check "final summary still printed" contains "$PTY_OUT" "== summary =="
-  PTY_OUT="$(run_pty "$HOSTS_CMD" --from par --no-local --no-sweep --no-status --no-progress || true)"
+  PTY_OUT="$(run_pty "$HOSTS_CMD" pull --no-status --from par --no-local --no-progress || true)"
   check "--no-progress disables it" not_contains "$PTY_OUT" $'\033[?25l'
 else
   echo "  skip - python3 が無いため端末表示のテストを省略"
 fi
 
 section "skip/warn lines of successful steps"
-run --from warn --no-local -j 1
+run pull --from warn --no-local -j 1
 check "exit 0 (warnings do not fail)" rc_is 0
 check "skip line shown" contains "$OUT" "[skip pull] dirty working tree"
 check "repo header shown" contains "$OUT" "==> /repo/b"
@@ -146,26 +145,66 @@ check "step flagged" contains "$OUT" "[ok] pull（スキップ・警告あり）
 check "summary marks ok!" contains "$OUT" "ok!"
 check "legend shown" contains "$OUT" "ok! = "
 check "clean host not flagged" not_contains "$OUT" "==> /repo/a"
-WARN_LOCAL=ghq-pull run --from alpha -H beta -j 1 --no-sweep --no-status
+WARN_LOCAL=ghq-pull run pull --no-status --from alpha -H beta -j 1
 check "local skip line shown" contains "$OUT" "==> /repo/a"
 run --from alpha --no-local -j 1
 check "no warn legend when clean" not_contains "$OUT" "ok! = "
 
-section "step selection"
-run --from alpha --update --no-sweep --no-status -H beta --no-local
-check "update only on beta" [ "$CALLS_OUT" = "beta ghq-update" ]
-run --from alpha --no-pull --no-status --no-local -j 1
-check "sweep only" [ "$CALLS_OUT" = "beta ghq-sweep
-gamma ghq-sweep" ]
-run --from alpha -a --no-pull --no-sweep --no-local -H gamma
+section "warning: lines are surfaced"
+run sweep --from warng --no-local -j 1 --no-status
+check "warning line shown" contains "$OUT" "warning: could not fast-forward x (diverged)."
+check "repo header shown for warning" contains "$OUT" "==> /repo/c"
+check "step flagged for warning" contains "$OUT" "[ok] sweep（スキップ・警告あり）"
+check "exit 0 for warning" rc_is 0
+
+section "step selection (subcommands)"
+run status --from alpha --no-local -j 1
+check "status runs status only" [ "$CALLS_OUT" = "beta ghq-status
+gamma ghq-status" ]
+run status -a --from alpha --no-local -H gamma
 check "status -a passed" [ "$CALLS_OUT" = "gamma ghq-status -a" ]
-run --from alpha --no-pull --no-sweep --no-status
-check "no steps is an error" rc_is 1
+run pull --from alpha --no-local -H beta
+check "pull is pull then status" [ "$CALLS_OUT" = "beta ghq-pull
+beta ghq-status" ]
+run pull --no-status --from alpha --no-local -H beta
+check "pull --no-status is pull only" [ "$CALLS_OUT" = "beta ghq-pull" ]
+run sweep --from alpha --no-local -H beta
+check "sweep is sweep then status" [ "$CALLS_OUT" = "beta ghq-sweep
+beta ghq-status" ]
+run sweep --no-status --from alpha --no-local -j 1
+check "sweep --no-status is sweep only" [ "$CALLS_OUT" = "beta ghq-sweep
+gamma ghq-sweep" ]
+run update --from alpha --no-local -H beta
+check "update is pull, update --sync-only, status" [ "$CALLS_OUT" = "beta ghq-pull
+beta ghq-update --sync-only
+beta ghq-status" ]
+run update --no-status --from alpha --no-local -H beta
+check "update --no-status" [ "$CALLS_OUT" = "beta ghq-pull
+beta ghq-update --sync-only" ]
+run status --no-status --from alpha
+check "status --no-status is an error" rc_is 1
+run --update --from alpha
+check "removed --update is rejected" rc_is 1
+run --only --from alpha
+check "removed --only is rejected" rc_is 1
+run --no-pull --from alpha
+check "removed --no-pull is rejected" rc_is 1
+
+section "filter pass-through"
+run pull -f 'a|b' --from alpha --no-local -H beta
+check "filter passed to ghq-pull (quoted)" [ "$CALLS_OUT" = "beta ghq-pull -f a\\|b
+beta ghq-status -f a\\|b" ]
+run update --filter x --from alpha --no-local -H beta --no-status
+check "filter passed to ghq-update" contains "$CALLS_OUT" "beta ghq-update --sync-only -f x"
+run pull -f x --from alpha -H beta
+check "local gets filter too" contains "$CALLS_OUT" "local ghq-pull -f x"
+run pull -f
+check "-f needs an argument" rc_is 1
 
 section "host selection"
 run --from beta
 check "beta targets gamma only (no alpha)" not_contains "$CALLS_OUT" "Alpha"
-check "gamma reached" contains "$CALLS_OUT" "gamma ghq-pull"
+check "gamma reached" contains "$CALLS_OUT" "gamma ghq-sweep"
 run --from alpha -H nosuch
 check "undeclared host rejected" rc_is 1
 run --from nosuch
@@ -177,11 +216,11 @@ run --from mixed --no-local -j 1
 check "exit 1" rc_is 1
 check "later host still ran" contains "$CALLS_OUT" "gamma ghq-status"
 check "step after failing sweep still ran" contains "$CALLS_OUT" "badsweep ghq-status"
-check "unreachable host stops its own steps" not_contains "$CALLS_OUT" "down ghq-sweep"
+check "unreachable host stops its own steps" not_contains "$CALLS_OUT" "down ghq-status"
 check "failure output shown" contains "$OUT" "sweep broke"
 check "summary marks ssh failure" contains "$OUT" "ssh"
 check "summary marks skip" contains "$OUT" "skip"
-FAIL_LOCAL=ghq-pull run --from alpha -H beta
+FAIL_LOCAL=ghq-sweep run --from alpha -H beta
 check "local failure exits 1" rc_is 1
 check "remote still ran after local failure" contains "$CALLS_OUT" "beta ghq-status"
 

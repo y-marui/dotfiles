@@ -2,13 +2,19 @@
 # ghq-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-statusを順に実行する（macOS専用）
 #
 # 使い方:
-#   ghq-hosts [options]
+#   ghq-hosts [status|pull|sweep|update] [options]
+#
+# サブコマンド（各サブコマンドは対応する ghq-* を実行し、続けて ghq-status を実行する。省略時は sweep）:
+#   status              ghq-status のみ
+#   pull                ghq-pull → ghq-status
+#   sweep               ghq-sweep → ghq-status（ghq-sweep は全ローカルブランチの pull も行う）
+#   update              ghq-pull → ghq-update --sync-only → ghq-status
+#                       （全リポジトリを pull したうえで、依存更新・自動 PR を行う）
 #
 # オプション:
-#   --update            pull の代わりに ghq-update を実行する（オプションは既定のまま）
-#   --no-pull           pull（--update 指定時は update）を実行しない
-#   --no-sweep          ghq-sweep を実行しない
-#   --no-status         ghq-status を実行しない
+#   --no-status         ghq-status を実行しない（status サブコマンドとは併用不可）
+#   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#                       （各 ghq-* の -f にそのまま渡す）
 #   -H, --host NAME     宣言済みの対象のうち、指定したホストだけを対象にする（複数回可）
 #   --from NAME         実行元の名前を明示する（既定: scutil --get LocalHostName）
 #   --no-local          実行元自身を処理しない
@@ -20,7 +26,7 @@
 #   -h, --help          ヘルプを表示
 #
 # 動作:
-#   - 実行順は固定: pull（または update）→ sweep → status（ホスト内では逐次）
+#   - ステップはサブコマンドで決まり、ホスト内では逐次に実行する
 #   - ホスト間は並列に処理する（実行元自身を含む）。表示と結果表は宣言順
 #     （実行元自身→宣言順のリモートホスト）にまとめて出す
 #   - 対象は dotfiles-private の ghq/hosts で実行元ごとに宣言する。書式は1行1件:
@@ -35,7 +41,8 @@
 #     全出力は ~/.cache/dots/ghq-hosts/<host>.log に残る
 #   - 標準エラー出力が端末のときは、ホストごとの進捗（ステップの状態）を1行ずつ更新表示する。
 #     完了後に進捗を消し、宣言順の出力と結果表を出す
-#   - 成功したステップでも [skip ...] [warn] [conflict] [failed] のタグ行は表示し、
+#   - 成功したステップでも [skip ...] [warn] [conflict] [failed] のタグ行と
+#     warning: で始まる行（git-pull-all・git-sweep の警告）は表示し、
 #     結果表では ok! と表示する（終了コードには影響しない）
 #   - 最後にホスト × ステップの結果表を出し、失敗が1つでもあれば終了コード1で終了する
 #
@@ -52,10 +59,9 @@ PRIVATE_DIR="${DOTFILES_PRIVATE_DIR:-${DOTFILES_DIR}-private}"
 SSH_CMD="${GHQ_HOSTS_SSH:-ssh}"
 LOG_DIR="${GHQ_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/ghq-hosts}"
 
-DO_UPDATE=0
-DO_PULL=1
-DO_SWEEP=1
+SUBCOMMAND=sweep
 DO_STATUS=1
+FILTER=''
 DO_LOCAL=1
 STATUS_ALL=0
 VERBOSE=0
@@ -67,12 +73,18 @@ HOST_FILTER=()
 
 die() { echo "error: $*" >&2; exit 1; }
 
+if [[ $# -gt 0 ]]; then
+  case "$1" in
+    status|pull|sweep|update) SUBCOMMAND="$1"; shift ;;
+  esac
+fi
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --update)    DO_UPDATE=1; shift ;;
-    --no-pull)   DO_PULL=0; shift ;;
-    --no-sweep)  DO_SWEEP=0; shift ;;
     --no-status) DO_STATUS=0; shift ;;
+    -f|--filter)
+      [[ $# -lt 2 ]] && die "$1 requires an argument"
+      FILTER="$2"; shift 2 ;;
     --no-local)  DO_LOCAL=0; shift ;;
     -a|--all)    STATUS_ALL=1; shift ;;
     -v|--verbose) VERBOSE=1; shift ;;
@@ -171,26 +183,38 @@ if [[ ${#HOST_FILTER[@]} -gt 0 ]]; then
 fi
 
 STEPS=()
-if [[ "$DO_PULL" == 1 ]]; then
-  if [[ "$DO_UPDATE" == 1 ]]; then STEPS+=(update); else STEPS+=(pull); fi
+case "$SUBCOMMAND" in
+  status) STEPS=(status) ;;
+  pull)   STEPS=(pull) ;;
+  sweep)  STEPS=(sweep) ;;
+  update) STEPS=(pull update) ;;
+esac
+if [[ "$SUBCOMMAND" == status ]]; then
+  [[ "$DO_STATUS" == 1 ]] || die "status サブコマンドは --no-status と併用できません。"
+elif [[ "$DO_STATUS" == 1 ]]; then
+  STEPS+=(status)
 fi
-[[ "$DO_SWEEP" == 1 ]] && STEPS+=(sweep)
-[[ "$DO_STATUS" == 1 ]] && STEPS+=(status)
-[[ ${#STEPS[@]} -gt 0 ]] || die "実行するステップがありません。"
 
 HOSTS=()
 [[ "$DO_LOCAL" == 1 ]] && HOSTS+=("local")
 for t in ${TARGETS[@]+"${TARGETS[@]}"}; do HOSTS+=("$t"); done
 [[ ${#HOSTS[@]} -gt 0 ]] || die "対象のホストがありません。"
 
+# step_command STEP -> 実行するコマンド行（シェルでそのまま評価できる形）。
+# -f の値は ssh 先のシェルでも評価されるため、printf %q でクォートして渡す。
 step_command() {
+  local cmd f=''
+  [[ -n "$FILTER" ]] && f=" -f $(printf '%q' "$FILTER")"
   case "$1" in
-    pull)   echo "ghq-pull" ;;
-    update) echo "ghq-update" ;;
-    sweep)  echo "ghq-sweep" ;;
+    pull)   cmd="ghq-pull${f}" ;;
+    update) cmd="ghq-update --sync-only${f}" ;;
+    sweep)  cmd="ghq-sweep${f}" ;;
     status)
-      if [[ "$STATUS_ALL" == 1 ]]; then echo "ghq-status -a"; else echo "ghq-status"; fi ;;
+      cmd="ghq-status"
+      [[ "$STATUS_ALL" == 1 ]] && cmd+=" -a"
+      cmd+="$f" ;;
   esac
+  printf '%s' "$cmd"
 }
 
 host_label() {
@@ -229,11 +253,9 @@ trap 'exit 130' INT TERM
 # run_step HOST STEP OUTFILE -> 終了コードを返す。出力は OUTFILE に入る
 run_step() {
   local host="$1" step="$2" out="$3" cmd rc=0
-  local words=()
   cmd="$(step_command "$step")"
   if [[ "$host" == "local" ]]; then
-    read -r -a words <<< "$cmd"
-    "${words[@]}" > "$out" 2>&1 || rc=$?
+    bash -c "$cmd" > "$out" 2>&1 || rc=$?
   else
     "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" > "$out" 2>&1 || rc=$?
   fi
@@ -245,7 +267,7 @@ indent() { sed 's/^/    /'; }
 # スキップ・警告のタグ行を、直前の "==> リポジトリ" 見出し付きで抜き出す
 tagged_lines() {
   awk '/^==> /{h=$0; printed=0; next}
-    /^[[:space:]]*\[(skip|warn|conflict|failed)[] ]/{ if (!printed) { print h; printed=1 } print }'
+    /^[[:space:]]*(\[(skip|warn|conflict|failed)[] ]|warning:)/{ if (!printed) { print h; printed=1 } print }'
 }
 
 # process_host IDX HOST: 1ホスト分のステップを順に実行する。

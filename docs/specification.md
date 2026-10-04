@@ -233,46 +233,119 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
   リポジトリパスを提示して手動pushを促す
 - upstream未設定のリポジトリはスキップする
 
-## git-sweep
+## git-pull-all / git-sweep / ghq-pull / ghq-update / ghq-sweep / ghq-hosts
 
-コマンド仕様（オプション、main/protectedブランチの解決順）は
-[bin/unix/git-sweep](../bin/unix/git-sweep)冒頭のコメントを正本とする。ここでは
-削除・保存に関する安全性の保証のみを記す（`bin/windows/git-sweep.ps1`も同一の
-保証を提供する）。
+ブランチ同期（pull）とブランチ整理（sweep）、それらを全リポジトリへ広げる`ghq-*`、
+複数Macへ広げる`ghq-hosts`の責務分担と共通ルールを定める。各コマンドのオプションは
+スクリプト冒頭のコメントを正本とする（`bin/windows/*.ps1`も同一仕様。`ghq-hosts`だけは
+macOS専用）。
 
-- **dirty worktreeの保護**: 実行時点でstaged・unstaged・untrackedのいずれかが
-  存在する場合、checkout・pull・ブランチ削除を一切行わずスキップし、理由を表示する
-- **他worktreeで使用中のブランチの保護**: `git worktree list --porcelain`で
-  明示的に列挙し、現在のworktree以外でcheckout中のブランチは切り替え・削除・
-  fast-forward更新の対象にしない（`git branch`の`+`マーカー行も正しく除外する）
-- **fast-forward-only同期**: pullは`--ff-only`のみ。暗黙のrebaseやautostashは
-  行わない。分岐（diverge）している場合は警告を表示するだけで、ローカルの
-  コミットはそのまま保持する（ユーザーの明示操作に委ねる）
+### Responsibilities
+
+| コマンド | 責務 |
+|---|---|
+| `git-pull-all` | 1リポジトリの全ローカルブランチをupstreamへfast-forward同期する唯一の実装 |
+| `git-sweep` | `git-pull-all`のあと、マージ済みブランチを削除する（`--no-pull`で同期を省く） |
+| `ghq-pull` | 全リポジトリに`git-pull-all`を実行する（ロックファイルstash付き） |
+| `ghq-update` | keep-up-to-dateのリポジトリを`git-pull-all`で更新し、依存更新（uv/npm）と自動PRを行う |
+| `ghq-sweep` | 全リポジトリに`git-sweep --all`を実行する |
+| `ghq-hosts` | 上記を宣言した他のMacでssh経由に実行する |
+
+pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git-sweep`はそれを呼ぶ。
+ブランチ方針（main/protectedの解決）とworktree判定は`_git-branch-lib.sh`/`.ps1`を共有する。
+
+### git-pull-all
+
+- **fetch**: `fetch --all --prune`（dirty・detached HEADでも実行）。失敗は終了コード1。
+  `upstream`というremoteがあれば、fetchの前に`gh repo sync`でupstreamのデフォルト
+  ブランチをoriginへ反映する
+- **現在のブランチ**: `pull --ff-only`で更新する。dirty・detached HEAD・upstream未設定
+  （goneは無表示）の場合は更新せず`warning:`を出す。分岐・コンフリクトで失敗したら
+  `error:`を出して終了コード1にする
+- **現在のブランチ以外**: 保護ブランチも含め、upstreamへfast-forwardで同期する。
+  HEADも作業ツリーも動かさない（`git fetch --no-prune . <upstream>:<branch>`。
+  `fetch.prune=true`の設定下でもdstが削除されないよう`--no-prune`を付ける）。
+  upstream未設定・goneは対象外、ローカルが先行していれば何もしない、分岐していれば
+  `warning:`のみ、他worktreeで使用中のブランチは更新しない（遅れている場合のみ
+  `Skipped:`を表示）。dirtyでも作業ツリーは変わらないので実行する
+- **保護ブランチの新規作成**: ローカルに無い保護ブランチはoriginから作る。それが`$MAIN`で
+  cleanなら切り替える
+- **`--fetch-only`**: fetchだけ行い、ローカルブランチは更新しない
+- **安全性**: pullはfast-forward-onlyで、暗黙のrebaseやautostashは行わない。
+  `Updated ...`は対応するgitコマンドが成功し、ブランチが進んだ場合のみ表示する
+
+### git-sweep
+
+- **同期**: 既定で`git-pull-all`を実行する。失敗しても削除処理は続行し、最後に終了コード1にする。
+  `--no-pull`では、upstream同期と`fetch --prune`だけ行う（マージ済み判定に必要）。
+  ローカルの`$MAIN`が更新されないため、実際にはマージ済みでも削除されない場合がある
+- **dirty worktreeの保護**: 現在のブランチがdirtyなら、checkout・削除を行わずスキップし、
+  理由を表示する（`--all`による他ブランチの削除は行う）
+- **他worktreeで使用中のブランチの保護**: `git worktree list --porcelain`で明示的に列挙し、
+  現在のworktree以外でcheckout中のブランチは切り替え・削除の対象にしない
 - **`gone`だけでのマージ済み判定をしない**: リモート追跡ブランチが`gone`でも、
-  それだけでは削除しない。squash/rebase merge後のケースは、
-  merge-baseからの差分が`$MAIN`側の履歴に実在することを検証してから
-  （git-delete-squashed相当のアルゴリズム）のみ削除する。検証で一致しない
-  場合（未マージ、または追加のローカル専用コミットが乗っている場合）は
-  ブランチを保持する
-- **理由のない`-d`→`-D`フォールバックをしない**: `git branch -d`が失敗しても
-  無条件に`-D`へフォールバックしない。`-D`（force）は、上記の検証で
-  squash/rebase mergeとして内容一致を確認できた場合にのみ使う
-- **成功メッセージは実際の成功時のみ**: 削除・fast-forward更新・checkoutの
-  各操作は、対応するgitコマンドの終了コードを確認してから成功メッセージを
-  表示する。失敗時は理由付きの警告を表示し、処理は継続する
-- **Skipped / Deleted / Remaining の区別**: dirty・他worktree使用中で
-  スキップしたブランチは`Skipped: ...`、削除したブランチは`Deleted: ...`、
-  保護対象以外で残存するブランチは末尾の`Remaining branches:`一覧として、
-  それぞれ区別して表示する
+  それだけでは削除しない。squash/rebase merge後のケースは、merge-baseからの差分が
+  `$MAIN`側の履歴に実在することを検証してから（git-delete-squashed相当）のみ削除する。
+  一致しない場合（未マージ、または追加のローカル専用コミットがある場合）は保持する
+- **理由のない`-d`→`-D`フォールバックをしない**: `-D`は、上記の検証でsquash/rebase merge
+  として内容一致を確認できた場合にのみ使う
+- **成功メッセージは実際の成功時のみ**、**Skipped / Deleted / Remaining の区別**を表示する
 
-回帰テストは[scripts/test-git-sweep.sh](../scripts/test-git-sweep.sh)（Unix版のみ。
-使い捨てのbare origin + 作業用クローンをテンポラリディレクトリに作成し、
-fast-forward/squash-merge検出・未マージ保持・ローカル`$MAIN`が遅れている場合の
-fast-forward同期・dirty worktree保持・他worktree使用中ブランチの保持・分岐した
-protectedブランチの保持を検証する。ネットワークアクセスなし、リポジトリ外への
-影響なし）を実行する。Windows版
-（`bin/windows/git-sweep.ps1`）の同等テストは、pwsh実行環境で動作確認できる
-ようになってから追加する。
+### ghq-pull / ghq-update / ghq-sweep
+
+- **対象**: `ghq-pull`と`ghq-sweep`は全リポジトリ（`ghq-sweep -s`は`ghq-status`で異常のある
+  もののみ）。`ghq-update`はkeep-up-to-dateのリポジトリ（`--pull-all`で全リポジトリのpull、
+  `--all`で`.venv`/`node_modules`のあるリポジトリまでsync対象を拡張）。`-f/--filter`は
+  3コマンド共通。dotfilesとdev-charterは他より先に処理する
+- **ロックファイルstash**: `uv.lock`/`package-lock.json`のみdirtyなら一時的にstashして実行し、
+  実行後に復元する（復元でコンフリクトしたら失敗として扱い、stashは残す）。
+  それ以外にもdirtyなら、`ghq-pull`は`git-pull-all`がwarning付きで現在ブランチの更新を見送り、
+  `ghq-update`は依存更新を`[skip] dirty working tree`で見送り、`ghq-sweep`はリポジトリごと
+  `[skip] dirty working tree`で見送る
+- **`ghq-update`の依存更新**: pullに成功し、detached HEADでもdirtyでもなくupstreamがある
+  リポジトリだけ、`uv sync --upgrade`/`npm update && npm run build --if-present`を実行する。
+  `--pull-only`で省き、`--sync-only`（旧`--uv-sync-only`）でpullを省く（同時指定は不可）
+- **`ghq-sweep --no-pull`**: `git-sweep`へ渡す
+
+### Output and exit codes (ghq-pull / ghq-update / ghq-sweep)
+
+- スキップは`[skip]`（pullだけの場合は`[skip pull]`）、警告は`[warn]`、競合は`[conflict]`、
+  失敗は`[failed]`のタグ行で出す。`git-pull-all`と`git-sweep`は単体コマンドなので、
+  警告を`warning:`、失敗を`error:`で出す
+- 1つでも`[failed]`のリポジトリがあれば、残りのリポジトリを処理したうえで終了コード1にする。
+  スキップと警告は終了コード0
+- `ghq-update`では、pull・stash復元・`uv sync`・`npm update/build`の失敗が`[failed]`になる
+
+### ghq-hosts
+
+サブコマンドは`status` / `pull` / `sweep`（省略時）/ `update`。各サブコマンドは対応する
+`ghq-*`を実行し、続けて`ghq-status`を実行する（`--no-status`で省く。`status`とは併用不可）。
+
+| サブコマンド | 実行内容 |
+|---|---|
+| `status` | `ghq-status` |
+| `pull` | `ghq-pull` → `ghq-status` |
+| `sweep` | `ghq-sweep` → `ghq-status`（`ghq-sweep`が全ローカルブランチのpullも行う） |
+| `update` | `ghq-pull` → `ghq-update --sync-only` → `ghq-status` |
+
+`-f/--filter`は各`ghq-*`の`-f`へそのまま渡す（sshの先でも評価されるため`printf %q`で
+クォートする）。成功したステップでも`[skip` `[warn` `[conflict` `[failed`のタグ行と
+`warning:`で始まる行は表示し、結果表では`ok!`と示す。
+
+回帰テスト:
+
+- [scripts/test-git-pull-all.sh](../scripts/test-git-pull-all.sh): 現在・他ブランチのfast-forward、
+  `--fetch-only`、分岐・ローカル先行・dirty・detached HEAD・upstream未設定・gone・他worktree・
+  fetch失敗・保護ブランチの新規作成
+- [scripts/test-git-sweep.sh](../scripts/test-git-sweep.sh): マージ済み検出（fast-forward/squash）、
+  未マージ保持、dirty・他worktreeの保護、`--no-pull`、`git-pull-all`との統合
+- [scripts/test-ghq-pull-update-sweep.sh](../scripts/test-ghq-pull-update-sweep.sh): 失敗の
+  分離と終了コード、dirty、ロックファイルstash、`--fetch-only`、`ghq-update`の旧オプション廃止、
+  `ghq-sweep --no-pull`（`ghq`コマンドが必要）
+- [scripts/test-ghq-hosts.sh](../scripts/test-ghq-hosts.sh): 後述の`## ghq-hosts`節を参照
+
+いずれも使い捨てのリポジトリで検証し、ネットワークアクセスはしない。Windows版（`.ps1`）の
+同等テストは、pwsh実行環境で動作確認できるようになってから追加する。
 
 ## obsidian-project-home
 
@@ -443,9 +516,9 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
 
 ## ghq-hosts
 
-`bin/unix/ghq-hosts`は、宣言した他のMacで`ghq-pull`（または`ghq-update`）→`ghq-sweep`→
-`ghq-status`をssh経由で順に実行する（macOS専用。`scripts/check-bin-parity.sh`の例外）。
-詳細なオプションは[ghq-hosts](../bin/unix/ghq-hosts)冒頭のコメントを参照。
+`bin/unix/ghq-hosts`は、宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`を
+ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外）。サブコマンドと
+共通ルールは前節、詳細なオプションは[ghq-hosts](../bin/unix/ghq-hosts)冒頭のコメントを参照。
 
 - **対象の宣言**: dotfiles-privateの`ghq/hosts`に、実行元ごとに1行1件で書く
   （`<実行元>: <sshホスト名> ...`）。実行元は`scutil --get LocalHostName`と大文字小文字を
@@ -453,8 +526,8 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
   宣言にない実行元はエラーとする。対象は実行元ごとに非対称でよい（全ホスト相互とは限らない）。
   端末固有の追加分は`ghq/hosts.local`（`.gitignore`対象、手編集専用）に書く
 - **処理順**: ホスト間は並列に処理する（`-j N`で同時数を制限、`-j 1`で逐次）。表示と結果表は
-  実行元自身（`--no-local`で省略）→宣言順のリモートの順にまとめて出す。ステップは`pull`（`--update`で
-  `update`）→`sweep`→`status`で固定（ホスト内では逐次）し、`--no-pull`/`--no-sweep`/`--no-status`で外す。
+  実行元自身（`--no-local`で省略）→宣言順のリモートの順にまとめて出す。ステップはサブコマンドで決まり（`status` / `pull` /
+  `sweep`（既定）/ `update`）、ホスト内では逐次に実行する。`--no-status`でstatusを省く
   `-H`は宣言済みの対象だけを絞り込む（宣言にないホストはエラー）
 - **リモート実行**: `ssh -o BatchMode=yes -o ConnectTimeout=5 <host> ghq-pull`のように、
   リモートの`ghq-*`を直接呼ぶ（`ghq-hosts`は再帰しない）。非対話sshでも`~/.local/bin/dotfiles`が
@@ -466,8 +539,9 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
   全出力は`~/.cache/dots/ghq-hosts/<host>.log`に残す。最後にホスト×ステップの結果表を出す。
   `status`は既定で異常のあるリポジトリだけ、`-a`で全件
 - **スキップ・警告**: `ghq-pull`/`ghq-sweep`等はdirtyによるスキップなどを`[skip ...]`/`[warn]`/
-  `[conflict]`/`[failed]`のタグ行で出し、終了コードは0のままにする。成功したステップでも、この
-  タグ行を直前のリポジトリ見出し付きで必ず表示し、結果表では`ok!`と示す（終了コードには影響しない）
+  `[conflict]`/`[failed]`のタグ行で、`git-pull-all`/`git-sweep`は`warning:`行で出し、終了コードは
+  0のままにする。成功したステップでも、これらの行を直前のリポジトリ見出し付きで必ず表示し、
+  結果表では`ok!`と示す（終了コードには影響しない）
 - **進捗表示**: 標準エラー出力が端末のときは、ホストごとに1行（`pull:ok sweep:⠹ status:-` の形）で
   ステップの状態を更新表示する。完了後に消してから宣言順の出力と結果表を出す。
   端末でない場合や`--no-progress`では出さない

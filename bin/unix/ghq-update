@@ -8,11 +8,11 @@
 #   --all           sync 対象を「keep-up-to-date=true」から
 #                   「keep-up-to-date=true ∪ .venv/node_modules が存在する」に拡張する
 #   --pull-all      fetch + pull 対象を全リポジトリに拡張する（sync 対象には影響しない）
-#   --uv-sync-only  fetch + pull をスキップし、sync 対象への処理（uv sync --upgrade /
+#   --sync-only     fetch + pull をスキップし、sync 対象への処理（uv sync --upgrade /
 #                   npm update && npm run build --if-present）のみ実行する
 #                   （事前に ghq-pull 等で pull 済みであることが前提）
 #   --pull-only     fetch + pull のみ実行し、sync 対象への処理をスキップする
-#                   （--uv-sync-only と同時指定は不可）
+#                   （--sync-only と同時指定は不可）
 #   --no-auto-pr    uv sync --upgrade / npm update でロックファイルのみ更新された場合の
 #                   自動 PR 作成を無効化し、従来通り working tree に dirty な差分を残す
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
@@ -34,17 +34,22 @@
 #     - デフォルト: sync 対象と同じ
 #     - --pull-all: 全リポジトリに拡張する（旧 --all 相当。--all と併用すると
 #       「全リポジトリ pull + sync 対象を sync」というフル動作になる）
-#     - --uv-sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
+#     - --sync-only 指定時は pull 自体を行わず、sync 対象にのみ処理する
 #   共通:
 #     - dotfiles・dev-charter は他より先に処理する（ghq-status の基準バージョン等、
 #       他リポジトリの処理より先に最新化しておきたいため）
 #     - upstream という名前の remote があれば、fetch/pull の前に `gh repo sync` で
 #       upstream のデフォルトブランチを origin・ローカル双方へ fast-forward 反映する
 #       （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
-#     - detached HEAD・upstream ブランチ未設定の場合は pull をスキップ（fetch は実行）
+#     - pull は各リポジトリで git-pull-all を実行する（ghq-pull と同じ手順。fetch は
+#       detached HEAD でも実行し、現在のブランチ以外のローカルブランチも fast-forward 同期する）
+#     - detached HEAD・upstream ブランチ未設定の場合は、依存更新（uv/npm）をスキップする
 #     - uv.lock/package-lock.json のみ dirty な場合は一時的に stash して pull し、
-#       pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま警告を表示する）
-#     - それら以外にも dirty な変更がある場合は pull をスキップ
+#       pull 後に復元する（復元時にコンフリクトした場合は stash を残したまま失敗として扱う）
+#     - それら以外にも dirty な変更がある場合は、依存更新をスキップする
+#     - 失敗（fetch・pull・stash 復元・uv sync・npm update/build の失敗）したリポジトリは
+#       [failed] を表示し、そのリポジトリの依存更新は行わず、処理は続行して、最後に
+#       終了コード1で終了する（スキップ・警告は終了コード0）
 #   auto-pr（デフォルト有効。--no-auto-pr で無効化）:
 #     - uv sync --upgrade / npm update の結果、対応するロックファイル（uv.lock /
 #       package-lock.json）のみが dirty な場合、専用ブランチ（chore/uv-lock-update /
@@ -64,16 +69,17 @@ source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 ALL=false
 PULL_ALL=false
-UV_SYNC_ONLY=false
+SYNC_ONLY=false
 PULL_ONLY=false
 AUTO_PR=true
 FILTER=''
+FAILED=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all)          ALL=true; shift ;;
     --pull-all)     PULL_ALL=true; shift ;;
-    --uv-sync-only) UV_SYNC_ONLY=true; shift ;;
+    --sync-only) SYNC_ONLY=true; shift ;;
     --pull-only)    PULL_ONLY=true; shift ;;
     --no-auto-pr)   AUTO_PR=false; shift ;;
     -f|--filter)
@@ -84,8 +90,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$PULL_ONLY" == true ]] && [[ "$UV_SYNC_ONLY" == true ]]; then
-  echo "error: --pull-only と --uv-sync-only は同時に指定できません" >&2
+if [[ "$PULL_ONLY" == true ]] && [[ "$SYNC_ONLY" == true ]]; then
+  echo "error: --pull-only と --sync-only は同時に指定できません" >&2
   exit 1
 fi
 
@@ -112,32 +118,34 @@ while IFS= read -r f; do
   echo ""
   echo "==> $f"
 
-  base_branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || { echo "  [skip] detached HEAD"; continue; }
+  detached=false
+  base_branch="$(git -C "$f" symbolic-ref --short HEAD 2>/dev/null)" || detached=true
 
-  if [[ "$UV_SYNC_ONLY" == true ]]; then
-    pulled=true
-  else
-    _git_fork_sync_upstream "$f"
-    if ! git -C "$f" fetch origin --prune; then
-      echo "  [skip pull] fetch failed"
-      continue
-    fi
-    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip pull] no upstream"; continue; }
-    if ! _ghq_stash_lockfiles "$f"; then
-      echo "  [skip pull] dirty working tree"
-      continue
-    fi
-    pulled=true
-    git -C "$f" pull --ff-only || pulled=false
-    if ! _ghq_unstash_lockfiles "$f"; then
+  if [[ "$SYNC_ONLY" == false ]]; then
+    if ! _ghq_pull_repo "$f"; then
+      FAILED=$((FAILED + 1))
       continue
     fi
   fi
 
-  if [[ "$in_sync_target" == true ]] && [[ "$PULL_ONLY" == false ]] && [[ "$pulled" == true ]]; then
+  if [[ "$detached" == true ]]; then
+    echo "  [skip] detached HEAD"
+    continue
+  fi
+  if [[ "$SYNC_ONLY" == false ]]; then
+    if [[ "$_GHQ_PULL_DIRTY" == true ]]; then
+      echo "  [skip] dirty working tree"
+      continue
+    fi
+    git -C "$f" rev-parse "@{u}" &>/dev/null || { echo "  [skip] no upstream"; continue; }
+  fi
+
+  if [[ "$in_sync_target" == true ]] && [[ "$PULL_ONLY" == false ]]; then
     if [[ "$has_venv" == true ]]; then
-      (cd "$f" && uv sync --upgrade)
-      if [[ "$AUTO_PR" == true ]]; then
+      if ! (cd "$f" && uv sync --upgrade); then
+        echo "  [failed] uv sync --upgrade" >&2
+        FAILED=$((FAILED + 1))
+      elif [[ "$AUTO_PR" == true ]]; then
         _ghq_auto_pr_lockfile "$f" "$base_branch" uv.lock "$_GHQ_UV_LOCK_PR_BRANCH" \
           "chore: update uv.lock" \
           "uv sync --upgrade により生成された uv.lock の更新です（ghq-update の自動 PR 機能）。"
@@ -151,8 +159,10 @@ while IFS= read -r f; do
     fi
 
     if [[ "$has_node_modules" == true ]]; then
-      (cd "$f" && npm update && npm run build --if-present)
-      if [[ "$AUTO_PR" == true ]]; then
+      if ! (cd "$f" && npm update && npm run build --if-present); then
+        echo "  [failed] npm update / build" >&2
+        FAILED=$((FAILED + 1))
+      elif [[ "$AUTO_PR" == true ]]; then
         _ghq_auto_pr_lockfile "$f" "$base_branch" package-lock.json "$_GHQ_NPM_LOCK_PR_BRANCH" \
           "chore: update package-lock.json" \
           "npm update により生成された package-lock.json の更新です（ghq-update の自動 PR 機能）。"
@@ -166,3 +176,5 @@ while IFS= read -r f; do
     fi
   fi
 done < <(_ghq_ordered_list "$FILTER")
+
+[[ "$FAILED" -eq 0 ]] || exit 1
