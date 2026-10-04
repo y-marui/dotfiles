@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# ghq-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-statusを順に実行する（macOS専用）
+# mac-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-status / install-my-appsを順に実行する（macOS専用）
 #
 # 使い方:
-#   ghq-hosts [status|pull|sweep|update] [options]
+#   mac-hosts [status|pull|sweep|update|apps] [options] [-- install-my-appsへの引数]
 #
 # サブコマンド（各サブコマンドは対応する ghq-* を実行し、続けて ghq-status を実行する。省略時は sweep）:
 #   status              ghq-status のみ
@@ -10,9 +10,13 @@
 #   sweep               ghq-sweep → ghq-status（ghq-sweep は全ローカルブランチの pull も行う）
 #   update              ghq-pull → ghq-update --sync-only → ghq-status
 #                       （全リポジトリを pull したうえで、依存更新・自動 PR を行う）
+#   apps                install-my-apps のみ（ghq-status は実行しない）。リモートでは --no-gui を付ける
+#                       （終了・起動・ウィジェット編集画面を省く）。実行元自身は通常どおり GUI 付き。
+#                       -- 以降は install-my-apps にそのまま渡す（例: mac-hosts apps -- -f MyApp）。
+#                       -f/--filter とは併用できない
 #
 # オプション:
-#   --no-status         ghq-status を実行しない（status サブコマンドとは併用不可）
+#   --no-status         ghq-status を実行しない（status サブコマンドとは併用不可。apps では無視）
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
 #                       （各 ghq-* の -f にそのまま渡す）
 #   -H, --host NAME     宣言済みの対象のうち、指定したホストだけを対象にする（複数回可）
@@ -29,16 +33,17 @@
 #   - ステップはサブコマンドで決まり、ホスト内では逐次に実行する
 #   - ホスト間は並列に処理する（実行元自身を含む）。表示と結果表は宣言順
 #     （実行元自身→宣言順のリモートホスト）にまとめて出す
-#   - 対象は dotfiles-private の ghq/hosts で実行元ごとに宣言する。書式は1行1件:
+#   - 対象は dotfiles-private の hosts/hosts で実行元ごとに宣言する（旧 ghq/hosts も、
+#     hosts/hosts がないときだけ警告つきで読む）。書式は1行1件:
 #       <実行元>: <ホスト> <ホスト> ...
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
-#     右側は ssh のホスト名。# 以降はコメント。ghq/hosts.local（端末固有の追加分）も読む
-#   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（ghq-hosts は再帰しない）。
+#     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む
+#   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（mac-hosts は再帰しない）。
 #     BatchMode で接続し、ConnectTimeout は5秒とする
 #   - 接続不能・認証失敗・コマンド失敗は失敗として扱い、残りのホストの処理は続行する。
 #     接続できなかったホストの残りのステップは skip として表示する
 #   - 既定では成功したステップの出力を省略し、失敗したステップと status の出力だけを表示する。
-#     全出力は ~/.cache/dots/ghq-hosts/<host>.log に残る
+#     全出力は ~/.cache/dots/hosts/<host>.log に残る
 #   - 標準エラー出力が端末のときは、ホストごとの進捗（ステップの状態）を1行ずつ更新表示する。
 #     完了後に進捗を消し、宣言順の出力と結果表を出す
 #   - 成功したステップでも [skip ...] [warn] [conflict] [failed] のタグ行と
@@ -48,16 +53,16 @@
 #
 # 環境変数:
 #   DOTFILES_PRIVATE_DIR   dotfiles-private の場所（既定: <dotfiles>-private）
-#   GHQ_HOSTS_LOG_DIR      ログの保存先（既定: ${XDG_CACHE_HOME:-~/.cache}/dots/ghq-hosts）
-#   GHQ_HOSTS_SSH          ssh コマンド（テスト用。既定: ssh）
+#   MAC_HOSTS_LOG_DIR      ログの保存先（既定: ${XDG_CACHE_HOME:-~/.cache}/dots/hosts）
+#   MAC_HOSTS_SSH          ssh コマンド（テスト用。既定: ssh）
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 DOTFILES_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
 PRIVATE_DIR="${DOTFILES_PRIVATE_DIR:-${DOTFILES_DIR}-private}"
-SSH_CMD="${GHQ_HOSTS_SSH:-ssh}"
-LOG_DIR="${GHQ_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/ghq-hosts}"
+SSH_CMD="${MAC_HOSTS_SSH:-ssh}"
+LOG_DIR="${MAC_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/hosts}"
 
 SUBCOMMAND=sweep
 DO_STATUS=1
@@ -70,12 +75,13 @@ JOBS=0
 PROGRESS=auto
 FROM=''
 HOST_FILTER=()
+APPS_ARGS=()
 
 die() { echo "error: $*" >&2; exit 1; }
 
 if [[ $# -gt 0 ]]; then
   case "$1" in
-    status|pull|sweep|update) SUBCOMMAND="$1"; shift ;;
+    status|pull|sweep|update|apps) SUBCOMMAND="$1"; shift ;;
   esac
 fi
 
@@ -100,6 +106,7 @@ while [[ $# -gt 0 ]]; do
     --from)
       [[ $# -lt 2 ]] && die "--from requires an argument"
       FROM="$2"; shift 2 ;;
+    --) shift; APPS_ARGS=("$@"); break ;;
     -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
@@ -121,8 +128,20 @@ fi
 [[ -n "$ME" ]] || die "実行元の名前を判定できません。--from NAME で指定してください。"
 ME_LC="$(lower "$ME")"
 
-DECL_FILE="${PRIVATE_DIR}/ghq/hosts"
-[[ -f "$DECL_FILE" ]] || die "宣言ファイルがありません: ${DECL_FILE}（雛形: templates/dotfiles-private/ghq/hosts.example）"
+if [[ ${#APPS_ARGS[@]} -gt 0 && "$SUBCOMMAND" != apps ]]; then
+  die "-- 以降の引数は apps サブコマンドでだけ使えます。"
+fi
+if [[ "$SUBCOMMAND" == apps && -n "$FILTER" ]]; then
+  die "apps サブコマンドは -f/--filter と併用できません。"
+fi
+
+DECL_FILE="${PRIVATE_DIR}/hosts/hosts"
+if [[ ! -f "$DECL_FILE" && -f "${PRIVATE_DIR}/ghq/hosts" ]]; then
+  # 移行期間の暫定措置。dotfiles-private の ghq/hosts を hosts/hosts へ移したら削除する
+  echo "warning: 旧宣言ファイル ${PRIVATE_DIR}/ghq/hosts を使っています。hosts/hosts へ移してください。" >&2
+  DECL_FILE="${PRIVATE_DIR}/ghq/hosts"
+fi
+[[ -f "$DECL_FILE" ]] || die "宣言ファイルがありません: ${DECL_FILE}（雛形: templates/dotfiles-private/hosts/hosts.example）"
 
 TARGETS=()
 MATCHED=0
@@ -188,9 +207,12 @@ case "$SUBCOMMAND" in
   pull)   STEPS=(pull) ;;
   sweep)  STEPS=(sweep) ;;
   update) STEPS=(pull update) ;;
+  apps)   STEPS=(apps) ;;
 esac
 if [[ "$SUBCOMMAND" == status ]]; then
   [[ "$DO_STATUS" == 1 ]] || die "status サブコマンドは --no-status と併用できません。"
+elif [[ "$SUBCOMMAND" == apps ]]; then
+  : # apps はリポジトリ状態を変えないため status を付けない
 elif [[ "$DO_STATUS" == 1 ]]; then
   STEPS+=(status)
 fi
@@ -200,12 +222,17 @@ HOSTS=()
 for t in ${TARGETS[@]+"${TARGETS[@]}"}; do HOSTS+=("$t"); done
 [[ ${#HOSTS[@]} -gt 0 ]] || die "対象のホストがありません。"
 
-# step_command STEP -> 実行するコマンド行（シェルでそのまま評価できる形）。
-# -f の値は ssh 先のシェルでも評価されるため、printf %q でクォートして渡す。
+# step_command STEP HOST -> 実行するコマンド行（シェルでそのまま評価できる形）。
+# -f や apps の引数は ssh 先のシェルでも評価されるため、printf %q でクォートして渡す。
 step_command() {
-  local cmd f=''
+  local cmd f='' a
   [[ -n "$FILTER" ]] && f=" -f $(printf '%q' "$FILTER")"
   case "$1" in
+    apps)
+      cmd="install-my-apps"
+      # リモートはログインしているとは限らないため GUI 操作を省く
+      [[ "$2" == "local" ]] || cmd+=" --no-gui"
+      for a in ${APPS_ARGS[@]+"${APPS_ARGS[@]}"}; do cmd+=" $(printf '%q' "$a")"; done ;;
     pull)   cmd="ghq-pull${f}" ;;
     update) cmd="ghq-update --sync-only${f}" ;;
     sweep)  cmd="ghq-sweep${f}" ;;
@@ -226,7 +253,7 @@ if [[ "$DRY_RUN" == 1 ]]; then
     echo ""
     echo "==> $(host_label "$host")"
     for step in "${STEPS[@]}"; do
-      cmd="$(step_command "$step")"
+      cmd="$(step_command "$step" "$host")"
       if [[ "$host" == "local" ]]; then
         echo "  would run: ${cmd}"
       else
@@ -253,7 +280,7 @@ trap 'exit 130' INT TERM
 # run_step HOST STEP OUTFILE -> 終了コードを返す。出力は OUTFILE に入る
 run_step() {
   local host="$1" step="$2" out="$3" cmd rc=0
-  cmd="$(step_command "$step")"
+  cmd="$(step_command "$step" "$host")"
   if [[ "$host" == "local" ]]; then
     bash -c "$cmd" > "$out" 2>&1 || rc=$?
   else
