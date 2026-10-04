@@ -91,5 +91,5 @@ done < <(
 echo ""
 printf '完了: 成功 %d / スキップ %d / 失敗 %d\n' "$ok" "$skipped" "$failed"
 
-# 失敗したリポジトリがあれば呼び出し元（mac-hosts 等）が検出できるよう非0で終了する
+# 失敗したリポジトリがあれば呼び出し元（my-hosts 等）が検出できるよう非0で終了する
 [[ "$failed" -eq 0 ]] || exit 1

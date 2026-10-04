@@ -1,6 +1,6 @@
-#compdef mac-hosts
+#compdef my-hosts
 
-_mac-hosts() {
+_my-hosts() {
   _arguments \
     '1:subcommand:(status pull sweep update apps)' \
     '*'{-H,--host}'[宣言済みの対象のうち指定したホストだけを対象にする]:host:' \
@@ -14,4 +14,4 @@ _mac-hosts() {
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }
 
-_mac-hosts "$@"
+_my-hosts "$@"

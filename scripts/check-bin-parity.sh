@@ -15,7 +15,7 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 EXCEPTIONS=(
   "install-my-apps:macOS専用ツール（.appのDMGインストール）"
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
-  "mac-hosts:macOS間の同期専用（ssh経由でghq-pull・install-my-apps等を実行する。Windowsは対象外）"
+  "my-hosts:macOS間の同期専用（ssh経由でghq-pull・install-my-apps等を実行する。Windowsは対象外）"
   "claude-perms:zsh専用（shell/zshrcのcdフックと連携）。Windows対応が必要になれば別途追加する"
 )
 

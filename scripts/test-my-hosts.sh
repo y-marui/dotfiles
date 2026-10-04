@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# bin/unix/mac-hosts の回帰テスト。ssh と ghq-* は偽のコマンドに差し替えるため、
+# bin/unix/my-hosts の回帰テスト。ssh と ghq-* は偽のコマンドに差し替えるため、
 # 実際のホスト・リポジトリには一切影響しない。
 set -euo pipefail
 
-HOSTS_CMD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/unix/mac-hosts"
+HOSTS_CMD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/unix/my-hosts"
 WORK="$(mktemp -d)"
 FAILURES=0
 trap 'rm -rf "$WORK"' EXIT
 
 mkdir -p "$WORK/bin" "$WORK/private/hosts"
 export DOTFILES_PRIVATE_DIR="$WORK/private"
-export MAC_HOSTS_LOG_DIR="$WORK/logs"
+export MY_HOSTS_LOG_DIR="$WORK/logs"
 export CALLS="$WORK/calls"
 
 for c in ghq-pull ghq-update ghq-sweep ghq-status install-my-apps; do
@@ -38,7 +38,7 @@ echo "$host $*" >> "$CALLS"
 echo "remote-out $host $*"
 STUB
 chmod +x "$WORK/ssh"
-export MAC_HOSTS_SSH="$WORK/ssh"
+export MY_HOSTS_SSH="$WORK/ssh"
 export PATH="$WORK/bin:$PATH"
 
 cat > "$WORK/private/hosts/hosts" <<'DECL'
@@ -83,7 +83,7 @@ check "call order" [ "$CALLS_OUT" = "$expected" ]
 check "summary shown" contains "$OUT" "== summary =="
 check "success output hidden" not_contains "$OUT" "remote-out beta ghq-sweep"
 check "status output shown" contains "$OUT" "remote-out beta ghq-status"
-check "log written" test -f "$MAC_HOSTS_LOG_DIR/beta.log"
+check "log written" test -f "$MY_HOSTS_LOG_DIR/beta.log"
 
 section "parallel hosts"
 start=$SECONDS

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# mac-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-status / install-my-appsを順に実行する（macOS専用）
+# my-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-status / install-my-appsを順に実行する（macOS専用）
 #
 # 使い方:
-#   mac-hosts [status|pull|sweep|update|apps] [options] [-- install-my-appsへの引数]
+#   my-hosts [status|pull|sweep|update|apps] [options] [-- install-my-appsへの引数]
 #
 # サブコマンド（各サブコマンドは対応する ghq-* を実行し、続けて ghq-status を実行する。省略時は sweep）:
 #   status              ghq-status のみ
@@ -12,7 +12,7 @@
 #                       （全リポジトリを pull したうえで、依存更新・自動 PR を行う）
 #   apps                install-my-apps のみ（ghq-status は実行しない）。リモートでは --no-gui を付ける
 #                       （終了・起動・ウィジェット編集画面を省く）。実行元自身は通常どおり GUI 付き。
-#                       -- 以降は install-my-apps にそのまま渡す（例: mac-hosts apps -- -f MyApp）。
+#                       -- 以降は install-my-apps にそのまま渡す（例: my-hosts apps -- -f MyApp）。
 #                       -f/--filter とは併用できない
 #
 # オプション:
@@ -38,7 +38,7 @@
 #       <実行元>: <ホスト> <ホスト> ...
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
 #     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む
-#   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（mac-hosts は再帰しない）。
+#   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（my-hosts は再帰しない）。
 #     BatchMode で接続し、ConnectTimeout は5秒とする
 #   - 接続不能・認証失敗・コマンド失敗は失敗として扱い、残りのホストの処理は続行する。
 #     接続できなかったホストの残りのステップは skip として表示する
@@ -53,16 +53,16 @@
 #
 # 環境変数:
 #   DOTFILES_PRIVATE_DIR   dotfiles-private の場所（既定: <dotfiles>-private）
-#   MAC_HOSTS_LOG_DIR      ログの保存先（既定: ${XDG_CACHE_HOME:-~/.cache}/dots/hosts）
-#   MAC_HOSTS_SSH          ssh コマンド（テスト用。既定: ssh）
+#   MY_HOSTS_LOG_DIR      ログの保存先（既定: ${XDG_CACHE_HOME:-~/.cache}/dots/hosts）
+#   MY_HOSTS_SSH          ssh コマンド（テスト用。既定: ssh）
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 DOTFILES_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
 PRIVATE_DIR="${DOTFILES_PRIVATE_DIR:-${DOTFILES_DIR}-private}"
-SSH_CMD="${MAC_HOSTS_SSH:-ssh}"
-LOG_DIR="${MAC_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/hosts}"
+SSH_CMD="${MY_HOSTS_SSH:-ssh}"
+LOG_DIR="${MY_HOSTS_LOG_DIR:-${XDG_CACHE_HOME:-${HOME}/.cache}/dots/hosts}"
 
 SUBCOMMAND=sweep
 DO_STATUS=1
