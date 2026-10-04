@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# bin/unix/ghq-hosts の回帰テスト。ssh と ghq-* は偽のコマンドに差し替えるため、
+# bin/unix/my-hosts の回帰テスト。ssh と ghq-* は偽のコマンドに差し替えるため、
 # 実際のホスト・リポジトリには一切影響しない。
 set -euo pipefail
 
-HOSTS_CMD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/unix/ghq-hosts"
+HOSTS_CMD="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/bin/unix/my-hosts"
 WORK="$(mktemp -d)"
 FAILURES=0
 trap 'rm -rf "$WORK"' EXIT
 
-mkdir -p "$WORK/bin" "$WORK/private/ghq"
+mkdir -p "$WORK/bin" "$WORK/private/hosts"
 export DOTFILES_PRIVATE_DIR="$WORK/private"
-export GHQ_HOSTS_LOG_DIR="$WORK/logs"
+export MY_HOSTS_LOG_DIR="$WORK/logs"
 export CALLS="$WORK/calls"
 
-for c in ghq-pull ghq-update ghq-sweep ghq-status; do
+for c in ghq-pull ghq-update ghq-sweep ghq-status install-my-apps; do
   cat > "$WORK/bin/$c" <<STUB
 #!/usr/bin/env bash
 echo "local $c \$*" >> "\$CALLS"
@@ -38,10 +38,10 @@ echo "$host $*" >> "$CALLS"
 echo "remote-out $host $*"
 STUB
 chmod +x "$WORK/ssh"
-export GHQ_HOSTS_SSH="$WORK/ssh"
+export MY_HOSTS_SSH="$WORK/ssh"
 export PATH="$WORK/bin:$PATH"
 
-cat > "$WORK/private/ghq/hosts" <<'DECL'
+cat > "$WORK/private/hosts/hosts" <<'DECL'
 # コメント
 Alpha:  beta gamma   # 行末コメント
 beta:   gamma
@@ -83,7 +83,7 @@ check "call order" [ "$CALLS_OUT" = "$expected" ]
 check "summary shown" contains "$OUT" "== summary =="
 check "success output hidden" not_contains "$OUT" "remote-out beta ghq-sweep"
 check "status output shown" contains "$OUT" "remote-out beta ghq-status"
-check "log written" test -f "$GHQ_HOSTS_LOG_DIR/beta.log"
+check "log written" test -f "$MY_HOSTS_LOG_DIR/beta.log"
 
 section "parallel hosts"
 start=$SECONDS
@@ -224,23 +224,50 @@ FAIL_LOCAL=ghq-sweep run --from alpha -H beta
 check "local failure exits 1" rc_is 1
 check "remote still ran after local failure" contains "$CALLS_OUT" "beta ghq-status"
 
+section "apps"
+run apps --from alpha -H beta -j 1
+check "apps runs install-my-apps --no-gui remotely, no status" [ "$CALLS_OUT" = "local install-my-apps
+beta install-my-apps --no-gui" ]
+check "apps summary has no status column" not_contains "$OUT" "status"
+run apps --from alpha -H beta -j 1 -- -f "My App"
+check "apps args forwarded and quoted" [ "$CALLS_OUT" = "local install-my-apps -f My App
+beta install-my-apps --no-gui -f My\\ App" ]
+run apps --from alpha --no-local -H beta --dry-run
+check "apps dry-run" contains "$OUT" "beta install-my-apps --no-gui"
+run apps --from alpha -f x
+check "apps rejects --filter" rc_is 1
+run pull --from alpha -- -f
+check "-- rejected outside apps" rc_is 1
+run apps --from alpha --no-status --no-local -H beta
+check "apps ignores --no-status" rc_is 0
+
 section "hosts.local and errors"
-printf 'alpha: extra\n' > "$WORK/private/ghq/hosts.local"
+printf 'alpha: extra\n' > "$WORK/private/hosts/hosts.local"
 run --from alpha --dry-run --no-local
 check "hosts.local additive" contains "$OUT" "extra"
-rm "$WORK/private/ghq/hosts.local"
-printf 'alpha: -oProxyCommand=x\n' > "$WORK/private/ghq/hosts.local"
+rm "$WORK/private/hosts/hosts.local"
+printf 'alpha: -oProxyCommand=x\n' > "$WORK/private/hosts/hosts.local"
 run --from alpha --dry-run
 check "option-like host rejected" rc_is 1
-rm "$WORK/private/ghq/hosts.local"
-printf 'alpha: Local\n' > "$WORK/private/ghq/hosts.local"
+rm "$WORK/private/hosts/hosts.local"
+printf 'alpha: Local\n' > "$WORK/private/hosts/hosts.local"
 run --from alpha --dry-run
 check "reserved host name 'local' rejected" rc_is 1
-rm "$WORK/private/ghq/hosts.local"
-mv "$WORK/private/ghq/hosts" "$WORK/private/ghq/hosts.bak"
+rm "$WORK/private/hosts/hosts.local"
+mv "$WORK/private/hosts/hosts" "$WORK/private/hosts/hosts.bak"
 run --from alpha --dry-run
 check "missing declaration is an error" rc_is 1
-mv "$WORK/private/ghq/hosts.bak" "$WORK/private/ghq/hosts"
+mv "$WORK/private/hosts/hosts.bak" "$WORK/private/hosts/hosts"
+
+mkdir -p "$WORK/private/ghq"
+cp "$WORK/private/hosts/hosts" "$WORK/private/ghq/hosts"
+mv "$WORK/private/hosts/hosts" "$WORK/private/hosts/hosts.bak"
+run --from alpha --dry-run --no-local
+check "legacy ghq/hosts still read" rc_is 0
+check "legacy ghq/hosts warns" contains "$OUT" "旧宣言ファイル"
+mv "$WORK/private/hosts/hosts.bak" "$WORK/private/hosts/hosts"
+run --from alpha --dry-run --no-local
+check "new hosts/hosts wins silently" not_contains "$OUT" "旧宣言ファイル"
 
 echo
 if [[ "$FAILURES" -ne 0 ]]; then echo "$FAILURES 件失敗" >&2; exit 1; fi

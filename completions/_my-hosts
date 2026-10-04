@@ -1,10 +1,8 @@
-#compdef ghq-hosts
+#compdef my-hosts
 
-_ghq-hosts() {
+_my-hosts() {
   _arguments \
-    '1:subcommand:(status pull sweep)' \
-    '--only[サブコマンドのステップだけを実行する]' \
-    '--update[pull の代わりに ghq-update を実行する]' \
+    '1:subcommand:(status pull sweep update apps)' \
     '*'{-H,--host}'[宣言済みの対象のうち指定したホストだけを対象にする]:host:' \
     '--from[実行元の名前を明示する]:name:' \
     '--no-status[ghq-status を実行しない]' \
@@ -16,4 +14,4 @@ _ghq-hosts() {
     '(-h --help)'{-h,--help}'[ヘルプを表示]'
 }
 
-_ghq-hosts "$@"
+_my-hosts "$@"

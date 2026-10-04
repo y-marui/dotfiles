@@ -1,7 +1,7 @@
-# ghq-hosts が操作するホストの宣言。実行元ごとに1行1件で書く。# 以降はコメント。
+# my-hosts が操作するホストの宣言。実行元ごとに1行1件で書く。# 以降はコメント。
 #   <実行元>: <ssh のホスト名> <ssh のホスト名> ...
 # 左側は実行元の名前（scutil --get LocalHostName と大文字小文字を区別せず照合する）。
-# この端末だけの追加分は ghq/hosts.local（コミット対象外）へ書く。
+# この端末だけの追加分は hosts/hosts.local（コミット対象外）へ書く。
 #
 # example-host-a: example-host-b example-host-c
 # example-host-b: example-host-c

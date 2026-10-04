@@ -233,11 +233,11 @@ Copilot は user scope MCP のみを管理し、対応する対象種別とオ�
   リポジトリパスを提示して手動pushを促す
 - upstream未設定のリポジトリはスキップする
 
-## git-pull-all / git-sweep / ghq-pull / ghq-update / ghq-sweep / ghq-hosts
+## git-pull-all / git-sweep / ghq-pull / ghq-update / ghq-sweep / my-hosts
 
 ブランチ同期（pull）とブランチ整理（sweep）、それらを全リポジトリへ広げる`ghq-*`、
-複数Macへ広げる`ghq-hosts`の責務分担と共通ルールを定める。各コマンドのオプションは
-スクリプト冒頭のコメントを正本とする（`bin/windows/*.ps1`も同一仕様。`ghq-hosts`だけは
+複数Macへ広げる`my-hosts`の責務分担と共通ルールを定める。各コマンドのオプションは
+スクリプト冒頭のコメントを正本とする（`bin/windows/*.ps1`も同一仕様。`my-hosts`だけは
 macOS専用）。
 
 ### Responsibilities
@@ -249,7 +249,7 @@ macOS専用）。
 | `ghq-pull` | 全リポジトリに`git-pull-all`を実行する（ロックファイルstash付き） |
 | `ghq-update` | keep-up-to-dateのリポジトリを`git-pull-all`で更新し、依存更新（uv/npm）と自動PRを行う |
 | `ghq-sweep` | 全リポジトリに`git-sweep --all`を実行する |
-| `ghq-hosts` | 上記を宣言した他のMacでssh経由に実行する |
+| `my-hosts` | 上記と`install-my-apps`を宣言した他のMacでssh経由に実行する |
 
 pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git-sweep`はそれを呼ぶ。
 ブランチ方針（main/protectedの解決）とworktree判定は`_git-branch-lib.sh`/`.ps1`を共有する。
@@ -316,9 +316,9 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
   スキップと警告は終了コード0
 - `ghq-update`では、pull・stash復元・`uv sync`・`npm update/build`の失敗が`[failed]`になる
 
-### ghq-hosts
+### my-hosts
 
-サブコマンドは`status` / `pull` / `sweep`（省略時）/ `update`。各サブコマンドは対応する
+サブコマンドは`status` / `pull` / `sweep`（省略時）/ `update` / `apps`。`apps`以外は対応する
 `ghq-*`を実行し、続けて`ghq-status`を実行する（`--no-status`で省く。`status`とは併用不可）。
 
 | サブコマンド | 実行内容 |
@@ -327,6 +327,7 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 | `pull` | `ghq-pull` → `ghq-status` |
 | `sweep` | `ghq-sweep` → `ghq-status`（`ghq-sweep`が全ローカルブランチのpullも行う） |
 | `update` | `ghq-pull` → `ghq-update --sync-only` → `ghq-status` |
+| `apps` | `install-my-apps`のみ（`ghq-status`は実行しない。リモートは`--no-gui`付き。`--`以降は`install-my-apps`へ転送。`-f`とは併用不可） |
 
 `-f/--filter`は各`ghq-*`の`-f`へそのまま渡す（sshの先でも評価されるため`printf %q`で
 クォートする）。成功したステップでも`[skip` `[warn` `[conflict` `[failed`のタグ行と
@@ -342,7 +343,7 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 - [scripts/test-ghq-pull-update-sweep.sh](../scripts/test-ghq-pull-update-sweep.sh): 失敗の
   分離と終了コード、dirty、ロックファイルstash、`--fetch-only`、`ghq-update`の旧オプション廃止、
   `ghq-sweep --no-pull`（`ghq`コマンドが必要）
-- [scripts/test-ghq-hosts.sh](../scripts/test-ghq-hosts.sh): 後述の`## ghq-hosts`節を参照
+- [scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh): 後述の`## my-hosts`節を参照
 
 いずれも使い捨てのリポジトリで検証し、ネットワークアクセスはしない。Windows版（`.ps1`）の
 同等テストは、pwsh実行環境で動作確認できるようになってから追加する。
@@ -514,29 +515,30 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
 上書きできる。回帰テストは[scripts/test-ghq-keep-up-to-date.sh](../scripts/test-ghq-keep-up-to-date.sh)
 （Unix版のみ）。
 
-## ghq-hosts
+## my-hosts
 
-`bin/unix/ghq-hosts`は、宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`を
+`bin/unix/my-hosts`は、宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`/`ghq-status`/`install-my-apps`を
 ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外）。サブコマンドと
-共通ルールは前節、詳細なオプションは[ghq-hosts](../bin/unix/ghq-hosts)冒頭のコメントを参照。
+共通ルールは前節、詳細なオプションは[my-hosts](../bin/unix/my-hosts)冒頭のコメントを参照。
 
-- **対象の宣言**: dotfiles-privateの`ghq/hosts`に、実行元ごとに1行1件で書く
+- **対象の宣言**: dotfiles-privateの`hosts/hosts`に、実行元ごとに1行1件で書く
   （`<実行元>: <sshホスト名> ...`）。実行元は`scutil --get LocalHostName`と大文字小文字を
   区別せず照合し、一致しなければ`--from NAME`で指定する。どちらでも決まらない、または
   宣言にない実行元はエラーとする。対象は実行元ごとに非対称でよい（全ホスト相互とは限らない）。
-  端末固有の追加分は`ghq/hosts.local`（`.gitignore`対象、手編集専用）に書く
+  端末固有の追加分は`hosts/hosts.local`（`.gitignore`対象、手編集専用）に書く。
+  `hosts/hosts`がなく旧`ghq/hosts`だけがあるときは、警告つきで旧ファイル（と`.local`）を読む（移行期間の暫定措置）
 - **処理順**: ホスト間は並列に処理する（`-j N`で同時数を制限、`-j 1`で逐次）。表示と結果表は
   実行元自身（`--no-local`で省略）→宣言順のリモートの順にまとめて出す。ステップはサブコマンドで決まり（`status` / `pull` /
   `sweep`（既定）/ `update`）、ホスト内では逐次に実行する。`--no-status`でstatusを省く
   `-H`は宣言済みの対象だけを絞り込む（宣言にないホストはエラー）
 - **リモート実行**: `ssh -o BatchMode=yes -o ConnectTimeout=5 <host> ghq-pull`のように、
-  リモートの`ghq-*`を直接呼ぶ（`ghq-hosts`は再帰しない）。非対話sshでも`~/.local/bin/dotfiles`が
+  リモートの`ghq-*`を直接呼ぶ（`my-hosts`は再帰しない）。非対話sshでも`~/.local/bin/dotfiles`が
   PATHに入っていることを前提とする
 - **失敗の扱い**: 接続不能・認証失敗（鍵ファイルが無い場合を含む）・コマンド失敗はすべて失敗とし、
   残りのホストは続行する。接続できなかったホストの残りのステップは`skip`と表示する。
   終了コードは失敗が1つでもあれば1
 - **出力**: 既定は失敗したステップと`status`の出力だけを表示し、`-v`で成功したステップの出力も表示する。
-  全出力は`~/.cache/dots/ghq-hosts/<host>.log`に残す。最後にホスト×ステップの結果表を出す。
+  全出力は`~/.cache/dots/hosts/<host>.log`に残す。最後にホスト×ステップの結果表を出す。
   `status`は既定で異常のあるリポジトリだけ、`-a`で全件
 - **スキップ・警告**: `ghq-pull`/`ghq-sweep`等はdirtyによるスキップなどを`[skip ...]`/`[warn]`/
   `[conflict]`/`[failed]`のタグ行で、`git-pull-all`/`git-sweep`は`warning:`行で出し、終了コードは
@@ -545,9 +547,13 @@ ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外�
 - **進捗表示**: 標準エラー出力が端末のときは、ホストごとに1行（`pull:ok sweep:⠹ status:-` の形）で
   ステップの状態を更新表示する。完了後に消してから宣言順の出力と結果表を出す。
   端末でない場合や`--no-progress`では出さない
+- **`apps`**: ログインしているとは限らないリモートでは`install-my-apps --no-gui`を実行する
+  （アプリの終了・ウィジェットキャッシュのクリア・起動・ウィジェット編集画面を省く。ウィジェット拡張は
+  そのMacで次にアプリを起動したときに登録される）。実行元自身は通常どおりGUI付き。
+  `--`以降の引数は各ホストの`install-my-apps`へ`printf %q`でクォートして転送する
 - **`--dry-run`**: 実行内容だけを表示し、sshもコマンドも実行しない
 
-回帰テストは[scripts/test-ghq-hosts.sh](../scripts/test-ghq-hosts.sh)（sshと`ghq-*`は偽のコマンドに
+回帰テストは[scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh)（sshと`ghq-*`は偽のコマンドに
 差し替える）。Windows版は作らない。
 
 ## ghq-status

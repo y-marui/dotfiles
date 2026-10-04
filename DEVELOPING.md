@@ -43,11 +43,11 @@ scripts/test-ghq-keep-up-to-date.sh
 scripts/test-run-quiet-hook.sh
 ```
 
-`bin/unix/ghq-hosts` を変更した場合は、偽の `ssh` と `ghq-*` で回帰テストを実行する
+`bin/unix/my-hosts` を変更した場合は、偽の `ssh`・`ghq-*`・`install-my-apps` で回帰テストを実行する
 （実環境のホストには接続しない）:
 
 ```bash
-scripts/test-ghq-hosts.sh
+scripts/test-my-hosts.sh
 ```
 
 `bin/unix/dots`・`bin/unix/_dots-verbs.sh` や `npm/`・`pipx/` の動詞スクリプトを変更した場合は、

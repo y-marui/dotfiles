@@ -76,6 +76,15 @@ if whence -p brew &>/dev/null; then
 fi
 fpath+="${HOME}/.zsh_completions"
 
+# Prezto は補完キャッシュ（zcompdump）を20時間使い回し、-C で関数の増減を確認しない。
+# 補完ファイルを追加・削除・改名するとディレクトリの更新時刻が変わるため、
+# キャッシュより新しければ消して再生成させる。
+_zcompdump="${XDG_CACHE_HOME:-$HOME/.cache}/prezto/zcompdump"
+if [[ -e "$_zcompdump" && "${HOME}/.zsh_completions/" -nt "$_zcompdump" ]]; then
+  command rm -f "$_zcompdump" "${_zcompdump}.zwc"
+fi
+unset _zcompdump
+
 # --------------------------------------------------------
 # 4. zprezto
 # --------------------------------------------------------
