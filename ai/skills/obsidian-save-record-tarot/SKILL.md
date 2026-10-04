@@ -30,12 +30,13 @@ ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作
 
 ## Store the reading
 
-保存先は `${HOME}/src/github.com/y-marui/obsidian-vault/private/records/conversations/<YYYY>/` とし、画像は `private/assets/records/conversations/<record-id>/` に置く。
+保存先は `${HOME}/src/github.com/y-marui/obsidian-vault/private/records/conversations/<YYYY>/` とし、画像はノートと同じ階層の `<ノート名>-img/`（`private/records/conversations/<YYYY>/<ノート名>-img/`）に置く。
 
 - ノート名は `YYYY-MM-DD-tarot-<topic>.md` とする。`<topic>` は占いの主題を表す短い英小文字の
   kebab-case にする。
-- 画像は上記の専用assetsフォルダに置く。たとえば
-  `private/assets/records/conversations/2026-09-28-tarot-partner-search/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
+- 画像は上記の`-img/`フォルダに置く。たとえば
+  `private/records/conversations/2026/2026-09-28-tarot-partner-search-img/spread-01.jpg` とする。元の内部IDやカード名をファイル名にしない。
+  ノートからは相対リンク（`![代替テキスト](2026-09-28-tarot-partner-search-img/spread-01.jpg)`）で埋め込む。
 - 画像は内容を加工せず、カード名と正逆位置を含む代替テキスト付きの通常の Markdown 画像として埋め込む。
   外部 URL は埋め込まない。
 - 同日に同テーマのログがある場合は、既存内容を確認し、同じリーディングなら統合、独立しているなら
