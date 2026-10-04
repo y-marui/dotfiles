@@ -103,7 +103,12 @@ if ($LASTEXITCODE -ne 0) {
 $pullFailed = $false
 if ($NO_PULL) {
     Sync-GitForkUpstream (Get-Location).Path
+    $global:LASTEXITCODE = $null
     & git fetch --all --prune --quiet
+    if ($LASTEXITCODE -ne 0) {
+        Write-Stderr "error: git fetch failed"
+        exit 1
+    }
 } else {
     $global:LASTEXITCODE = $null
     & "$PSScriptRoot\git-pull-all.ps1" $MAIN

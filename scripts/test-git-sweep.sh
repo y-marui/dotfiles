@@ -223,7 +223,7 @@ done
 )
 git checkout -q feature-pull-div
 echo "local-only" >> feature-pull-div.txt
-run-quiet git commit -q -am "feat: local-only commit on feature-pull-div"
+git commit -q -am "feat: local-only commit on feature-pull-div"
 git checkout -q feature-pull-cur
 before_other=$(git rev-parse feature-pull-other)
 output=$("$SWEEP" --no-pull 2>&1)

@@ -110,7 +110,8 @@ _sync_other_protected() {
       fi
       _fast_forward_branch "$b" "origin/${b}" protected
     else
-      if git fetch --no-prune origin "${b}:${b}" --quiet 2>/dev/null; then
+      if git rev-parse --verify -q "origin/${b}" >/dev/null 2>&1 &&
+        git branch --track "$b" "origin/${b}" >/dev/null 2>&1; then
         echo "Created local branch $b (tracking origin/$b)."
         if [[ "$b" == "$MAIN" ]]; then
           if [[ "$DIRTY" == true ]]; then

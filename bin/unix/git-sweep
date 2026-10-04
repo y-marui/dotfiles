@@ -87,7 +87,10 @@ fi
 PULL_FAILED=0
 if [[ "$NO_PULL" == true ]]; then
   _git_fork_sync_upstream "$(pwd)"
-  git fetch --all --prune --quiet
+  if ! git fetch --all --prune --quiet; then
+    echo "error: git fetch failed" >&2
+    exit 1
+  fi
 else
   "${SCRIPT_DIR}/git-pull-all" "$MAIN" || PULL_FAILED=1
 fi

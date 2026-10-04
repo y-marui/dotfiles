@@ -48,7 +48,7 @@ setup_git
 git remote add origin ../origin.git
 echo hello > README.md
 git add README.md
-run-quiet git commit -q -m "chore: init"
+git commit -q -m "chore: init"
 git branch -M main
 git push -q -u origin main
 git clone -q ../origin.git ../other
@@ -94,7 +94,7 @@ check "next normal run catches up" same feat-b origin/feat-b
 section "diverged other branch warns but exits 0"
 git checkout -q feat-div
 echo local-only >> feat-div.txt
-run-quiet git commit -q -am "feat: local-only on feat-div"
+git commit -q -am "feat: local-only on feat-div"
 remote_commit feat-div
 git checkout -q feat-a
 run
@@ -106,7 +106,7 @@ section "local-ahead branch is silent"
 git checkout -q -B feat-ahead main
 git push -q -u origin feat-ahead
 echo ahead >> README.md
-run-quiet git commit -q -am "feat: ahead only"
+git commit -q -am "feat: ahead only"
 git checkout -q feat-a
 run
 check "no warning for ahead branch" lacks "$OUT" "feat-ahead"
@@ -176,6 +176,10 @@ git checkout -q feat-a
 run
 check "develop created" git show-ref --verify --quiet refs/heads/develop
 check "reports creation" contains "$OUT" "Created local branch develop"
+check "new branch tracks origin/develop" [ "$(git rev-parse --abbrev-ref "develop@{upstream}")" = "origin/develop" ]
+(cd ../other && git fetch -q origin && git checkout -q -B develop origin/develop && echo more >> develop.txt && git add develop.txt && git commit -q -m "feat: develop update" && git push -q origin develop)
+run
+check "created branch is fast-forwarded on the next run" same develop origin/develop
 
 echo
 if [[ "$FAILURES" -eq 0 ]]; then

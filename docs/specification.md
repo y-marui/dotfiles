@@ -303,7 +303,7 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
   `ghq-update`は依存更新を`[skip] dirty working tree`で見送り、`ghq-sweep`はリポジトリごと
   `[skip] dirty working tree`で見送る
 - **`ghq-update`の依存更新**: pullに成功し、detached HEADでもdirtyでもなくupstreamがある
-  リポジトリだけ、`uv sync --upgrade`/`npm update && run-quiet npm run build --if-present`を実行する。
+  リポジトリだけ、`uv sync --upgrade`/`npm update && npm run build --if-present`を実行する。
   `--pull-only`で省き、`--sync-only`（旧`--uv-sync-only`）でpullを省く（同時指定は不可）
 - **`ghq-sweep --no-pull`**: `git-sweep`へ渡す
 

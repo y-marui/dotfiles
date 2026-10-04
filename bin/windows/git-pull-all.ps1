@@ -169,8 +169,14 @@ function Sync-OtherProtected([string]$Current) {
             Sync-BranchFastForward $b "origin/${b}" $true
         } else {
             $global:LASTEXITCODE = $null
-            & git fetch --no-prune origin "${b}:${b}" --quiet *> $null
-            if ($LASTEXITCODE -eq 0) {
+            & git rev-parse --verify -q "origin/${b}" *> $null
+            $created = ($LASTEXITCODE -eq 0)
+            if ($created) {
+                $global:LASTEXITCODE = $null
+                & git branch --track $b "origin/${b}" *> $null
+                $created = ($LASTEXITCODE -eq 0)
+            }
+            if ($created) {
                 Write-Host "Created local branch $b (tracking origin/$b)."
                 if ($b -eq $MAIN) {
                     if ($script:Dirty) {
