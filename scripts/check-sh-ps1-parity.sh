@@ -79,6 +79,7 @@ EXCEPTIONS=(
   "scripts/test-ghq-hosts.sh:macOS専用（bin/unix/ghq-hostsはWindows版を作らない）"
   "scripts/test-ghq-keep-up-to-date.sh:TODO: ghq/keep-up-to-date.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/run_quiet_hook.sh:Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
+  "scripts/test-run-quiet-hook.sh:run_quiet_hook.shの回帰テスト。フック本体と同じくbash経由で全OS共通実行"
   "ai/claude/hooks/status.sh:Claude Codeのstatuslineはbash経由で実行される前提のためOS問わず動作"
   "ai/claude/mcp/apply.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"
   "ai/claude/mcp/diff.sh:TODO: dots.ps1がclaudeサブコマンド未実装のため未移植"

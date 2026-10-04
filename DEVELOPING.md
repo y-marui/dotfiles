@@ -36,6 +36,13 @@ scripts/test-ghq-pull-update-sweep.sh
 scripts/test-ghq-keep-up-to-date.sh
 ```
 
+`scripts/run_quiet_hook.sh`（Claude Code の PreToolUse フック）を変更した場合は、書き換えの有無と
+ヒアドキュメント本文が書き換えられないことを検証する（`jq` が必要）:
+
+```bash
+scripts/test-run-quiet-hook.sh
+```
+
 `bin/unix/ghq-hosts` を変更した場合は、偽の `ssh` と `ghq-*` で回帰テストを実行する
 （実環境のホストには接続しない）:
 
