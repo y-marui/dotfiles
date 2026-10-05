@@ -96,6 +96,10 @@ zshenv → zprofile → zshrc → zlogin
 | `shell/zshrc` | エイリアス・関数・補完・ツール初期化 | インタラクティブ専用 |
 | `shell/zlogin` | ログイン後処理（zcompdump コンパイル等） | zprezto デフォルト踏襲 |
 
+**補完キャッシュ（zcompdump）**: Prezto は20時間キャッシュを使い回し、`-C`で関数の増減を確認しない。
+`completions/`へ補完ファイルを追加・削除・改名しても反映されないため、`shell/zshrc`が
+`~/.zsh_completions`の更新時刻とキャッシュを比べ、古ければ削除して再生成させる。
+
 **`shell/profile` に zsh 固有構文（`[[` 等）を書かない**のは、
 bash から `source ~/.profile` した際に構文エラーになるため。
 

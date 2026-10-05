@@ -102,7 +102,16 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成は使わない
 - WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`にし、専用設定
   `terminal/zellij/windows/config.kdl`でも`default_shell "pwsh.exe"`を明示する
-- Zellijは macOS/Raspberry Pi で`0.43.1`、ネイティブWindowsで`0.44.3`に固定する
+- Zellijは macOS/Raspberry Pi で`0.45.1`、ネイティブWindowsで`0.44.3`に固定する
+- macOSのiTerm2では、0.44.xでアイドル中の全画面再描画がCSI 2026（同期出力）で囲まれず点滅した
+  （#31、0.45.1で解消）。固定版を更新するときは次を確認する:
+  - iTerm2の通常シェルは常にZellij内になる（`zellij attach -c ... && exit`のため、デタッチでシェルが
+    終了し再attachされる）。`NO_ZELLIJ=1`はネスト起動を止めないので、外側のZellijが描画して検証にならない。
+    シェルを経由せず`osascript`で`create window with default profile command "env NO_ZELLIJ=1 script -q <log> <zellij> ..."`
+    のように直接起動する
+  - `script`のログで`ESC[?2026h`/`ESC[?2026l`が対応して出ること、出力の大半がその内側にあること、
+    本番の`config.kdl`で数分アイドルにして点滅・プロンプト断片の重複・意図しない改行がないことを見る
+  - 新しいバージョンは旧バージョンと別のセッション領域を使う（旧セッションには新クライアントから接続できない）
 - `ssh` ラッパー（zsh/bash/pwsh共通）は Zellij 内で新タブ（既定・`--new`）、`--same` で縦分割ペインに接続し、
   接続先では auto-attach する。`--no-zellij` は `NO_ZELLIJ=1` を渡して無効化する
 

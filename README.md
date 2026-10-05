@@ -97,7 +97,7 @@ commitする。これら以外のファイルが1つでも変更に含まれる�
 混在する場合はpushせず、該当ファイルを提示して手動pushを促す。
 
 ZellijはOS別に互換性を確認したバージョンを固定する。macOS/Raspberry Piは
-`scripts/setup-zellij.sh`で`0.43.1`を、Windowsは`scripts/setup-zellij.ps1`で
+`scripts/setup-zellij.sh`で`0.45.1`を、Windowsは`scripts/setup-zellij.ps1`で
 ネイティブWindows対応の`0.44.3`をユーザーローカルへインストールする。
 
 ### Custom Commands (`~/.local/bin/`)

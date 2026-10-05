@@ -550,7 +550,10 @@ if command -v plenv > /dev/null; then                     # [共通]
 fi                                                        # [共通]
 
 # gh CLI 補完
-if command -v gh &>/dev/null; then
+# command -v は上部で定義する gh() シェル関数にもマッチしてしまうため、
+# PATH 上の実バイナリのみを見る whence -p を使う（gh 未導入の Raspberry Pi 等で
+# 起動のたびに「gh:44: command not found: gh」が出るのを防ぐ）。
+if whence -p gh &>/dev/null; then
   eval "$(gh completion -s zsh)"
 fi
 
