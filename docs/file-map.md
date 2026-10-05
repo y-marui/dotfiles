@@ -16,7 +16,7 @@ _最終更新: 2026-10-01_
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `bin/unix/_dots-verbs.sh` | ドメイン×動詞（apply/diff/sync/merge/prune/cache）の状態（ok/na/todo）、N/Aの理由、共通オプションの許可、動詞ゲート、`dots help`・`dots verbs` の生成元（正本） | `bin/unix/dots`（source） |
-| `bin/windows/dots.ps1`（`$verbSpecs`） | Windowsで使えるドメイン（ghq・winget）の同形式のテーブルと動詞ゲート | `scripts/check-dots-verb-table.sh`（Unix側との一致を検証） |
+| `bin/windows/dots.ps1`（`$verbSpecs`） | Windowsで使えるドメイン（ghq・winget・ai・claude・codex・copilot）の同形式のテーブルと動詞ゲート | `scripts/check-dots-verb-table.sh`（Unix側との一致を検証） |
 | `scripts/check-dots-verb-table.sh` | Unix側テーブルを正本に、READMEの動詞表とWindows側テーブルの一致を検証（pre-commit） | `README.md`、`bin/unix/dots verbs`、`bin/windows/dots.ps1` |
 | `scripts/test-dots-verbs.sh` | 動詞ゲートとnpm/pipxの`apply`・`prune`・`sync`・`merge`の回帰テスト（Unix版のみ。偽の`npm`/`pipx`を使う） | `bin/unix/dots`、`npm/*.sh`、`pipx/*.sh` |
 | `npm/{apply,diff,prune,sync,update_npmcache}...sh` / `pipx/...` | npm・pipxの動詞実装。`--dry-run`・`--no-prune`・`--yes`・`--backup-dir` を受け付ける | `npm/npmfile`・`pipx/pipxfile`、各`*.cache`（gitignore） |
@@ -66,6 +66,9 @@ _最終更新: 2026-10-01_
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex の一括操作。`check`（非verbose）はmacOSの sudo Touch IDを含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
+| `bin/windows/dots.ps1`（`Invoke-AiAgent`） | Windows版の `dots {ai|claude|codex|copilot}`。同名の `ai/**/{apply,diff,prune}.ps1` を子プロセスで実行する | `ai/**/*.ps1`、`ai/_common.ps1` |
+| `ai/_common.ps1` | `ai/` 配下の `*.ps1` が dot source する共通関数（JSON読込、集合演算、外部コマンド実行、バックアップ退避、skill のリンク判定）。想定外のエラーは終了コード2で終え、diffの「差分あり」（1）と区別する | — |
+| `ai/{claude,codex}/{mcp,plugin}/*.ps1`、`ai/copilot/mcp/*.ps1`、`ai/skills/*.ps1` | 各 `*.sh` のPowerShell移植（pythonの代わりに `ConvertFrom-Json -AsHashtable`）。codex の plugin は `codex app-server` と標準入出力のJSON-RPCで通信する | 各エージェントのCLI、`ai/_common.ps1` |
 
 ## dots check Monitor (macOS)
 

@@ -29,10 +29,14 @@ Usage:
   dots update
   dots winget {apply|diff|prune|cache}  # N/A: sync merge
   dots ghq    {apply|diff|sync|merge|prune}  # N/A: cache
+  dots ai     {apply|diff|prune}  # N/A: sync merge cache（Claude Code・Codex を一括）
+  dots claude {apply|diff|prune}  # N/A: sync merge cache
+  dots codex  {apply|diff|prune}  # N/A: sync merge cache
+  dots copilot {apply|diff|prune}  # N/A: sync merge cache（MCP のみ）
   dots verbs
   dots help
 
-Windowsでは status / check / update / winget / ghq を利用できます。
+Windowsでは status / check / update / winget / ghq / ai / claude / codex / copilot を利用できます。
 check はリンク・リポジトリ状態・winget・ghq の差分を要約します（Unixの全項目ではありません）。
 動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
 実装状況は README.md の動詞表を参照してください。
@@ -45,6 +49,8 @@ Options:
   --yes               宣言側の項目を削除する sync に必要（ghq。削除がなければ不要）
   --summary           diff の差分の件数を1行で示す
   --exit-code         diff で差分があれば終了コード1を返す（既定は差分があっても0）
+  --mcp-only | --plugin-only | --skill-only
+                      ai / claude / codex で対象を MCP・plugin・skill のどれか1つに絞る
 '@
 }
 
@@ -61,6 +67,75 @@ function Invoke-NativeCommand {
     if ($LASTEXITCODE -ne 0) {
         throw "$Command failed with exit code $LASTEXITCODE"
     }
+}
+
+# ai / claude / codex / copilot の各スクリプト（ai/ 配下の *.ps1）を子プロセスで実行し、終了コードを返す。
+function Invoke-AiScript {
+    param(
+        [Parameter(Mandatory)][string]$RelativePath,
+        [string[]]$ScriptArgs = @()
+    )
+
+    & pwsh -NoLogo -NoProfile -File (Join-Path $dotfilesDir $RelativePath) @ScriptArgs | Out-Host
+    return $LASTEXITCODE
+}
+
+# 1つの agent の MCP・plugin・skill に対して動詞を実行する。diff で差分があれば $true を返す。
+function Invoke-AiAgent {
+    param(
+        [Parameter(Mandatory)][string]$Agent,
+        [Parameter(Mandatory)][string]$Action,
+        [string[]]$Options = @()
+    )
+
+    $allowedKinds = if ($Agent -eq 'copilot') { @('mcp') } else { @('mcp', 'plugin', 'skill') }
+    $only = @()
+    $noPrune = $false
+    foreach ($option in $Options) {
+        switch ($option) {
+            '--mcp-only' { $only += 'mcp' }
+            '--plugin-only' { if ($Agent -eq 'copilot') { throw "unknown $Agent option: $option" }; $only += 'plugin' }
+            '--skill-only' { if ($Agent -eq 'copilot') { throw "unknown $Agent option: $option" }; $only += 'skill' }
+            '--no-prune' { $noPrune = $true }
+            default { throw "unknown $Agent option: $option" }
+        }
+    }
+    if ($only.Count -gt 1) {
+        throw '--mcp-only / --plugin-only / --skill-only は同時指定できない'
+    }
+    $kinds = if ($only.Count -eq 1) { $only } else { $allowedKinds }
+
+    $diffFound = $false
+    foreach ($kind in $kinds) {
+        Write-Host "--- $kind ---"
+        if ($kind -eq 'skill') {
+            $dir = 'ai\skills'
+            $scriptArgs = @('-Agent', $Agent)
+        } else {
+            $dir = "ai\$Agent\$kind"
+            $scriptArgs = @()
+        }
+        switch ($Action) {
+            'diff' {
+                $code = Invoke-AiScript -RelativePath "$dir\diff.ps1" -ScriptArgs $scriptArgs
+                # 終了コード1は「差分あり」。2以上はスクリプトのエラー。
+                if ($code -eq 1) { $diffFound = $true } elseif ($code -ne 0) { throw "$Agent $kind diff failed with exit code $code" }
+            }
+            'apply' {
+                $code = Invoke-AiScript -RelativePath "$dir\apply.ps1" -ScriptArgs $scriptArgs
+                if ($code -ne 0) { throw "$Agent $kind apply failed with exit code $code" }
+                if (-not $noPrune) {
+                    $code = Invoke-AiScript -RelativePath "$dir\prune.ps1" -ScriptArgs $scriptArgs
+                    if ($code -ne 0) { throw "$Agent $kind prune failed with exit code $code" }
+                }
+            }
+            'prune' {
+                $code = Invoke-AiScript -RelativePath "$dir\prune.ps1" -ScriptArgs $scriptArgs
+                if ($code -ne 0) { throw "$Agent $kind prune failed with exit code $code" }
+            }
+        }
+    }
+    return $diffFound
 }
 
 function Show-RepositoryStatus {
@@ -148,12 +223,28 @@ function Show-RepositoryStatus {
 $verbs = @('apply', 'diff', 'sync', 'merge', 'prune', 'cache')
 $verbSpecs = @{
     'ghq'    = 'apply=ok diff=ok sync=ok merge=ok prune=ok cache=na'
+    'ai'      = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'claude'  = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'codex'   = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'copilot' = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
     'winget' = 'apply=ok diff=ok sync=na merge=na prune=ok cache=ok'
 }
 $verbNaReasons = @{
     'ghq:cache'    = '実状態をGit configから直接読むためキャッシュ不要'
     'winget:sync'  = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
     'winget:merge' = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
+    'ai:sync'      = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'ai:merge'     = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'ai:cache'     = 'キャッシュ不要。実状態を直接読む'
+    'claude:sync'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'claude:merge' = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'claude:cache' = 'キャッシュ不要。実状態を直接読む'
+    'codex:sync'   = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'codex:merge'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'codex:cache'  = 'キャッシュ不要。実状態を直接読む'
+    'copilot:sync'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'copilot:merge' = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'copilot:cache' = 'キャッシュ不要。実状態を直接読む'
 }
 # 動詞ごとに受け付ける共通オプション（Unix側の _dots_verb_options に相当。
 # scripts/check-dots-verb-table.sh が同じ書式で一致を検証する）。
@@ -166,6 +257,14 @@ $verbOptions = @{
     'winget:apply' = '--dry-run --no-prune'
     'winget:prune' = '--dry-run'
     'winget:diff'  = '--exit-code --summary'
+    'ai:apply'      = '--no-prune'
+    'ai:diff'       = '--exit-code'
+    'claude:apply'  = '--no-prune'
+    'claude:diff'   = '--exit-code'
+    'codex:apply'   = '--no-prune'
+    'codex:diff'    = '--exit-code'
+    'copilot:apply' = '--no-prune'
+    'copilot:diff'  = '--exit-code'
 }
 $commonOptions = @('--dry-run', '--yes', '--no-prune', '--backup-dir', '--exit-code', '--summary')
 
@@ -208,7 +307,8 @@ function Test-VerbGate {
     }
     $verb = $VerbArgs[0]
     if ($verb -in @('help', '-h', '--help')) {
-        Show-DomainHelp -Domain $Domain
+        # 出力が戻り値（真偽値）に混ざらないよう Out-Host で直接表示する
+        Show-DomainHelp -Domain $Domain | Out-Host
         return $false
     }
     $state = Get-VerbState -Domain $Domain -Verb $verb
@@ -388,6 +488,32 @@ switch ($commandName) {
         } elseif ($LASTEXITCODE -gt 0) {
             exit $LASTEXITCODE
         }
+    }
+    { $_ -in @('ai', 'claude', 'codex', 'copilot') } {
+        # 動詞ゲートが動詞・共通オプションを検証済み。--exit-code だけは dots 側で扱う。
+        $aiAction = $commandArgs[0]
+        $aiExitCodeRequested = $false
+        $aiOptions = @()
+        foreach ($argument in @($commandArgs | Select-Object -Skip 1)) {
+            if ($argument -eq '--exit-code') {
+                $aiExitCodeRequested = $true
+            } else {
+                $aiOptions += $argument
+            }
+        }
+
+        $aiDiffFound = $false
+        if ($commandName -eq 'ai') {
+            foreach ($aiAgent in @('claude', 'codex')) {
+                Write-Host "=== $aiAgent ==="
+                if (Invoke-AiAgent -Agent $aiAgent -Action $aiAction -Options $aiOptions) { $aiDiffFound = $true }
+                Write-Host
+            }
+        } elseif (Invoke-AiAgent -Agent $commandName -Action $aiAction -Options $aiOptions) {
+            $aiDiffFound = $true
+        }
+        # diff の既定は差分があっても0。--exit-code のときだけ差分ありを終了コード1で返す。
+        if ($aiExitCodeRequested -and $aiDiffFound) { exit 1 }
     }
     'verbs' {
         if ($commandArgs.Count -gt 0) {

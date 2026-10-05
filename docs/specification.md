@@ -200,6 +200,14 @@ Claude Code、Codex の順に、各エージェントの同じ操作を一括実
 Copilot は user scope MCP のみを管理し、対応する対象種別とオプションが異なるため含めない。
 個別の `dots {claude|codex}` コマンドは引き続き利用できる。
 
+Windows でも同じコマンドを `ai/**/*.ps1` で実行する。Unix 版との違いは次のとおり。
+
+- `~/.claude.json` の権限検査（`~permission`）は行わない（Windows に `chmod 600` 相当がないため）
+- skill のリンクは `New-Item -ItemType SymbolicLink` で作る。権限がなければ、開発者モードの有効化か
+  `gsudo` での実行を促して失敗する
+- 外部 skill の取得は `python3` / `python` を探して `skill-installer` を実行する
+- `diff` の終了コードは 1 が差分あり、2 がエラー（想定外の例外）。`dots` は 2 以上を失敗として扱う
+
 ## dots commit / dots push
 
 `sync` 系コマンド（`dots brew sync` / `dots npm sync` / `dots pipx sync` /
