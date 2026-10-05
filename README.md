@@ -230,9 +230,9 @@ LaunchAgentのplistと実行スクリプトはdotfilesで共有し、既存Mac�
 再リンク・再登録する。手動で`dots check`を実行した場合も同じキャッシュが更新される
 ため、`dots ...`コマンドで警告を解消した直後でも次のシェル起動時の表示は最新になる。
 
-Windowsの`dots check`は簡易版で、シンボリックリンク（`scripts/check.ps1`）、dotfiles /
-dotfiles-privateのGit状態（fetchなし）、`winget`と`ghq`の`diff --summary`だけを順に表示し、
-どれかに差分があれば終了コード1を返す。キャッシュ・通知・AI Agent検査は行わない。
+Windowsの`dots check`もUnix版と同じ形式で警告を要約し、`~/.cache/dots/check-summary`等へ書く。
+対象はシンボリックリンク、`~/.dotfiles-backup`の蓄積、dotfiles / dotfiles-privateのGit状態、`winget`・`ghq`・AI（Claude Code・Codex・Copilot）の差分で、`--verbose`で詳細を表示する。
+PowerShellのprofileはシェル起動時にこのキャッシュを表示する。macOS固有の項目（brew・dock・shortcuts・sudo Touch ID）と、LaunchAgent相当の定期実行・通知は対象外で、キャッシュは`dots check`を実行したときに更新される。
 
 Claude Code・Codex の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、

@@ -82,6 +82,7 @@ _最終更新: 2026-10-01_
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
+| `bin/windows/dots.ps1`（`Get-CheckSummary`・`Invoke-CheckVerbose`・`Write-CheckCache`）、`terminal/powershell/profile.ps1` | Windows版の`dots check`。リンク・backup蓄積・Git状態・winget・ghq・AI（claude・codex・copilot）の要約を同じ書式で出し、同じキャッシュへ書く。profileがキャッシュをシェル起動時に表示する。LaunchAgent相当の定期実行・通知とmacOS固有項目（brew・dock・shortcuts・sudo Touch ID）は対象外 | `~/.cache/dots/check-summary`、`ai/**/*.ps1` |
 
 ## Self-hosted Runner (macOS)
 

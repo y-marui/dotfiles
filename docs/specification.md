@@ -515,7 +515,7 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
   他の`diff`と同様に差分ありを正常終了として扱い、エラー（2）だけを伝える
 - 複数の`ghq`rootが設定されている場合も、各リポジトリを所属するrootからの相対パスとして扱う
 - `dots check`は差分があるとき`⚠ ghq keep-up-to-date: +N 宣言なし / -N 未適用`を表示する。
-  Windowsの`dots check`は`ghq diff --summary`の結果をそのまま表示する
+  Windowsの`dots check`は`ghq diff --summary`の結果を要約の1行（`⚠ ghq keep-up-to-date: ...`）として表示する
 - 未決定（`.venv`/`node_modules`はあるが宣言も`true`もない）リポジトリの検出は行わない。
   全体の状態は`ghq-status`のKEEP列で確認する
 
