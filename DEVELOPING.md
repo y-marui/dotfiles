@@ -13,6 +13,7 @@ pre-commit run --all-files          # 全 pre-commit フックを実行
 ```
 
 Windows 向け変更（`bin/windows/`、`*.ps1`）は PowerShell 上で動作確認する（`pwsh -File <script>.ps1`）。
+Windows でコミットする場合、pre-commit が `PYTHONUTF8=1` なしだと Python フックを cp932 で読んで失敗する（`$env:PYTHONUTF8='1'` を設定する）。作業ツリーが CRLF のままだと ShellCheck が SC1017 で失敗するため、`.sh` を触るときは LF にする。Git Bash では `run-quiet` が PATH にないため、コミットは PowerShell から行う。
 
 `bin/unix/git-pull-all`・`git-sweep`・`_git-branch-lib.sh` を変更した場合は、使い捨てのgitリポジトリで
 回帰テストを実行する:
