@@ -77,6 +77,7 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 | コマンド | 説明 |
 |---------|------|
 | `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
+| `dots check` | リンク・dotfilesの状態・パッケージ管理・AI Agentの差分を一括検査（Windowsは簡易版） |
 | `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
 | `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
 | `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |
@@ -228,6 +229,10 @@ zsh起動時はこのキャッシュを読むだけなので、`dots check`の�
 LaunchAgentのplistと実行スクリプトはdotfilesで共有し、既存Macでも`dots update`時に
 再リンク・再登録する。手動で`dots check`を実行した場合も同じキャッシュが更新される
 ため、`dots ...`コマンドで警告を解消した直後でも次のシェル起動時の表示は最新になる。
+
+Windowsの`dots check`は簡易版で、シンボリックリンク（`scripts/check.ps1`）、dotfiles /
+dotfiles-privateのGit状態（fetchなし）、`winget`と`ghq`の`diff --summary`だけを順に表示し、
+どれかに差分があれば終了コード1を返す。キャッシュ・通知・AI Agent検査は行わない。
 
 Claude Code・Codex の宣言をまとめて同期する場合は
 `dots ai {apply|diff|prune}` を使用する。`--mcp-only`、`--plugin-only`、

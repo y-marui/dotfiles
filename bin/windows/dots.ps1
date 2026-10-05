@@ -25,13 +25,15 @@ function Show-Usage {
     @'
 Usage:
   dots status [-NoFetch]
+  dots check
   dots update
   dots winget {apply|diff|prune|cache}  # N/A: sync merge
   dots ghq    {apply|diff|sync|merge|prune}  # N/A: cache
   dots verbs
   dots help
 
-Windowsでは status / update / winget / ghq を利用できます。
+Windowsでは status / check / update / winget / ghq を利用できます。
+check はリンク・リポジトリ状態・winget・ghq の差分を要約します（Unixの全項目ではありません）。
 動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
 実装状況は README.md の動詞表を参照してください。
 `dots <domain> help` でそのドメインの実装状況を表示します。
@@ -258,6 +260,37 @@ switch ($commandName) {
         if (Show-RepositoryStatus -Name 'dotfiles-private' -Path $privateDir -Fetch $fetch) {
             $needsAttention = $true
         }
+        if ($needsAttention) {
+            exit 1
+        }
+    }
+    'check' {
+        if ($commandArgs.Count -gt 0) {
+            throw "unexpected argument: $($commandArgs[0])"
+        }
+        $needsAttention = $false
+
+        Write-Host '== symlinks =='
+        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\check.ps1"
+        if ($LASTEXITCODE -ne 0) { $needsAttention = $true }
+
+        Write-Host
+        Write-Host '== repositories =='
+        if (Show-RepositoryStatus -Name 'dotfiles' -Path $dotfilesDir -Fetch $false) {
+            $needsAttention = $true
+        }
+        if (Show-RepositoryStatus -Name 'dotfiles-private' -Path $privateDir -Fetch $false) {
+            $needsAttention = $true
+        }
+
+        Write-Host '== winget =='
+        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\windows\diff_wingetpin.ps1" -Summary
+        if ($LASTEXITCODE -gt 0) { $needsAttention = $true }
+
+        Write-Host '== ghq =='
+        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" diff --summary
+        if ($LASTEXITCODE -gt 0) { $needsAttention = $true }
+
         if ($needsAttention) {
             exit 1
         }
