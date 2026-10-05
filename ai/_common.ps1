@@ -258,6 +258,12 @@ function Get-DuplicateNames {
     return Sort-Ordinal -Items @($duplicates | Select-Object -Unique)
 }
 
+# 管理者権限で動いているか。
+function Test-Elevated {
+    $principal = [System.Security.Principal.WindowsPrincipal]::new([System.Security.Principal.WindowsIdentity]::GetCurrent())
+    return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Test-PathOrLink {
     param([Parameter(Mandatory)][string]$Path)
 

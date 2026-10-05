@@ -240,7 +240,7 @@ Claude Code・Codex の宣言をまとめて同期する場合は
 のみで引数体系が異なるため、`dots ai` には含めず `dots copilot` で個別に操作する。
 Windowsでも同じ `dots {ai|claude|codex|copilot}` を使える（`ai/` 配下の `*.ps1` を実行する。
 macOS固有の判定（`/Applications/ChatGPT.app`）以外は同じ挙動）。skill のリンクはシンボリックリンクなので、
-開発者モードを有効にするか `gsudo` で実行する。
+権限が足りなければ `gsudo` で自動的に昇格して再実行する（`gsudo` がなければ開発者モードを有効にする）。
 
 GitHub の認証値は `apply` 時に `gh auth token` から取得する。値は公開 repo には書かず、
 Claude Code は `~/.claude.json`、Codex は `~/.codex/config.toml` の静的 Authorization

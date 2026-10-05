@@ -84,6 +84,13 @@ foreach ($source in ($sources | Sort-Object { $_.Name } -CaseSensitive)) {
     try {
         New-Item -ItemType SymbolicLink -Path $destination -Target $source.Dir | Out-Null
     } catch {
+        # 権限不足なら gsudo で昇格して、スクリプト全体をやり直す（処理は冪等）。
+        # 昇格済みなのに失敗した場合や gsudo がない場合は、そのままエラーにする。
+        if (-not (Test-Elevated) -and (Get-Command gsudo -ErrorAction SilentlyContinue)) {
+            Write-Host '  シンボリックリンクの作成に権限が必要なため、gsudo で昇格して再実行します'
+            & gsudo pwsh -NoLogo -NoProfile -File $PSCommandPath -Agent $Agent
+            exit $LASTEXITCODE
+        }
         throw "シンボリックリンクを作成できません: $destination（開発者モードを有効にするか、gsudo で実行してください）: $($_.Exception.Message)"
     }
     Write-Host "  LINK    $destination -> $($source.Dir)"
