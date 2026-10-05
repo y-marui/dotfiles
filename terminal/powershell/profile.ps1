@@ -188,6 +188,20 @@ function g {
     }
 }
 
+# ghq のビルトインサブコマンドにないものは、PATH 上の ghq-<sub>
+# （bin/windows の ghq-status 等）に git 的な流儀でディスパッチする（zsh の ghq() 相当）。
+function ghq {
+    $ghqExe = Get-Command ghq -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    $builtin = @('get', 'clone', 'list', 'rm', 'root', 'create', 'migrate', 'help', 'h')
+    if ($args.Count -gt 0 -and $args[0] -notin $builtin -and
+        (Get-Command "ghq-$($args[0])" -CommandType Application -ErrorAction SilentlyContinue)) {
+        $rest = @($args | Select-Object -Skip 1)
+        & "ghq-$($args[0])" @rest
+    } else {
+        & $ghqExe.Source @args
+    }
+}
+
 Set-Alias make mingw32-make
 
 # ─── dotfiles 未コミット・未プッシュ確認 ───────────────────────────────────────
