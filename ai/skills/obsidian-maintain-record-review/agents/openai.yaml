@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Record 定期校正"
+  short_description: "前回の校正以降に変わったRecordを校正し、目印を進める"
+  default_prompt: "Use $obsidian-maintain-record-review to proofread the Records changed since origin/ai/review."

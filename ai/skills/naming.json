@@ -54,6 +54,11 @@
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
+    "obsidian-maintain-record-review": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
     "obsidian-save-project": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
