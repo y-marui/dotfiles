@@ -25,15 +25,20 @@ function Show-Usage {
     @'
 Usage:
   dots status [-NoFetch]
-  dots check
+  dots check [--verbose]
   dots update
   dots winget {apply|diff|prune|cache}  # N/A: sync merge
   dots ghq    {apply|diff|sync|merge|prune}  # N/A: cache
+  dots ai     {apply|diff|prune}  # N/A: sync merge cache（Claude Code・Codex を一括）
+  dots claude {apply|diff|prune}  # N/A: sync merge cache
+  dots codex  {apply|diff|prune}  # N/A: sync merge cache
+  dots copilot {apply|diff|prune}  # N/A: sync merge cache（MCP のみ）
   dots verbs
   dots help
 
-Windowsでは status / check / update / winget / ghq を利用できます。
-check はリンク・リポジトリ状態・winget・ghq の差分を要約します（Unixの全項目ではありません）。
+Windowsでは status / check / update / winget / ghq / ai / claude / codex / copilot を利用できます。
+check は警告を1行ずつ要約し（--verbose で詳細）、結果を ~/.cache/dots/check-summary 等へ書きます。
+brew / npm / pipx / dock / shortcuts / sudo Touch ID などmacOS固有の項目、定期実行・通知は対象外です。
 動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
 実装状況は README.md の動詞表を参照してください。
 `dots <domain> help` でそのドメインの実装状況を表示します。
@@ -45,6 +50,8 @@ Options:
   --yes               宣言側の項目を削除する sync に必要（ghq。削除がなければ不要）
   --summary           diff の差分の件数を1行で示す
   --exit-code         diff で差分があれば終了コード1を返す（既定は差分があっても0）
+  --mcp-only | --plugin-only | --skill-only
+                      ai / claude / codex で対象を MCP・plugin・skill のどれか1つに絞る
 '@
 }
 
@@ -61,6 +68,75 @@ function Invoke-NativeCommand {
     if ($LASTEXITCODE -ne 0) {
         throw "$Command failed with exit code $LASTEXITCODE"
     }
+}
+
+# ai / claude / codex / copilot の各スクリプト（ai/ 配下の *.ps1）を子プロセスで実行し、終了コードを返す。
+function Invoke-AiScript {
+    param(
+        [Parameter(Mandatory)][string]$RelativePath,
+        [string[]]$ScriptArgs = @()
+    )
+
+    & pwsh -NoLogo -NoProfile -File (Join-Path $dotfilesDir $RelativePath) @ScriptArgs | Out-Host
+    return $LASTEXITCODE
+}
+
+# 1つの agent の MCP・plugin・skill に対して動詞を実行する。diff で差分があれば $true を返す。
+function Invoke-AiAgent {
+    param(
+        [Parameter(Mandatory)][string]$Agent,
+        [Parameter(Mandatory)][string]$Action,
+        [string[]]$Options = @()
+    )
+
+    $allowedKinds = if ($Agent -eq 'copilot') { @('mcp') } else { @('mcp', 'plugin', 'skill') }
+    $only = @()
+    $noPrune = $false
+    foreach ($option in $Options) {
+        switch ($option) {
+            '--mcp-only' { $only += 'mcp' }
+            '--plugin-only' { if ($Agent -eq 'copilot') { throw "unknown $Agent option: $option" }; $only += 'plugin' }
+            '--skill-only' { if ($Agent -eq 'copilot') { throw "unknown $Agent option: $option" }; $only += 'skill' }
+            '--no-prune' { $noPrune = $true }
+            default { throw "unknown $Agent option: $option" }
+        }
+    }
+    if ($only.Count -gt 1) {
+        throw '--mcp-only / --plugin-only / --skill-only は同時指定できない'
+    }
+    $kinds = if ($only.Count -eq 1) { $only } else { $allowedKinds }
+
+    $diffFound = $false
+    foreach ($kind in $kinds) {
+        Write-Host "--- $kind ---"
+        if ($kind -eq 'skill') {
+            $dir = 'ai\skills'
+            $scriptArgs = @('-Agent', $Agent)
+        } else {
+            $dir = "ai\$Agent\$kind"
+            $scriptArgs = @()
+        }
+        switch ($Action) {
+            'diff' {
+                $code = Invoke-AiScript -RelativePath "$dir\diff.ps1" -ScriptArgs $scriptArgs
+                # 終了コード1は「差分あり」。2以上はスクリプトのエラー。
+                if ($code -eq 1) { $diffFound = $true } elseif ($code -ne 0) { throw "$Agent $kind diff failed with exit code $code" }
+            }
+            'apply' {
+                $code = Invoke-AiScript -RelativePath "$dir\apply.ps1" -ScriptArgs $scriptArgs
+                if ($code -ne 0) { throw "$Agent $kind apply failed with exit code $code" }
+                if (-not $noPrune) {
+                    $code = Invoke-AiScript -RelativePath "$dir\prune.ps1" -ScriptArgs $scriptArgs
+                    if ($code -ne 0) { throw "$Agent $kind prune failed with exit code $code" }
+                }
+            }
+            'prune' {
+                $code = Invoke-AiScript -RelativePath "$dir\prune.ps1" -ScriptArgs $scriptArgs
+                if ($code -ne 0) { throw "$Agent $kind prune failed with exit code $code" }
+            }
+        }
+    }
+    return $diffFound
 }
 
 function Show-RepositoryStatus {
@@ -142,18 +218,177 @@ function Show-RepositoryStatus {
     return $needsAttention
 }
 
+# ── dots check ────────────────────────────────────────────────────────────────
+# Unix版（bin/unix/dots の _check_summary / _check_verbose / _check_write_cache）に揃えた実装。
+# 既定は警告を1行ずつ出す要約（差分がなければ何も出さない）で、結果を
+# ~/.cache/dots/{check-summary,check-state,check-digest} へ書く。シェル起動時の表示は
+# terminal/powershell/profile.ps1 がこのキャッシュを読む。macOSのLaunchAgentによる定期実行・通知は
+# Windowsには移植していない（dots check を手動で実行したときにキャッシュを更新する）。
+$checkCacheDir = if ($env:DOTS_CHECK_CACHE_DIR) { $env:DOTS_CHECK_CACHE_DIR } else { Join-Path $HOME '.cache\dots' }
+
+function Get-CheckRepoSummary {
+    param([string]$Label, [string]$Path)
+
+    if (-not (Test-Path -LiteralPath (Join-Path $Path '.git'))) { return }
+    $parts = @()
+    & git -C $Path diff --quiet 2>$null
+    $dirty = $LASTEXITCODE -ne 0
+    & git -C $Path diff --cached --quiet 2>$null
+    if ($dirty -or $LASTEXITCODE -ne 0) { $parts += 'uncommitted changes' }
+    $unpushed = @(& git -C $Path log '@{u}..' --oneline 2>$null)
+    if ($LASTEXITCODE -eq 0 -and $unpushed.Count -gt 0) { $parts += "$($unpushed.Count) commits unpushed" }
+    if ($parts.Count -gt 0) {
+        "⚠ ${Label}: $($parts -join ' / ') (dots status で確認)"
+    }
+}
+
+function Get-CheckLinksSummary {
+    $output = & pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\check.ps1" 2>&1 | Out-String
+    $broken = if ($output -match 'BROKEN=(\d+)') { [int]$Matches[1] } else { 0 }
+    $missing = if ($output -match 'NOT LINKED=(\d+)') { [int]$Matches[1] } else { 0 }
+    if ($broken -gt 0 -or $missing -gt 0) {
+        "⚠ links: $broken broken / $missing not linked (make check で確認)"
+    }
+}
+
+# scripts/install.ps1 が make install / dots update のたびに、リンク化できない既存ファイルを
+# ~/.dotfiles-backup/<timestamp>/ へ退避する。溜まっている件数を知らせる（削除はユーザーが行う）。
+function Get-CheckBackupSummary {
+    $backupDir = Join-Path $HOME '.dotfiles-backup'
+    if (-not (Test-Path -LiteralPath $backupDir -PathType Container)) { return }
+    $count = @(Get-ChildItem -LiteralPath $backupDir -Directory -Force).Count
+    if ($count -gt 0) {
+        "⚠ backup: ${count}件が $backupDir に蓄積（中身を確認し、不要なら Remove-Item -Recurse で削除）"
+    }
+}
+
+# 子プロセスの --summary / -Summary 出力が空でなければ警告行にする（Unix版の _check_script_summary）。
+function Get-CheckScriptSummary {
+    param([string]$Label, [string]$Hint, [string[]]$PwshArgs)
+
+    $output = (& pwsh -NoLogo -NoProfile -File @PwshArgs 2>$null | Out-String).Trim()
+    if ($output) { "⚠ ${Label}: $output ($Hint)" }
+}
+
+function Get-CheckSummary {
+    Get-CheckLinksSummary
+    Get-CheckBackupSummary
+    Get-CheckRepoSummary -Label 'dotfiles' -Path $dotfilesDir
+    Get-CheckRepoSummary -Label 'dotfiles-private' -Path $privateDir
+
+    Get-CheckScriptSummary -Label 'winget' -Hint 'dots winget diff で確認' `
+        -PwshArgs @("$dotfilesDir\windows\diff_wingetpin.ps1", '-Summary')
+    Get-CheckScriptSummary -Label 'ghq keep-up-to-date' -Hint 'dots ghq diff で確認' `
+        -PwshArgs @("$dotfilesDir\ghq\keep-up-to-date.ps1", 'diff', '--summary')
+
+    foreach ($agent in @('claude', 'codex')) {
+        if ($agent -eq 'codex' -and -not (Get-Command codex -ErrorAction SilentlyContinue)) { continue }
+        if (Test-Path -LiteralPath "$dotfilesDir\ai\$agent\mcp\servers.json") {
+            Get-CheckScriptSummary -Label "$agent mcp" -Hint "dots $agent diff --mcp-only で確認" `
+                -PwshArgs @("$dotfilesDir\ai\$agent\mcp\diff.ps1", '-Summary')
+        }
+        if (Test-Path -LiteralPath "$dotfilesDir\ai\$agent\plugin\plugins.json") {
+            Get-CheckScriptSummary -Label "$agent plugin" -Hint "dots $agent diff --plugin-only で確認" `
+                -PwshArgs @("$dotfilesDir\ai\$agent\plugin\diff.ps1", '-Summary')
+        }
+        if (Test-Path -LiteralPath "$dotfilesDir\ai\skills\external.json") {
+            Get-CheckScriptSummary -Label "$agent skill" -Hint "dots $agent diff --skill-only で確認" `
+                -PwshArgs @("$dotfilesDir\ai\skills\diff.ps1", '-Agent', $agent, '-Summary')
+        }
+    }
+
+    if ((Get-Command copilot -ErrorAction SilentlyContinue) -and
+        (Test-Path -LiteralPath "$dotfilesDir\ai\copilot\mcp\servers.json")) {
+        Get-CheckScriptSummary -Label 'copilot mcp' -Hint 'dots copilot diff で確認' `
+            -PwshArgs @("$dotfilesDir\ai\copilot\mcp\diff.ps1", '-Summary')
+    }
+}
+
+# dots check（非verbose）の結果を check-summary / check-state / check-digest へ原子的に書く。
+function Write-CheckCache {
+    param([string[]]$Lines = @())
+
+    $state = if ($Lines.Count -eq 0) { 'clean' } else { 'warning' }
+    $summary = $Lines -join "`n"
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes("$state`n$summary")
+    $digest = ([System.Security.Cryptography.SHA256]::HashData($bytes) | ForEach-Object { $_.ToString('x2') }) -join ''
+    $utf8 = [System.Text.UTF8Encoding]::new($false)
+
+    New-Item -ItemType Directory -Force -Path $checkCacheDir | Out-Null
+    $summaryFile = Join-Path $checkCacheDir 'check-summary'
+    $temporary = "$summaryFile.$([guid]::NewGuid().ToString('N')).tmp"
+    [System.IO.File]::WriteAllText($temporary, $(if ($summary) { "$summary`n" } else { '' }), $utf8)
+    Move-Item -LiteralPath $temporary -Destination $summaryFile -Force
+    [System.IO.File]::WriteAllText((Join-Path $checkCacheDir 'check-state'), "$state`n", $utf8)
+    [System.IO.File]::WriteAllText((Join-Path $checkCacheDir 'check-digest'), "$digest`n", $utf8)
+}
+
+function Write-CheckHeader {
+    param([string]$Title)
+
+    Write-Host '=========================================='
+    Write-Host " $Title"
+    Write-Host '=========================================='
+}
+
+# dots check --verbose: 各項目の詳細を順に表示する（Unix版の _check_verbose）。
+function Invoke-CheckVerbose {
+    Write-CheckHeader 'Checking symlinks (make check) ...'
+    & pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\check.ps1" | Out-Host
+    Write-Host ''
+
+    Write-CheckHeader 'Checking dotfiles / dotfiles-private status ...'
+    Show-RepositoryStatus -Name 'dotfiles' -Path $dotfilesDir -Fetch $false | Out-Null
+    Show-RepositoryStatus -Name 'dotfiles-private' -Path $privateDir -Fetch $false | Out-Null
+
+    Write-CheckHeader 'Checking ~/.dotfiles-backup accumulation ...'
+    Get-CheckBackupSummary | ForEach-Object { Write-Host $_ }
+    Write-Host ''
+
+    Write-CheckHeader 'Checking winget / ghq ...'
+    & pwsh -NoLogo -NoProfile -File "$dotfilesDir\windows\diff_wingetpin.ps1" | Out-Host
+    & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" diff | Out-Host
+    Write-Host ''
+
+    foreach ($agent in @('claude', 'codex', 'copilot')) {
+        Write-CheckHeader "Checking $agent ..."
+        if ($agent -eq 'claude' -or (Get-Command $agent -ErrorAction SilentlyContinue)) {
+            Invoke-AiAgent -Agent $agent -Action 'diff' | Out-Null
+        } else {
+            Write-Host "$agent is not installed."
+        }
+        Write-Host ''
+    }
+}
+
 # ドメイン×動詞のテーブル。bin/unix/_dots-verbs.sh の _dots_domain_spec と同じ書式で、
 # scripts/check-dots-verb-table.sh が両者の一致を検証する。
 #   ok 実装済み / na 対象外（理由を $verbNaReasons に書く） / todo 未実装
 $verbs = @('apply', 'diff', 'sync', 'merge', 'prune', 'cache')
 $verbSpecs = @{
     'ghq'    = 'apply=ok diff=ok sync=ok merge=ok prune=ok cache=na'
+    'ai'      = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'claude'  = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'codex'   = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
+    'copilot' = 'apply=ok diff=ok sync=na merge=na prune=ok cache=na'
     'winget' = 'apply=ok diff=ok sync=na merge=na prune=ok cache=ok'
 }
 $verbNaReasons = @{
     'ghq:cache'    = '実状態をGit configから直接読むためキャッシュ不要'
     'winget:sync'  = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
     'winget:merge' = '宣言（windows/WingetPin）は理由コメント付きで人が編集する'
+    'ai:sync'      = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'ai:merge'     = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'ai:cache'     = 'キャッシュ不要。実状態を直接読む'
+    'claude:sync'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'claude:merge' = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'claude:cache' = 'キャッシュ不要。実状態を直接読む'
+    'codex:sync'   = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'codex:merge'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'codex:cache'  = 'キャッシュ不要。実状態を直接読む'
+    'copilot:sync'  = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'copilot:merge' = '宣言（ai/配下）は人が編集する。実状態から自動生成しない'
+    'copilot:cache' = 'キャッシュ不要。実状態を直接読む'
 }
 # 動詞ごとに受け付ける共通オプション（Unix側の _dots_verb_options に相当。
 # scripts/check-dots-verb-table.sh が同じ書式で一致を検証する）。
@@ -166,6 +401,14 @@ $verbOptions = @{
     'winget:apply' = '--dry-run --no-prune'
     'winget:prune' = '--dry-run'
     'winget:diff'  = '--exit-code --summary'
+    'ai:apply'      = '--no-prune'
+    'ai:diff'       = '--exit-code'
+    'claude:apply'  = '--no-prune'
+    'claude:diff'   = '--exit-code'
+    'codex:apply'   = '--no-prune'
+    'codex:diff'    = '--exit-code'
+    'copilot:apply' = '--no-prune'
+    'copilot:diff'  = '--exit-code'
 }
 $commonOptions = @('--dry-run', '--yes', '--no-prune', '--backup-dir', '--exit-code', '--summary')
 
@@ -208,7 +451,8 @@ function Test-VerbGate {
     }
     $verb = $VerbArgs[0]
     if ($verb -in @('help', '-h', '--help')) {
-        Show-DomainHelp -Domain $Domain
+        # 出力が戻り値（真偽値）に混ざらないよう Out-Host で直接表示する
+        Show-DomainHelp -Domain $Domain | Out-Host
         return $false
     }
     $state = Get-VerbState -Domain $Domain -Verb $verb
@@ -265,34 +509,24 @@ switch ($commandName) {
         }
     }
     'check' {
-        if ($commandArgs.Count -gt 0) {
-            throw "unexpected argument: $($commandArgs[0])"
-        }
-        $needsAttention = $false
-
-        Write-Host '== symlinks =='
-        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\check.ps1"
-        if ($LASTEXITCODE -ne 0) { $needsAttention = $true }
-
-        Write-Host
-        Write-Host '== repositories =='
-        if (Show-RepositoryStatus -Name 'dotfiles' -Path $dotfilesDir -Fetch $false) {
-            $needsAttention = $true
-        }
-        if (Show-RepositoryStatus -Name 'dotfiles-private' -Path $privateDir -Fetch $false) {
-            $needsAttention = $true
+        $checkVerbose = $false
+        foreach ($argument in $commandArgs) {
+            switch ($argument) {
+                '--verbose' { $checkVerbose = $true }
+                { $_ -in @('-h', '--help') } { 'Usage: dots check [--verbose]'; exit 0 }
+                default { throw "unknown check option: $argument" }
+            }
         }
 
-        Write-Host '== winget =='
-        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\windows\diff_wingetpin.ps1" -Summary
-        if ($LASTEXITCODE -gt 0) { $needsAttention = $true }
-
-        Write-Host '== ghq =='
-        & pwsh -NoLogo -NoProfile -File "$dotfilesDir\ghq\keep-up-to-date.ps1" diff --summary
-        if ($LASTEXITCODE -gt 0) { $needsAttention = $true }
-
-        if ($needsAttention) {
-            exit 1
+        if ($checkVerbose) {
+            Invoke-CheckVerbose
+        } else {
+            $checkLines = @(Get-CheckSummary)
+            Write-CheckCache -Lines $checkLines
+            if ($checkLines.Count -gt 0) {
+                $checkLines | ForEach-Object { Write-Host $_ }
+                exit 1
+            }
         }
     }
     'update' {
@@ -388,6 +622,32 @@ switch ($commandName) {
         } elseif ($LASTEXITCODE -gt 0) {
             exit $LASTEXITCODE
         }
+    }
+    { $_ -in @('ai', 'claude', 'codex', 'copilot') } {
+        # 動詞ゲートが動詞・共通オプションを検証済み。--exit-code だけは dots 側で扱う。
+        $aiAction = $commandArgs[0]
+        $aiExitCodeRequested = $false
+        $aiOptions = @()
+        foreach ($argument in @($commandArgs | Select-Object -Skip 1)) {
+            if ($argument -eq '--exit-code') {
+                $aiExitCodeRequested = $true
+            } else {
+                $aiOptions += $argument
+            }
+        }
+
+        $aiDiffFound = $false
+        if ($commandName -eq 'ai') {
+            foreach ($aiAgent in @('claude', 'codex')) {
+                Write-Host "=== $aiAgent ==="
+                if (Invoke-AiAgent -Agent $aiAgent -Action $aiAction -Options $aiOptions) { $aiDiffFound = $true }
+                Write-Host
+            }
+        } elseif (Invoke-AiAgent -Agent $commandName -Action $aiAction -Options $aiOptions) {
+            $aiDiffFound = $true
+        }
+        # diff の既定は差分があっても0。--exit-code のときだけ差分ありを終了コード1で返す。
+        if ($aiExitCodeRequested -and $aiDiffFound) { exit 1 }
     }
     'verbs' {
         if ($commandArgs.Count -gt 0) {

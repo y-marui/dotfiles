@@ -200,6 +200,14 @@ Claude Code、Codex の順に、各エージェントの同じ操作を一括実
 Copilot は user scope MCP のみを管理し、対応する対象種別とオプションが異なるため含めない。
 個別の `dots {claude|codex}` コマンドは引き続き利用できる。
 
+Windows でも同じコマンドを `ai/**/*.ps1` で実行する。Unix 版との違いは次のとおり。
+
+- `~/.claude.json` の権限検査（`~permission`）は行わない（Windows に `chmod 600` 相当がないため）
+- skill のリンクは `New-Item -ItemType SymbolicLink` で作る。権限がなければ `gsudo` で昇格して
+  `apply.ps1` 全体を再実行する（処理は冪等）。`gsudo` がない場合は、開発者モードの有効化を促して失敗する
+- 外部 skill の取得は `python3` / `python` を探して `skill-installer` を実行する
+- `diff` の終了コードは 1 が差分あり、2 がエラー（想定外の例外）。`dots` は 2 以上を失敗として扱う
+
 ## dots commit / dots push
 
 `sync` 系コマンド（`dots brew sync` / `dots npm sync` / `dots pipx sync` /
@@ -507,7 +515,7 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
   他の`diff`と同様に差分ありを正常終了として扱い、エラー（2）だけを伝える
 - 複数の`ghq`rootが設定されている場合も、各リポジトリを所属するrootからの相対パスとして扱う
 - `dots check`は差分があるとき`⚠ ghq keep-up-to-date: +N 宣言なし / -N 未適用`を表示する。
-  Windowsの`dots check`は`ghq diff --summary`の結果をそのまま表示する
+  Windowsの`dots check`は`ghq diff --summary`の結果を要約の1行（`⚠ ghq keep-up-to-date: ...`）として表示する
 - 未決定（`.venv`/`node_modules`はあるが宣言も`true`もない）リポジトリの検出は行わない。
   全体の状態は`ghq-status`のKEEP列で確認する
 

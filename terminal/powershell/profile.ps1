@@ -220,3 +220,15 @@ if ($env:DOTFILES_DIR -and (Test-Path "$env:DOTFILES_DIR/.git")) {
     if ($dfUnpushed -gt 0) { $dfMsgs += "$dfUnpushed commits unpushed" }
     if ($dfMsgs) { Write-Host "⚠ dotfiles: $($dfMsgs -join ' / ')" -ForegroundColor Yellow }
 }
+
+# ─── dots check のキャッシュを表示 ─────────────────────────────────────────────
+# 外部コマンドを実行せず、シェル起動をブロックしない（zshrc の同名ブロック相当）。
+# キャッシュは `dots check` の実行時に更新される。
+$dotsCheckDir = if ($env:DOTS_CHECK_CACHE_DIR) { $env:DOTS_CHECK_CACHE_DIR } else { Join-Path $HOME '.cache\dots' }
+$dotsCheckSummary = Join-Path $dotsCheckDir 'check-summary'
+if (Test-Path -LiteralPath $dotsCheckSummary -PathType Leaf) {
+    foreach ($dotsCheckLine in (Get-Content -LiteralPath $dotsCheckSummary -Encoding utf8)) {
+        if ($dotsCheckLine) { Write-Host $dotsCheckLine -ForegroundColor Yellow }
+    }
+}
+Remove-Variable dotsCheckDir, dotsCheckSummary, dotsCheckLine -ErrorAction SilentlyContinue
