@@ -10,11 +10,12 @@ description: Search Google Maps from place information supplied as text or an im
 ## Extract and verify the place
 
 1. 渡されたテキストまたは画像から、場所の名前と位置を読む。画像の場合は画像理解を使う。
-2. 場所を一意に特定できない場合は、Google Mapsを変更する前に、不足する名前、都市、住所、支店名を質問する。
-3. この手順はユーザーがサインイン済みのGoogle Maps状態に依存するため、Chrome/browser-control skillを使う。ブラウザ操作前に専用のGoogle Mapsコネクタを確認し、保存リストを編集できるコネクタがなければブラウザを使う。
-4. 新しいブラウザタブを作る。既存のユーザータブを取得、再利用、移動しない。
-5. たとえば `https://www.google.com/maps/search/<encoded query>?authuser=<authuser>` のように、URLへ設定済みの `authuser` を明示してGoogle Mapsで検索する。
-6. 結果を、渡された名前と住所または地域名に照合する。単に似ている支店や同名店を保存しない。
+2. Instagram等の投稿URLから場所を調べる場合は、まず投稿キャプションを読んで店名と位置を抽出する。キャプションだけで一意に特定できない場合に限り、投稿内の動画・画像・説明欄の追加情報を確認する。
+3. 支店を持つ店で支店名が指定されていない場合は、本店を登録する。報告時に「支店が指定されていないので本店を登録しました」と明記する。店名・都市・住所が不足し、本店も一意に特定できない場合は、Google Mapsを変更する前に不足情報を質問する。
+4. この手順はユーザーがサインイン済みのGoogle Maps状態に依存するため、Chrome/browser-control skillを使う。ブラウザ操作前に専用のGoogle Mapsコネクタを確認し、保存リストを編集できるコネクタがなければブラウザを使う。
+5. 新しいブラウザタブを作る。既存のユーザータブを取得、再利用、移動しない。
+6. たとえば `https://www.google.com/maps/search/<encoded query>?authuser=<authuser>` のように、URLへ設定済みの `authuser` を明示してGoogle Mapsで検索する。
+7. 結果を、渡された名前と住所または地域名に照合する。単に似ている支店や同名店を保存しない。
 
 ## Choose the destination list
 
