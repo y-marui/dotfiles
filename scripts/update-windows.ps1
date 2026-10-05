@@ -24,7 +24,15 @@ $dotfilesDir = Split-Path -Parent $PSScriptRoot
 # 既知の不具合（誤検知等）で全体更新が停止するのを防ぐため、winget upgradeの前に実行する。
 Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\windows\apply_wingetpin.ps1"
 
-Invoke-NativeCommand winget upgrade --all --silent --accept-source-agreements --include-unknown
+# 一部のパッケージだけ失敗した場合（使用中のアプリ等）は 0x8A15002C
+# （UPDATE_ALL_HAS_FAILURES）で終わる。他の更新（Windows Update・npm等）を止めないよう
+# 警告にとどめ、それ以外の失敗は従来どおりエラーにする。
+& winget upgrade --all --silent --accept-source-agreements --include-unknown
+if ($LASTEXITCODE -eq -1978335188) {
+    Write-Warning 'winget upgrade --all: 一部のパッケージの更新に失敗しました（使用中のアプリは閉じて再実行してください。`winget upgrade` で残りを確認できます）'
+} elseif ($LASTEXITCODE -ne 0) {
+    throw "winget failed with exit code $LASTEXITCODE"
+}
 
 # Enable-WURemoting
 Get-WindowsUpdate -Verbose
