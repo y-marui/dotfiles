@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$zellijVersion = '0.44.3'
+$zellijVersion = '0.45.1'
 $target = 'x86_64-pc-windows-msvc'
 $archiveName = "zellij-$target.zip"
 $checksumName = "zellij-$target.sha256sum"

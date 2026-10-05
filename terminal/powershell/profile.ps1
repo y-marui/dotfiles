@@ -28,7 +28,12 @@ if ($_dotfiles_pwsh) {
 
 # ─── Zellij 自動アタッチ ─────────────────────────────────────────────────────
 # Windows Terminal または SSH 接続時のみ起動。NO_ZELLIJ=1 でスキップ。
+# -File / -Command / -NonInteractive で起動したスクリプト実行用のpwsh（`dots update` が
+# gsudo経由で起こす子プロセス等）は、WT_SESSIONを引き継いでいてもattachしない。
+$isScriptHost = @([Environment]::GetCommandLineArgs() | Select-Object -Skip 1 |
+    Where-Object { $_ -match '^-(File|f|Command|c|NonInteractive|noni)' }).Count -gt 0
 if ((Get-Command zellij -ErrorAction SilentlyContinue) -and
+    -not $isScriptHost -and
     -not $env:ZELLIJ -and
     -not $env:NO_ZELLIJ -and
     ($env:WT_SESSION -or $env:SSH_CONNECTION)) {

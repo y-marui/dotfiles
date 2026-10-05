@@ -102,7 +102,7 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
   入力不能を避けるため`attach --create-background`やScheduled Taskによる事前作成は使わない
 - WindowsのPowerShellプロファイルは`$env:SHELL`を`pwsh.exe`にし、専用設定
   `terminal/zellij/windows/config.kdl`でも`default_shell "pwsh.exe"`を明示する
-- Zellijは macOS/Raspberry Pi で`0.45.1`、ネイティブWindowsで`0.44.3`に固定する
+- Zellijは macOS/Raspberry Pi/ネイティブWindows のすべてで`0.45.1`に固定する
 - macOSのiTerm2では、0.44.xでアイドル中の全画面再描画がCSI 2026（同期出力）で囲まれず点滅した
   （#31、0.45.1で解消）。固定版を更新するときは次を確認する:
   - iTerm2の通常シェルは常にZellij内になる（`zellij attach -c ... && exit`のため、デタッチでシェルが

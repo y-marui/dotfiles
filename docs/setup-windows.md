@@ -46,8 +46,8 @@ gsudo cache off
 
 ## Keeping Zellij Running
 
-Windowsではネイティブ対応とWindows固有の修正を含むZellij `0.44.3`を使用する。
-macOS/Raspberry Piで固定している`0.45.1`とは別に管理する。
+WindowsではmacOS/Raspberry Piと同じZellij `0.45.1`の公式Windowsビルドを使用する
+（以前は`0.44.3`。Windows Terminalでの実機確認後に引き上げた）。
 
 `make install`と`dots update`は`scripts/setup-zellij.ps1`を実行し、公式ZIPと
 展開後の`zellij.exe`のSHA-256を検証して`~\.local\bin`へインストールする。
@@ -64,7 +64,8 @@ Zellijで追加するペインも`cmd.exe`ではなく`pwsh.exe`になる。Wind
 `terminal/zellij/windows/config.kdl`でも`default_shell "pwsh.exe"`を明示する。
 
 Windows版`0.44.3`では`attach --create-background`で事前作成したセッションの入力が
-PowerShellとcmd.exeの両方で処理されないことを確認している。そのためScheduled Taskで
+PowerShellとcmd.exeの両方で処理されないことを確認している（`0.45.1`では再検証して
+いないため、この方針を維持する）。そのためScheduled Taskで
 セッションを事前作成せず、必ず実際のTerminalまたはSSH接続から作成する。
 
 Windows Terminalを閉じても、独立したZellijサーバーとその中のプロセスは終了しない。
@@ -73,6 +74,19 @@ Windows Terminalを閉じても、独立したZellijサーバーとその中の�
 Zellijを使わないPowerShellが必要な場合は、Windows Terminalの新しいタブメニューから
 `PowerShell (No Zellij)`を選ぶ。このプロファイルだけ`NO_ZELLIJ=1`を設定するため、
 通常のPowerShell設定は読み込みつつZellijへの自動アタッチをスキップする。
+
+## Nerd Font
+
+Oh My PoshのプロンプトのWindowsロゴ・Gitアイコンは、Nerd Fontが無いと豆腐（□）になる。
+Windowsでは次でMeslo Nerd Fontをユーザーインストールする（macOSのiTerm2と同じMesloLGS系）。
+
+```powershell
+oh-my-posh font install meslo
+```
+
+Windows Terminalのフォント指定は`terminal/windows-terminal/dotfiles.json`のフラグメントが
+PowerShell（既定）と`PowerShell (No Zellij)`の両プロファイルに`MesloLGS Nerd Font Mono`を設定する。
+フォントのインストール後にWindows Terminalを開き直す。
 
 確認コマンド:
 

@@ -4,8 +4,17 @@
       "name": "PowerShell (No Zellij)",
       "commandline": "pwsh.exe",
       "startingDirectory": "%USERPROFILE%",
+      "font": {
+        "face": "MesloLGS Nerd Font Mono"
+      },
       "environment": {
         "NO_ZELLIJ": "1"
+      }
+    },
+    {
+      "updates": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+      "font": {
+        "face": "MesloLGS Nerd Font Mono"
       }
     }
   ]
