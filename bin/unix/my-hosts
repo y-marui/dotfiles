@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# my-hosts: 複数のMacでghq-pull / ghq-update / ghq-sweep / ghq-status / install-my-appsを順に実行する（macOS専用）
+# my-hosts: 複数のホストでghq-pull / ghq-update / ghq-sweep / ghq-status / install-my-appsを順に実行する
+# （実行元はmacOS専用。対象にはmacOSに加え、OpenSSHサーバー+pwshログインシェルのWindowsも宣言できる）
 #
 # 使い方:
 #   my-hosts [status|pull|sweep|update|apps] [options] [-- install-my-appsへの引数]
@@ -13,7 +14,8 @@
 #   apps                install-my-apps のみ（ghq-status は実行しない）。リモートでは --no-gui を付ける
 #                       （終了・起動・ウィジェット編集画面を省く）。実行元自身は通常どおり GUI 付き。
 #                       -- 以降は install-my-apps にそのまま渡す（例: my-hosts apps -- -f MyApp）。
-#                       -f/--filter とは併用できない
+#                       -f/--filter とは併用できない。install-my-apps が未対応のホスト（Windows）は
+#                       exit 64 を返すため、結果表に skip と出して失敗には数えない
 #
 # オプション:
 #   --no-status         ghq-status を実行しない（status サブコマンドとは併用不可。apps では無視）
@@ -38,7 +40,8 @@
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
 #     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む
 #   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（my-hosts は再帰しない）。
-#     BatchMode で接続し、ConnectTimeout は5秒とする
+#     BatchMode で接続し、ConnectTimeout は5秒とする。引数は zsh/bash/pwsh のどれでも
+#     解釈が同じになるよう、シングルクォートで渡す（' を含む値は使えない）
 #   - 接続不能・認証失敗・コマンド失敗は失敗として扱い、残りのホストの処理は続行する。
 #     接続できなかったホストの残りのステップは skip として表示する
 #   - 既定では成功したステップの出力を省略し、失敗したステップと status の出力だけを表示する。
@@ -110,6 +113,18 @@ while [[ $# -gt 0 ]]; do
     *) die "unknown option: $1" ;;
   esac
 done
+
+# 引数に ' を含むとシェルごとにエスケープが異なるため、事前に弾く
+SQ="'"
+for v in "$FILTER" ${APPS_ARGS[@]+"${APPS_ARGS[@]}"}; do
+  [[ "$v" != *"$SQ"* ]] || die "シングルクォート（'）を含む引数は渡せません: ${v}"
+done
+
+# sq VALUE -> zsh/bash/pwsh のどれでも同じ1語になる表記。
+# 安全な文字だけなら素のまま（-f 等のオプションをpwshが文字列扱いしないため）、それ以外はシングルクォートで囲む
+sq() {
+  if [[ "$1" =~ ^[A-Za-z0-9._/=:,@%+-]+$ ]]; then printf '%s' "$1"; else printf "'%s'" "$1"; fi
+}
 
 lower() { printf '%s' "$1" | tr '[:upper:]' '[:lower:]'; }
 trim() {
@@ -217,16 +232,16 @@ for t in ${TARGETS[@]+"${TARGETS[@]}"}; do HOSTS+=("$t"); done
 [[ ${#HOSTS[@]} -gt 0 ]] || die "対象のホストがありません。"
 
 # step_command STEP HOST -> 実行するコマンド行（シェルでそのまま評価できる形）。
-# -f や apps の引数は ssh 先のシェルでも評価されるため、printf %q でクォートして渡す。
+# -f や apps の引数は ssh 先のシェル（zsh/bash/pwsh）でも評価されるため、sq でクォートして渡す。
 step_command() {
   local cmd f='' a
-  [[ -n "$FILTER" ]] && f=" -f $(printf '%q' "$FILTER")"
+  [[ -n "$FILTER" ]] && f=" -f $(sq "$FILTER")"
   case "$1" in
     apps)
       cmd="install-my-apps"
       # リモートはログインしているとは限らないため GUI 操作を省く
       [[ "$2" == "local" ]] || cmd+=" --no-gui"
-      for a in ${APPS_ARGS[@]+"${APPS_ARGS[@]}"}; do cmd+=" $(printf '%q' "$a")"; done ;;
+      for a in ${APPS_ARGS[@]+"${APPS_ARGS[@]}"}; do cmd+=" $(sq "$a")"; done ;;
     pull)   cmd="ghq-pull${f}" ;;
     update) cmd="ghq-update --sync-only${f}" ;;
     sweep)  cmd="ghq-sweep${f}" ;;
@@ -316,7 +331,12 @@ process_host() {
       echo "--- ${step} (exit ${rc})"
       cat "$tmp"
     } >> "$log"
-    if [[ "$rc" -eq 0 ]]; then
+    if [[ "$rc" -eq 64 && "$step" == apps ]]; then
+      # install-my-apps が未対応のホスト（Windows）。失敗ではなく skip として扱う
+      cells+=("skip")
+      echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
+      echo "  [skip] ${step}: このホストでは未対応です（exit 64）"
+    elif [[ "$rc" -eq 0 ]]; then
       # ghq-pull / ghq-sweep 等はスキップや警告を [skip ...] 等のタグ行で出し、終了コードは0のまま。
       # 成功扱いで出力を隠すと見落とすため、タグ行（と直前のリポジトリ見出し）は必ず表示する
       warn_lines=""
