@@ -254,7 +254,7 @@ check "-- rejected outside apps" rc_is 1
 run apps --from alpha --no-status --no-local -H beta
 check "apps ignores --no-status" rc_is 0
 
-section "windows host (:windows) skips fetch steps (#107)"
+section "windows host (:windows) skips fetch steps"
 run pull --from winsk --no-local -j 1
 check "skip is not a failure" rc_is 0
 check "pull not sent to windows host" not_contains "$CALLS_OUT" "winhost ghq-pull"
