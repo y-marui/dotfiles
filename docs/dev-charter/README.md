@@ -107,6 +107,8 @@ jobs:
     uses: y-marui/dev-charter/.github/workflows/check-charter.yml@main
     with:
       branch: lite
+      # Set the repository variable LINUX_RUNNER only in PRIVATE repositories (see CI_POLICY Runner Billing).
+      runner: ${{ vars.LINUX_RUNNER && !github.event.pull_request.head.repo.fork && vars.LINUX_RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: write
       pull-requests: write
@@ -115,8 +117,9 @@ jobs:
   gate:
     name: Dev Charter
     needs: [check]
-    if: always()
-    runs-on: ubuntu-latest
+    # Skip on draft PRs too (a draft can't be merged, so no status is awaited).
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    runs-on: ${{ vars.LINUX_RUNNER && !github.event.pull_request.head.repo.fork && vars.LINUX_RUNNER || 'ubuntu-latest' }}
     steps:
       - name: Verify dev-charter check did not fail
         run: |
@@ -136,8 +139,9 @@ jobs:
 > errors out.
 
 > **Note:** `check` is skipped for Dependabot PRs and draft PRs (see below). `gate`
-> treats a `skipped` result as fine in both cases and always reports a `Dev Charter`
-> status (matching this workflow's own `name:`). Register `Dev Charter` — not `Check /
+> treats a `skipped` result as fine for Dependabot PRs and reports a `Dev Charter`
+> status (matching this workflow's own `name:`); on draft PRs `gate` itself is skipped
+> too (a draft can't be merged, so no status is awaited, and it avoids a billed minute). Register `Dev Charter` — not `Check /
 > check` — as the required status check in Branch Protection (Ruleset); see
 > [CI_POLICY.md's Ruleset section](topics/CI_POLICY.md#branch-protection-ruleset).
 > Registering the `check` job itself is unsafe: when it's skipped, the `Check / check`
