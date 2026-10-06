@@ -76,7 +76,7 @@ EXCEPTIONS=(
   "scripts/test-git-pull-all.sh:TODO: bin/windows/git-pull-all.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/test-ghq-pull-update-sweep.sh:TODO: bin/windows/ghq-pull.ps1・ghq-update.ps1・ghq-sweep.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/test-obsidian-project-home.sh:TODO: bin/windows/obsidian-project-home.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
-  "scripts/test-my-hosts.sh:macOS専用（bin/unix/my-hostsはWindows版を作らない）"
+  "scripts/test-my-hosts.sh:macOS実行元専用（bin/unix/my-hostsはWindows版を作らない）"
   "scripts/test-ghq-keep-up-to-date.sh:TODO: ghq/keep-up-to-date.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/run_quiet_hook.sh:Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
   "scripts/test-run-quiet-hook.sh:run_quiet_hook.shの回帰テスト。フック本体と同じくbash経由で全OS共通実行"

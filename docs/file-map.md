@@ -29,7 +29,8 @@ _最終更新: 2026-10-01_
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリ全件に `git-pull-all` を実行（ロックファイル stash 付き） | `bin/unix/git-pull-all`、`bin/unix/_ghq-lib.sh` |
 | `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行 | `bin/unix/git-sweep` |
-| `bin/unix/my-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`、`install-my-apps`をサブコマンド（`status`/`pull`/`sweep`/`update`/`apps`）に応じてssh経由で実行し、結果表を出す（macOS専用。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `dotfiles-private/hosts/hosts`・`.local`、`ssh`、`scutil`、`install-my-apps`、`scripts/test-my-hosts.sh`（回帰テスト） |
+| `bin/unix/my-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`、`install-my-apps`をサブコマンド（`status`/`pull`/`sweep`/`update`/`apps`）に応じてssh経由で実行し、結果表を出す（実行元はmacOS専用、対象はWindowsも可。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `dotfiles-private/hosts/hosts`・`.local`、`ssh`、`scutil`、`install-my-apps`、`scripts/test-my-hosts.sh`（回帰テスト） |
+| `bin/windows/install-my-apps.ps1` / `.cmd` | `install-my-apps`のWindows側スタブ（何もせず終了コード64を返す。`my-hosts apps`がWindowsの対象を`skip`扱いにする合図。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `bin/unix/my-hosts` |
 | `bin/unix/_ghq-lib.sh` | ghq-pull/ghq-update/ghq-sweep共通関数（ロックファイルstash、`git-pull-all`の呼び出し、自動PRのPR先解決） | `bin/unix/_git-fork-lib.sh`、`bin/unix/git-pull-all`、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/_git-fork-lib.sh` / `bin/windows/_git-fork-lib.ps1` | GitHub標準のfork運用（`upstream` remote）の共通関数（owner/repo解決、`gh repo sync`によるupstream→origin同期）。ghqを前提としないため`git-sweep`からも直接利用する | `upstream` remote |
 | `bin/ghq-upstream-pr-allow` | 自動PR機能がfork元（upstream）へPRしてよい`owner/repo`パターンの許可リスト | `bin/unix/_ghq-lib.sh`、`bin/windows/_ghq-lib.ps1`、`shell/zshrc`（`gh()`） |

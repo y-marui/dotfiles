@@ -32,6 +32,17 @@ if ($_dotfiles_pwsh) {
 # gsudo経由で起こす子プロセス等）は、WT_SESSIONを引き継いでいてもattachしない。
 $isScriptHost = @([Environment]::GetCommandLineArgs() | Select-Object -Skip 1 |
     Where-Object { $_ -match '^-(File|f|Command|c|NonInteractive|noni)' }).Count -gt 0
+# ssh 経由の非対話実行（`my-hosts` 等）は出力コードページが932のままになり、受け側で文字化けするため
+# UTF-8にそろえる。対話セッション（スクリプトホストでないもの）は変えない。
+if ($env:SSH_CONNECTION -and $isScriptHost) {
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $OutputEncoding = [Console]::OutputEncoding
+    # sshd経由のセッションにはConPTYが付くため、git配下のsshがホストキー確認・パスフレーズを
+    # コンソールで待って止まる。非対話では待たずに失敗させ、原因をエラーとして返す。
+    $env:GIT_TERMINAL_PROMPT = "0"
+    if (-not $env:GIT_SSH_COMMAND) { $env:GIT_SSH_COMMAND = "ssh -o BatchMode=yes" }
+}
+
 if ((Get-Command zellij -ErrorAction SilentlyContinue) -and
     -not $isScriptHost -and
     -not $env:ZELLIJ -and
@@ -211,7 +222,8 @@ Set-Alias make mingw32-make
 
 # ─── dotfiles 未コミット・未プッシュ確認 ───────────────────────────────────────
 # $env:DOTFILES_DIR は環境変数または ~\.profile.ps1 で設定しておく
-if ($env:DOTFILES_DIR -and (Test-Path "$env:DOTFILES_DIR/.git")) {
+# 以降の警告表示は、ssh経由の `my-hosts` 等の出力に混ざるためスクリプトホストでは出さない。
+if (-not $isScriptHost -and $env:DOTFILES_DIR -and (Test-Path "$env:DOTFILES_DIR/.git")) {
     $dfMsgs = @()
     if (git -C $env:DOTFILES_DIR status --porcelain 2>$null) {
         $dfMsgs += '未コミットの変更あり'
@@ -226,7 +238,7 @@ if ($env:DOTFILES_DIR -and (Test-Path "$env:DOTFILES_DIR/.git")) {
 # キャッシュは `dots check` の実行時に更新される。
 $dotsCheckDir = if ($env:DOTS_CHECK_CACHE_DIR) { $env:DOTS_CHECK_CACHE_DIR } else { Join-Path $HOME '.cache\dots' }
 $dotsCheckSummary = Join-Path $dotsCheckDir 'check-summary'
-if (Test-Path -LiteralPath $dotsCheckSummary -PathType Leaf) {
+if (-not $isScriptHost -and (Test-Path -LiteralPath $dotsCheckSummary -PathType Leaf)) {
     foreach ($dotsCheckLine in (Get-Content -LiteralPath $dotsCheckSummary -Encoding utf8)) {
         if ($dotsCheckLine) { Write-Host $dotsCheckLine -ForegroundColor Yellow }
     }

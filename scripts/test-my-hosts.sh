@@ -34,6 +34,7 @@ echo "$host $*" >> "$CALLS"
 [[ "$host" == down ]] && { echo "ssh: connect timed out" >&2; exit 255; }
 [[ "$host" == badsweep && "$*" == ghq-sweep ]] && { echo "sweep broke" >&2; exit 1; }
 [[ "$host" == warnhost && "$*" == ghq-pull ]] && { echo "==> /repo/b"; echo "  [skip pull] dirty working tree"; }
+[[ "$host" == winhost && "$*" == install-my-apps* ]] && { echo "install-my-apps は macOS 専用です" >&2; exit 64; }
 [[ "$host" == warngit && "$*" == ghq-sweep ]] && { echo "==> /repo/c"; echo "warning: could not fast-forward x (diverged)." >&2; }
 echo "remote-out $host $*"
 STUB
@@ -50,6 +51,7 @@ mixed:  beta down badsweep gamma
 par:    slow1 slow2
 warn:   warnhost beta
 warng:  warngit
+wins:   winhost beta
 DECL
 
 check() {
@@ -192,8 +194,10 @@ check "removed --no-pull is rejected" rc_is 1
 
 section "filter pass-through"
 run pull -f 'a|b' --from alpha --no-local -H beta
-check "filter passed to ghq-pull (quoted)" [ "$CALLS_OUT" = "beta ghq-pull -f a\\|b
-beta ghq-status -f a\\|b" ]
+check "filter passed to ghq-pull (single-quoted)" [ "$CALLS_OUT" = "beta ghq-pull -f 'a|b'
+beta ghq-status -f 'a|b'" ]
+run pull -f "it's" --from alpha --no-local -H beta
+check "filter with a single quote rejected" rc_is 1
 run update --filter x --from alpha --no-local -H beta --no-status
 check "filter passed to ghq-update" contains "$CALLS_OUT" "beta ghq-update --sync-only -f x"
 run pull -f x --from alpha -H beta
@@ -231,7 +235,15 @@ beta install-my-apps --no-gui" ]
 check "apps summary has no status column" not_contains "$OUT" "status"
 run apps --from alpha -H beta -j 1 -- -f "My App"
 check "apps args forwarded and quoted" [ "$CALLS_OUT" = "local install-my-apps -f My App
-beta install-my-apps --no-gui -f My\\ App" ]
+beta install-my-apps --no-gui -f 'My App'" ]
+run apps --from alpha --no-local -H beta -- "it's"
+check "apps arg with a single quote rejected" rc_is 1
+run apps --from wins --no-local -j 1
+check "apps exit 64 is a skip, not a failure" rc_is 0
+check "apps skip shown" contains "$OUT" "[skip] apps"
+check "other hosts still ran after skip" contains "$CALLS_OUT" "beta install-my-apps --no-gui"
+run pull --from wins --no-local -j 1
+check "non-apps steps unaffected" rc_is 0
 run apps --from alpha --no-local -H beta --dry-run
 check "apps dry-run" contains "$OUT" "beta install-my-apps --no-gui"
 run apps --from alpha -f x

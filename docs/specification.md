@@ -335,10 +335,10 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 | `pull` | `ghq-pull` → `ghq-status` |
 | `sweep` | `ghq-sweep` → `ghq-status`（`ghq-sweep`が全ローカルブランチのpullも行う） |
 | `update` | `ghq-pull` → `ghq-update --sync-only` → `ghq-status` |
-| `apps` | `install-my-apps`のみ（`ghq-status`は実行しない。リモートは`--no-gui`付き。`--`以降は`install-my-apps`へ転送。`-f`とは併用不可） |
+| `apps` | `install-my-apps`のみ（`ghq-status`は実行しない。リモートは`--no-gui`付き。`--`以降は`install-my-apps`へ転送。`-f`とは併用不可。Windowsのリモートは`skip`） |
 
-`-f/--filter`は各`ghq-*`の`-f`へそのまま渡す（sshの先でも評価されるため`printf %q`で
-クォートする）。成功したステップでも`[skip` `[warn` `[conflict` `[failed`のタグ行と
+`-f/--filter`は各`ghq-*`の`-f`へそのまま渡す（sshの先のシェルはzsh/bash/pwshのいずれもありうるため、安全な文字だけの値は素のまま、
+それ以外は`'...'`で囲んで渡す。`'`を含む値は拒否する）。成功したステップでも`[skip` `[warn` `[conflict` `[failed`のタグ行と
 `warning:`で始まる行は表示し、結果表では`ok!`と示す。
 
 回帰テスト:
@@ -525,8 +525,9 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
 
 ## my-hosts
 
-`bin/unix/my-hosts`は、宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`/`ghq-status`/`install-my-apps`を
-ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外）。サブコマンドと
+`bin/unix/my-hosts`は、宣言した他のホストで`ghq-pull`/`ghq-update`/`ghq-sweep`/`ghq-status`/`install-my-apps`を
+ssh経由で実行する。実行元はmacOS専用（`scripts/check-bin-parity.sh`の例外）で、対象にはmacOSに加えて
+Windowsも宣言できる。サブコマンドと
 共通ルールは前節、詳細なオプションは[my-hosts](../bin/unix/my-hosts)冒頭のコメントを参照。
 
 - **対象の宣言**: dotfiles-privateの`hosts/hosts`に、実行元ごとに1行1件で書く
@@ -541,6 +542,15 @@ ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外�
 - **リモート実行**: `ssh -o BatchMode=yes -o ConnectTimeout=5 <host> ghq-pull`のように、
   リモートの`ghq-*`を直接呼ぶ（`my-hosts`は再帰しない）。非対話sshでも`~/.local/bin/dotfiles`が
   PATHに入っていることを前提とする
+- **Windowsを対象にする場合の制限**: OpenSSHサーバーを有効にし、鍵認証（管理者ユーザーなら
+  `administrators_authorized_keys`）とDefaultShellのpwsh（`HKLM:\SOFTWARE\OpenSSH`の`DefaultShell`）を
+  設定すると、`apps`（`skip`）は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
+  ssh経由の非対話実行では出力をUTF-8にそろえ、起動時の警告表示を出さず、gitのsshが入力待ちで
+  止まらないようにする。**`pull`/`sweep`/`update`はGitHubへのfetchが必要で、現時点では未対応**。
+  sshd経由のセッションはネットワーク型ログオンになり、ssh-agentに預けたパスフレーズ付きの鍵で
+  GitHubへ署名できず、`Permission denied (publickey)`で失敗する（`ssh-add -l`で鍵は見える。
+  原因はこの観測からの推定で、Windows側の設定では解消できなかった）。解消するには、agentを使わない
+  非対話用の鍵（パスフレーズ無し）などが必要で、扱いは#107で検討する
 - **失敗の扱い**: 接続不能・認証失敗（鍵ファイルが無い場合を含む）・コマンド失敗はすべて失敗とし、
   残りのホストは続行する。接続できなかったホストの残りのステップは`skip`と表示する。
   終了コードは失敗が1つでもあれば1
@@ -557,11 +567,15 @@ ssh経由で実行する（macOS専用。`scripts/check-bin-parity.sh`の例外�
 - **`apps`**: ログインしているとは限らないリモートでは`install-my-apps --no-gui`を実行する
   （アプリの終了・ウィジェットキャッシュのクリア・起動・ウィジェット編集画面を省く。ウィジェット拡張は
   そのMacで次にアプリを起動したときに登録される）。実行元自身は通常どおりGUI付き。
-  `--`以降の引数は各ホストの`install-my-apps`へ`printf %q`でクォートして転送する
+  `--`以降の引数は各ホストの`install-my-apps`へ上記と同じ規則でクォートして転送する。
+  `bin/windows/install-my-apps.ps1`はスタブで、何もせず専用の終了コード64で終了する。`my-hosts`は
+  `apps`で64が返ると失敗ではなく`skip`（`[skip] apps: このホストでは未対応です`）として扱い、
+  終了コードにも影響させない
 - **`--dry-run`**: 実行内容だけを表示し、sshもコマンドも実行しない
 
 回帰テストは[scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh)（sshと`ghq-*`は偽のコマンドに
-差し替える）。Windows版は作らない。
+差し替える）。Windows版の`my-hosts`（Windowsを実行元にする）は作らない。
+Windowsを対象にした実機のssh動作は自動テストの対象外で、手動で確認する（`apps`のskipは確認済み、`pull`系は上記の制限で失敗する）。
 
 ## ghq-status
 
