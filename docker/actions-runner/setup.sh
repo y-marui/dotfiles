@@ -45,6 +45,11 @@ run() {
   "$@"
 }
 
+# gh の出力から CR を取り除く（WSL から Windows の gh.exe を呼ぶ場合に CRLF が付くため）
+ghc() {
+  gh "$@" | tr -d '\r'
+}
+
 container_name() {
   printf 'ar-%s' "${1#*/}"
 }
@@ -55,7 +60,7 @@ container_exists() {
 
 require_private() {
   local repo="$1" private
-  private="$(gh api "repos/${repo}" --jq .private)" || die "${repo} を取得できません"
+  private="$(ghc api "repos/${repo}" --jq .private)" || die "${repo} を取得できません"
   [[ "${private}" == "true" ]] || die "${repo} は public です。public には runner を登録しません（fork の PR が任意のコードを実行できるため）"
 }
 
@@ -91,7 +96,7 @@ cmd_install() {
       log "+ ${args[*]} -e REG_TOKEN=<token> ${RUNNER_IMAGE}"
       continue
     fi
-    reg="$(gh api -X POST "repos/${repo}/actions/runners/registration-token" --jq .token)"
+    reg="$(ghc api -X POST "repos/${repo}/actions/runners/registration-token" --jq .token)"
     "${args[@]}" -e "REG_TOKEN=${reg}" "${RUNNER_IMAGE}" >/dev/null
     log "登録しました: ${name}（label ${RUNNER_LABEL}）"
   done
@@ -102,7 +107,7 @@ cmd_status() {
   for repo in "$@"; do
     echo "== ${repo}"
     docker ps -a --filter "name=^$(container_name "${repo}")$" --format '  container: {{.Names}} {{.Status}}'
-    gh api "repos/${repo}/actions/runners" \
+    ghc api "repos/${repo}/actions/runners" \
       --jq '.runners[] | "  github: \(.name) \(.status) busy=\(.busy) [\([.labels[].name]|join(","))]"'
   done
 }
@@ -119,7 +124,7 @@ cmd_uninstall() {
       continue
     fi
     if container_exists "${cname}"; then
-      rm="$(gh api -X POST "repos/${repo}/actions/runners/remove-token" --jq .token)"
+      rm="$(ghc api -X POST "repos/${repo}/actions/runners/remove-token" --jq .token)"
       docker exec "${cname}" ./config.sh remove --token "${rm}" || log "GitHub 側の解除に失敗しました（手動で削除してください）"
       docker rm -f "${cname}" >/dev/null
       docker volume rm "${cname}" >/dev/null
