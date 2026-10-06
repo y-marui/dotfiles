@@ -1,11 +1,13 @@
 # self-hosted GitHub Actions runner (Linux) for private repositories.
 # Provides the tools the CI jobs use that a bare Ubuntu image lacks.
 # Build: bash docker/actions-runner/setup.sh build
+ARG SWIFTLINT_VERSION=0.65.1
+FROM ghcr.io/realm/swiftlint:${SWIFTLINT_VERSION} AS swiftlint
+
 FROM ubuntu:24.04
 
 ARG TARGETARCH
 ARG RUNNER_VERSION=2.337.0
-ARG SWIFTLINT_VERSION=0.65.1
 ARG GITLEAKS_VERSION=8.30.1
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -20,7 +22,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl git gnupg jq unzip zip perl build-essential \
-      python3 python3-pip python3-venv nodejs npm shellcheck libegl1 libxkbcommon0 \
+      python3 python3-pip python3-venv python-is-python3 nodejs npm shellcheck libegl1 libxkbcommon0 \
       libicu74 libssl3t64 \
  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -29,15 +31,18 @@ RUN apt-get update \
  && apt-get update && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
-# uv, gitleaks, SwiftLint (Linux binary, so the lint job does not need docker)
+# uv, gitleaks
 RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh \
- && case "${TARGETARCH}" in amd64) GL=x64; SL=amd64;; arm64) GL=arm64; SL=arm64;; *) echo "unsupported arch ${TARGETARCH}" >&2; exit 1;; esac \
+ && case "${TARGETARCH}" in amd64) GL=x64;; arm64) GL=arm64;; *) echo "unsupported arch ${TARGETARCH}" >&2; exit 1;; esac \
  && curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${GL}.tar.gz" \
-      | tar -xz -C /usr/local/bin gitleaks \
- && curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_${SL}.zip" -o /tmp/swiftlint.zip \
- && unzip -q /tmp/swiftlint.zip -d /tmp/swiftlint \
- && install -m 755 "$(find /tmp/swiftlint -type f -name swiftlint | head -1)" /usr/local/bin/swiftlint \
- && rm -rf /tmp/swiftlint /tmp/swiftlint.zip
+      | tar -xz -C /usr/local/bin gitleaks
+
+# SwiftLint needs the Swift runtime libraries (e.g. libsourcekitdInProc.so); take the binary and
+# the libraries from the official image (same Ubuntu base), so the lint job does not need docker.
+COPY --from=swiftlint /usr/bin/swiftlint /usr/local/bin/swiftlint
+COPY --from=swiftlint /usr/lib/*.so /usr/local/lib/swiftlint/
+RUN echo /usr/local/lib/swiftlint > /etc/ld.so.conf.d/swiftlint.conf && ldconfig
+ENV LINUX_SOURCEKIT_LIB_PATH=/usr/local/lib/swiftlint
 
 # Runner binaries live in the image (/opt/runner); the entrypoint copies them into the
 # volume-backed runner directory so registration state survives container re-creation.
