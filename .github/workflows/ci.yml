@@ -14,6 +14,7 @@ jobs:
     name: Security scan (pre-commit)
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ${{ vars.LINUX_RUNNER && !github.event.pull_request.head.repo.fork && vars.LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -27,6 +28,7 @@ jobs:
     needs: [security]
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ${{ vars.LINUX_RUNNER && !github.event.pull_request.head.repo.fork && vars.LINUX_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 5
     permissions: {}
     steps:
       - name: Verify required jobs succeeded
