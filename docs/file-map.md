@@ -94,6 +94,7 @@ private リポジトリの macOS ジョブを手元の Mac で実行する、ネ
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `macos/setup_actions_runner.sh` | `install`/`status`/`uninstall`。private リポジトリだけを受け付け、runner のアーカイブを公式の sha256 と照合し、`~ghrunner/actions-runner/<repo>` に展開して登録、`DEVELOPER_DIR` を固定、`/Library/LaunchDaemons/com.y-marui.actions-runner.<repo>.plist` を作って常駐させる。`--dry-run` で実行内容だけ表示 | `gh`、`sudo`、`launchctl`、runner の公式リリース（`actions/runner`）、`/Applications/Xcode-<version>.app` |
+| `windows/setup_actions_runner.ps1` | macOS 版の Windows 版。`install`/`status`/`uninstall`。private リポジトリだけを受け付け、runner のアーカイブを公式の sha256 と照合し、`C:\actions-runner\<repo>` に展開（ACL を絞る）して、専用ユーザー `ghrunner` の Windows サービスとして登録する（ラベル `windows-sh`、runner 名 `<ホスト名>-<repo>-win`）。`-DryRun` で実行内容だけ表示 | `gh`、`git`、`dotnet`、管理者権限、runner の公式リリース（`actions/runner`） |
 | `docs/self-hosted-runner.md` | 構成・設計判断・Mac の追加手順・デプロイキー・運用・トラブルシューティング | `macos/setup_actions_runner.sh` |
 
 ## Museum Status Refresh (macOS)
