@@ -258,3 +258,28 @@ runner はジョブの開始時に、必要なら自分で更新される。手�
 - 登録トークンは 1 時間で失効する登録専用の値で、ファイルには残さない。`config.sh` の実行中だけ、
   プロセスの引数に載る
 - fork の PR は、`runs-on` の式が常に GitHub-hosted に回す
+
+## Linux runner (Docker)
+
+private リポジトリの Linux ジョブ（`security`・`changes`・`lint`・`gate`・`dev-charter-check` 等）を、
+Docker 上の Linux runner で実行するための構成。GitHub-hosted の Linux も、1 job ごとに分単位で
+切り上げて課金されるため、リポジトリと PR が増えると無料枠を使い切る。self-hosted は無料。
+
+- イメージ・登録スクリプト: `docker/actions-runner/`（`Dockerfile`・`entrypoint.sh`・`setup.sh`）
+- runner は **リポジトリごとに 1 コンテナ**（macOS と同じ理由）。登録状態は Docker volume `ar-<repo>`、
+  pre-commit や uv のキャッシュは共有 volume `ar-cache` に置く
+- CI の `runs-on` は、リポジトリ変数 `LINUX_RUNNER`（値は既定でラベル `linux-sh`）で切り替える。
+  変数を外せば GitHub-hosted に戻る（runner が止まったときのフォールバック）
+- **private リポジトリだけ**に登録する。`setup.sh` は public を拒否する
+- コンテナは非 root で、ホストの docker ソケットはマウントしない。SwiftLint はイメージに入れ、
+  docker を使わない
+- `pull_request_target` で特権トークンを使う job（assign）と、OIDC を使う release job は載せない
+
+~~~sh
+bash docker/actions-runner/setup.sh build
+bash docker/actions-runner/setup.sh install [--dry-run] OWNER/REPO...
+bash docker/actions-runner/setup.sh status OWNER/REPO...
+gh variable set LINUX_RUNNER --body linux-sh -R OWNER/REPO   # runner を登録してから設定する
+~~~
+
+どのホストにどのリポジトリを登録したかは、公開しない台帳（dotfiles-private）で管理する。
