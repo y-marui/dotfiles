@@ -20,11 +20,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # which makes `pip install` (e.g. pre-commit/action) fail for the non-root runner user.
 # PATH: `pip install` as that user puts executables (pre-commit) in ~/.local/bin.
 # Tools used by the CI jobs: git/gh/curl/jq/zip, python (pre-commit hooks), node,
-# shellcheck, and the shared libraries some Python tests load (libegl1 etc.).
+# shellcheck, and the shared libraries Qt/PySide6 tests load (GitHub-hosted images preinstall them).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl git gnupg jq unzip zip perl build-essential \
       python3 python3-pip python3-venv python-is-python3 nodejs npm shellcheck libegl1 libxkbcommon0 \
+      libglib2.0-0t64 libgl1 libopengl0 libfontconfig1 libfreetype6 libdbus-1-3 \
+      libxkbcommon-x11-0 libx11-6 libxcb1 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+      libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libxrender1 libxi6 libsm6 libice6 \
       libicu74 libssl3t64 \
  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
       -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
