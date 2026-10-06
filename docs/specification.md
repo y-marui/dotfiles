@@ -544,9 +544,10 @@ Windowsも宣言できる。サブコマンドと
   PATHに入っていることを前提とする
 - **Windowsを対象にする場合の制限**: OpenSSHサーバーを有効にし、鍵認証（管理者ユーザーなら
   `administrators_authorized_keys`）とDefaultShellのpwsh（`HKLM:\SOFTWARE\OpenSSH`の`DefaultShell`）を
-  設定すると、`apps`（`skip`）は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
+  設定すると、`status`は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
   ssh経由の非対話実行では出力をUTF-8にそろえ、起動時の警告表示を出さず、gitのsshが入力待ちで
   止まらないようにする。**`pull`/`sweep`/`update`はGitHubへのfetchが必要で、現時点では未対応**。
+  `apps`は`install-my-apps`がmacOS専用（Windows側はスタブ）のため、呼ばずに最初から`skip`する。
   宣言で`<ホスト>:windows`と書いたホストでは、これらのステップをsshで実行せず`[skip]`（結果表は`skip`、
   終了コードに影響しない）として通知する。実装（`step_command`）は残してあり、`WINDOWS_SKIP_STEPS`を空にすれば有効化できる。
   sshd経由のセッションはネットワーク型ログオンになり、ssh-agentに預けたパスフレーズ付きの鍵で

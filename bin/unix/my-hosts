@@ -14,8 +14,8 @@
 #   apps                install-my-apps のみ（ghq-status は実行しない）。リモートでは --no-gui を付ける
 #                       （終了・起動・ウィジェット編集画面を省く）。実行元自身は通常どおり GUI 付き。
 #                       -- 以降は install-my-apps にそのまま渡す（例: my-hosts apps -- -f MyApp）。
-#                       -f/--filter とは併用できない。install-my-apps が未対応のホスト（Windows）は
-#                       exit 64 を返すため、結果表に skip と出して失敗には数えない
+#                       -f/--filter とは併用できない。Windows は install-my-apps が macOS 専用の
+#                       ため実行せず、結果表に skip と出して失敗には数えない
 #
 # オプション:
 #   --no-status         ghq-status を実行しない（status サブコマンドとは併用不可。apps では無視）
@@ -40,10 +40,11 @@
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
 #     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む。
 #     Windows のホストには <ホスト>:windows と書く。pull / sweep / update は GitHub 認証が
-#     未対応のため実行せず、結果表に skip と出して失敗には数えない
-#     （status / apps は実行する。対応後は WINDOWS_SKIP_STEPS を空にするだけで有効化できる）
+#     未対応、apps は macOS 専用のため実行せず、結果表に skip と出して失敗には数えない
+#     （status は実行する。GitHub 認証の対応後は WINDOWS_SKIP_STEPS から pull 等を外すだけで有効化できる）
 #   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（my-hosts は再帰しない）。
-#     BatchMode で接続し、ConnectTimeout は5秒とする。引数は zsh/bash/pwsh のどれでも
+#     BatchMode で接続し、ConnectTimeout は5秒とする。ポスト量子鍵交換の警告など
+#     弱い暗号の警告は WarnWeakCrypto=no で抑止する（OpenSSH 10.1以降。古いクライアントでは無効）。引数は zsh/bash/pwsh のどれでも
 #     解釈が同じになるよう、シングルクォートで渡す（' を含む値は使えない）
 #   - 接続不能・認証失敗・コマンド失敗は失敗として扱い、残りのホストの処理は続行する。
 #     接続できなかったホストの残りのステップは skip として表示する
@@ -161,7 +162,17 @@ MATCHED=0
 
 # Windows 対象で実行しないステップ。sshd 経由のセッションでは GitHub への署名ができず
 # fetch 系が失敗する。対応時期は未定。実装（step_command）は残してあり、解消したらここを空にする
-WINDOWS_SKIP_STEPS=(pull update sweep)
+# apps は install-my-apps が macOS 専用で Windows 側はスタブのため、呼ばずに最初から skip する
+WINDOWS_SKIP_STEPS=(pull update sweep apps)
+
+# skip_reason STEP: Windows でステップを skip する理由
+skip_reason() {
+  if [[ "$1" == apps ]]; then
+    echo "install-my-apps は macOS 専用のため Windows では実行しません"
+  else
+    echo "Windows では GitHub 認証が未対応のため実行しません（対応時期は未定）"
+  fi
+}
 
 is_windows() {
   local h
@@ -294,11 +305,11 @@ if [[ "$DRY_RUN" == 1 ]]; then
     for step in "${STEPS[@]}"; do
       cmd="$(step_command "$step" "$host")"
       if skips_step "$host" "$step"; then
-        echo "  would skip: ${step}（Windows では GitHub 認証が未対応のため。対応時期は未定）"
+        echo "  would skip: ${step}（$(skip_reason "$step")）"
       elif [[ "$host" == "local" ]]; then
         echo "  would run: ${cmd}"
       else
-        echo "  would run: ${SSH_CMD} -o BatchMode=yes -o ConnectTimeout=5 ${host} ${cmd}"
+        echo "  would run: ${SSH_CMD} -o BatchMode=yes -o ConnectTimeout=5 -o WarnWeakCrypto=no ${host} ${cmd}"
       fi
     done
   done
@@ -325,7 +336,7 @@ run_step() {
   if [[ "$host" == "local" ]]; then
     bash -c "$cmd" > "$out" 2>&1 || rc=$?
   else
-    "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 "$host" "$cmd" > "$out" 2>&1 || rc=$?
+    "$SSH_CMD" -o BatchMode=yes -o ConnectTimeout=5 -o WarnWeakCrypto=no "$host" "$cmd" > "$out" 2>&1 || rc=$?
   fi
   return "$rc"
 }
@@ -360,7 +371,7 @@ process_host() {
     if skips_step "$host" "$step"; then
       cells+=("skip")
       echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
-      echo "  [skip] ${step}: Windows では GitHub 認証が未対応のため実行しません（対応時期は未定）"
+      echo "  [skip] ${step}: $(skip_reason "$step")"
       echo "--- ${step} (skipped: windows)" >> "$log"
       continue
     fi
