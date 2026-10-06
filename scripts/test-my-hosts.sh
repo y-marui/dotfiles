@@ -52,6 +52,7 @@ par:    slow1 slow2
 warn:   warnhost beta
 warng:  warngit
 wins:   winhost beta
+winsk:  winhost:windows beta
 DECL
 
 check() {
@@ -252,6 +253,24 @@ run pull --from alpha -- -f
 check "-- rejected outside apps" rc_is 1
 run apps --from alpha --no-status --no-local -H beta
 check "apps ignores --no-status" rc_is 0
+
+section "windows host (:windows) skips fetch steps (#107)"
+run pull --from winsk --no-local -j 1
+check "skip is not a failure" rc_is 0
+check "pull not sent to windows host" not_contains "$CALLS_OUT" "winhost ghq-pull"
+check "status still runs on windows host" contains "$CALLS_OUT" "winhost ghq-status"
+check "other hosts still pulled" contains "$CALLS_OUT" "beta ghq-pull"
+check "skip notice names the reason" contains "$OUT" "[skip] pull: Windows では GitHub 認証が未対応"
+for sub in sweep update; do
+  run "$sub" --from winsk --no-local -H winhost
+  check "$sub skipped on windows host" not_contains "$CALLS_OUT" "winhost ghq-$sub"
+  check "$sub skip exits 0" rc_is 0
+done
+run apps --from winsk --no-local -H winhost
+check "apps still runs on windows host" contains "$CALLS_OUT" "winhost install-my-apps --no-gui"
+run pull --from winsk --no-local -H winhost --dry-run
+check "dry-run shows skip" contains "$OUT" "would skip: pull"
+check "-H accepts name without :windows" rc_is 0
 
 section "hosts.local and errors"
 printf 'alpha: extra\n' > "$WORK/private/hosts/hosts.local"

@@ -46,3 +46,25 @@ dotfiles リポジトリの docs/file-map.md を更新してください。
 
 注意: 全ファイルを網羅しなくてよい。未探索ファイルは記載しない。更新時は _最終更新: YYYY-MM-DD_ も更新する。
 ```
+
+## Syncing dev-charter scripts
+
+dev-charter は lite 版を `git subtree` で取り込んでおり、lite は `scripts/check-*.sh` を配布しない。
+`scripts/` のスクリプトは full ブランチからの手動コピーで、`git subtree pull` では更新されない。
+取得・更新の手順の正本は
+[`docs/dev-charter/SECURITY_POLICY.md`](dev-charter/SECURITY_POLICY.md)（lite のまま一部のフックだけ使う場合）。
+
+dev-charter を更新したとき（`chore: update dev-charter to ...`）は、次で full の最新と比較する。
+
+~~~sh
+git fetch dev-charter full
+for f in scripts/check-*.sh; do
+  git diff --no-index --stat <(git show "dev-charter/full:$f" 2>/dev/null) "$f"
+done
+~~~
+
+差分があれば取り込む。意図的な独自差分は、スクリプト内のコメントに理由を残す。現在の独自差分:
+
+- `check-ai-context-reference.sh`: `GEMINI.md` を検査しない（Gemini 設定管理の削除に合わせた除外）
+- `check-markdown-heading-language.sh`: YAML frontmatter を読み飛ばす修正がローカルにだけある
+  （`ai/skills/*/SKILL.md` 対応。dev-charter 側は y-marui/dev-charter#162）

@@ -547,6 +547,8 @@ Windowsも宣言できる。サブコマンドと
   設定すると、`apps`（`skip`）は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
   ssh経由の非対話実行では出力をUTF-8にそろえ、起動時の警告表示を出さず、gitのsshが入力待ちで
   止まらないようにする。**`pull`/`sweep`/`update`はGitHubへのfetchが必要で、現時点では未対応**。
+  宣言で`<ホスト>:windows`と書いたホストでは、これらのステップをsshで実行せず`[skip]`（結果表は`skip`、
+  終了コードに影響しない）として通知する。実装（`step_command`）は残してあり、`WINDOWS_SKIP_STEPS`を空にすれば有効化できる。
   sshd経由のセッションはネットワーク型ログオンになり、ssh-agentに預けたパスフレーズ付きの鍵で
   GitHubへ署名できず、`Permission denied (publickey)`で失敗する（`ssh-add -l`で鍵は見える。
   原因はこの観測からの推定で、Windows側の設定では解消できなかった）。解消するには、agentを使わない
@@ -575,7 +577,7 @@ Windowsも宣言できる。サブコマンドと
 
 回帰テストは[scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh)（sshと`ghq-*`は偽のコマンドに
 差し替える）。Windows版の`my-hosts`（Windowsを実行元にする）は作らない。
-Windowsを対象にした実機のssh動作は自動テストの対象外で、手動で確認する（`apps`のskipは確認済み、`pull`系は上記の制限で失敗する）。
+Windowsを対象にした実機のssh動作は自動テストの対象外で、手動で確認する（`apps`のskipは確認済み、`pull`系は上記の制限により`:windows`宣言でskipする）。
 
 ## ghq-status
 

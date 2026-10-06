@@ -38,7 +38,10 @@
 #   - 対象は dotfiles-private の hosts/hosts で実行元ごとに宣言する。書式は1行1件:
 #       <実行元>: <ホスト> <ホスト> ...
 #     左側は実行元の名前（LocalHostName と大文字小文字を区別せず照合する）、
-#     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む
+#     右側は ssh のホスト名。# 以降はコメント。hosts.local（端末固有の追加分）も読む。
+#     Windows のホストには <ホスト>:windows と書く。pull / sweep / update は GitHub 認証が
+#     未対応（#107）のため実行せず、結果表に skip と出して失敗には数えない
+#     （status / apps は実行する。対応後は WINDOWS_SKIP_STEPS を空にするだけで有効化できる）
 #   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（my-hosts は再帰しない）。
 #     BatchMode で接続し、ConnectTimeout は5秒とする。引数は zsh/bash/pwsh のどれでも
 #     解釈が同じになるよう、シングルクォートで渡す（' を含む値は使えない）
@@ -153,10 +156,37 @@ DECL_FILE="${PRIVATE_DIR}/hosts/hosts"
 [[ -f "$DECL_FILE" ]] || die "宣言ファイルがありません: ${DECL_FILE}（雛形: templates/dotfiles-private/hosts/hosts.example）"
 
 TARGETS=()
+WINDOWS_HOSTS=()
 MATCHED=0
+
+# Windows 対象で実行しないステップ。sshd 経由のセッションでは GitHub への署名ができず
+# fetch 系が失敗する（#107）。実装（step_command）は残してあり、解消したらここを空にする
+WINDOWS_SKIP_STEPS=(pull update sweep)
+
+is_windows() {
+  local h
+  for h in ${WINDOWS_HOSTS[@]+"${WINDOWS_HOSTS[@]}"}; do
+    [[ "$h" == "$1" ]] && return 0
+  done
+  return 1
+}
+
+# skips_step HOST STEP: そのホストでステップを実行せず skip 扱いにするなら 0
+skips_step() {
+  local s
+  is_windows "$1" || return 1
+  for s in ${WINDOWS_SKIP_STEPS[@]+"${WINDOWS_SKIP_STEPS[@]}"}; do
+    [[ "$s" == "$2" ]] && return 0
+  done
+  return 1
+}
 
 add_target() {
   local t="$1" existing
+  if [[ "$t" == *:windows ]]; then
+    t="${t%:windows}"
+    is_windows "$t" || WINDOWS_HOSTS+=("$t")
+  fi
   [[ "$t" =~ ^[A-Za-z0-9._@][A-Za-z0-9._@-]*$ ]] || die "不正なホスト名です: ${t}"
   # "local" は実行元自身を表す内部名。同名のsshホストは区別できないため使えない
   [[ "$(lower "$t")" != local ]] || die "'local' はホスト名として使えません（実行元自身を表す予約名）: ${t}"
@@ -263,7 +293,9 @@ if [[ "$DRY_RUN" == 1 ]]; then
     echo "==> $(host_label "$host")"
     for step in "${STEPS[@]}"; do
       cmd="$(step_command "$step" "$host")"
-      if [[ "$host" == "local" ]]; then
+      if skips_step "$host" "$step"; then
+        echo "  would skip: ${step}（Windows では GitHub 認証が未対応のため。#107）"
+      elif [[ "$host" == "local" ]]; then
         echo "  would run: ${cmd}"
       else
         echo "  would run: ${SSH_CMD} -o BatchMode=yes -o ConnectTimeout=5 ${host} ${cmd}"
@@ -323,6 +355,13 @@ process_host() {
     if [[ "$unreachable" == 1 ]]; then
       cells+=("skip")
       echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
+      continue
+    fi
+    if skips_step "$host" "$step"; then
+      cells+=("skip")
+      echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
+      echo "  [skip] ${step}: Windows では GitHub 認証が未対応のため実行しません（#107 対応中）"
+      echo "--- ${step} (skipped: windows, #107)" >> "$log"
       continue
     fi
     rc=0
