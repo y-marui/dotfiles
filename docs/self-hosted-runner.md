@@ -283,3 +283,78 @@ gh variable set LINUX_RUNNER --body linux-sh -R OWNER/REPO   # runner を登録�
 ~~~
 
 どのホストにどのリポジトリを登録したかは、公開しない台帳（dotfiles-private）で管理する。
+
+## Windows (native)
+
+private リポジトリの Windows ジョブ（`dotnet format`・`dotnet publish`・MSI のビルド等）を、自分の
+Windows PC で実行するためのネイティブ runner。macOS 版と同じ設計で、`windows/setup_actions_runner.ps1` が
+登録・解除する。Linux runner（`docker/actions-runner/`）とは別物で、同じ PC に併存できる。
+
+### Design decisions
+
+| 判断 | 理由 |
+|---|---|
+| Docker ではなくネイティブ | Windows コンテナは Windows ネイティブのコンテナエンジンが要り、WSL2 の Docker（Linux コンテナ）では動かない。ホストとコンテナの OS バージョンを合わせる必要があり、イメージも大きいため、まずネイティブにする |
+| Windows サービス | ログオン不要で常駐する。macOS の LaunchDaemon に相当 |
+| 専用の標準ユーザー（既定 `ghrunner`） | macOS 版と同じ名前。管理者権限なしで動かし、CI のジョブが普段使いのアカウントのファイルに触れないようにする |
+| 展開先は `C:\actions-runner\<repo>` | MAX_PATH を避ける短い絶対パス。継承を切った ACL で、Administrators / SYSTEM / `ghrunner` だけが触れる |
+| ラベルは `windows-sh` | macOS（`macos-sh`）・Linux（`linux-sh`）に揃える。macOS 版との違いはラベルだけ |
+| runner 名は `<ホスト名>-<repo>-win` | 同じ PC の Linux runner（`<ホスト名>-<repo>`）と同名にならないようにする（`--replace` で互いを置き換えてしまうため） |
+| private リポジトリだけに登録 | public では fork の PR が runner 上で任意のコードを実行できる。スクリプトは public を拒否する |
+
+### Bring up
+
+**1. 専用ユーザーを作る**（管理者の PowerShell。パスワードはプロンプトで入力する）:
+
+~~~powershell
+$pw = Read-Host "ghrunner password" -AsSecureString
+New-LocalUser -Name ghrunner -Password $pw -PasswordNeverExpires -UserMayNotChangePassword -Description "GitHub Actions runner"
+Add-LocalGroupMember -SID S-1-5-32-545 -Member ghrunner
+~~~
+
+**2. 前提のツール**: `git` と `dotnet`（SDK）をシステム全体の PATH に入れておく（runner のサービスが見られるように、
+ユーザー単位ではなくマシン単位でインストールする）。
+
+**3. 登録する**（管理者の PowerShell。先に `-DryRun` で内容を確認する）:
+
+~~~powershell
+pwsh windows/setup_actions_runner.ps1 install -DryRun OWNER/REPO
+~~~
+
+~~~powershell
+pwsh windows/setup_actions_runner.ps1 install OWNER/REPO
+~~~
+
+パスワードのプロンプトには、手順 1 で決めた `ghrunner` のパスワードを入力する（サービスのログオンにだけ使い、保存しない）。
+runner が `online` になるまで待つ。
+
+**4. 有効にする**（runner が `online` になってから。private リポジトリだけ）:
+
+~~~sh
+gh variable set WINDOWS_RUNNER --body windows-sh -R OWNER/REPO
+~~~
+
+`ci.yml` が `runs-on: ${{ vars.WINDOWS_RUNNER && !github.event.pull_request.head.repo.fork && vars.WINDOWS_RUNNER || 'windows-latest' }}`
+になっている必要がある（dev-charter の `LINUX_RUNNER` の方式を Windows に広げたもの）。
+
+### Operations
+
+~~~powershell
+pwsh windows/setup_actions_runner.ps1 status OWNER/REPO
+~~~
+
+~~~powershell
+pwsh windows/setup_actions_runner.ps1 uninstall OWNER/REPO
+~~~
+
+- サービスの確認: `Get-Service 'actions.runner.*'`
+- ログ: `C:\actions-runner\<repo>\_diag\`
+- 止めるときは `gh variable delete WINDOWS_RUNNER -R OWNER/REPO` で hosted に戻す
+  （runner が停止していると、ジョブは待機のままになり、hosted には自動で落ちない）
+
+### Security notes
+
+- 登録するのは **private リポジトリだけ**。public には登録しない
+- self-hosted runner は、GitHub-hosted のようにジョブごとにきれいな環境にならない。ジョブの変更が次のジョブに残る
+- CI にシークレットを渡さない。`ghrunner` のホームに鍵を置かない
+- `ghrunner` のパスワードはサービスの設定にだけ使われ、このスクリプトは保存しない

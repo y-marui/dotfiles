@@ -34,6 +34,7 @@ EXCEPTIONS=(
   "macos/sync_dockfile.sh:macOS専用（Dock）"
   "macos/sync_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/setup_actions_runner.sh:macOS専用（LaunchDaemon・self-hosted runner）"
+  "windows/setup_actions_runner.ps1:Windows専用（Windows サービス・self-hosted runner）"
   "docker/actions-runner/setup.sh:Docker 上の Linux runner（Windows ホストでは Git Bash/WSL で実行する）"
   "docker/actions-runner/entrypoint.sh:コンテナ内（Linux）でのみ実行する"
   "macos/setup_dots_check_launchagent.sh:macOS専用（LaunchAgent）"
