@@ -10,8 +10,11 @@ ARG GITLEAKS_VERSION=8.30.1
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_TOOL_CACHE=/runner/.cache/toolcache \
-    AGENT_TOOLSDIRECTORY=/runner/.cache/toolcache
+    AGENT_TOOLSDIRECTORY=/runner/.cache/toolcache \
+    PIP_BREAK_SYSTEM_PACKAGES=1
 
+# PIP_BREAK_SYSTEM_PACKAGES: Ubuntu 24.04 marks system python as externally managed (PEP 668),
+# which makes `pip install` (e.g. pre-commit/action) fail for the non-root runner user.
 # Tools used by the CI jobs: git/gh/curl/jq/zip, python (pre-commit hooks), node,
 # shellcheck, and the shared libraries some Python tests load (libegl1 etc.).
 RUN apt-get update \
