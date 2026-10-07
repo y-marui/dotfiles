@@ -1,0 +1,28 @@
+# App Store Connect でアプリを登録するときの、共通の入力値
+# 新しいアプリの登録を AI が代行するときに参照する。App Review の連絡先、サポート窓口、
+# 著作権の表記、サポート・プライバシーポリシーの URL の規則を保持する
+# 個人情報を含むため dotfiles-private で管理する。パスワード・トークンは書かない
+
+# 「App Review に関する情報」の連絡先（審査チームだけが見る。App Store には表示されない）
+app_review_contact:
+  last_name: Example
+  first_name: Taro
+  phone: "+81-00-0000-0000"
+  email: review-contact@example.com
+
+# 「サインインが必要です」は、アプリにサインインがなければ外す
+app_review_sign_in_required: false
+
+# サポート窓口（App Store に公開される）
+support:
+  email: support@example.com
+  # {app_slug} は製品ページのディレクトリ名（例: stick-mark）
+  support_url_template: https://example.github.io/site/products/{app_slug}/
+  privacy_policy_url_template: https://example.github.io/site/products/{app_slug}/privacy/
+  # 製品ページを置くリポジトリ。products/{app_slug}/index.md と privacy.md を追加し、PR でマージする
+  site_repository: example/site
+
+# 「著作権」の欄。「©」は付けない（App Store が表示時に付ける）
+copyright:
+  holder: Example Taro
+  format: "{year} {holder}"

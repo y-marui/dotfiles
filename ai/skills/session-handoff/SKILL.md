@@ -45,12 +45,13 @@ Project Homeは、解決済みの対応付けがあり、Current state・Open qu
 - プロジェクトdocsの編集は通常の編集操作として行う。
 - `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`（dotfiles管理）の編集も通常の編集操作として行うが、dotfilesリポジトリへのcommit・pushはユーザーの明示的な指示があるときのみ行う。
 - GitHub Issueの新規作成・更新、対象プロジェクト側のcommit・pushはそれぞれ影響を確認し、ユーザーの承認を得てから行う。
+- Project Home（Obsidian vault内のファイル）の編集は通常の編集操作として行う。そのvaultリポジトリへのcommit・pushは、このskillでは行わず、ユーザーが明示的に呼び出す`session-finish`で行う（`session-finish`はProject Homeのcommit・pushを承認範囲に含む）。
 - 今回の作業の一時的な状態や進行中のタスク詳細はmemoryに書かない。
 
 ## Step 4: Git lifecycle
 
-このskillはcommit・push・merge・ブランチ整理を実行しない。これらを含めて一度に終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。
+このskillはcommit・push・merge・ブランチ整理を実行しない。これらを含めて一度に終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。Project Homeを更新した場合も、そのvaultリポジトリのcommit・pushは`session-finish`で行える。
 
 ## Completion report
 
-完了・保留した項目、どこに何を記録したか（リポジトリdocs／Obsidian Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開時に見るべき場所（ブランチ・ファイル・Issue番号）を簡潔に報告する。未コミットの変更が残る場合は、その旨と`session-finish`で終えられることを示す。未解決のまま残った項目は隠さず明示する。
+完了・保留した項目、どこに何を記録したか（リポジトリdocs／Obsidian Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開時に見るべき場所（ブランチ・ファイル・Issue番号）を簡潔に報告する。未コミットの変更（Project Homeを更新した場合は、そのvaultリポジトリの変更を含む）が残る場合は、その旨と`session-finish`で終えられることを示す。未解決のまま残った項目は隠さず明示する。

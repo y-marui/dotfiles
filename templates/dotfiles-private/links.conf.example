@@ -14,6 +14,7 @@ all|identity/google-maps-account.yaml|.identity/google-maps-account.yaml
 all|identity/weather-location.yaml|.identity/weather-location.yaml
 all|identity/claude-in-chrome-browsers.yaml|.identity/claude-in-chrome-browsers.yaml
 all|identity/morning-brief-calendars.yaml|.identity/morning-brief-calendars.yaml
+all|identity/app-store-connect.yaml|.identity/app-store-connect.yaml
 all|ai/claude/claude-perms.json|.claude/claude-perms.json
 all|shell/profile.private|.profile.private
 unix|labpc|.config/labpc

@@ -1,4 +1,4 @@
 interface:
   display_name: "作業セッション終了"
-  short_description: "引き継ぎ整理からcommit・push・branch整理まで一度に終える"
-  default_prompt: "Use $session-finish to finish this work session: run session-handoff, commit and push this session's changes, then run git-sweep --all if it is safe."
+  short_description: "引き継ぎ整理からcommit・push（Project Home含む）・branch整理まで一度に終える"
+  default_prompt: "Use $session-finish to finish this work session: run session-handoff, commit and push this session's changes (including the updated Obsidian Project Home), then run git-sweep --all if it is safe."

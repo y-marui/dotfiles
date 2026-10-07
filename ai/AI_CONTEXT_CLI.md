@@ -193,6 +193,14 @@ GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles
 プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
 `make private` を実行済みであればファイルが存在する。
 
+## App Store Connect Registration
+
+新しいアプリの登録や、バージョンの提出準備で App Store Connect に入力するときは、
+`~/.identity/app-store-connect.yaml`（dotfiles-private で管理）の値を使う。App Review の連絡先、
+サポート窓口、著作権の表記、サポート・プライバシーポリシー URL の規則が入っている。
+値は個人情報なので、ユーザーが依頼した App Store Connect の入力以外に使わず、チャットや
+リポジトリに複写しない。ファイルがない、または値が足りない場合は、推測せずユーザーに確認する。
+
 ## Commit Messages
 
 Conventional Commits 形式:
