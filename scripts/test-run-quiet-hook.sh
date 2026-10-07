@@ -7,6 +7,14 @@ set -euo pipefail
 HOOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_quiet_hook.sh"
 FAILURES=0
 
+# hook は run-quiet が PATH にあるときだけ書き換えるため、テスト用のスタブを PATH に置く
+STUB_DIR="$(mktemp -d)"
+trap 'rm -rf "${STUB_DIR}"' EXIT
+printf '#!/bin/sh
+' > "${STUB_DIR}/run-quiet"
+chmod +x "${STUB_DIR}/run-quiet"
+export PATH="${STUB_DIR}:${PATH}"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "skip: jq が見つかりません" >&2
   exit 0

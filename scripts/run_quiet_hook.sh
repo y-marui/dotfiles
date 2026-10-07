@@ -9,6 +9,12 @@ set -euo pipefail
 # （cat > file <<'EOF' ... EOF のような、ファイルや標準入力へ渡すデータ）は書き換えない。
 # 本文の行頭にある `git commit` 等まで書き換えると、書き出すファイルの中身が壊れるため。
 
+# run-quiet が PATH に無い環境（Windows の Git Bash 等）で書き換えると、
+# `run-quiet: command not found` でコマンドが失敗するため、何もせず素通しする。
+if ! command -v run-quiet >/dev/null 2>&1; then
+  exit 0
+fi
+
 input=$(cat)
 cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty')
 
