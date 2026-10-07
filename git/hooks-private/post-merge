@@ -4,8 +4,9 @@ set -euo pipefail
 # dockutil がなければスキップ
 command -v dockutil &>/dev/null || exit 0
 
-PRIVATE_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-DOTFILES_DIR="${PRIVATE_DIR%-private}"
+# dotfiles の場所はこのフックの位置（git/hooks-private/）から解決する。
+# リポジトリのパスから導出すると、worktree など別パスにある private repo で壊れる。
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # dock-cache を更新
 bash "${DOTFILES_DIR}/macos/update_dockcache.sh" 2>/dev/null || true
