@@ -2,8 +2,9 @@
 set -euo pipefail
 
 # 1. グローバルの pre-commit を実行（identity + security チェック）
-PRIVATE_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-DOTFILES_DIR="${PRIVATE_DIR%-private}"
+# dotfiles の場所はこのフックの位置（git/hooks-private/）から解決する。
+# リポジトリのパスから導出すると、worktree など別パスにある private repo で壊れる。
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 bash "${DOTFILES_DIR}/git/hooks/pre-commit"
 
 # 2. dock-cache を更新
