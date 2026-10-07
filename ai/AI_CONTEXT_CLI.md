@@ -101,6 +101,9 @@ PR を開いた後の push ごとに CI が走る。高額ランナー（macOS �
 - レビュー指摘への対応は、複数のコミットをまとめてから push する（指摘ごとに push しない）
 - 自動レビュー（`@codex review`、`@copilot review`）は draft の PR でも動くため、依頼のためだけに
   ready にしない
+- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わない。self-hosted runner の
+  共有キャッシュ（`/runner/.cache/pre-commit`）で競合し、pre-commit が `Text file busy` 等で
+  失敗する（37 PR 中 11 件で発生。1 つずつ再実行すると通る）。数個ずつ時間をずらして ready にする
 
 詳細は dev-charter の `topics/CI_POLICY-full.md`（Draft PRs・Runner Billing）を参照する。
 
@@ -243,9 +246,11 @@ zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、�
 ## Overwriting Files in zsh
 
 この環境の zsh は `noclobber` が有効で、`cat > file` や `echo > file` は既存ファイルの
-上書きに失敗する。既存ファイルの更新は Write/Edit ツールで行い、シェルでは
-`>|` を使う。失敗した heredoc 書き込みは、その後の処理が古い内容のまま
-進みやすいため、書き込み後に内容を確認する。
+上書きに失敗する。`>>` で存在しないファイルを新規作成する場合も失敗する。ログ用ファイルへの
+`2>> log` や `2> log` のリダイレクトが失敗すると、コマンド自体が実行されず、ループが何もせずに
+終わることがある。ログは先に `: >| file` で作ってから使う。既存ファイルの更新は
+Write/Edit ツールで行い、シェルでは `>|` を使う。失敗した heredoc 書き込みは、その後の処理が
+古い内容のまま進みやすいため、書き込み後に内容を確認する。
 
 ## Interactive Prompts and Auto-ls in zsh
 

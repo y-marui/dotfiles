@@ -1,1 +1,10 @@
 ai/claude/settings.json filter=jsonsort
+
+# シェルスクリプトは Windows のチェックアウト（core.autocrlf=true）でも LF に固定する。
+# CRLF だと ShellCheck（SC1017）・WSL からの実行（$'\r': command not found）・ヒアドキュメントが壊れる。
+*.sh text eol=lf
+bin/unix/* text eol=lf
+git/hooks/* text eol=lf
+git/hooks-private/* text eol=lf
+Dockerfile text eol=lf
+git/hooks-dotfiles/* text eol=lf

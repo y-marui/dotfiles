@@ -544,15 +544,20 @@ Windowsも宣言できる。サブコマンドと
   PATHに入っていることを前提とする
 - **Windowsを対象にする場合の制限**: OpenSSHサーバーを有効にし、鍵認証（管理者ユーザーなら
   `administrators_authorized_keys`）とDefaultShellのpwsh（`HKLM:\SOFTWARE\OpenSSH`の`DefaultShell`）を
-  設定すると、`apps`（`skip`）は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
+  設定すると、`status`は実行できる（`status`はネットワークを使わないため動く見込みだが未確認）。pwshのprofileが`~/.local/bin/dotfiles`をPATHに入れ、
   ssh経由の非対話実行では出力をUTF-8にそろえ、起動時の警告表示を出さず、gitのsshが入力待ちで
   止まらないようにする。**`pull`/`sweep`/`update`はGitHubへのfetchが必要で、現時点では未対応**。
+  `apps`は`install-my-apps`がmacOS専用（Windows側はスタブ）のため、呼ばずに最初から`skip`する。
   宣言で`<ホスト>:windows`と書いたホストでは、これらのステップをsshで実行せず`[skip]`（結果表は`skip`、
   終了コードに影響しない）として通知する。実装（`step_command`）は残してあり、`WINDOWS_SKIP_STEPS`を空にすれば有効化できる。
   sshd経由のセッションはネットワーク型ログオンになり、ssh-agentに預けたパスフレーズ付きの鍵で
   GitHubへ署名できず、`Permission denied (publickey)`で失敗する（`ssh-add -l`で鍵は見える。
   原因はこの観測からの推定で、Windows側の設定では解消できなかった）。解消するには、agentを使わない
   非対話用の鍵（パスフレーズ無し）などが必要で、対応時期は未定（Windows側の更新待ち）
+- **sshの警告抑止**: リモート接続には`-o WarnWeakCrypto=no`を付け、サーバーがポスト量子鍵交換に
+  未対応であることの警告（OpenSSH 10.1以降のクライアントが出す）を表示しない。Windows同梱の
+  OpenSSH（9.5p2）は未対応で、`winget`の`Microsoft.OpenSSH.Preview`（10.0）なら対応する見込みだが、
+  sshdを置き換えるため未検証。正式リリースを待って更新する
 - **失敗の扱い**: 接続不能・認証失敗（鍵ファイルが無い場合を含む）・コマンド失敗はすべて失敗とし、
   残りのホストは続行する。接続できなかったホストの残りのステップは`skip`と表示する。
   終了コードは失敗が1つでもあれば1

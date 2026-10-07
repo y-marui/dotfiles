@@ -21,6 +21,14 @@ $Links = @(
         Dest = Join-Path $HOME ".local\bin\dotfiles"
     }
     [pscustomobject]@{
+        # Git Bash（Claude Code の Bash ツール）用の bash 版 run-quiet。PreToolUse hook が
+        # `git commit` 等を run-quiet 付きに書き換えるため要る。~/bin は Git Bash が既定で
+        # PATH に入れ、Windows の PATH には入らないので、PowerShell/cmd の run-quiet.cmd と
+        # 競合しない（~/.local/bin に置くと、拡張子なしの run-quiet が .cmd より優先されうる）。
+        Src  = "bin\unix\run-quiet"
+        Dest = Join-Path $HOME "bin\run-quiet"
+    }
+    [pscustomobject]@{
         Src  = "terminal\powershell\profile.ps1"
         # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
         Dest = $PROFILE.CurrentUserCurrentHost

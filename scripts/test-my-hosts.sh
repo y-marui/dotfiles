@@ -69,7 +69,7 @@ rc_is() { [[ "$RC" -eq "$1" ]]; }
 section "dry-run"
 run --from alpha --dry-run
 check "exit 0" rc_is 0
-check "lists remote command" contains "$OUT" "BatchMode=yes -o ConnectTimeout=5 beta ghq-sweep"
+check "lists remote command" contains "$OUT" "BatchMode=yes -o ConnectTimeout=5 -o WarnWeakCrypto=no beta ghq-sweep"
 check "lists local command" contains "$OUT" "would run: ghq-sweep"
 check "nothing executed" test ! -s "$CALLS"
 
@@ -254,7 +254,7 @@ check "-- rejected outside apps" rc_is 1
 run apps --from alpha --no-status --no-local -H beta
 check "apps ignores --no-status" rc_is 0
 
-section "windows host (:windows) skips fetch steps"
+section "windows host (:windows) skips fetch and apps steps"
 run pull --from winsk --no-local -j 1
 check "skip is not a failure" rc_is 0
 check "pull not sent to windows host" not_contains "$CALLS_OUT" "winhost ghq-pull"
@@ -267,7 +267,9 @@ for sub in sweep update; do
   check "$sub skip exits 0" rc_is 0
 done
 run apps --from winsk --no-local -H winhost
-check "apps still runs on windows host" contains "$CALLS_OUT" "winhost install-my-apps --no-gui"
+check "apps not sent to windows host" not_contains "$CALLS_OUT" "winhost install-my-apps"
+check "apps skip exits 0" rc_is 0
+check "apps skip notice names the reason" contains "$OUT" "[skip] apps: install-my-apps は macOS 専用"
 run pull --from winsk --no-local -H winhost --dry-run
 check "dry-run shows skip" contains "$OUT" "would skip: pull"
 check "-H accepts name without :windows" rc_is 0

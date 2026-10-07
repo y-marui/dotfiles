@@ -7,6 +7,14 @@ set -euo pipefail
 HOOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run_quiet_hook.sh"
 FAILURES=0
 
+# hook は run-quiet が PATH にあるときだけ書き換えるため、テスト用のスタブを PATH に置く
+STUB_DIR="$(mktemp -d)"
+trap 'rm -rf "${STUB_DIR}"' EXIT
+printf '#!/bin/sh
+' > "${STUB_DIR}/run-quiet"
+chmod +x "${STUB_DIR}/run-quiet"
+export PATH="${STUB_DIR}:${PATH}"
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "skip: jq が見つかりません" >&2
   exit 0
@@ -19,7 +27,7 @@ check() {
 
 # run_hook COMMAND: hook の標準出力（書き換え後の command。書き換えなしなら空）を OUT に入れる
 run_hook() {
-  OUT="$(jq -n --arg c "$1" '{tool_input: {command: $c}}' | "${HOOK_BASH:-bash}" "$HOOK" | jq -r '.hookSpecificOutput.updatedInput.command // empty')"
+  OUT="$(jq -n --arg c "$1" '{tool_input: {command: $c}}' | "${HOOK_BASH:-bash}" "$HOOK" | jq -rb '.hookSpecificOutput.updatedInput.command // empty')"
 }
 unchanged() { [[ -z "$OUT" ]]; }
 equals() { [[ "$OUT" == "$1" ]]; }
