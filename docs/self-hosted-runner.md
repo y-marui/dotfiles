@@ -265,7 +265,8 @@ private リポジトリの Linux ジョブ（`security`・`changes`・`lint`・`
 Docker 上の Linux runner で実行するための構成。GitHub-hosted の Linux も、1 job ごとに分単位で
 切り上げて課金されるため、リポジトリと PR が増えると無料枠を使い切る。self-hosted は無料。
 
-- イメージ・登録スクリプト: `docker/actions-runner/`（`Dockerfile`・`entrypoint.sh`・`setup.sh`）
+- イメージ・登録スクリプト: [y-marui/docker-github-actions-runner](https://github.com/y-marui/docker-github-actions-runner) が正本。イメージは GHCR
+  （`ghcr.io/y-marui/actions-runner`、amd64 / arm64）に公開され、ホストでは `pull` して使う
 - runner は **リポジトリごとに 1 コンテナ**（macOS と同じ理由）。登録状態は Docker volume `ar-<repo>`、
   pre-commit や uv のキャッシュは共有 volume `ar-cache` に置く
 - CI の `runs-on` は、リポジトリ変数 `LINUX_RUNNER`（値は既定でラベル `linux-sh`）で切り替える。
@@ -276,9 +277,10 @@ Docker 上の Linux runner で実行するための構成。GitHub-hosted の Li
 - `pull_request_target` で特権トークンを使う job（assign）と、OIDC を使う release job は載せない
 
 ~~~sh
-bash docker/actions-runner/setup.sh build
-bash docker/actions-runner/setup.sh install [--dry-run] OWNER/REPO...
-bash docker/actions-runner/setup.sh status OWNER/REPO...
+# docker-github-actions-runner を clone したディレクトリで実行する
+bash setup.sh pull
+bash setup.sh install [--dry-run] OWNER/REPO...
+bash setup.sh status OWNER/REPO...
 gh variable set LINUX_RUNNER --body linux-sh -R OWNER/REPO   # runner を登録してから設定する
 ~~~
 
@@ -288,7 +290,7 @@ gh variable set LINUX_RUNNER --body linux-sh -R OWNER/REPO   # runner を登録�
 
 private リポジトリの Windows ジョブ（`dotnet format`・`dotnet publish`・MSI のビルド等）を、自分の
 Windows PC で実行するためのネイティブ runner。macOS 版と同じ設計で、`windows/setup_actions_runner.ps1` が
-登録・解除する。Linux runner（`docker/actions-runner/`）とは別物で、同じ PC に併存できる。
+登録・解除する。Linux runner（docker-github-actions-runner）とは別物で、同じ PC に併存できる。
 
 ### Design decisions
 
