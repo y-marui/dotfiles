@@ -41,6 +41,11 @@
   「Browser N」の番号は接続順で変わるため頼らない。ファイルがない、または照合できない場合は
   推測せず、ユーザーに確認する。この対応表は Claude in Chrome 固有で、他のエージェントの
   ブラウザ接続には使えない。
+- Chrome ウェブストアのデベロッパーダッシュボード（`chrome.google.com/webstore`）は、Claude in
+  Chrome 拡張機能からは読み取りも操作もできない（`The extensions gallery cannot be scripted`）。
+  Computer Use のブラウザ権限も「read」（画面を見るだけ）に限られるため、このサイトでは入力・遷移・
+  スクロールをユーザーに依頼し、表示された画面を `app_screenshot` で読み取って確認する。
+  AMO（`addons.mozilla.org`）は拡張機能から読み取り・遷移できる。
 
 ## Changes and Verification
 
