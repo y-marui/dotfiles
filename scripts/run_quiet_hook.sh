@@ -16,7 +16,8 @@ if ! command -v run-quiet >/dev/null 2>&1; then
 fi
 
 input=$(cat)
-cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty')
+# Windows 版の jq は -r の出力を CRLF にする（複数行のコマンドが壊れる）ため、-b（--binary）で LF のままにする。他 OS では無効。
+cmd=$(printf '%s' "$input" | jq -rb '.tool_input.command // empty')
 
 if [ -z "$cmd" ]; then
   exit 0

@@ -27,7 +27,7 @@ check() {
 
 # run_hook COMMAND: hook の標準出力（書き換え後の command。書き換えなしなら空）を OUT に入れる
 run_hook() {
-  OUT="$(jq -n --arg c "$1" '{tool_input: {command: $c}}' | "${HOOK_BASH:-bash}" "$HOOK" | jq -r '.hookSpecificOutput.updatedInput.command // empty')"
+  OUT="$(jq -n --arg c "$1" '{tool_input: {command: $c}}' | "${HOOK_BASH:-bash}" "$HOOK" | jq -rb '.hookSpecificOutput.updatedInput.command // empty')"
 }
 unchanged() { [[ -z "$OUT" ]]; }
 equals() { [[ "$OUT" == "$1" ]]; }
