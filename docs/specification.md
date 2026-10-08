@@ -61,6 +61,14 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 - zsh起動時はキャッシュを読み取るだけで、チェック処理を同期実行しない
 - macOSでは、`/etc/pam.d/sudo` が `sudo_local` を読み込み、
   `/etc/pam.d/sudo_local` で `auth sufficient pam_tid.so` が有効になっていることを検査する
+- `gh`の認証状態を検査する（`gh`がある環境のみ）。ログインしていない、トークンが失効している、
+  トークンに`workflow`スコープがない、macOSでトークンが`hosts.yml`に平文保存されている
+  （キーチェーン保存でない）場合に警告する。ネットワーク不通など原因を判別できない失敗は
+  誤検知を避けるため警告しない。macOSのSSHセッション（Windowsではsshd経由のセッション）は
+  資格情報ストアを読めず必ず失敗するため検査しない。`--verbose`では、検査できた場合は
+  `gh auth: ok`、`gh`未インストール・SSHセッション・原因不明の失敗でスキップした場合は
+  `gh auth: skipped (理由)`と区別して表示する。Windows版（`dots.ps1`）も同じ検査を行う
+  （Windowsの平文保存検査は`%AppData%\GitHub CLI\hosts.yml`を対象とする）
 - 自動修復は行わない。詳細確認と手動再実行には`dots check`を使う
 - `make uninstall`は確認後にLaunchAgentを解除してから管理リンクを削除する
 

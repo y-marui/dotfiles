@@ -66,7 +66,7 @@ _最終更新: 2026-10-01_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex の一括操作。`check`（非verbose）はmacOSの sudo Touch IDを含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
+| `bin/unix/dots` | 個別エージェント操作と `dots ai` による Claude Code・Codex の一括操作。`check`（非verbose）はmacOSの sudo Touch IDや`gh`の認証状態（失効・未ログイン・workflowスコープ欠落・macOSでのhosts.yml平文保存）を含む環境差分を検査し、結果キャッシュ（`~/.cache/dots/{check-summary,check-state,check-digest}`）も実行の都度書き込む | `ai/{claude,codex}/{mcp,plugin}/`、`ai/skills/`、`/etc/pam.d/sudo{,_local}`、`~/.cache/dots/` |
 | `bin/windows/dots.ps1`（`Invoke-AiAgent`） | Windows版の `dots {ai|claude|codex|copilot}`。同名の `ai/**/{apply,diff,prune}.ps1` を子プロセスで実行する | `ai/**/*.ps1`、`ai/_common.ps1` |
 | `ai/_common.ps1` | `ai/` 配下の `*.ps1` が dot source する共通関数（JSON読込、集合演算、外部コマンド実行、バックアップ退避、skill のリンク判定）。想定外のエラーは終了コード2で終え、diffの「差分あり」（1）と区別する | — |
 | `ai/{claude,codex}/{mcp,plugin}/*.ps1`、`ai/copilot/mcp/*.ps1`、`ai/skills/*.ps1` | 各 `*.sh` のPowerShell移植（pythonの代わりに `ConvertFrom-Json -AsHashtable`）。codex の plugin は `codex app-server` と標準入出力のJSON-RPCで通信する | 各エージェントのCLI、`ai/_common.ps1` |
@@ -83,7 +83,7 @@ _最終更新: 2026-10-01_
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |
-| `bin/windows/dots.ps1`（`Get-CheckSummary`・`Invoke-CheckVerbose`・`Write-CheckCache`）、`terminal/powershell/profile.ps1` | Windows版の`dots check`。リンク・backup蓄積・Git状態・winget・ghq・AI（claude・codex・copilot）の要約を同じ書式で出し、同じキャッシュへ書く。profileがキャッシュをシェル起動時に表示する。LaunchAgent相当の定期実行・通知とmacOS固有項目（brew・dock・shortcuts・sudo Touch ID）は対象外 | `~/.cache/dots/check-summary`、`ai/**/*.ps1` |
+| `bin/windows/dots.ps1`（`Get-CheckSummary`・`Invoke-CheckVerbose`・`Write-CheckCache`）、`terminal/powershell/profile.ps1` | Windows版の`dots check`。リンク・backup蓄積・`gh`の認証状態・Git状態・winget・ghq・AI（claude・codex・copilot）の要約を同じ書式で出し、同じキャッシュへ書く。profileがキャッシュをシェル起動時に表示する。LaunchAgent相当の定期実行・通知とmacOS固有項目（brew・dock・shortcuts・sudo Touch ID）は対象外 | `~/.cache/dots/check-summary`、`ai/**/*.ps1` |
 
 ## Self-hosted Runner (macOS)
 

@@ -408,6 +408,66 @@ fi
 run_dots shortcuts prune --yes
 check "shortcuts prune は --yes を受け付けない" eq "$RC" 1
 
+# ── dots check: gh のログイン状態（_check_gh_auth_summary） ────────────────────
+section "dots check の gh 認証検査"
+GH_STUBS="$WORK/gh-stubs"
+mkdir -p "$GH_STUBS" "$HOME/.config/gh"
+cat > "$GH_STUBS/gh" <<'STUB'
+#!/usr/bin/env bash
+cat "$STATE/gh-out"
+exit "$(cat "$STATE/gh-rc")"
+STUB
+cat > "$GH_STUBS/uname" <<'STUB'
+#!/usr/bin/env bash
+cat "$STATE/uname"
+STUB
+chmod +x "$GH_STUBS/gh" "$GH_STUBS/uname"
+unset SSH_CONNECTION  # SSH 越しに実行しても各ケースの結果が変わらないようにする
+GH_FUNC="$(sed -n '/^_check_gh_auth_summary() {/,/^}/p' "$REPO/bin/unix/dots")"
+
+# run_gh_check RC OUTPUT [UNAME]: スタブの gh（終了コード・出力）と uname を設定して関数を実行する
+run_gh_check() {
+  printf '%s\n' "$2" > "$STATE/gh-out"
+  printf '%s\n' "$1" > "$STATE/gh-rc"
+  printf '%s\n' "${3:-Darwin}" > "$STATE/uname"
+  RC=0
+  OUT="$(PATH="$GH_STUBS:$PATH" bash -c 'eval "$1"; _check_gh_auth_summary; rc=$?; printf "%s\n" "state=${GH_AUTH_STATE}" >&2; exit "$rc"' _ "$GH_FUNC" 2>"$STATE/gh-state")" || RC=$?
+  GH_STATE="$(cat "$STATE/gh-state")"
+}
+rm -f "$HOME/.config/gh/hosts.yml"
+
+run_gh_check 0 "  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'"
+check "有効で workflow スコープあり: 警告なし" eq "$RC$OUT" "0"
+check "有効なら state=ok" eq "$GH_STATE" "state=ok"
+
+run_gh_check 0 "  - Token scopes: 'gist', 'read:org', 'repo'"
+check "workflow スコープなし: 警告" contains "$OUT" "workflow スコープがありません"
+check "workflow スコープなし: 終了コード1" eq "$RC" 1
+
+run_gh_check 0 "  - Active account: true"
+check "scopes 行が無い（fine-grained 等）: 警告なし" eq "$RC$OUT" "0"
+
+run_gh_check 1 "  - The token in default is invalid."
+check "トークン失効: 警告" contains "$OUT" "トークンが無効です"
+
+run_gh_check 1 "You are not logged into any GitHub hosts."
+check "未ログイン: 警告" contains "$OUT" "ログインしていません"
+
+run_gh_check 1 "error connecting to api.github.com"
+check "ネットワーク不通など原因不明: 警告なし" eq "$RC$OUT" "0"
+check "原因不明は ok ではなく skipped" contains "$GH_STATE" "state=skipped"
+
+printf 'github.com:\n    oauth_token: gho_dummy\n' > "$HOME/.config/gh/hosts.yml"
+run_gh_check 0 "  - Token scopes: 'repo', 'workflow'"
+check "macOS で hosts.yml に平文保存: 警告" contains "$OUT" "平文保存"
+run_gh_check 0 "  - Token scopes: 'repo', 'workflow'" Linux
+check "Linux では平文保存を警告しない" eq "$RC$OUT" "0"
+
+SSH_CONNECTION="1 2 3 4" run_gh_check 1 "  - The token in default is invalid."
+check "macOS の SSH セッションでは検査しない" eq "$RC$OUT" "0"
+check "SSH セッションは skipped" contains "$GH_STATE" "state=skipped"
+rm -f "$HOME/.config/gh/hosts.yml"
+
 echo
 if (( FAILURES > 0 )); then
   echo "FAILED: ${FAILURES} 件" >&2
