@@ -514,3 +514,7 @@ pre-commit autoupdate
 # CI での利用（キャッシュを使って高速化）
 pre-commit run --all-files --show-diff-on-failure
 ```
+
+## Obsidian conversation records
+
+Obsidianの会話Recordは、対象vaultの`docs/conversation-record-format.md`を形式の正本とする。保存・整備skillは通常とPrivateの会話を全文で保持し、Knowledge・Projectへの整理と区別する。skillの責務と原資料の扱いは[Obsidian skill workflow](docs/obsidian-workflow.md)を参照する。

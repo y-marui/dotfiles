@@ -5,6 +5,8 @@ description: Proofread, restructure, or update existing Obsidian Records in reco
 
 # Maintain Obsidian Record
 
+会話Recordを作成・整備する場合は、対象vaultの`docs/conversation-record-format.md`を全文読み、全発話と保存時の補足・取得状態を区別する。Daily・Reviewには会話形式を強制しない。
+
 ## Target Files
 
 - ユーザーが指定した既存Recordだけを対象にする。指定がなければ推測せず確認する。
@@ -26,13 +28,13 @@ description: Proofread, restructure, or update existing Obsidian Records in reco
 
 ### Conversation and Review Records
 
-誤字脱字を直し、構造的な改善が見込める場合だけ読みやすく再構成する。忠実な会話記録は話者、問いと応答の順序、判断に至る流れを保つ。
+誤字脱字を直し、構造的な改善が見込める場合だけ読みやすく再構成する。会話Recordは独立行の`**USER:**`／`**AI:**`を使い、明白な誤字・書式だけを直す。発話や反復を省略・統合しない。原資料なしに要約を全文へ復元しない。
 
 ### Common Rules
 
 - 文体は簡潔な「だ・である」調または体言止め。メッセージ、メール、対話文は元の敬体を維持する。
 - 原文の敬称を保ち、ない敬称を追加しない。要約だけにせず、意味を保って文脈を補完する。
-- 「追記」「Append」「後日談」は本文の適切な位置へ統合する。コード、参考文献、`## Appendix`、`## 付録` は末尾の独立節として残す。
+- 会話Recordでは保存時の追記・分析を元の発話へ統合せず、補足と明示する。他のRecordの「追記」「Append」「後日談」は本文の適切な位置へ統合する。コード、参考文献、`## Appendix`、`## 付録` は末尾の独立節として残す。
 - 指示されない「まとめ」「考察」「追記」などの定型節を作らない。
 - 対象Recordが参照する添付を、vaultの`docs/vault-architecture.md`の「添付ファイル」に合わせる。埋め込み画像は`<ノート名>-img/`、埋め込まない小さな参照ファイルは`<ノート名>-assets/`に置く。添付の移動は、依頼が添付の整理を明示的に許可している場合（定期実行の指示を含む）だけ、対象Recordが参照するものに限って`git mv`で行い、リンクのパスを同時に更新する（書式は変えない）。許可がない場合は、添付を動かさず規約外の配置を報告する。複数ノートが参照する添付、`posts/`、`private/`の外へ出る移動は、許可があっても動かさず報告する。
 

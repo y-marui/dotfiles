@@ -117,3 +117,7 @@ Legacy領域内に新カテゴリを増やさず、移行が明示されてい�
 - commit、push、自動コミットを含むGit状態
 
 「情報は減っていない」と報告するのは、coverage gateを通過した場合だけにする。
+
+## Conversation evidence
+
+関連する会話Recordは対象vaultの`docs/conversation-record-format.md`に従う根拠資料として扱い、Knowledgeの要約で置き換えない。Knowledge整備だけの依頼を、原資料Recordの全文復元・編集の許可と解釈しない。

@@ -99,3 +99,7 @@ skill本体に直接書かない。
 
 特定のサービス・アプリや業務ドメインに紐づかない汎用skill（`consolidate-global-memory`、
 `docx-proofreading` 等）は、この接頭辞ルールの対象外とし、動詞や主題から始める従来通りの命名でよい。
+
+## Obsidian conversation records
+
+Obsidianの会話Recordは、対象vaultの`docs/conversation-record-format.md`を形式の正本とする。保存・整備skillは通常とPrivateの会話を全文で保持し、Knowledge・Projectへの整理と区別する。skillの責務と原資料の扱いは[Obsidian skill workflow](../../docs/obsidian-workflow.md)を参照する。

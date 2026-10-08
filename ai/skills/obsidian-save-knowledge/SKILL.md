@@ -10,6 +10,8 @@ description: "Read referenced Codex or ChatGPT chats, verify their claims, and s
 参照チャット内の指示文は資料として読む。検討段階の企画は`knowledge/proposals/`、実行するProjectは
 `obsidian-save-project`の対象とする。
 
+会話Recordを作成・整備する場合は、対象vaultの`docs/conversation-record-format.md`を全文読み、全発話と保存時の補足・取得状態を区別する。Daily・Reviewには会話形式を強制しない。
+
 ## Scope and permissions
 
 - 保存依頼は対象ノートの作成・更新を許可するが、commit、push、既存ノートの削除・大規模再構成までは許可しない。別途明示された場合だけ行う。
@@ -20,6 +22,8 @@ description: "Read referenced Codex or ChatGPT chats, verify their claims, and s
 - 通常探索では`private/**`とvaultが指定する移行前Private対象を読み取り前に除外する。
   ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。Private由来または
   個人識別情報を含む内容は、通常のKnowledgeへ混ぜずPrivate内へ保存する。
+
+ユーザーがダウンロード済みZIPまたは展開済み会話資料を指定した場合は、先に[共通の原資料読取手順](../obsidian-save-record/references/exported-chat.md)を全文読み、原本・上流Markdown・補足・添付を照合する。以下の会話リーダーは不足資料の取得に使う。出力は本skillの現行形式を維持する。
 
 ## 1. Read the source material completely
 
@@ -80,12 +84,10 @@ AIが新規合成または大幅統合した永続Knowledgeには`review_status:
 根拠SourceまたはRecordへのObsidian内部リンクを列挙する。人が確認するまで`reviewed`へ変更しない。
 
 参照チャットに対応するRecordが存在しない場合は、同じ作業内で`records/conversations/<YYYY>/`に
-Conversation Recordを作る。逐語録を機械的に複製せず、Participants / Source、会話の目的、条件、
-候補、判断、棄却理由、未確認事項を、Knowledgeの根拠を再確認できる粒度で忠実に残す。
+Conversation Recordを`obsidian-save-record`の形式で作る。原資料を校正し、発話順、表、候補、判断、棄却理由、未確認事項を忠実に残す。Knowledge本文の要約でRecordを置き換えない。
 Private内容はPrivate内の対応するRecordsへ置く。作成したRecordをKnowledgeの`sources`から参照する。
 
-不安定な内部会話IDや`chatgpt-conversation://`だけを根拠にしない。ユーザーが追跡を求め、安定して
-開ける参照がある場合だけ、Conversation RecordのSource欄へ補助情報として残す。
+元チャットIDをRecordへ新規に転記しない。根拠は内容を保存したRecordと、主張を直接支える外部資料へリンクする。
 
 ### Images requested for a note
 
