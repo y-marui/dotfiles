@@ -68,6 +68,15 @@ rm -f "${VAULT}/projects/duplicate.md"
 printf '%s\n' '---' 'repositories: https://github.com/y-marui/invalid' '---' > "${VAULT}/projects/invalid.md"
 expect_status 5 "${COMMAND}" check --vault "${VAULT}"
 
+# Windowsのautocrlfで取得したVaultのノートはCRLFになる。行末の復帰文字で前文の判定が外れて
+# 「対応なし」(3)に見えないよう、CRLFのノートも同じ結果で解決する。
+printf '%s\r\n' '---' 'type: project' 'repositories:' '  - "https://github.com/y-marui/crlf-example"' '---' > "${VAULT}/projects/crlf.md"
+rm -f "${VAULT}/projects/invalid.md"
+git -C "${REPOSITORY}" remote set-url origin 'https://github.com/y-marui/crlf-example.git'
+result="$("${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}")"
+[[ "${result}" == "${VAULT}/projects/crlf.md" ]] || fail 'CRLF Project Home did not resolve'
+rm -f "${VAULT}/projects/crlf.md"
+
 # ディレクトリのシンボリックリンク経由（~/.local/bin/dotfiles 相当）で呼んでも、
 # 設定ファイルの場所をリンク位置から誤って導出しない。
 mkdir -p "${WORK}/a"

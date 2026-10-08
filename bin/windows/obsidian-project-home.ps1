@@ -197,6 +197,6 @@ if ($matches.Count -eq 1) {
     exit 0
 }
 
-Write-Stderr "error: multiple Project Homes map to $normalizedOrigin:"
+Write-Stderr "error: multiple Project Homes map to ${normalizedOrigin}:"
 foreach ($entry in $matches) { Write-Stderr "  $($entry.Path)" }
 exit 4
