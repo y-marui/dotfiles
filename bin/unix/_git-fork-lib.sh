@@ -14,10 +14,59 @@ _git_fork_remote_owner_repo() {
     | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#' || true
 }
 
+# _git_fork_sync_upstream_via_git <repo>
+# `gh` が使えない（未インストール・未認証。macOS では SSH セッションからログイン
+# キーチェーンのトークンを読めず未認証扱いになる）ときのフォールバック。upstream
+# のデフォルトブランチを git だけで fetch し、origin の同名ブランチへ
+# fast-forward で push する。認証は各 remote の URL（SSH 鍵等）にそのまま従う。
+# 失敗（fetch/push 不可・diverge・origin にブランチ無し）は警告のみで常に 0 を返す。
+_git_fork_sync_upstream_via_git() {
+  local repo="$1" ref branch up_sha origin_sha output
+
+  ref="$(git -C "$repo" ls-remote --symref upstream HEAD 2>/dev/null \
+    | sed -n 's#^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$#\1#p' | head -n 1 || true)"
+  branch="${ref}"
+  if [[ -z "${branch}" ]]; then
+    echo "  [skip upstream-sync] (${repo}) upstream のデフォルトブランチを取得できませんでした" >&2
+    return 0
+  fi
+
+  if ! output="$(git -C "$repo" fetch --no-tags upstream "refs/heads/${branch}" 2>&1)"; then
+    echo "  [warn][upstream-sync] (${repo}) upstream の fetch に失敗しました: $(printf '%s' "${output}" | tr '\n' ' ' | cut -c1-300)" >&2
+    return 0
+  fi
+  up_sha="$(git -C "$repo" rev-parse --verify -q FETCH_HEAD 2>/dev/null || true)"
+  if [[ -z "${up_sha}" ]]; then
+    echo "  [warn][upstream-sync] (${repo}) upstream/${branch} の取得結果を解決できませんでした" >&2
+    return 0
+  fi
+
+  if ! output="$(git -C "$repo" fetch --no-tags origin "refs/heads/${branch}" 2>&1)"; then
+    echo "  [skip upstream-sync] (${repo}) origin に ${branch} がありません、または fetch に失敗しました" >&2
+    return 0
+  fi
+  origin_sha="$(git -C "$repo" rev-parse --verify -q FETCH_HEAD 2>/dev/null || true)"
+  if [[ "${origin_sha}" == "${up_sha}" ]]; then
+    return 0
+  fi
+  if ! git -C "$repo" merge-base --is-ancestor "${origin_sha}" "${up_sha}" 2>/dev/null; then
+    echo "  [warn][upstream-sync] (${repo}) origin/${branch} が upstream と分岐しているため同期しません（手動で確認してください）" >&2
+    return 0
+  fi
+
+  if output="$(git -C "$repo" push origin "${up_sha}:refs/heads/${branch}" 2>&1)"; then
+    echo "  [upstream-sync] upstream と同期しました（git）: ${repo}"
+  else
+    echo "  [warn][upstream-sync] (${repo}) push に失敗しました: $(printf '%s' "${output}" | tr '\n' ' ' | cut -c1-300)" >&2
+  fi
+  return 0
+}
+
 # _git_fork_sync_upstream <repo>
 # upstream という名前の remote があるリポジトリ（GitHub標準のfork運用）に限り、
 # `gh repo sync` で upstream のデフォルトブランチを origin（自分のfork）へ
 # fast-forward反映する（diverge していれば警告のみで自動マージはしない）。
+# `gh` が使えない場合は _git_fork_sync_upstream_via_git に切り替える。
 # ローカルへの反映は、この関数の呼び出し元が続けて行う origin の
 # fetch/pull に任せる。upstream remote が無いリポジトリには何もしない。
 # 失敗時も常に 0 を返す。
@@ -28,11 +77,13 @@ _git_fork_sync_upstream() {
   [[ -n "${upstream_repo}" ]] || return 0
 
   if ! command -v gh >/dev/null 2>&1; then
-    echo "  [skip upstream-sync] (${repo}) 'gh' が見つかりません" >&2
+    echo "  [upstream-sync] (${repo}) 'gh' が見つからないため git で同期します" >&2
+    _git_fork_sync_upstream_via_git "$repo"
     return 0
   fi
   if ! (cd "$repo" && gh auth status) >/dev/null 2>&1; then
-    echo "  [skip upstream-sync] (${repo}) gh が未認証です" >&2
+    echo "  [upstream-sync] (${repo}) gh が未認証のため git で同期します" >&2
+    _git_fork_sync_upstream_via_git "$repo"
     return 0
   fi
 

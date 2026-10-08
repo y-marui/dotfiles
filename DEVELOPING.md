@@ -21,6 +21,7 @@ Windows でコミットする場合、pre-commit が `PYTHONUTF8=1` なしだと
 ```bash
 scripts/test-git-pull-all.sh
 scripts/test-git-sweep.sh
+scripts/test-git-fork-sync.sh   # _git-fork-lib.sh（upstream同期のgitフォールバック）
 ```
 
 `bin/unix/ghq-pull`・`ghq-update`・`ghq-sweep`・`_ghq-lib.sh` を変更した場合は、使い捨ての ghq root で
@@ -125,7 +126,8 @@ GitHubのforkを`ghq`管理下に置く場合、fork元を指す標準の`upstre
 remote（`git remote add upstream <url>`）を設定しておくと、`ghq-pull`/`ghq-update`が
 fetch/pullの前に`gh repo sync`で`upstream`のデフォルトブランチを`origin`（自分の
 fork）・ローカル双方へfast-forward反映する（diverge時は警告のみで自動マージしない。
-`gh`未インストール・未認証ならスキップ）。`upstream` remoteが無いリポジトリには
+`gh`未インストール・未認証なら、gitだけで`upstream`をfetchして`origin`へfast-forward pushする。
+macOSではSSHセッションからログインキーチェーンのトークンを読めず未認証になるため。認証は各remoteのURL（SSH鍵）に従い、fetch/push不可・分岐・`origin`にブランチ無しなら警告またはスキップ）。`upstream` remoteが無いリポジトリには
 何もしない。
 
 `ghq-update`の自動PR機能（`uv.lock`/`package-lock.json`更新）のPR先は通常`origin`
