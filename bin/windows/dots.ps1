@@ -262,6 +262,49 @@ function Get-CheckBackupSummary {
     }
 }
 
+# gh のログイン状態を検査する（Unix版の _check_gh_auth_summary）。ghq-pull の upstream 同期や
+# PR 作成が、トークンの失効・スコープ欠落で黙ってスキップ・失敗するのを早く知るためのもの。
+# - ログインしていない／トークンが失効している／workflow スコープがない
+# - トークンが hosts.yml に平文保存されている（Credential Manager 保存でない）
+# ネットワーク不通など原因が判別できない失敗は、誤検知を避けるため何も出さない。
+# sshd 経由のセッションは Credential Manager を使えず失敗するため検査しない。
+# 検査の結果（確認できた／スキップした理由）は $script:GhAuthState に入れ、-Verbose相当の
+# 詳細表示で「確認できた」と「検査できなかった」を区別する。
+$script:GhAuthState = ''
+function Get-CheckGhAuthSummary {
+    $script:GhAuthState = 'skipped (gh が未インストール)'
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { return }
+    if ($env:SSH_CONNECTION) {
+        $script:GhAuthState = 'skipped (SSH セッションは Credential Manager を使えない)'
+        return
+    }
+
+    $script:GhAuthState = 'skipped (認証状態を判別できませんでした)'
+    $global:LASTEXITCODE = $null
+    $output = (& gh auth status --active --hostname github.com 2>&1 | Out-String)
+    if ($LASTEXITCODE -eq 0) {
+        $script:GhAuthState = 'ok'
+        if (($output -match 'Token scopes:') -and ($output -notmatch "Token scopes:.*'workflow'")) {
+            '⚠ gh: トークンに workflow スコープがありません (gh auth refresh -h github.com -s workflow)'
+        }
+    } elseif ($output -match '(?i)not logged in') {
+        $script:GhAuthState = 'checked'
+        '⚠ gh: github.com にログインしていません (gh auth login -h github.com -s workflow)'
+    } elseif ($output -match '(?i)invalid') {
+        $script:GhAuthState = 'checked'
+        '⚠ gh: github.com のトークンが無効です (gh auth login -h github.com -s workflow)'
+    }
+
+    $configDir = if ($env:GH_CONFIG_DIR) { $env:GH_CONFIG_DIR } else { Join-Path $env:AppData 'GitHub CLI' }
+    $hostsFile = Join-Path $configDir 'hosts.yml'
+    # トークンのキー名そのものを書くと gitleaks が実トークンと誤検知するため、文字クラスで分けて書く
+    $ghTokenKeyPattern = 'oauth_[t]oken:'
+    if ((Test-Path -LiteralPath $hostsFile -PathType Leaf) -and
+        (Select-String -LiteralPath $hostsFile -Pattern $ghTokenKeyPattern -Quiet)) {
+        "⚠ gh: トークンが $hostsFile に平文保存されています (gh auth logout 後に gh auth login)"
+    }
+}
+
 # 子プロセスの --summary / -Summary 出力が空でなければ警告行にする（Unix版の _check_script_summary）。
 function Get-CheckScriptSummary {
     param([string]$Label, [string]$Hint, [string[]]$PwshArgs)
@@ -273,6 +316,7 @@ function Get-CheckScriptSummary {
 function Get-CheckSummary {
     Get-CheckLinksSummary
     Get-CheckBackupSummary
+    Get-CheckGhAuthSummary
     Get-CheckRepoSummary -Label 'dotfiles' -Path $dotfilesDir
     Get-CheckRepoSummary -Label 'dotfiles-private' -Path $privateDir
 
@@ -343,6 +387,12 @@ function Invoke-CheckVerbose {
 
     Write-CheckHeader 'Checking ~/.dotfiles-backup accumulation ...'
     Get-CheckBackupSummary | ForEach-Object { Write-Host $_ }
+    Write-Host ''
+
+    Write-CheckHeader 'Checking gh auth ...'
+    $ghWarnings = @(Get-CheckGhAuthSummary)
+    $ghWarnings | ForEach-Object { Write-Host $_ }
+    if ($ghWarnings.Count -eq 0) { Write-Host "gh auth: $script:GhAuthState" }
     Write-Host ''
 
     Write-CheckHeader 'Checking winget / ghq ...'

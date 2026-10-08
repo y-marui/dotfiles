@@ -431,12 +431,14 @@ run_gh_check() {
   printf '%s\n' "$1" > "$STATE/gh-rc"
   printf '%s\n' "${3:-Darwin}" > "$STATE/uname"
   RC=0
-  OUT="$(PATH="$GH_STUBS:$PATH" bash -c 'eval "$1"; _check_gh_auth_summary' _ "$GH_FUNC")" || RC=$?
+  OUT="$(PATH="$GH_STUBS:$PATH" bash -c 'eval "$1"; _check_gh_auth_summary; rc=$?; printf "%s\n" "state=${GH_AUTH_STATE}" >&2; exit "$rc"' _ "$GH_FUNC" 2>"$STATE/gh-state")" || RC=$?
+  GH_STATE="$(cat "$STATE/gh-state")"
 }
 rm -f "$HOME/.config/gh/hosts.yml"
 
 run_gh_check 0 "  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'"
 check "有効で workflow スコープあり: 警告なし" eq "$RC$OUT" "0"
+check "有効なら state=ok" eq "$GH_STATE" "state=ok"
 
 run_gh_check 0 "  - Token scopes: 'gist', 'read:org', 'repo'"
 check "workflow スコープなし: 警告" contains "$OUT" "workflow スコープがありません"
@@ -453,6 +455,7 @@ check "未ログイン: 警告" contains "$OUT" "ログインしていません"
 
 run_gh_check 1 "error connecting to api.github.com"
 check "ネットワーク不通など原因不明: 警告なし" eq "$RC$OUT" "0"
+check "原因不明は ok ではなく skipped" contains "$GH_STATE" "state=skipped"
 
 printf 'github.com:\n    oauth_token: gho_dummy\n' > "$HOME/.config/gh/hosts.yml"
 run_gh_check 0 "  - Token scopes: 'repo', 'workflow'"
@@ -462,6 +465,7 @@ check "Linux では平文保存を警告しない" eq "$RC$OUT" "0"
 
 SSH_CONNECTION="1 2 3 4" run_gh_check 1 "  - The token in default is invalid."
 check "macOS の SSH セッションでは検査しない" eq "$RC$OUT" "0"
+check "SSH セッションは skipped" contains "$GH_STATE" "state=skipped"
 rm -f "$HOME/.config/gh/hosts.yml"
 
 echo
