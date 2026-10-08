@@ -31,6 +31,7 @@ commitとpushは、呼び出し側が明示的に依頼した場合だけ行う�
    - `records/reviews/`
    - `records/conversations/`
 3. 次を除く。
+   - ディレクトリの案内用`README.md`（Record本文ではない）。
    - `private/**`、移行前の`conversation_log/`と`idea_notes/`。
    - 実行日（JST）の日付をファイル名に持つDaily（`records/daily/<年>/YYYY-MM-DD.md`の日付が当日のもの）。
    - `#no-update`を含むファイル。
@@ -40,6 +41,8 @@ commitとpushは、呼び出し側が明示的に依頼した場合だけ行う�
 対象が空なら、校正は行わず、`Marker`の手順へ進む。
 
 ## Proofread
+
+会話の全文形式はvaultの`docs/conversation-record-format.md`に従う。この定期校正では新たな原資料取得・全文復元・分析を行わず、既存本文の明白な誤字・書式だけを直す。Private除外は維持する。
 
 `obsidian-maintain-record`を実行し、`Target Selection`で得たファイルを対象Recordとして明示する。次を伝える。
 

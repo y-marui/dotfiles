@@ -88,3 +88,7 @@ skillは、ツール固有の機能や記法へ依存しない限り `skills/` �
    `pre-commit run --files <path>` でも確認する。
 
 構成や管理境界を変更した場合は、このREADMEとルートREADMEを同じ作業内で更新する。
+
+## Obsidian conversation records
+
+Obsidianの会話Recordは、対象vaultの`docs/conversation-record-format.md`を形式の正本とする。保存・整備skillは通常とPrivateの会話を全文で保持し、Knowledge・Projectへの整理と区別する。skillの責務と原資料の扱いは[Obsidian skill workflow](../docs/obsidian-workflow.md)を参照する。
