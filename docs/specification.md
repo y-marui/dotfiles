@@ -266,7 +266,9 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 
 - **fetch**: `fetch --all --prune`（dirty・detached HEADでも実行）。失敗は終了コード1。
   `upstream`というremoteがあれば、fetchの前に`gh repo sync`でupstreamのデフォルト
-  ブランチをoriginへ反映する
+  ブランチをoriginへ反映する。`gh`未インストール・未認証（macOSのSSHセッションはキーチェーン
+  のトークンを読めず該当する）なら、gitだけでupstreamをfetchしoriginへfast-forward pushする
+  （分岐・fetch/push不可は警告のみ）
 - **現在のブランチ**: `pull --ff-only`で更新する。dirty・detached HEAD・upstream未設定
   （goneは無表示）の場合は更新せず`warning:`を出す。分岐・コンフリクトで失敗したら
   `error:`を出して終了コード1にする
@@ -346,6 +348,8 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 - [scripts/test-git-pull-all.sh](../scripts/test-git-pull-all.sh): 現在・他ブランチのfast-forward、
   `--fetch-only`、分岐・ローカル先行・dirty・detached HEAD・upstream未設定・gone・他worktree・
   fetch失敗・保護ブランチの新規作成
+- [scripts/test-git-fork-sync.sh](../scripts/test-git-fork-sync.sh): upstream同期のgitフォールバック
+  （fast-forward、最新時は無動作、分岐時は不変、upstream到達不可はskip、upstream無しは無出力）
 - [scripts/test-git-sweep.sh](../scripts/test-git-sweep.sh): マージ済み検出（fast-forward/squash）、
   未マージ保持、dirty・他worktreeの保護、`--no-pull`、`git-pull-all`との統合
 - [scripts/test-ghq-pull-update-sweep.sh](../scripts/test-ghq-pull-update-sweep.sh): 失敗の
