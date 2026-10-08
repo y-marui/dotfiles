@@ -23,6 +23,8 @@ description: "Save a referenced chat as a faithful Obsidian Record in records/co
 - 会話の意味を保つため、私的な内容はユーザーが保存を求めた範囲で残す。認証情報、秘密鍵、
   トークン、パスワードなどのセキュリティ情報は転記しない。
 
+ユーザーがダウンロード済みZIPまたは展開済み会話資料を指定した場合は、先に[共通の原資料読取手順](references/exported-chat.md)を全文読み、原本・上流Markdown・補足・添付を照合する。以下の会話リーダーは不足資料の取得に使う。出力は本skillの現行形式を維持する。
+
 ## Read the chat completely
 
 1. 参照されたチャットは、タイトルやプレビューではなく、利用可能な公式の会話読み取り手段

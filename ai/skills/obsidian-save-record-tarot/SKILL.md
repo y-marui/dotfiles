@@ -13,6 +13,8 @@ ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作
 読み取り前に除外し、ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。
 交際・家族・健康・金融・住居・実名等を含むリーディングは通常領域へ書かず、Private内へ保存する。
 
+ユーザーがダウンロード済みZIPまたは展開済み会話資料を指定した場合は、先に[共通の原資料読取手順](../obsidian-save-record/references/exported-chat.md)を全文読み、原本・上流Markdown・補足・添付を照合する。以下の会話リーダーは不足資料の取得に使う。出力は本skillの現行形式を維持する。
+
 ## Read and delimit the source
 
 1. 参照チャットは利用可能な公式の会話読み取り手段で最後まで読み、ページがあれば cursor をたどる。

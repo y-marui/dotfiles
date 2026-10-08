@@ -21,6 +21,8 @@ description: "Read referenced Codex or ChatGPT chats, verify their claims, and s
   ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。Private由来または
   個人識別情報を含む内容は、通常のKnowledgeへ混ぜずPrivate内へ保存する。
 
+ユーザーがダウンロード済みZIPまたは展開済み会話資料を指定した場合は、先に[共通の原資料読取手順](../obsidian-save-record/references/exported-chat.md)を全文読み、原本・上流Markdown・補足・添付を照合する。以下の会話リーダーは不足資料の取得に使う。出力は本skillの現行形式を維持する。
+
 ## 1. Read the source material completely
 
 1. ユーザーが参照したCodex taskは、タイトルやpreviewだけに頼らず、それぞれ `read_thread` で読む。ページがある場合はcursorをたどる。
@@ -80,8 +82,7 @@ AIが新規合成または大幅統合した永続Knowledgeには`review_status:
 根拠SourceまたはRecordへのObsidian内部リンクを列挙する。人が確認するまで`reviewed`へ変更しない。
 
 参照チャットに対応するRecordが存在しない場合は、同じ作業内で`records/conversations/<YYYY>/`に
-Conversation Recordを作る。逐語録を機械的に複製せず、Participants / Source、会話の目的、条件、
-候補、判断、棄却理由、未確認事項を、Knowledgeの根拠を再確認できる粒度で忠実に残す。
+Conversation Recordを`obsidian-save-record`の形式で作る。原資料を校正し、発話順、表、候補、判断、棄却理由、未確認事項を忠実に残す。Knowledge本文の要約でRecordを置き換えない。
 Private内容はPrivate内の対応するRecordsへ置く。作成したRecordをKnowledgeの`sources`から参照する。
 
 不安定な内部会話IDや`chatgpt-conversation://`だけを根拠にしない。ユーザーが追跡を求め、安定して
