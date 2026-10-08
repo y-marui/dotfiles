@@ -824,6 +824,43 @@ _check_sudo_touch_id_summary() {
   fi
 }
 
+# gh のログイン状態を検査する。ghq-pull の upstream 同期や PR 作成が、トークンの
+# 失効・スコープ欠落で黙ってスキップ・失敗するのを早く知るためのもの。
+# - ログインしていない／トークンが失効している／workflow スコープがない
+# - macOS でトークンが hosts.yml に平文保存されている（キーチェーン保存でない）
+# ネットワーク不通など原因が判別できない失敗は、誤検知を避けるため何も出さない。
+# macOS の SSH セッションはログインキーチェーンを読めず必ず失敗するため検査しない。
+_check_gh_auth_summary() {
+  command -v gh >/dev/null 2>&1 || return 0
+
+  local darwin=false found=0 output rc=0 hosts_file
+  [[ "$(uname -s)" == "Darwin" ]] && darwin=true
+  [[ "${darwin}" == true && -n "${SSH_CONNECTION:-}" ]] && return 0
+
+  output="$(gh auth status --active --hostname github.com 2>&1)" || rc=$?
+  if (( rc == 0 )); then
+    if grep -q 'Token scopes:' <<<"${output}" && ! grep -q "Token scopes:.*'workflow'" <<<"${output}"; then
+      printf '⚠ gh: トークンに workflow スコープがありません (gh auth refresh -h github.com -s workflow)\n'
+      found=1
+    fi
+  elif grep -qi 'not logged in' <<<"${output}"; then
+    printf '⚠ gh: github.com にログインしていません (gh auth login -h github.com -s workflow)\n'
+    found=1
+  elif grep -qi 'invalid' <<<"${output}"; then
+    printf '⚠ gh: github.com のトークンが無効です (gh auth login -h github.com -s workflow)\n'
+    found=1
+  fi
+
+  if [[ "${darwin}" == true ]]; then
+    hosts_file="${GH_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME}/.config}/gh}/hosts.yml"
+    if [[ -f "${hosts_file}" ]] && grep -q 'oauth_token:' "${hosts_file}"; then
+      printf '⚠ gh: トークンが %s に平文保存されています (GUIターミナルで gh auth logout 後に gh auth login)\n' "${hosts_file}"
+      found=1
+    fi
+  fi
+  return "${found}"
+}
+
 _check_script_summary() {
   local label="$1" hint="$2"
   shift 2
@@ -840,6 +877,7 @@ _check_summary() {
   _check_links_summary || found=1
   _check_backup_summary || found=1
   _check_sudo_touch_id_summary || found=1
+  _check_gh_auth_summary || found=1
   _check_repo_summary "dotfiles" "${DOTFILES_DIR}" || found=1
   _check_repo_summary "dotfiles-private" "${PRIVATE_DIR}" || found=1
 
@@ -913,6 +951,14 @@ _check_verbose() {
     fi
     echo ""
   fi
+
+  echo "=========================================="
+  echo " Checking gh auth ..."
+  echo "=========================================="
+  if _check_gh_auth_summary; then
+    echo "gh auth: ok"
+  fi
+  echo ""
 
   echo "=========================================="
   echo " Checking brew / npm / pipx / ghq / dock / application shortcuts ..."
