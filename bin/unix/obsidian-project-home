@@ -77,7 +77,7 @@ read_project_repositories() {
   local first=true in_frontmatter=false collecting=false found=false
 
   while IFS= read -r line || [[ -n "${line}" ]]; do
-    line="${line%$''}"
+    line="${line%$'\r'}"
     if [[ "${first}" == true ]]; then
       first=false
       [[ "${line}" == '---' ]] || return 0

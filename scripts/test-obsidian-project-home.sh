@@ -70,8 +70,7 @@ expect_status 5 "${COMMAND}" check --vault "${VAULT}"
 
 # Windowsのautocrlfで取得したVaultのノートはCRLFになる。行末の復帰文字で前文の判定が外れて
 # 「対応なし」(3)に見えないよう、CRLFのノートも同じ結果で解決する。
-printf '%s
-' '---' 'type: project' 'repositories:' '  - "https://github.com/y-marui/crlf-example"' '---' > "${VAULT}/projects/crlf.md"
+printf '%s\r\n' '---' 'type: project' 'repositories:' '  - "https://github.com/y-marui/crlf-example"' '---' > "${VAULT}/projects/crlf.md"
 rm -f "${VAULT}/projects/invalid.md"
 git -C "${REPOSITORY}" remote set-url origin 'https://github.com/y-marui/crlf-example.git'
 result="$("${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}")"
