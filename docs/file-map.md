@@ -4,6 +4,16 @@ _最終更新: 2026-10-01_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
+## Raspberry Pi Platform
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `rpi/bootstrap-platform.sh` | Trixieホスト基盤を再構築。Homebridgeの復元・起動は別工程 | パッケージ・links・Prezto・Tailscale・Docker・Zellij・gpg-agent |
+| `rpi/repos/setup_docker.sh` | Docker公式DebianリポジトリとComposeプラグイン導入 | Docker署名鍵、systemd |
+| `rpi/homebridge/compose.yaml` | 公式イメージ・hostネットワーク・永続データ・ログ制限・UI healthcheck | privateなimage digest/data path環境ファイル |
+| `rpi/setup_pwm_fan.sh` | 確認済みGPIO12ファンのハードウェアPWMと旧サービス無効化 | インストール済み`pwm-fan` overlay、boot設定 |
+| `docs/raspberry-pi-platform.md` / `docs/ssh-agent-zellij.md` | 運用・確認・rollbackの正本 | 上記管理設定、`rpi/setup_gpg_agent.sh`、`shell/zshrc` |
+
 ## claude-perms
 
 | ファイル | 役割 | 主な依存先 |

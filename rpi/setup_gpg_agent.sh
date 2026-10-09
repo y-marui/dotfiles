@@ -47,7 +47,8 @@ if ! grep -qE "^enable-ssh-support$" "$conf_file"; then
 fi
 
 for key in default-cache-ttl-ssh max-cache-ttl-ssh; do
-  current="$(grep -E "^${key} " "$conf_file" 2>/dev/null | awk '{print $2}')"
+  # A missing key is expected on first setup; grep + pipefail would abort here.
+  current="$(awk -v key="$key" '$1 == key {print $2; exit}' "$conf_file")"
   if [[ "$current" != "$cache_ttl" ]]; then
     set_conf_line "$key" "$cache_ttl"
     changed=true

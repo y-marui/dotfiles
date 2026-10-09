@@ -7,6 +7,12 @@ zsh (zprezto + Powerlevel10k) / Vim / Zellij / Codex + Claude Code + GitHub Copi
 
 詳細な手順は **[macOS](docs/setup-mac.md)** / **[Windows](docs/setup-windows.md)** を参照。
 
+Raspberry PiのOS更新・Homebridge公式コンテナ・復旧手順は
+[Raspberry Pi Platform](docs/raspberry-pi-platform.md)、SSH切断後のエージェントは
+[SSH Agent and Zellij](docs/ssh-agent-zellij.md)を参照。
+コンテナ用ホストの再構築には `bash rpi/bootstrap-platform.sh` を使う。
+`make install-rpi` は従来のネイティブHomebridge構成向け。
+
 概要:
 
 1. Homebrew をインストール（Apple Silicon は PATH の追加設定が必要）
