@@ -185,6 +185,10 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   （self-hosted runner で実行。詳細は `y-marui/repo-status` の `docs/private-counts.md`）
 - 新規リポジトリ名は、先頭に言語（`python-`、`swift-`、`go-`）または対象のサービス・プラットフォーム
   （`alfred-`、`chrome-`、`docker-`）を付ける。当てはまらない場合はユーザーに確認する
+- 最終的に公開するリポジトリは、最初から public で作成する（`gh repo create --public`）。
+  private で作ってから公開に切り替えない（公開化は権限の確認で止まり、手動の設定変更が必要になる）。
+  不安定な状態が main に入るのを避けたいだけなら、private にせず `develop` 等のブランチで作業する。
+  公開予定のないリポジトリは private でよい
 
 ## Account Information
 
