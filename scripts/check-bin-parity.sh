@@ -15,7 +15,6 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 EXCEPTIONS=(
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
   "my-hosts:macOS（実行元）専用（ssh経由でghq-pull・install-my-apps等を実行する。Windowsは実行元にならず、対象としてのみ宣言できる）"
-  "claude-perms:zsh専用（shell/zshrcのcdフックと連携）。Windows対応が必要になれば別途追加する"
 )
 
 _exception_key() {

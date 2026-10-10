@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # claude-perms: .claude/settings.local.json の permissions を整理するヘルパー
 #
+# Windows（PowerShell）版は bin/windows/claude-perms.ps1。挙動を変えるときは両方に入れる
+# （scripts/test-claude-perms-windows.sh が出力の一致を検証する）。
+#
 # 使い方:
 #   claude-perms format [DIR...]    permissions.allow/deny/ask を正規化・ソート・
 #                                    重複削除し、allow のうち ~/.claude/settings.json

@@ -8,6 +8,7 @@ macOS・Raspberry Pi・Windows の開発環境設定をシンボリックリン�
 - `bin/unix/dots` / `bin/windows/dots.ps1` — 日常運用コマンド（`status` / `update` / `brew` / `claude` / `codex` / `check` 等のサブコマンド群）
 - `bin/unix/ghq-status` — ghq 管理下の全リポジトリの git 状態・dev-charter 追従状況を一覧表示
 - `bin/unix/claude-perms` — Claude Code の permissions（allow/deny/ask）整理、pathRule ベースの一括配布（`merge`＝追記／`apply`＝置き換え）、ローカル未カバーallowのJSON出力・一括削除（`candidates --json` / `remove --json`）
+- `bin/windows/claude-perms.ps1` / `claude-perms.cmd` — 上記の PowerShell 版（zsh の cd フック連携を除き同じサブコマンド・同じ出力。`scripts/test-claude-perms-windows.sh` が unix 版との出力一致を検証する）
 
 ## Directory Structure
 | ディレクトリ | 役割 |
