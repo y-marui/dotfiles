@@ -281,6 +281,16 @@ Write/Edit ツールで行い、シェルでは `>|` を使う。失敗した he
   `log stream` は `too many arguments` で失敗する。ログを見るときは `/usr/bin/log` と
   フルパスで呼ぶ
 
+## Empty stdin to `python -` on Windows
+
+Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 -`（本文が空の heredoc、
+`</dev/null` を含む）を実行しない。Windows は NUL を端末とみなすため、Python 3.14 が REPL
+を起動し、非 tty でエラーを無限に出力して終了しない。バックグラウンドに回されたタスクの出力は
+上限がなく、数百 GB に膨らんで C: を埋め、WSL を入出力エラーにした実績がある。スクリプトは
+ファイルに置くか `python -c` で渡す。`PYTHON_BASIC_REPL=1` を設定すると、空入力でも正常終了する。
+バックグラウンドに回ったコマンドが止まらないときは、`%TEMP%\claude\...\tasks\*.output` の
+サイズを確認して停止する。
+
 ## Reference Resolution
 
 環境別手順は必要な節だけ読む。このファイルがシンボリックリンク経由の場合は、
