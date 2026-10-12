@@ -9,10 +9,10 @@ description: "旅行の持ち物の恒久基準と旅程・天気をもとに、
 
 毎回、vault の次の二つを読む。利用できない場合は独自の持ち物ルールで補わず、ノートの提供または必要な基準の確認を求める。
 
-- `idea_notes/outings/travel/travel-packing.md` — 重量目標、実測台帳、超過時の判断
-- `idea_notes/outings/travel/travel-packing-checklist-rules.md` — 品目、選定条件、出力順、出発前確認
+- `knowledge/travel/travel-packing.md` — 重量目標、実測台帳、超過時の判断
+- `knowledge/travel/travel-packing-checklist-rules.md` — 品目、選定条件、出力順、出発前確認
 
-飛行機を使う旅行では、さらに `idea_notes/outings/travel/carry-on-weight-limits.md` を読む。航空会社の実運航会社・予約画面の規定が、ノート内の記録より優先する。
+飛行機を使う旅行では、さらに `knowledge/travel/carry-on-weight-limits.md` を読む。航空会社の実運航会社・予約画面の規定が、ノート内の記録より優先する。
 
 ## Confirm the trip
 

@@ -15,3 +15,7 @@
 - `obsidian-maintain-record-review`: 通常領域の既定対象だけを校正し、Private・旧ログを除外する。
 
 ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒久複製しない。会話の取得状態と外部主張の正確さは別に検証する。形式変更は通常・Private・要約記録を小さく試用し、本文・添付・リンク・表示を確認してから広げる。
+
+## ChatGPT source acquisition
+
+保存系4スキル（Record・Knowledge・Project・Tarot）は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)に従い、提供済み原資料を優先する。未取得ならChatGPT Exporter拡張の「素材を含むZIPを作成」から取得・保存完了確認まで行い、自力操作できなければ理由と具体的手順を示してユーザーへ依頼する。公式会話リーダーは不足の補完に使う。Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
