@@ -273,6 +273,10 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 ### git-pull-all
 
 - **fetch**: `fetch --all --prune`（dirty・detached HEADでも実行）。失敗は終了コード1。
+  Windows版は、Win32-OpenSSHが`ControlMaster`非対応でfetchのたびに新規SSH接続を張り、
+  連続実行するとGitHubに接続を切られる（`kex_exchange_identification: Connection reset`）
+  ため、fetchと現在ブランチの`pull --ff-only`は3・10・30秒待って最大3回再試行する。
+  fetchは再試行しても失敗したときだけgitの出力を表示する
   `upstream`というremoteがあれば、fetchの前に`gh repo sync`でupstreamのデフォルト
   ブランチをoriginへ反映する。`gh`未インストール・未認証（macOSのSSHセッションはキーチェーン
   のトークンを読めず該当する）なら、gitだけでupstreamをfetchしoriginへfast-forward pushする

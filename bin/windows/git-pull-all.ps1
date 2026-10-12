@@ -15,8 +15,10 @@
 #   0. upstream という名前の remote があれば、fetch の前に `gh repo sync` で
 #      upstream のデフォルトブランチを origin へ fast-forward 反映する
 #      （diverge していれば警告のみ。gh 未インストール・未認証ならスキップ）
-#   1. fetch --all --prune でリモートの更新・削除済みブランチを反映（失敗は終了コード1）
-#   2. 現在のブランチを `pull --ff-only` で更新する。次の場合は更新せず warning を出す
+#   1. fetch --all --prune でリモートの更新・削除済みブランチを反映
+#      （失敗時は 3・10・30 秒待って最大 3 回再試行し、それでも失敗なら終了コード1）
+#   2. 現在のブランチを `pull --ff-only` で更新する（失敗時は fetch と同様に再試行する）。
+#      次の場合は更新せず warning を出す
 #      - worktree が dirty（staged/unstaged/untracked）
 #      - detached HEAD
 #      - upstream が未設定（upstream がリモート側で削除済み（gone）のときは何も表示しない）
@@ -86,9 +88,26 @@ Add-GitBranchMainToProtected
 
 Sync-GitForkUpstream (Get-Location).Path
 
-$global:LASTEXITCODE = $null
-& git fetch --all --prune --quiet
-if ($LASTEXITCODE -ne 0) {
+# Win32-OpenSSH は ControlMaster 非対応で、fetch のたびに新規 SSH 接続を張る。
+# 多数のリポジトリを続けて処理すると GitHub 側に接続を切られる
+# （kex_exchange_identification: Connection reset）ため、待機を挟んで再試行する。
+$FetchRetryDelays = @(3, 10, 30)
+$fetchOk = $false
+for ($attempt = 0; $attempt -le $FetchRetryDelays.Count; $attempt++) {
+    $global:LASTEXITCODE = $null
+    $fetchOutput = & git fetch --all --prune --quiet 2>&1 | Out-String
+    if ($LASTEXITCODE -eq 0) {
+        $fetchOk = $true
+        break
+    }
+    if ($attempt -lt $FetchRetryDelays.Count) {
+        $delay = $FetchRetryDelays[$attempt]
+        Write-Stderr "warning: git fetch failed; retrying in ${delay}s ($($attempt + 1)/$($FetchRetryDelays.Count))"
+        Start-Sleep -Seconds $delay
+    }
+}
+if (-not $fetchOk) {
+    if ($fetchOutput.Trim()) { Write-Stderr $fetchOutput.TrimEnd() }
     Write-Stderr "error: git fetch failed"
     exit 1
 }
@@ -102,8 +121,17 @@ if (@(& git status --porcelain 2>$null).Count -gt 0) {
 # 現在のブランチを fast-forward pull する。HEAD が進んだ場合だけ Updated を表示する。
 function Invoke-PullCurrent([string]$Current) {
     $before = (& git rev-parse HEAD).Trim()
-    $global:LASTEXITCODE = $null
-    & git pull --ff-only --quiet
+    # fetch と同じ理由（SSH 接続の切断）で失敗しうるため再試行する
+    for ($attempt = 0; $attempt -le $FetchRetryDelays.Count; $attempt++) {
+        $global:LASTEXITCODE = $null
+        & git pull --ff-only --quiet
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($attempt -lt $FetchRetryDelays.Count) {
+            $delay = $FetchRetryDelays[$attempt]
+            Write-Stderr "warning: git pull failed; retrying in ${delay}s ($($attempt + 1)/$($FetchRetryDelays.Count))"
+            Start-Sleep -Seconds $delay
+        }
+    }
     if ($LASTEXITCODE -eq 0) {
         $after = (& git rev-parse HEAD).Trim()
         if ($before -ne $after) { Write-Host "Updated $Current." }
