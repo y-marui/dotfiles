@@ -590,6 +590,8 @@ Windowsも宣言できる。サブコマンドと
   `bin/windows/install-my-apps.ps1`はスタブで、何もせず専用の終了コード64で終了する。`my-hosts`は
   `apps`で64が返ると失敗ではなく`skip`（`[skip] apps: このホストでは未対応です`）として扱い、
   終了コードにも影響させない
+- **Raspberry Pi（`<host>:rpi`）**: `status`/`pull`/`sweep`/`update`はMacと同様にsshで実行し、
+  macOS専用の`apps`だけ`skip`にする（`install-my-apps`を呼ばない）。実機のssh動作は手動で確認する
 - **`--dry-run`**: 実行内容だけを表示し、sshもコマンドも実行しない
 
 回帰テストは[scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh)（sshと`ghq-*`は偽のコマンドに

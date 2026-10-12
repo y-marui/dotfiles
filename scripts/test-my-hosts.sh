@@ -53,6 +53,7 @@ warn:   warnhost beta
 warng:  warngit
 wins:   winhost beta
 winsk:  winhost:windows beta
+rpis:   rpihost:rpi beta
 DECL
 
 check() {
@@ -273,6 +274,16 @@ check "apps skip notice names the reason" contains "$OUT" "[skip] apps: install-
 run pull --from winsk --no-local -H winhost --dry-run
 check "dry-run shows skip" contains "$OUT" "would skip: pull"
 check "-H accepts name without :windows" rc_is 0
+
+section "raspberry pi host (:rpi) skips only apps"
+run pull --from rpis --no-local -j 1
+check "pull runs on rpi host" contains "$CALLS_OUT" "rpihost ghq-pull"
+check "status runs on rpi host" contains "$CALLS_OUT" "rpihost ghq-status"
+run apps --from rpis --no-local -H rpihost
+check "apps not sent to rpi host" not_contains "$CALLS_OUT" "rpihost install-my-apps"
+check "rpi apps skip exits 0" rc_is 0
+run pull --from rpis --no-local -H rpihost --dry-run
+check "-H accepts name without :rpi" rc_is 0
 
 section "hosts.local and errors"
 printf 'alpha: extra\n' > "$WORK/private/hosts/hosts.local"

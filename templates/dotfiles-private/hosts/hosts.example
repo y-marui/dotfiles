@@ -5,3 +5,5 @@
 #
 # example-host-a: example-host-b example-host-c
 # example-host-b: example-host-c
+# Windows は <ホスト>:windows、Raspberry Pi は <ホスト>:rpi と書く（apps は macOS 専用のため skip）。
+# example-host-a: example-host-d:windows example-host-e:rpi
