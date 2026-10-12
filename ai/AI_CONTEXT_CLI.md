@@ -185,6 +185,10 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   （self-hosted runner で実行。詳細は `y-marui/repo-status` の `docs/private-counts.md`）
 - 新規リポジトリ名は、先頭に言語（`python-`、`swift-`、`go-`）または対象のサービス・プラットフォーム
   （`alfred-`、`chrome-`、`docker-`）を付ける。当てはまらない場合はユーザーに確認する
+- 最終的に公開するリポジトリは、最初から public で作成する（`gh repo create --public`）。
+  private で作ってから公開に切り替えない（公開化は権限の確認で止まり、手動の設定変更が必要になる）。
+  不安定な状態が main に入るのを避けたいだけなら、private にせず `develop` 等のブランチで作業する。
+  公開予定のないリポジトリは private でよい
 
 ## Account Information
 
@@ -276,6 +280,16 @@ Write/Edit ツールで行い、シェルでは `>|` を使う。失敗した he
 - `log` は zsh の組み込みコマンドで、macOS の統合ログ（`/usr/bin/log`）を隠す。`log show` や
   `log stream` は `too many arguments` で失敗する。ログを見るときは `/usr/bin/log` と
   フルパスで呼ぶ
+
+## Empty stdin to `python -` on Windows
+
+Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 -`（本文が空の heredoc、
+`</dev/null` を含む）を実行しない。Windows は NUL を端末とみなすため、Python 3.14 が REPL
+を起動し、非 tty でエラーを無限に出力して終了しない。バックグラウンドに回されたタスクの出力は
+上限がなく、数百 GB に膨らんで C: を埋め、WSL を入出力エラーにした実績がある。スクリプトは
+ファイルに置くか `python -c` で渡す。`PYTHON_BASIC_REPL=1` を設定すると、空入力でも正常終了する。
+バックグラウンドに回ったコマンドが止まらないときは、`%TEMP%\claude\...\tasks\*.output` の
+サイズを確認して停止する。
 
 ## Reference Resolution
 

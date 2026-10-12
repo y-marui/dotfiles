@@ -273,6 +273,12 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 ### git-pull-all
 
 - **fetch**: `fetch --all --prune`（dirty・detached HEADでも実行）。失敗は終了コード1。
+  Windows版は、Win32-OpenSSHが`ControlMaster`非対応でfetchのたびに新規SSH接続を張り、
+  連続実行するとGitHubに接続を切られる（`kex_exchange_identification: Connection reset`）
+  ため、fetchと現在ブランチの`pull --ff-only`は、出力が接続断
+  （`kex_exchange_identification`・`Connection reset/closed/timed out`等）を示すときに限り、
+  3・10・30秒待って最大3回再試行する。分岐・認証エラー等は再試行しない。
+  失敗が確定したときだけgitの出力を表示する
   `upstream`というremoteがあれば、fetchの前に`gh repo sync`でupstreamのデフォルト
   ブランチをoriginへ反映する。`gh`未インストール・未認証（macOSのSSHセッションはキーチェーン
   のトークンを読めず該当する）なら、gitだけでupstreamをfetchしoriginへfast-forward pushする
@@ -441,6 +447,21 @@ LaunchAgentいずれも）、キーチェーンの値がプロンプトなしで
 Claude Code の permissions（`.claude/settings.local.json` / `~/.claude/settings.json`）を
 整理するツール。サブコマンドの詳細と正規化規則は [claude-perms](../bin/unix/claude-perms)
 冒頭のコメントを参照。
+
+**Windows（PowerShell 版）**: [claude-perms.ps1](../bin/windows/claude-perms.ps1)（bareコマンド名用に
+`claude-perms.cmd`シムを併置）は、`bin/unix/claude-perms`（bash + jq）をPowerShellへ移植したもので、
+サブコマンド・正規化規則・出力は同じ。違いは次のとおり。
+
+- zshのcdフック連携（`claude-perms shell`）は持たない（zsh専用）
+- `pathGlob`は`~`をホームに展開し、`\`を`/`に揃えたうえで、大文字小文字を区別せずに評価する
+  （Windowsのパスは大文字小文字を区別しないため）。`*`は`/`を含めて任意の文字列に一致する
+- JSON構文エラーの詳細行は.NETのパーサの文言になる（jqの文言とは異なる）
+- ホームは`$HOME`。テスト用に環境変数`CLAUDE_PERMS_HOME`で上書きできる
+- 出力がリダイレクトされる場合だけ、標準出力をUTF-8に揃える
+
+挙動を変えるときは両方に入れる。`scripts/test-claude-perms-windows.sh`が、同じ入力に対する
+unix版との出力・終了コード・書き戻したファイルの一致を検証する（`pwsh`と`jq`が無い環境では何もしない。
+Windowsのjqが出力するCRLFはテスト側のシムで除去する）。
 
 - `format` / `check` / `candidates` / `format-global` / `remove` / `remove-global` / `merge` /
   `apply` の8サブコマンドを持つ

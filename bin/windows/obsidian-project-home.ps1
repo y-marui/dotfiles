@@ -109,7 +109,16 @@ function Get-ConfiguredVault([string]$Override) {
     if ($Override) { return $Override }
     if ($env:OBSIDIAN_VAULT_ROOT) { return $env:OBSIDIAN_VAULT_ROOT }
 
-    $dotfilesDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    # ~/.local/bin/dotfiles はこのディレクトリへのシンボリックリンクなので、実体を解決してから
+    # リポジトリルートを求める（解決しないと ~/.local-private を探してしまう）。
+    $scriptDirItem = Get-Item -LiteralPath $PSScriptRoot -Force
+    $realScriptDir = $scriptDirItem.FullName
+    if ($scriptDirItem.LinkType) {
+        $linkTarget = $scriptDirItem.ResolveLinkTarget($true)
+        if ($linkTarget) { $realScriptDir = $linkTarget.FullName }
+    }
+    # realScriptDir は <dotfiles>\bin\windows なので、リポジトリルートへは二階層上がる
+    $dotfilesDir = Split-Path (Split-Path $realScriptDir -Parent) -Parent
     $config = Join-Path ($dotfilesDir + '-private') 'obsidian/project-home-resolver.conf'
     if (-not (Test-Path -LiteralPath $config -PathType Leaf)) { Fail "resolver config is missing: $config" }
 

@@ -19,6 +19,7 @@ _最終更新: 2026-10-01_
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
 | `bin/unix/claude-perms` | `settings.local.json`/`settings.json`のpermissions整理、pathRuleベースの一括配布（`merge`＝追記／`apply`＝置き換え、pathGlobは文字列/配列いずれも可）、`candidates --json`/`remove --json`によるローカル未カバーallowのJSON出力・一括削除、run-quiet修飾版の自動補完 | `~/.claude/settings.json`、`~/.claude/claude-perms.json`（実体は`dotfiles-private/ai/claude/claude-perms.json`） |
+| `bin/windows/claude-perms.ps1`・`claude-perms.cmd` | `bin/unix/claude-perms`のPowerShell版（`.cmd`はbareコマンド名用シム）。同じサブコマンド・正規化規則・出力で、zshのcdフック連携（`claude-perms shell`）だけ持たない。ホームは`$HOME`（テスト時は`CLAUDE_PERMS_HOME`で上書き） | `~/.claude/settings.json`、`~/.claude/claude-perms.json` |
 | `completions/_claude-perms` | `claude-perms`のzsh補完 | `bin/unix/claude-perms` |
 
 ## dots verb table
