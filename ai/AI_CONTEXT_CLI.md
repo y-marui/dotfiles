@@ -291,6 +291,17 @@ Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 
 バックグラウンドに回ったコマンドが止まらないときは、`%TEMP%\claude\...\tasks\*.output` の
 サイズを確認して停止する。
 
+## Inline Scripts to `wsl.exe` from Git Bash
+
+Git Bash から `wsl.exe -d <distro> -- bash -lc '...'` に渡した文字列は、WSL 側の前段シェルで
+`$VAR`・`$1`・`$(...)` が先に展開されて空になる（単一引用符で囲んでも同じ）。変数や
+コマンド置換を使った処理が、エラーを出さずに空文字で進み、`backup-.db` のような
+名前のファイルができた実績がある。また `/mnt/c/...` のような絶対パスの引数は MSYS の
+パス変換で `C:/Program Files/Git/mnt/...` に書き換わる。変数・コマンド置換・複数行を含む
+処理はスクリプトファイルに書き、`MSYS_NO_PATHCONV=1 wsl.exe -d <distro> -u root -- bash <script>`
+で実行する。Windows 側のリポジトリは root から見ると所有者が違うため、WSL 内の
+`git rev-parse` は空を返すことがある。その値は Windows 側で取得して渡す。
+
 ## Reference Resolution
 
 環境別手順は必要な節だけ読む。このファイルがシンボリックリンク経由の場合は、
