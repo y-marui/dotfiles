@@ -42,6 +42,8 @@
 #     Windows のホストには <ホスト>:windows と書く。pull / sweep / update は GitHub 認証が
 #     未対応、apps は macOS 専用のため実行せず、結果表に skip と出して失敗には数えない
 #     （status は実行する。GitHub 認証の対応後は WINDOWS_SKIP_STEPS から pull 等を外すだけで有効化できる）
+#     Raspberry Pi のホストには <ホスト>:rpi と書く。pull / sweep / update / status は
+#     Mac と同様に実行し、macOS 専用の apps だけ実行せず skip と出す
 #   - リモートでは ssh <host> ghq-pull などを直接呼ぶ（my-hosts は再帰しない）。
 #     BatchMode で接続し、ConnectTimeout は5秒とする。ポスト量子鍵交換の警告など
 #     弱い暗号の警告は WarnWeakCrypto=no で抑止する（OpenSSH 10.1以降。古いクライアントでは無効）。引数は zsh/bash/pwsh のどれでも
@@ -158,6 +160,7 @@ DECL_FILE="${PRIVATE_DIR}/hosts/hosts"
 
 TARGETS=()
 WINDOWS_HOSTS=()
+RPI_HOSTS=()
 MATCHED=0
 
 # Windows 対象で実行しないステップ。sshd 経由のセッションでは GitHub への署名ができず
@@ -168,7 +171,7 @@ WINDOWS_SKIP_STEPS=(pull update sweep apps)
 # skip_reason STEP: Windows でステップを skip する理由
 skip_reason() {
   if [[ "$1" == apps ]]; then
-    echo "install-my-apps は macOS 専用のため Windows では実行しません"
+    echo "install-my-apps は macOS 専用のため Windows / Raspberry Pi では実行しません"
   else
     echo "Windows では GitHub 認証が未対応のため実行しません（対応時期は未定）"
   fi
@@ -182,9 +185,19 @@ is_windows() {
   return 1
 }
 
+is_rpi() {
+  local h
+  for h in ${RPI_HOSTS[@]+"${RPI_HOSTS[@]}"}; do
+    [[ "$h" == "$1" ]] && return 0
+  done
+  return 1
+}
+
 # skips_step HOST STEP: そのホストでステップを実行せず skip 扱いにするなら 0
 skips_step() {
   local s
+  # Raspberry Pi は macOS 専用の apps だけ実行しない
+  if is_rpi "$1"; then [[ "$2" == apps ]]; return; fi
   is_windows "$1" || return 1
   for s in ${WINDOWS_SKIP_STEPS[@]+"${WINDOWS_SKIP_STEPS[@]}"}; do
     [[ "$s" == "$2" ]] && return 0
@@ -197,6 +210,9 @@ add_target() {
   if [[ "$t" == *:windows ]]; then
     t="${t%:windows}"
     is_windows "$t" || WINDOWS_HOSTS+=("$t")
+  elif [[ "$t" == *:rpi ]]; then
+    t="${t%:rpi}"
+    is_rpi "$t" || RPI_HOSTS+=("$t")
   fi
   [[ "$t" =~ ^[A-Za-z0-9._@][A-Za-z0-9._@-]*$ ]] || die "不正なホスト名です: ${t}"
   # "local" は実行元自身を表す内部名。同名のsshホストは区別できないため使えない
@@ -372,7 +388,7 @@ process_host() {
       cells+=("skip")
       echo "${cells[*]}" > "${WORK_DIR}/${idx}.state"
       echo "  [skip] ${step}: $(skip_reason "$step")"
-      echo "--- ${step} (skipped: windows)" >> "$log"
+      echo "--- ${step} (skipped)" >> "$log"
       continue
     fi
     rc=0

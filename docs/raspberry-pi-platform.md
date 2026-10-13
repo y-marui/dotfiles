@@ -20,6 +20,37 @@ data; this bootstrap does not format disks or invent mount settings.
 `make install-rpi` remains the legacy native-Homebridge setup. Use the dedicated
 platform bootstrap for container hosts; do not run both installation paths.
 
+## Repository Layout and my-hosts
+
+Each Pi keeps its repositories under the ghq root `~/src` so that `my-hosts`
+(run from a Mac) can pull, sweep and report them like any other host. The layout
+is the same on every Pi:
+
+- `~/src/github.com/y-marui/dotfiles` and `.../dotfiles-private`, cloned with
+  `ghq get ssh://git@github.com/y-marui/<repo>.git`.
+- `~/dotfiles` is a symlink to the ghq path. The home-directory links and
+  `DOTFILES_DIR` point at `~/dotfiles`, so moving the checkout does not require
+  relinking.
+- `ghq` is installed at `/usr/local/bin/ghq` from the upstream release binary
+  (`ghq_linux_arm64.zip`, currently 1.10.1, the same version as the other hosts).
+  It is not in Debian, and `/usr/local/bin` is on the non-interactive `PATH`
+  that `ssh <host> ghq-status` uses.
+
+Setting up a new Pi for `my-hosts`:
+
+1. Add `Host`/`IdentityFile` for the Pi to `~/.ssh/config` on the Macs
+   (`dotfiles-private/ssh/config`) and authorize the key on the Pi.
+2. Install ghq as above. Clone with agent forwarding (`ssh -A <host>`) because the
+   Pi holds no GitHub key; accept the GitHub host key on first connect.
+3. If `~/dotfiles` already exists as a plain checkout, check `git status`,
+   `git stash list` and unpushed commits, move it aside (`mv ~/dotfiles
+   ~/dotfiles.old-<date>`), then `ln -s ~/src/github.com/y-marui/dotfiles
+   ~/dotfiles`. Delete the old directory once nothing is left to recover.
+4. Declare the host in `dotfiles-private/hosts/hosts` as `<ssh-host>:rpi` for each
+   source Mac. `my-hosts` runs every step on a `:rpi` host except `apps`, which is
+   macOS-only and reported as `skip`.
+5. Verify with `my-hosts status -H <ssh-host>`.
+
 ## OS Updates
 
 The normal update is `sudo apt-get update` followed by

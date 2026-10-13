@@ -273,6 +273,12 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 ### git-pull-all
 
 - **fetch**: `fetch --all --prune`（dirty・detached HEADでも実行）。失敗は終了コード1。
+  Windows版は、Win32-OpenSSHが`ControlMaster`非対応でfetchのたびに新規SSH接続を張り、
+  連続実行するとGitHubに接続を切られる（`kex_exchange_identification: Connection reset`）
+  ため、fetchと現在ブランチの`pull --ff-only`は、出力が接続断
+  （`kex_exchange_identification`・`Connection reset/closed/timed out`等）を示すときに限り、
+  3・10・30秒待って最大3回再試行する。分岐・認証エラー等は再試行しない。
+  失敗が確定したときだけgitの出力を表示する
   `upstream`というremoteがあれば、fetchの前に`gh repo sync`でupstreamのデフォルト
   ブランチをoriginへ反映する。`gh`未インストール・未認証（macOSのSSHセッションはキーチェーン
   のトークンを読めず該当する）なら、gitだけでupstreamをfetchしoriginへfast-forward pushする
@@ -605,6 +611,8 @@ Windowsも宣言できる。サブコマンドと
   `bin/windows/install-my-apps.ps1`はスタブで、何もせず専用の終了コード64で終了する。`my-hosts`は
   `apps`で64が返ると失敗ではなく`skip`（`[skip] apps: このホストでは未対応です`）として扱い、
   終了コードにも影響させない
+- **Raspberry Pi（`<host>:rpi`）**: `status`/`pull`/`sweep`/`update`はMacと同様にsshで実行し、
+  macOS専用の`apps`だけ`skip`にする（`install-my-apps`を呼ばない）。実機のssh動作は手動で確認する
 - **`--dry-run`**: 実行内容だけを表示し、sshもコマンドも実行しない
 
 回帰テストは[scripts/test-my-hosts.sh](../scripts/test-my-hosts.sh)（sshと`ghq-*`は偽のコマンドに
