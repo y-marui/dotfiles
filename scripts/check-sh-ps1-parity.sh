@@ -46,7 +46,6 @@ EXCEPTIONS=(
   "rpi/setup_gpg_agent.sh:Raspberry Pi専用"
   "rpi/setup_pwm_fan.sh:Raspberry Pi専用（GPIO12ケースファン）"
   "rpi/repos/setup_claude-code.sh:Raspberry Pi専用"
-  "rpi/repos/setup_homebridge.sh:Raspberry Pi専用"
   "rpi/repos/setup_docker.sh:Raspberry Pi専用（Docker公式Debianリポジトリ）"
   "rpi/bootstrap-platform.sh:Raspberry Pi専用（Trixieホスト基盤）"
   "rpi/repos/setup_tailscale.sh:Raspberry Pi専用"
