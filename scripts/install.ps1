@@ -133,6 +133,18 @@ if (Test-Path -LiteralPath $PrivateLinksFile -PathType Leaf) {
     }
 }
 
+# bin\windows のコマンド（git-sweep・obsidian-project-home 等）を、プロファイルを
+# 読まないシェル（Claude Code の Bash/PowerShell ツール等）からも呼べるよう、
+# ユーザー PATH に恒久的に追加する。
+$dotfilesBin = Join-Path $HOME '.local\bin\dotfiles'
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+$userEntries = @($userPath -split ';' | Where-Object { $_ })
+if (-not ($userEntries | Where-Object { $_.TrimEnd('\') -ieq $dotfilesBin })) {
+    $updatedPath = if ($userEntries.Count -gt 0) { "$userPath;$dotfilesBin" } else { $dotfilesBin }
+    [Environment]::SetEnvironmentVariable('Path', $updatedPath, 'User')
+    Write-Host "  PATH    $dotfilesBin"
+}
+
 Write-Host ""
 Write-Host "完了: リンク=$countOk  スキップ=$countSkip  バックアップ=$countBackup"
 if ($countBackup -gt 0) {
