@@ -8,7 +8,8 @@
 #       の順でフォールバックする（Pi以外のローカルセッションには影響しない）。
 #
 # このスクリプトが行うこと:
-#   1. gpg-agent.conf に enable-ssh-support と長寿命の cache-ttl-ssh を設定
+#   1. gpg-agent.conf に enable-ssh-support、長寿命の cache-ttl-ssh、
+#      pinentry-program（ヘッドレスで固まらない pinentry-curses）を設定
 #   2. loginctl enable-linger で、SSHの最終セッション終了後も
 #      systemd --user（= gpg-agent-ssh.socket）を維持する
 #
@@ -55,10 +56,22 @@ for key in default-cache-ttl-ssh max-cache-ttl-ssh; do
   fi
 done
 
+# 既定の pinentry-gnome3 は画面のないPiで表示できず、ssh-add が固まる。
+pinentry_curses=/usr/bin/pinentry-curses
+if [[ -x "$pinentry_curses" ]]; then
+  current="$(awk '$1 == "pinentry-program" {print $2; exit}' "$conf_file")"
+  if [[ "$current" != "$pinentry_curses" ]]; then
+    set_conf_line pinentry-program "$pinentry_curses"
+    changed=true
+  fi
+else
+  echo "  WARN    $pinentry_curses が見つかりません（pinentry-curses を導入してください）"
+fi
+
 if $changed; then
   gpgconf --kill gpg-agent 2>/dev/null || true
   gpgconf --launch gpg-agent
-  echo "  CONF    gpg-agent.conf を更新しました（enable-ssh-support / cache-ttl-ssh=${cache_ttl}）"
+  echo "  CONF    gpg-agent.conf を更新しました（enable-ssh-support / cache-ttl-ssh=${cache_ttl} / pinentry-curses）"
 else
   echo "  SKIP    gpg-agent.conf (すでに設定済みです)"
 fi
