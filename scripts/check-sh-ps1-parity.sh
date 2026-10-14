@@ -35,6 +35,7 @@ EXCEPTIONS=(
   "macos/sync_keyboard_shortcuts.sh:macOS専用（アプリケーションショートカット）"
   "macos/setup_actions_runner.sh:macOS専用（LaunchDaemon・self-hosted runner）"
   "windows/setup_actions_runner.ps1:Windows専用（Windows サービス・self-hosted runner）"
+  "scripts/setup-user-path.ps1:Windows専用（ユーザーPATH。macOS/Linuxは bin/unix をシェル設定でPATHに通す）"
   "macos/setup_dots_check_launchagent.sh:macOS専用（LaunchAgent）"
   "macos/setup_museum_status_launchagent.sh:macOS専用（LaunchAgent）"
   "macos/update_brewpin_cache.sh:macOS専用（Homebrew）"
