@@ -17,8 +17,10 @@ conflicting container-runtime packages require review rather than automatic
 removal. Mount any external persistent storage before restoring application
 data; this bootstrap does not format disks or invent mount settings.
 
-`make install-rpi` remains the legacy native-Homebridge setup. Use the dedicated
-platform bootstrap for container hosts; do not run both installation paths.
+`make install-rpi` no longer installs Homebridge (the native APT package was
+removed from it: running it on a container host started a second, native
+bridge beside the container). Homebridge is managed only through the Compose
+definition and the migration steps below.
 
 ## Repository Layout and my-hosts
 
@@ -122,12 +124,12 @@ a container can be replaced on recreation; use image updates for these
 components. Plugin state stays in the bind mount.
 `scripts/update-rpi-homebridge.sh` uses the container path when the private
 `/etc/homebridge/compose.env` exists (override with `HOMEBRIDGE_COMPOSE_ENV`).
-It pulls the selected image reference and recreates the container, avoiding
-native `hb-service` and global npm updates on container hosts. With a pinned
+It pulls the selected image reference and recreates the container; there is no
+native `hb-service` or npm update path. With a pinned
 digest, selecting a new digest remains an explicit step before an image update.
-When neither a container env file nor an enabled native Homebridge service is
-present, it updates the host without updating/restarting Homebridge. This keeps
-the preserved disabled migration source from advertising the same bridge again.
+When the container env file is absent, it updates the host without touching
+Homebridge, so a host that is not (or no longer) a Homebridge host is not
+turned into one by an OS update.
 
 Check logs, health, HomeKit operation and persistence after recreation/reboot.
 For rollback, stop the new container, restore a separately saved copy of the
@@ -139,6 +141,11 @@ For migration rollback, stop the new container before unmasking/enabling and
 starting the preserved old native service. Release the package hold only if
 native package updates are intended. Only one copy of a bridge identity may run at a time.
 Do not upgrade or discard the old host until accessory operation is confirmed.
+Once the container has run stably and accessory operation is confirmed, the
+preserved native service can be removed (unhold and purge the `homebridge`
+package, then unmask the unit). After that, migration rollback to the native
+service is no longer possible; recover from the saved application backups
+instead. Keep a recent backup off the Pi.
 
 ## Remote Desktop
 

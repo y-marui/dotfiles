@@ -49,10 +49,10 @@ echo 'PASS: container update avoids native Homebridge and npm commands'
 HOMEBRIDGE_COMPOSE_ENV="$test_dir/missing.env" bash "$repo_dir/scripts/update-rpi-homebridge.sh" > "$test_dir/output"
 grep -q 'apt update' "$TEST_LOG"
 if grep -Eq 'docker|hb-service|npm|systemctl restart homebridge' "$TEST_LOG"; then
-  echo 'FAIL: disabled/absent Homebridge was updated or restarted' >&2
+  echo 'FAIL: absent Homebridge container was updated or restarted' >&2
   exit 1
 fi
-echo 'PASS: OS updates do not reactivate a disabled legacy Homebridge'
+echo 'PASS: OS updates leave Homebridge untouched when no container is configured'
 
 # A bad Compose configuration must fail before even an OS update is attempted.
 cat > "$test_dir/bin/sudo" <<'SH'
