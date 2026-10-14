@@ -302,6 +302,24 @@ Git Bash から `wsl.exe -d <distro> -- bash -lc '...'` に渡した文字列は
 で実行する。Windows 側のリポジトリは root から見ると所有者が違うため、WSL 内の
 `git rev-parse` は空を返すことがある。その値は Windows 側で取得して渡す。
 
+## Running Commands in WSL over SSH from the Mac
+
+Mac から `ssh <windows-host>` で入った Windows の既定シェルは PowerShell なので、`uname` などの
+Unix コマンドは使えない。WSL の中の処理は `wsl.exe -d <distro> -- bash -c "..."` で実行するが、
+ssh・PowerShell・`wsl.exe`・`bash` と引用符が重なるため、`$`・引用符・Docker の `{{...}}` が
+壊れる。スクリプトは Mac 側で base64 にして渡す（base64 には空白も記号もないので、引用符が崩れない）。
+
+~~~sh
+b=$(base64 </tmp/script.sh | tr -d '\n')
+ssh <windows-host> "wsl.exe -d <distro> -- bash -c \"echo $b | base64 -d | bash\""
+~~~
+
+- 出力に `your 131072x1 screen size is bogus. expect trouble` が混ざるが無害。`grep -v` で除く
+- 既定ユーザーが root の distro では `~` は `/root`。処理は何のユーザーで動くかを先に確認する
+- スクリプトに秘密情報を埋め込まない。トークンなどはファイルで渡し、値は出力しない
+- 待ち時間の長い処理（数十秒以上のループなど）は、出力が途中で切れたことがあった。分割して実行し、
+  切れたら状態（`docker ps` など）を確認し直す。「出力がない」を「失敗」と決めつけない
+
 ## Reference Resolution
 
 環境別手順は必要な節だけ読む。このファイルがシンボリックリンク経由の場合は、
