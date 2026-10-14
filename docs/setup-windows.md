@@ -111,6 +111,11 @@ dots update
 リポジトリ外からも実行できる。`dots status` ではdotfilesとdotfiles-privateの
 未コミット・未push・未pullをまとめて確認できる。
 
+`bin\windows` のコマンドは `~\.local\bin\dotfiles` にリンクされる。`make install`
+（`scripts/setup-user-path.ps1`。`make links` では行わない）はこのディレクトリをユーザーPATHへ恒久的に追加する
+（PowerShellプロファイルを読まないシェルからも呼べるようにするため）。既に
+開いているシェルには反映されないので、開き直す。
+
 Windows版の更新は次の順に実行する。
 
 1. ローカル変更がなければdotfilesを`git pull --ff-only`で更新

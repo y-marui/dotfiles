@@ -51,6 +51,7 @@ install-windows: ## Windows 向けセットアップ（gsudo + jq + シンボリ
 	pwsh -NoLogo -NoProfile -File scripts/setup-jq.ps1
 	pwsh -NoLogo -NoProfile -File scripts/setup-zellij.ps1
 	gsudo pwsh -NoLogo -NonInteractive -File scripts/install.ps1
+	pwsh -NoLogo -NoProfile -File scripts/setup-user-path.ps1
 
 links: ## public/privateのシンボリックリンクだけを再適用
 ifeq ($(OS),Windows_NT)
