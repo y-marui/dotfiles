@@ -147,6 +147,36 @@ package, then unmask the unit). After that, migration rollback to the native
 service is no longer possible; recover from the saved application backups
 instead. Keep a recent backup off the Pi.
 
+## Verifying Persistence and Restore
+
+These checks were run on a container host and can be repeated after changes.
+
+After a reboot the container should start by itself (`restart: unless-stopped`)
+and become `healthy` within about two minutes, with the same image digest and
+no second (native) Homebridge. The Home app should still control existing
+accessories. The gpg-agent passphrase cache is the one thing that does not
+survive a reboot; see [SSH agent and Zellij](ssh-agent-zellij.md).
+
+Recreation test. Save a copy of `persist`, `config.json`, `auth.json` and
+`accessories` and record a checksum of those files. Run `docker compose
+--env-file /etc/homebridge/compose.env -f rpi/homebridge/compose.yaml up -d
+--force-recreate` and wait for `healthy`. The container ID changes, the image
+digest and the checksum must not. This is the same recreation an image update
+performs, so it also shows that state lives in the bind mount.
+
+Restore drill without touching production. Keep the latest Homebridge UI backup
+off the Pi. Extract it to a scratch directory, check that `config.json` parses,
+that `plugins.json` lists the expected plugins and that `persist` matches the
+live data. Then start the same image with `--network none` and the scratch
+directory mounted at `/homebridge`. Without a network the container cannot
+advertise on the LAN, so it cannot clash with the live bridge identity; never
+run a restored copy on a network shared with the live bridge. The services start
+and Homebridge loads the configuration; plugin reinstallation (`Re-installing
+homebridge`) needs npm and therefore fails without a network, which is
+expected. Remove the container and scratch files afterwards. A real restore uses
+the UI backup restore, which reinstalls plugins, followed by checking accessories
+in the Home app.
+
 ## Remote Desktop
 
 For browser access without a Mac client app, use Raspberry Pi Connect on a
