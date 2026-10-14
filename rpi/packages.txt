@@ -12,6 +12,7 @@ git
 curl
 wget
 gnupg
+pinentry-curses
 jq
 tree
 fzf

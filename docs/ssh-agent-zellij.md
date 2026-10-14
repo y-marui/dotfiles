@@ -23,7 +23,10 @@ with the intended GitHub account. Load the key into gpg-agent once with
 `SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh-add ~/.ssh/<key>`.
 This requires interactive passphrase input. Update `GPG_TTY` and run
 `gpg-connect-agent updatestartuptty /bye` from the interactive terminal if
-pinentry cannot find it. Do not copy private keys into the public repository.
+pinentry cannot find it. The setup script selects `pinentry-curses` so the
+passphrase prompt works without a display; the default `pinentry-gnome3` makes
+`ssh-add` hang on a headless host. After `ssh-add`, gpg-agent asks once more for
+a passphrase to protect the key in its own storage. Do not copy private keys into the public repository.
 
 The long cache TTL does not survive reboot. Reconnect and reload/unlock the
 key after reboot. Preserve the private gpg-agent key store securely if the
