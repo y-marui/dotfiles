@@ -32,6 +32,28 @@ The long cache TTL does not survive reboot. Reconnect and reload/unlock the
 key after reboot. Preserve the private gpg-agent key store securely if the
 host is rebuilt, or generate/register a replacement key.
 
+### Unlocking After Reboot
+
+After a reboot `ssh-add -l` still lists the key, but the passphrase cache is
+empty and non-interactive use fails with `agent refused operation`. Unlock it
+from a real terminal, preferably a plain SSH session outside Zellij
+(`NO_ZELLIJ=1 ssh -t <host>`):
+
+~~~sh
+export GPG_TTY=$(tty)
+gpg-connect-agent updatestartuptty /bye
+SSH_AUTH_SOCK="$(gpgconf --list-dirs agent-ssh-socket)" ssh -T git@github.com
+~~~
+
+- Always name the fixed socket. Otherwise `ssh -T` uses the forwarded agent of
+  the Mac and succeeds without touching the Pi's gpg-agent, which hides the
+  locked state.
+- `pinentry-curses` needs a real TTY and a large enough window. Without a TTY
+  or with a tiny pane it fails with `Screen or window too small`, which the
+  client reports only as `agent refused operation`.
+- To find the cause, add `log-file <path>` and `verbose` to `gpg-agent.conf`,
+  run `gpgconf --reload gpg-agent`, retry, then remove the lines again.
+
 ## Verification
 
 Check `loginctl show-user "$USER" -p Linger`,
