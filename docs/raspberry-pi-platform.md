@@ -165,10 +165,13 @@ digest and the checksum must not. This is the same recreation an image update
 performs, so it also shows that state lives in the bind mount.
 
 Restore drill without touching production. Keep the latest Homebridge UI backup
-off the Pi. Extract it to a scratch directory, check that `config.json` parses,
-that `plugins.json` lists the expected plugins and that `persist` matches the
-live data. Then start the same image with `--network none` and the scratch
-directory mounted at `/homebridge`. Without a network the container cannot
+off the Pi. Extract it to a scratch directory. The archive holds `storage/`,
+`plugins.json` and `info.json`; check that `storage/config.json` parses, that
+`plugins.json` lists the expected plugins and that `storage/persist` matches the
+live data. Then start the same image with `--network none` and the `storage`
+subdirectory (not the extraction root) mounted at `/homebridge`; the image
+expects `/homebridge/config.json` and would otherwise initialise a fresh default
+configuration that tests nothing. Without a network the container cannot
 advertise on the LAN, so it cannot clash with the live bridge identity; never
 run a restored copy on a network shared with the live bridge. The services start
 and Homebridge loads the configuration; plugin reinstallation (`Re-installing
