@@ -56,6 +56,10 @@ cloud skillが[Private Data](#private-data)パターン（`~/.identity/<name>.ya
 and Cloud May Diverge」）に従う。`check-skills.sh` のcloud portabilityチェックはキーワード
 一致ベースのため、この依存を機械的には検知しない。
 
+Claude Code のクラウドセッションへ skill を展開する仕組みは、claude.ai の Skills 同期とは別で、
+`cloud-code.json` と `scripts/cloud-bootstrap.sh` が担う。詳細は
+[Cloud sessions](../../docs/cloud-sessions.md) を参照する。
+
 ## Private Data
 
 skill本体（判定ロジック・操作手順）は `ai/skills/`（または各ツール固有配置）に置き、

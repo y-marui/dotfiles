@@ -5,7 +5,10 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 AGENT="${1:-}"
-EXTERNAL_FILE="${DOTFILES_DIR}/ai/skills/external.json"
+EXTERNAL_FILE="${DOTFILES_EXTERNAL_FILE:-${DOTFILES_DIR}/ai/skills/external.json}"
+# 指定時は、このJSON（{"skills": ["name", ...]}）に載る skill だけを対象にする。
+# Claude Code のクラウドセッション（docs/cloud-sessions.md）が使う。未指定なら全件。
+SKILL_SELECT_FILE="${SKILL_SELECT_FILE:-}"
 CACHE_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/skills"
 STATE_HOME="${CACHE_HOME}/.sources"
 
@@ -20,9 +23,45 @@ esac
 
 PYTHON_BIN="python3"
 
+selected_names_file=""
+if [[ -n "${SKILL_SELECT_FILE}" ]]; then
+  selected_names_file="$(mktemp)"
+  "${PYTHON_BIN}" - "${SKILL_SELECT_FILE}" > "${selected_names_file}" <<'PYEOF'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as file:
+    for name in json.load(file).get("skills", []):
+        print(name)
+PYEOF
+fi
+
+is_selected() {
+  [[ -z "${selected_names_file}" ]] || grep -qxF -- "$1" "${selected_names_file}"
+}
+
+# 公式 skill-installer（Codex 同梱）が無い環境（Linux のクラウド VM 等）向けの代替。
+# 固定した ref の該当パスだけを git で取得して、キャッシュへ置く。
+install_external_with_git() {
+  local name="$1" repo="$2" ref="$3" path="$4"
+  local base="${SKILL_GIT_BASE:-https://github.com}" tmp status=0
+  tmp="$(mktemp -d)"
+  if git clone --quiet --no-checkout --filter=blob:none "${base}/${repo}.git" "${tmp}/repo" \
+    && { git -C "${tmp}/repo" checkout --quiet "${ref}" -- "${path}" 2>/dev/null \
+      || git -C "${tmp}/repo" checkout --quiet "origin/${ref}" -- "${path}"; } \
+    && [[ -f "${tmp}/repo/${path}/SKILL.md" ]]; then
+    mkdir -p "${CACHE_HOME}"
+    cp -R "${tmp}/repo/${path}" "${CACHE_HOME}/${name}"
+  else
+    status=1
+  fi
+  rm -rf "${tmp}"
+  return "${status}"
+}
+
 BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)/ai-skills/${AGENT}"
 sources_file="$(mktemp)"
-trap 'rm -f "${sources_file}"' EXIT
+trap 'rm -f "${sources_file}" "${selected_names_file:-}"' EXIT
 changed=0
 
 mkdir -p "${SKILL_HOMES[@]}"
@@ -39,7 +78,9 @@ while IFS=$'\t' read -r name repo ref path; do
 
   if [[ ! -f "${source_dir}/SKILL.md" || "${current_state}" != "${wanted_state}" ]]; then
     installer="${CODEX_HOME:-${HOME}/.codex}/skills/.system/skill-installer/scripts/install-skill-from-github.py"
-    if [[ ! -f "${installer}" ]]; then
+    if [[ ! -f "${installer}" && -n "${SKILL_SELECT_FILE}" ]]; then
+      installer=""
+    elif [[ ! -f "${installer}" ]]; then
       printf 'skill-installer が見つかりません: %s\n' "${installer}" >&2
       exit 1
     fi
@@ -50,19 +91,30 @@ while IFS=$'\t' read -r name repo ref path; do
     fi
     mkdir -p "${CACHE_HOME}" "${STATE_HOME}"
     printf '  INSTALL %s (%s@%s:%s)\n' "${name}" "${repo}" "${ref}" "${path}"
-    "${PYTHON_BIN}" "${installer}" --repo "${repo}" --ref "${ref}" --path "${path}" --dest "${CACHE_HOME}"
+    if [[ -n "${installer}" ]]; then
+      "${PYTHON_BIN}" "${installer}" --repo "${repo}" --ref "${ref}" --path "${path}" --dest "${CACHE_HOME}"
+    else
+      install_external_with_git "${name}" "${repo}" "${ref}" "${path}" || {
+        printf '外部 skill を取得できません: %s\n' "${name}" >&2
+        exit 1
+      }
+    fi
     printf '%s\n' "${wanted_state}" > "${state_file}"
     changed=1
   fi
   printf '%s\t%s\n' "${name}" "${source_dir}" >> "${sources_file}"
 done < <(
-  "${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" <<'PYEOF'
+  "${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" "${SKILL_SELECT_FILE}" <<'PYEOF'
 import json
 import sys
 
-path, agent = sys.argv[1:]
+path, agent, select_path = sys.argv[1:]
 with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
+if select_path:
+    with open(select_path, encoding="utf-8") as file:
+        selected = set(json.load(file).get("skills", []))
+    entries = [entry for entry in entries if entry["name"] in selected]
 
 for entry in entries:
     name = entry["name"]
@@ -85,6 +137,7 @@ for source_home in "${DOTFILES_DIR}/ai/skills" "${DOTFILES_DIR}/ai/${AGENT}/skil
     [[ -e "${skill_file}" ]] || continue
     source_dir="$(dirname "${skill_file}")"
     name="$(basename "${source_dir}")"
+    is_selected "${name}" || continue
     printf '%s\t%s\n' "${name}" "${source_dir}" >> "${sources_file}"
   done
 done

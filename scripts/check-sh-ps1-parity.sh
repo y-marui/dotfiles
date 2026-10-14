@@ -58,6 +58,8 @@ EXCEPTIONS=(
   "scripts/check-bin-parity.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-sh-ps1-parity.sh:pre-commit専用ツール。git-bash経由で全OS共通実行"
   "scripts/check-skills.sh:make専用ツール。git-bash経由で全OS共通実行"
+  "scripts/cloud-bootstrap.sh:Claude Codeクラウドセッション（Linux VM）専用"
+  "scripts/test-cloud-bootstrap.sh:Claude Codeクラウドセッション専用処理の副作用なし回帰テスト"
   "scripts/check-dots-verb-table.sh:pre-commit専用ツール。git-bash経由で全OS共通実行（Unix側テーブルを正本にWindows側も検証する）"
   "scripts/test-codex-plugin.sh:TODO: ai/codex/plugin/diff.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
   "scripts/test-dots-verbs.sh:TODO: dots.ps1向けのPowerShell回帰テストは、pwsh実行環境で動作確認できるようになってから追加する"
