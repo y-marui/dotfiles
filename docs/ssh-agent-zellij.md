@@ -37,7 +37,9 @@ host is rebuilt, or generate/register a replacement key.
 After a reboot `ssh-add -l` still lists the key, but the passphrase cache is
 empty and non-interactive use fails with `agent refused operation`. Unlock it
 from a real terminal, preferably a plain SSH session outside Zellij
-(`NO_ZELLIJ=1 ssh -t <host>`):
+(`ssh --no-zellij -t <host>`, the wrapper from `shell/zshrc` that passes
+`NO_ZELLIJ=1` to the remote shell; an inline `NO_ZELLIJ=1 ssh` only sets it for
+the local client):
 
 ~~~sh
 export GPG_TTY=$(tty)
