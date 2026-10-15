@@ -9,7 +9,7 @@
 - `obsidian-save-record`: 参照会話やダウンロードZIPから会話全文を保存する。
 - `obsidian-save-knowledge`: 原資料のRecordを保持し、外部事実を検証して再利用可能な理解を整理する。
 - `obsidian-save-project`: 原資料Recordから合意済み目的・現在地・次の行動を整理する。
-- `obsidian-save-zotero`: ChatGPTの論文議論を、会話Record、論文deck（`private/knowledge/<citekey>.md`）、Zotero itemからのobsidian://リンクとして1回で保存する。Zotero操作は外部CLI（python-zotero-paper-tools）に委ね、会話Recordは`obsidian-save-record`の手順に従う。
+- `obsidian-save-zotero`: ChatGPTの論文議論を、会話Record、論文deck（既定は`knowledge/research/papers/<citekey>.md`、Privateは`private/knowledge/research/papers/<citekey>.md`）、Zotero itemからのobsidian://リンクとして1回で保存する。Zotero操作は外部CLI（python-zotero-paper-tools）に委ね、会話Recordは`obsidian-save-record`の手順に従う。
 - `obsidian-save-record-tarot`: Private会話と画像を保存し、学習ノートを保存時の補足として区別する。
 - `obsidian-maintain-record`: 指定された既存Recordを原資料と意味を保って整える。原資料のない要約を全文に見せない。
 - `obsidian-maintain-knowledge`: 既存Knowledgeを整理する。参照元Recordの全文を要約で上書きしない。

@@ -59,8 +59,8 @@ deckの表示には、Obsidianのコミュニティプラグイン Marp Inline P
 5. **Zoteroへリンクを付ける。** `paper-link <citekey>`を実行する。冪等で、出力はitem・pdf・deckと、結果（`created`／`updated`／`exists`）である。Zoteroが未起動、書き込み拒否、タイムアウトなどで失敗したら、CLIが出力する`obsidian://`リンクをそのまま報告し、Zotero itemに手で貼る案内に切り替える。初回の認可ダイアログはユーザーに操作してもらう。「always allow」はローカルAPIの書き込みキーを永続化し、CLIがKeychainへ保存する選択であることを説明し、単回許可も選べるようにする。許可やKeychain設定をAIが代行しない。
 6. **確認して報告する。** 次をクリックできる形で必ず含める。deckを全文読み返し、`git diff --check`と`git status --short`を確認する。commitとpushは明示的に依頼された場合だけ行う。
    - 作成・更新したRecord、deck、`-img/`のパスとcitekey
-   - Zotero item: `zotero://select/library/items/<itemKey>`
-   - 原文PDF: `zotero://open-pdf/library/items/<PDF添付キー>?page=1`（`pdf_key`が`null`なら未確認と書く）
+   - Zotero item: 個人ライブラリは`zotero://select/library/items/<itemKey>`、グループライブラリは`zotero://select/groups/<groupID>/items/<itemKey>`（`paper-link`が出力するitemのリンクがあればそれを使う）
+   - 原文PDF: 個人ライブラリは`zotero://open-pdf/library/items/<PDF添付キー>?page=1`、グループライブラリは`zotero://open-pdf/groups/<groupID>/items/<PDF添付キー>?page=1`（`paper-link`が出力するpdfのリンクがあればそれを使う。`pdf_key`が`null`なら未確認と書く）
    - deck: `obsidian://open?vault=obsidian-vault&file=<vault内パス・拡張子なし>`
    - 会話Record: 同形式の`obsidian://`リンク
    - Zotero添付の結果（created／updated／exists／手貼り）と未確認事項
