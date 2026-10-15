@@ -90,3 +90,29 @@ PYEOF
     printf 'OK: %d cloud skill(s) portability-checked.\n' "${cloud_count}"
   fi
 fi
+
+# cloud-code.json（Claude Code のクラウドセッションへ展開する skill の一覧）は、
+# 管理対象の skill か external.json の外部 skill だけを指すことを確認する。
+CLOUD_CODE_MANIFEST="${DOTFILES_DIR}/ai/skills/cloud-code.json"
+if [[ -f "${CLOUD_CODE_MANIFEST}" ]]; then
+  python3 - "${CLOUD_CODE_MANIFEST}" "${DOTFILES_DIR}" <<'PYEOF'
+import json
+import pathlib
+import sys
+
+manifest, root = sys.argv[1], pathlib.Path(sys.argv[2])
+with open(manifest, encoding="utf-8") as file:
+    names = json.load(file)["skills"]
+with open(root / "ai/skills/external.json", encoding="utf-8") as file:
+    external = {entry["name"] for entry in json.load(file)["skills"]}
+managed = {
+    path.parent.name
+    for base in ("ai/skills", "ai/claude/skills")
+    for path in (root / base).glob("*/SKILL.md")
+}
+unknown = sorted(set(names) - managed - external)
+if unknown or len(names) != len(set(names)):
+    sys.exit(f"Error: ai/skills/cloud-code.json is invalid (unknown or duplicate): {unknown}")
+print(f"OK: {len(names)} cloud-code skill(s) resolved.")
+PYEOF
+fi

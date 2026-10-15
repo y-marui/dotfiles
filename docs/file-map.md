@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-10-01_
+_最終更新: 2026-10-15_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -13,6 +13,16 @@ _最終更新: 2026-10-01_
 | `rpi/homebridge/compose.yaml` | 公式イメージ・hostネットワーク・永続データ・ログ制限・UI healthcheck | privateなimage digest/data path環境ファイル |
 | `rpi/setup_pwm_fan.sh` | 確認済みGPIO12ファンのハードウェアPWMと旧サービス無効化 | インストール済み`pwm-fan` overlay、boot設定 |
 | `docs/raspberry-pi-platform.md` / `docs/ssh-agent-zellij.md` | 運用・確認・rollbackの正本 | 上記管理設定、`rpi/setup_gpg_agent.sh`、`shell/zshrc` |
+
+## Cloud sessions
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `scripts/cloud-bootstrap.sh` | クラウドVM向け。`setup`でAI設定・skillのlinkとSessionStartフック登録、`session`でdotfiles更新・private/vault取得・環境変数注入 | `scripts/_links.sh`、`ai/skills/apply.sh`、`ai/skills/cloud-code.json`、`jq`、環境変数のPAT |
+| `ai/skills/cloud-code.json` | クラウドへ展開するskillの明示リスト | `ai/skills/*`、`ai/skills/external.json`、`scripts/check-skills.sh`（実在検証） |
+| `ai/claude/rules/cloud-environment.md` | クラウドだけで読まれる補足規約（vaultはai/cloud/*ブランチのみ等） | `scripts/cloud-bootstrap.sh`（`~/.claude/rules/`へlink） |
+| `scripts/test-cloud-bootstrap.sh` | 上記の副作用なし回帰テスト（一時HOME・ローカルgit） | `scripts/cloud-bootstrap.sh`、`ai/skills/apply.sh` |
+| `docs/cloud-sessions.md` | 前提・設計・環境設定・確認・運用の正本 | 上記 |
 
 ## claude-perms
 
