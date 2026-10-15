@@ -40,8 +40,8 @@ description: "Create a general note.com article draft from specified Obsidian Re
 
 ## Save and verify
 
-- 既存の同名・同テーマ記事と対象アカウントのREADMEを確認する。既存記事との統合・更新が依頼されていなければ上書きしない。既定の保存先は`outputs/posts/note/y-marui/<タイトル>.md`。別アカウントを指定されたら、その保存先・Propertiesを確認する。
-- frontmatterに`title`（ファイル名と一致）、`platform: note`、`account: y_marui`、`publication_status: draft`、`origin`（Recordから作成した旨）を付ける。別アカウントなら確認した値を使う。公開ID・URL・公開日時を創作しない。公開済み原稿の更新では既存メタデータを保ち、`publication_status: needs_update`とする。
+- 既存の同名・同テーマ記事と対象アカウントのREADMEを確認する。既存記事との統合・更新が依頼されていなければ上書きしない。保存先は`outputs/posts/note/<account-directory>/<タイトル>.md`。投稿先はユーザーの指定とvaultのアカウント別README・既存記事のPropertiesで確認し、ディレクトリ名と`account`値を同一と推測しない。候補が複数または対応が不明なら書き込み前に確認する。
+- frontmatterに`title`（ファイル名と一致）、`platform: note`、`account`（確認した投稿先の値）、`publication_status: draft`、`origin`（Recordから作成した旨）を付ける。公開ID・URL・公開日時を創作しない。公開済み原稿の更新では既存メタデータを保ち、`publication_status: needs_update`とする。
 - 出典Recordへのvault内リンク、使用範囲、匿名化・省略や未確認事項等の編集判断は`editorial_note`に残す。Privateの出典リンクを公開本文に入れない。必要な添付は記事の隣の`<タイトル>-img/`に置く。
 - 原稿を全文読み返し、前提、時系列、数値、思考の変化、判断の有無、具体性、主観と事実、Private漏れ、タイトルとPropertiesを原資料と照合する。`git diff --check`と`git status --short`で差分を確認し、先行変更には触れない。
 - 原稿の絶対パス、元Record、主な再構成・省略、未確認事項を簡潔に報告する。ローカル原稿の作成とnoteへの反映を区別する。
