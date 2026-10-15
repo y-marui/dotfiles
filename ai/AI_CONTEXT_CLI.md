@@ -55,6 +55,21 @@ commit・push など副作用のある操作は出力確認だけを目的に再
 特にシェル関数の Git ガードに依存する場合、外部スクリプトの `run-quiet` を通さず実行する。
 どの実行経路でもフック回避禁止は維持する。
 
+## Read Project Home Before Starting Work
+
+Git リポジトリで開発作業（調査・変更・Issue/PR 対応）を始めるときは、`obsidian-project-home`
+が使えるなら `obsidian-project-home --repo <repository-root>` で Project Home を解決し、
+終了コード `0`（一意）の場合だけ、その Current state・Next actions・Decisions・Open questions
+を読んでから着手する。`session-handoff` が Project Home に残した現在地を、次のセッションが
+拾うための読み込み側の規約。
+
+- 終了コード `3`（なし）・`4`（重複）・`5`（不正）、コマンド未導入、vault 未取得の場合は、
+  本文検索による推測・新規作成をせず、そのまま進める（報告は必要な場合だけ）
+- Project Home は要約と判断の記録であり、技術的な正本はリポジトリの docs と Issue。
+  食い違う場合はリポジトリ側を正とし、Project Home の古い記述は指摘する
+- 読み取りだけで、vault の変更や commit は伴わない。ユーザーの依頼と無関係な Project
+  を読み込まない（解決できた対象リポジトリのものだけ）
+
 ## Fetch Before Starting Work
 
 git リポジトリでコード変更を伴うタスクに着手する前は、ブランチの保護有無やリポジトリの
