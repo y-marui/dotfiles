@@ -1,0 +1,4 @@
+interface:
+  display_name: "note Recordから記事作成"
+  short_description: "Recordの背景と認識の変化を読者向けの一般note記事に再構成"
+  default_prompt: "Use $note-create-article-from-records to draft a note article from the specified Records."
