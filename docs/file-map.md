@@ -132,3 +132,7 @@ Glance Task の「美術展: 関東」「美術展: 東北」タスクを、AI�
 | `macos/museum-status-refresh.sh` | ステータス更新スクリプトを非対話で起動 | `~/.claude/skills/glance-task-format-museum-events/scripts/museum_events.py` |
 | `macos/setup_museum_status_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.museum-status-refresh.plist` |
 | `ai/skills/glance-task-format-museum-events/scripts/museum_events.py` (`refresh` サブコマンド) | 日付からのステータス絵文字判定・書式エラーの末尾送り・書式エラー時のmacOS通知 | Glance Task.app（AppleScript） |
+
+## Chat Archive Launcher
+
+`bin/unix/chatgpt-export`・`bin/windows/chatgpt-export.ps1`（`.cmd` shim）は隣接する`chrome-chatgpt-exporter/cli/index.js`を起動するだけ。`CHATGPT_EXPORTER_ROOT`で場所を指定できる。実装・通信仕様・テストは拡張側で管理し、取得・読取順序は`ai/skills/obsidian-save-record/references/exported-chat.md`に集約する。

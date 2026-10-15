@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# chatgpt-export: chrome-chatgpt-exporter/cli の起動ラッパー
+set -euo pipefail
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+EXPORTER_ROOT="${CHATGPT_EXPORTER_ROOT:-${SCRIPT_DIR}/../../../chrome-chatgpt-exporter}"
+if [[ ! -f "${EXPORTER_ROOT}/cli/index.js" ]]; then
+  printf 'error: chrome-chatgpt-exporter/cli が見つかりません。CHATGPT_EXPORTER_ROOTを指定してください。\n' >&2
+  exit 3
+fi
+exec node "${EXPORTER_ROOT}/cli/index.js" "$@"
