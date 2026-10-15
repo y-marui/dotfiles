@@ -101,6 +101,7 @@ _最終更新: 2026-10-15_
 | `macos/dots-check-monitor-popup.sh` | 通知クリック時に`check-summary`全文をダイアログ表示し、コピー/閉じるを選ばせる | `~/.cache/dots/check-summary` |
 | `macos/*_keyboard_shortcuts.sh` | アプリケーションショートカットの適用・差分・同期・キャッシュ更新 | `macos/keyboard_shortcuts.py`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
 | `macos/keyboard_shortcuts.py` | `NSUserKeyEquivalents` を読み取り、管理ファイルと同期（applyは完全一致・未管理項目を削除、mergeは現在値を取り込み） | `defaults`、`dotfiles-private/macos/keyboard-shortcuts.plist` |
+| `karabiner/complex_modifications/services-menu.json`、`karabiner/open-services.applescript` | `⌃⌥S`で前面アプリのサービス一覧を開く | `karabiner/karabiner.json`、`scripts/_links.sh`、`docs/services-menu-shortcut.md` |
 | `macos/setup_dots_check_launchagent.sh` | LaunchAgentの登録・解除 | `~/Library/LaunchAgents/com.y-marui.dotfiles-check.plist` |
 | `macos/profile` | macOS共通のHomebrew・TeX・SQLite関連環境変数 | `~/.profile.macos`、`shell/profile` |
 | `shell/zshrc` | キャッシュ済み警告だけをシェル起動時に表示 | `~/.cache/dots/check-summary` |

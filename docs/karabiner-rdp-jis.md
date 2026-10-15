@@ -5,6 +5,8 @@ Mac (JIS 配列) から Windows App (旧 Microsoft Remote Desktop) 経由で Win
 
 ## Managed Files
 
+macOSの「サービス」一覧用ショートカットは[Services Menu Shortcut](services-menu-shortcut.md)を参照。
+
 | リポジトリ内 | リンク先 | 内容 |
 |---|---|---|
 | `karabiner/karabiner.json` | `~/.config/karabiner/karabiner.json` | Karabiner-Elements 本体設定（プロファイル・有効ルール） |

@@ -4,6 +4,33 @@
             "complex_modifications": {
                 "rules": [
                     {
+                        "description": "Open Services menu (Control+Option+S)",
+                        "manipulators": [
+                            {
+                                "type": "basic",
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": [
+                                            "control",
+                                            "option"
+                                        ]
+                                    }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "vk_none"
+                                    }
+                                ],
+                                "to_after_key_up": [
+                                    {
+                                        "shell_command": "/usr/bin/osascript \"$HOME/.config/karabiner/open-services.applescript\""
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
                         "description": "Windows App: 英数/かな → 半角全角キー（IME トグル）",
                         "manipulators": [
                             {
