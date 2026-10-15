@@ -12,7 +12,7 @@ description: "Finish a work session end to end when the user explicitly invokes 
 承認に含める操作は、次の2つだけとする。
 
 - 当該セッションで変更した範囲のcommitと、現在のブランチのpush
-- `session-handoff`が`obsidian-project-home`で一意に解決して更新したProject Home（vaultリポジトリ内のファイル）のcommitと、そのリポジトリの現在のブランチのpush。これは「他リポジトリの変更」の例外として扱う
+- `session-handoff`が`obsidian-project-home`で一意に解決して更新した、または`ensure`で新規作成したProject Home（vaultリポジトリ内のファイル）のcommitと、そのリポジトリの現在のブランチのpush。これは「他リポジトリの変更」の例外として扱う
 
 次は含めず、必要になった時点で止めてユーザーに確認する。
 
@@ -39,7 +39,7 @@ description: "Finish a work session end to end when the user explicitly invokes 
 2. push前に、プロジェクトのCI設定（`.github/workflows/`）から、変更に関連するlint・build・testをローカルで実行する。実行できない検証は、理由と未確認範囲を報告する。
 3. 今回変更したファイルだけを明示してstageし、Conventional Commits形式でcommitする。グローバル・プロジェクトのattribution指示があれば従う。
 4. pre-commitなどのフックが失敗したら回避せず、原因を修正してからやり直す。
-5. Project Homeを更新した場合は、vaultリポジトリでも同様にcommitする。更新したProject Homeのファイルだけを明示してstageし、メッセージはvaultの`git log`の直近の形式に合わせる（Conventional Commits形式。例: `docs: <project> の<変更点>を反映`）。attribution指示があれば従う。vaultが現在のブランチへの直接commitを運用しているか（直近の履歴とvaultの`AI_CONTEXT.md`）を確認し、PR経由が必要な場合はcommitせずに止めて報告する。
+5. Project Homeを更新した場合は、vaultリポジトリでも同様にcommitする。更新・新規作成したProject Homeのファイルだけを明示してstageし（新規ファイルは追跡されていないので`git add <path>`が必要）、メッセージはvaultの`git log`の直近の形式に合わせる（Conventional Commits形式。例: `docs: <project> の<変更点>を反映`）。attribution指示があれば従う。vaultが現在のブランチへの直接commitを運用しているか（直近の履歴とvaultの`AI_CONTEXT.md`）を確認し、PR経由が必要な場合はcommitせずに止めて報告する。
 
 ## Step 4: Push
 

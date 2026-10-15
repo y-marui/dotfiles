@@ -64,7 +64,13 @@ Git リポジトリで開発作業（調査・変更・Issue/PR 対応）を始�
 拾うための読み込み側の規約。
 
 - 終了コード `3`（なし）・`4`（重複）・`5`（不正）、コマンド未導入、vault 未取得の場合は、
-  本文検索による推測・新規作成をせず、そのまま進める（報告は必要な場合だけ）
+  本文検索による推測・新規作成をせず、そのまま進める（報告は必要な場合だけ）。開始時の
+  解決は読み取り専用で、作成しない
+- 対応する Project Home がない新規リポジトリは、作業のあと `session-handoff` の中で
+  `obsidian-project-home ensure --repo <repository-root>` を使って作る。作成が許されるのは
+  resolver 設定の `auto_create_owners` に挙げたオーナー（`y-marui`、`fukami-lab-sot`）の
+  リポジトリだけで、他者のリポジトリには作らない。作られるのは雛形（未記入）なので、
+  `session-handoff` が内容を埋める。作成しても commit・push はしない
 - Project Home は要約と判断の記録であり、技術的な正本はリポジトリの docs と Issue。
   食い違う場合はリポジトリ側を正とし、Project Home の古い記述は指摘する
 - 読み取りだけで、vault の変更や commit は伴わない。ユーザーの依頼と無関係な Project

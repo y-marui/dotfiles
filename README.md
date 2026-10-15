@@ -120,7 +120,7 @@ pre-commitで両者の対応関係を検証する。
 | `run-quiet <cmd>` | コマンドをラップし、成功時は1行サマリーのみ出力。warning/deprecated 行は抜粋表示 |
 | `git-pull-all [--fetch-only] [main-branch]` | 1リポジトリの全ローカルブランチをupstreamへfast-forward同期（現在ブランチは`pull --ff-only`、他は作業ツリーを動かさず同期） |
 | `git-sweep [--all] [--no-pull] [main-branch]` | `git-pull-all`のあと、マージ済みブランチを整理（fast-forward・squash・rebase merge 対応）。`--no-pull`で同期を省く |
-| `obsidian-project-home [check] [--repo DIR] [--vault DIR]` | Git `origin`と通常領域のProject Home `repositories`を照合し、一意の対応先を解決。設定は`dotfiles-private/obsidian/project-home-resolver.conf` |
+| `obsidian-project-home [check\|ensure] [--repo DIR] [--vault DIR] [--description TEXT]` | Git `origin`と通常領域のProject Home `repositories`を照合し、一意の対応先を解決。`ensure`は許可オーナー（`auto_create_owners`）の未登録リポジトリだけ雛形を作る。設定は`dotfiles-private/obsidian/project-home-resolver.conf` |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
 | `ghq-update [--all\|--pull-all\|--sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
