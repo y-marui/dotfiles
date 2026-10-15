@@ -9,6 +9,7 @@
 - `obsidian-save-record`: 参照会話やダウンロードZIPから会話全文を保存する。
 - `obsidian-save-knowledge`: 原資料のRecordを保持し、外部事実を検証して再利用可能な理解を整理する。
 - `obsidian-save-project`: 原資料Recordから合意済み目的・現在地・次の行動を整理する。
+- `obsidian-save-zotero`: ChatGPTの論文議論を、会話Record、論文deck（`private/knowledge/<citekey>.md`）、Zotero itemからのobsidian://リンクとして1回で保存する。Zotero操作は外部CLI（python-zotero-paper-tools）に委ね、会話Recordは`obsidian-save-record`の手順に従う。
 - `obsidian-save-record-tarot`: Private会話と画像を保存し、学習ノートを保存時の補足として区別する。
 - `obsidian-maintain-record`: 指定された既存Recordを原資料と意味を保って整える。原資料のない要約を全文に見せない。
 - `obsidian-maintain-knowledge`: 既存Knowledgeを整理する。参照元Recordの全文を要約で上書きしない。
@@ -18,4 +19,6 @@ ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒�
 
 ## ChatGPT source acquisition
 
-保存系4スキル（Record・Knowledge・Project・Tarot）は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)に従い、提供済み原資料を優先する。未取得ならChatGPT Exporter拡張の「素材を含むZIPを作成」から取得・保存完了確認まで行い、自力操作できなければ理由と具体的手順を示してユーザーへ依頼する。公式会話リーダーは不足の補完に使う。Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
+保存系スキル（Record・Knowledge・Project・Tarot・Zotero）は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)に従い、提供済み原資料を優先する。未取得ならChatGPT Exporter拡張の「素材を含むZIPを作成」から取得・保存完了確認まで行い、自力操作できなければ理由と具体的手順を示してユーザーへ依頼する。公式会話リーダーは不足の補完に使う。Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
+
+論文deckはMarpスライド（frontmatterに`marp: true`）として書き、表示にはコミュニティプラグイン Marp Inline Preview を使う。Marpは通常の文章・表を自動縮小しないため、1枚に入る分量にし、長い表・長文は複数スライドに分ける。論文deckでは、会話由来の原文紹介・著者の解釈と、AIの批判・研究案・ユーザー本人の着想を分ける。原論文に未照合の内容は未確認とし、人の確認までは`review_status: pending`を維持する。PDFへのページリンクは対象itemのPDF添付キーをローカルAPIで確認して作る。図はZIP内のファイルに加えてMarkdownのdata URIも確認し、deckへ使う候補をユーザーが選ぶ。

@@ -64,6 +64,11 @@
       "skill_name_prefix": "obsidian",
       "display_name_prefix": "Obsidian"
     },
+    "obsidian-save-zotero": {
+      "kind": "service",
+      "skill_name_prefix": "obsidian",
+      "display_name_prefix": "Obsidian"
+    },
     "optimize-ai-skills": {"kind": "generic"},
     "pptx-proofreading": {"kind": "generic"},
     "pptx-proofreading-handoff": {"kind": "generic"},

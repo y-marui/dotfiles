@@ -12,3 +12,4 @@
 docx-redline git+https://github.com/y-marui/python-docx-redline
 pre-commit
 spotify-tools git+https://github.com/y-marui/python-spotify-tools
+python-zotero-paper-tools git+https://github.com/y-marui/python-zotero-paper-tools
