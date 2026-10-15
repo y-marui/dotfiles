@@ -55,7 +55,8 @@ git_with_token() {
 }
 
 # 取得後のリポジトリには、トークン値ではなく環境変数名を参照する helper を残す。
-# セッション中の push（vault への ai/cloud/* ブランチなど）が、同じ変数で通る。
+# 次回の pull で使う。push には使えない: Git プロキシは、セッションの sources に無い
+# リポジトリへ認証情報を付けない。vault へ書くときは add_repo で追加する（docs/cloud-sessions.md）。
 set_repo_credential_helper() {
   local dir="$1" var="$2"
   git -C "${dir}" config credential.helper \
