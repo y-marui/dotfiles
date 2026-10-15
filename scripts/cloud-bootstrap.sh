@@ -78,6 +78,31 @@ sync_repo() {
   fi
 }
 
+# クラウドの vault clone に pre-push フックを置き、ai/cloud/* 以外への push を拒否する。
+# GitHub 側の強制ではなく、事故を防ぐための VM 内のガード（クラウドの push は手元と同じ
+# GitHub アカウントの認証情報で行われ、ruleset では手元とクラウドを区別できないため）。
+install_vault_guard() {
+  local hook="$1/.git/hooks/pre-push"
+  mkdir -p "$(dirname "${hook}")"
+  # グローバルな core.hooksPath があっても、この clone ではこのフックが効くようにする。
+  git -C "$1" config core.hooksPath "$1/.git/hooks"
+  cat > "${hook}" <<'HOOK'
+#!/bin/sh
+# cloud-bootstrap.sh が配置する。クラウドセッションからは ai/cloud/* だけに push できる。
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  case "${remote_ref}" in
+    refs/heads/ai/cloud/*) ;;
+    *)
+      echo "pre-push: cloud sessions may push only to ai/cloud/* (got ${remote_ref})" >&2
+      exit 1
+      ;;
+  esac
+done
+exit 0
+HOOK
+  chmod +x "${hook}"
+}
+
 link_one() {
   local src="$1" dest="$2"
   [[ -e "${src}" ]] || return 0
@@ -197,6 +222,7 @@ run_session() {
 
   if [[ -n "${VAULT_TOKEN:-}" ]]; then
     if sync_repo "${VAULT_DIR}" "y-marui/obsidian-vault" VAULT_TOKEN --filter=blob:none; then
+      install_vault_guard "${VAULT_DIR}"
       STATUS+=("vault=ok")
     else
       warn "obsidian-vault を取得できませんでした（Project Home への記録は動きません）"

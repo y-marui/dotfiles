@@ -13,6 +13,8 @@
   （Git プロキシが認証情報を付けない）。書き込む前に `add_repo` で `y-marui/obsidian-vault` を
   `access: push` でセッションに追加し、上記の clone（`$OBSIDIAN_VAULT_ROOT`）から push する。
   別の clone は作らない。
+- vault の clone には、`ai/cloud/*` 以外への push を拒否する pre-push フックが置かれている。
+  `--no-verify` などで回避しない。
 
 ## Available skills
 

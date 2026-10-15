@@ -55,10 +55,14 @@ SessionStart フック（起動時と復元時）
    - `DOTFILES_PRIVATE_TOKEN`: 対象は `dotfiles-private` のみ。Contents: Read-only。
    - `VAULT_TOKEN`（Project Home を使う場合）: 対象は `obsidian-vault` のみ。Contents: Read-only。
      起動時の clone/pull 専用で、書き込みには使えない（前述のプロキシの制約）。
-3. vault のデフォルトブランチに、PR 必須の ruleset を設定し、クラウドから main へ直接 push できないようにする。
-   vault への書き込みは、プロキシが付ける GitHub 接続の認証情報で行われ、ブランチ単位の制限は無い。
-   この ruleset が書き込み範囲の境界になる。
-4. Setup script に次を設定する:
+3. vault のデフォルトブランチに、force push と削除を禁止する ruleset を設定する（PR 必須にはしない）。
+   vault への書き込みは、プロキシが付ける GitHub 接続の認証情報、つまり手元と同じアカウントで行われる。
+   ruleset では手元とクラウドを区別できないため、PR 必須にすると手元の直接 push も止まる。
+   履歴の破壊だけを GitHub 側で防ぎ、main への通常の push は次のガードで防ぐ。
+4. `cloud-bootstrap.sh` が vault の clone に置く pre-push フックが、`ai/cloud/*` 以外への push を VM 内で拒否する。
+   これは GitHub 側の強制ではなく事故防止のガードで、`--no-verify` で回避できる。回避された場合でも履歴は壊れず、
+   `git revert` で戻せる。
+5. Setup script に次を設定する:
 
 ~~~text
 #!/bin/bash

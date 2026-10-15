@@ -135,6 +135,17 @@ output="$(run_bootstrap env \
 expect_link "${HOME_DIR}/.identity/weather-location.yaml"
 vault_dir="${HOME_DIR}/src/github.com/y-marui/obsidian-vault"
 [[ -d "${vault_dir}/.git" ]] || fail "vault was not cloned"
+# vault の push ガード: ai/cloud/* 以外は拒否し、ai/cloud/* は通す。
+[[ -x "${vault_dir}/.git/hooks/pre-push" ]] || fail "vault pre-push guard was not installed"
+# 送るものが無い push ではフックが走らないため、新しいコミットを作る。
+git_quiet -C "${vault_dir}" commit --allow-empty -m "guard test"
+if guard_output="$(git -C "${vault_dir}" push origin HEAD:refs/heads/main 2>&1)"; then
+  fail "push to main must be rejected"
+elif [[ "${guard_output}" != *"pre-push: cloud sessions may push only to ai/cloud/"* ]]; then
+  fail "push to main was not rejected by the guard: ${guard_output}"
+fi
+git -C "${vault_dir}" push -q origin HEAD:refs/heads/ai/cloud/test 2>&1 \
+  || fail "push to ai/cloud/* must be allowed"
 grep -q "OBSIDIAN_VAULT_ROOT" "${env_file}" || fail "OBSIDIAN_VAULT_ROOT was not exported"
 grep -q ".local/bin/dotfiles" "${env_file}" || fail "PATH was not exported"
 if grep -rq "dummy-" "${PRIVATE}/.git/config" "${vault_dir}/.git/config" 2> /dev/null; then
