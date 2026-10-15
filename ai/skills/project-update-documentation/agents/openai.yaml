@@ -1,0 +1,4 @@
+interface:
+  display_name: "プロジェクト文書更新"
+  short_description: "実装と方針を照合し、タスクやProject Homeと分けて文書を更新"
+  default_prompt: "Use $project-update-documentation to update this project's documentation against verified implementation and current information-routing rules."

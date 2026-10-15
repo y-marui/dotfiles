@@ -82,6 +82,7 @@
     "optimize-ai-skills": {"kind": "generic"},
     "pptx-proofreading": {"kind": "generic"},
     "pptx-proofreading-handoff": {"kind": "generic"},
+    "project-update-documentation": {"kind": "generic"},
     "review-dotfiles-backup": {"kind": "generic"},
     "sendaicmc-add-practices": {
       "kind": "domain",

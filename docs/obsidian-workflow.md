@@ -6,6 +6,7 @@
 
 ## Skill responsibilities
 
+- `project-update-documentation`: リポジトリの恒久文書を実装・合意済み方針と照合して更新する。技術docs、Project Homeの現在地・未決事項、GitHubの実装タスク、Tasks・Calendar等の責務を分ける。セッション終了処理は含めない。
 - `obsidian-save-record`: 参照会話やダウンロードZIPから会話全文を保存する。
 - `note-create-article-from-records`: 指定Recordから、背景・認識の変化・判断軸を伝える一般向けnote原稿を作る。重要な前提不足は執筆前に確認し、元Recordの変更やnoteへの投稿は含めない。
 - `note-create-english-conversation-article`: 指定された英会話Recordから、noteの「今日の英会話」シリーズの復習教材下書きを作る。元発話を保つRecordと教材用の再構成を分け、noteへの投稿は含めない。対話用プロンプトはvaultの`system/prompts/english-conversation-trainer.md`に置く。
