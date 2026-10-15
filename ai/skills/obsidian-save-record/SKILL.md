@@ -53,6 +53,8 @@ topic を付ける。
 
 モーニングジャーナルの実行プロンプトが必要なら、vault の `system/prompts/morning-journal.md` を読む。
 
+英会話の実行プロンプトは`system/prompts/english-conversation-trainer.md`。英会話Recordのtopicには`english-conversation-<theme>`を使う。元の言い間違いや会話中の訂正・補助も発話順に残し、自然な英語へ書き換えない。過去の会話に終了後レビューがある場合も保持するが、保存時に新規追加しない。復習教材は、依頼があれば`note-create-english-conversation-article`で別の記事として作る。
+
 ## Write the conversation faithfully
 
 対象vaultの`docs/conversation-record-format.md`を全文読み、`system/templates/conversation.md`を使う。通常・Private共通で1会話1Record、独立行の`**USER:**`／`**AI:**`による全発話を時系列で残す。明白な誤字・書式以外は変えず、相槌・反復・進捗・訂正前の回答を削除・統合しない。調査の表・画像・添付を元の発話から別節へ移さない。
