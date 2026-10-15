@@ -1,0 +1,4 @@
+interface:
+  display_name: "note 英会話記事作成"
+  short_description: "英会話Recordから今日の英会話シリーズの復習教材記事を作成"
+  default_prompt: "Use $note-create-english-conversation-article to create a 今日の英会話 draft from the specified conversation Record."

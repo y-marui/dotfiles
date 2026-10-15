@@ -7,6 +7,7 @@
 ## Skill responsibilities
 
 - `obsidian-save-record`: 参照会話やダウンロードZIPから会話全文を保存する。
+- `note-create-english-conversation-article`: 指定された英会話Recordから、noteの「今日の英会話」シリーズの復習教材下書きを作る。元発話を保つRecordと教材用の再構成を分け、noteへの投稿は含めない。対話用プロンプトはvaultの`system/prompts/english-conversation-trainer.md`に置く。
 - `obsidian-save-knowledge`: 原資料のRecordを保持し、外部事実を検証して再利用可能な理解を整理する。
 - `obsidian-save-project`: 原資料Recordから合意済み目的・現在地・次の行動を整理する。
 - `obsidian-save-zotero`: ChatGPTの論文議論を、会話Record、論文deck（既定は`knowledge/research/papers/<citekey>.md`、Privateは`private/knowledge/research/papers/<citekey>.md`）、Zotero itemからのobsidian://リンクとして1回で保存する。Zotero操作は外部CLI（python-zotero-paper-tools）に委ね、会話Recordは`obsidian-save-record`の手順に従う。

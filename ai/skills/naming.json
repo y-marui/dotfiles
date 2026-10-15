@@ -29,6 +29,11 @@
       "display_name_prefix": "Google Maps"
     },
     "morning-brief": {"kind": "generic"},
+    "note-create-english-conversation-article": {
+      "kind": "service",
+      "skill_name_prefix": "note",
+      "display_name_prefix": "note"
+    },
     "obsidian-save-record": {
       "kind": "service",
       "skill_name_prefix": "obsidian",
