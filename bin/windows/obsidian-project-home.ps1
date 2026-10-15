@@ -160,7 +160,10 @@ function Get-AutoCreateOwners {
         if (Test-Path -LiteralPath $config -PathType Leaf) {
             foreach ($rawLine in @(Get-Content -LiteralPath $config)) {
                 $line = $rawLine.Trim()
-                if ($line -like 'auto_create_owners=*') { $raw = $line.Substring($line.IndexOf('=') + 1).Trim() }
+                $separator = $line.IndexOf('=')
+                if ($separator -gt 0 -and $line.Substring(0, $separator).Trim() -eq 'auto_create_owners') {
+                    $raw = $line.Substring($separator + 1).Trim()
+                }
             }
         }
     }

@@ -180,7 +180,7 @@ ensure_run 1 --description $'two\nlines'
 reset_ensure 'https://github.com/y-marui/fromconfig.git'
 mkdir -p "${WORK}/dot/bin/unix" "${WORK}/dot-private/obsidian"
 command cp -f "${COMMAND}" "${WORK}/dot/bin/unix/obsidian-project-home"
-printf 'vault_root=%s\nauto_create_owners=y-marui\n' "${VAULT}" > "${WORK}/dot-private/obsidian/project-home-resolver.conf"
+printf 'vault_root=%s\n  auto_create_owners = y-marui\n' "${VAULT}" > "${WORK}/dot-private/obsidian/project-home-resolver.conf"
 result="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/dot/bin/unix/obsidian-project-home" ensure --repo "${REPOSITORY}" 2>/dev/null)"
 [[ "${result}" == "${VAULT}/projects/repositories/fromconfig.md" ]] || fail "owners from the config were not honored: ${result}"
 result="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/dot/bin/unix/obsidian-project-home" --repo "${REPOSITORY}")"
