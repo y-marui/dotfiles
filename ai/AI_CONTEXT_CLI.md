@@ -204,6 +204,18 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   private で作ってから公開に切り替えない（公開化は権限の確認で止まり、手動の設定変更が必要になる）。
   不安定な状態が main に入るのを避けたいだけなら、private にせず `develop` 等のブランチで作業する。
   公開予定のないリポジトリは private でよい
+- 新規リポジトリは、空で作らず、対応する既存のテンプレートリポジトリから作る
+  （`gh repo create y-marui/<name> --template y-marui/<template> --public`。非公開は `--private`）。
+  作成後に GitHub 上でテンプレートへ結び付けることはできないため、最初から使う。
+  - テンプレート: Python（公開向け）は `python-package-template`、Python（非公開向け）は
+    `python-closed-template`、Swift アプリは `swift-closed-template`、Chrome 拡張は
+    `chrome-closed-template`、Alfred ワークフローは `alfred-workflow-template`。
+    該当するテンプレートがない場合はユーザーに確認する
+  - テンプレートの README の手順に従い、プレースホルダー・パッケージ名・README を置き換える
+  - dev-charter は full を `docs/dev-charter` に git subtree で入れる（lite は文書のみの
+    リポジトリ向け）。手順は dev-charter の `src/README-full.md` に従う
+  - `AI_CONTEXT.md` はテンプレートのものを、そのプロジェクト向けに書き換える。公開リポジトリには
+    個人のパス・ホスト名・設定値を載せない
 
 ## Account Information
 
