@@ -45,6 +45,14 @@ scripts/test-ghq-keep-up-to-date.sh
 scripts/test-run-quiet-hook.sh
 ```
 
+`bin/unix/install-my-apps` を変更した場合は、一時ディレクトリの Build フォルダと Applications で回帰テストを
+実行する（macOS 専用。`hdiutil` で本物の DMG を作り、`--no-gui` で動かすため、実環境の `/Applications`・iCloud・
+起動中のアプリには触れない）:
+
+```bash
+scripts/test-install-my-apps.sh
+```
+
 `bin/unix/my-hosts` を変更した場合は、偽の `ssh`・`ghq-*`・`install-my-apps` で回帰テストを実行する
 （実環境のホストには接続しない）:
 

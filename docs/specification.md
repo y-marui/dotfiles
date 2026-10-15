@@ -340,6 +340,28 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
   スキップと警告は終了コード0
 - `ghq-update`では、pull・stash復元・`uv sync`・`npm update/build`の失敗が`[failed]`になる
 
+### install-my-apps
+
+`bin/unix/install-my-apps`は、iCloud Driveの`Build`フォルダのDMGから自作アプリをインストールする（macOS専用）。
+
+- **インストール先**: Swiftのアプリは`/Applications/My Swift`、Tauriのアプリは`/Applications/My Tauri`。
+  自作アプリが増えても`/Applications`直下を散らかさず、App Store版と同名でも衝突しないため。
+- **入れ先を変える**: 環境変数`INSTALL_MY_APPS_SWIFT_DIR`・`INSTALL_MY_APPS_TAURI_DIR`で種類ごとの入れ先を変えられる。
+  `/Applications`直下に入れたいときは`/Applications`を指定する（入れ先が旧い置き場そのものなので、旧い置き場の整理は行わない）。
+- **種類の決め方**: DMGの置き場で決める。`Build/Swift/*.dmg`と`Build/Tauri/*.dmg`。移行前の`Build`直下のDMGは
+  Swift扱いにして、`Build/Swift`へ移すよう知らせる。同じ名前が`Build/Swift`か`Build/Tauri`にもあるときは、
+  `Build`直下のものを使わない。
+- **旧い置き場の整理（移行期間の措置）**: `--migrate-old`（既定はON。`--no-migrate-old`か環境変数
+  `INSTALL_MY_APPS_MIGRATE_OLD=0`で切る）のとき、`/Applications`直下に残っている同じ自作アプリを、インストール時に
+  削除する。削除するのは次のすべてを満たすときだけ: この実行の前から新旧の両方にあったのではない／Mac App Store版でない
+  （`_MASReceipt`が無い）／バンドルIDがインストールするアプリと同じ。両方にあったときは、削除せず知らせる（再インストール
+  モードでも、実行前の状態で判定する）。全Macの移行が済んだら既定をOFFにする（ロジックは残す）。
+- **アンインストール**: 新しい置き場（My Swift・My Tauri）のアプリを削除する。旧い置き場に同名のアプリが残っていても、
+  App Store版などの別のアプリかもしれないので消さず、知らせる。
+- **回帰テスト**: [scripts/test-install-my-apps.sh](../scripts/test-install-my-apps.sh)。Buildフォルダと
+  Applicationsを一時ディレクトリに差し替える環境変数`INSTALL_MY_APPS_BUILD_DIR`・`INSTALL_MY_APPS_APPS_ROOT`を使い、
+  `--no-gui`で動かす。
+
 ### my-hosts
 
 サブコマンドは`status` / `pull` / `sweep`（省略時）/ `update` / `apps`。`apps`以外は対応する

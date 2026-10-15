@@ -1,11 +1,12 @@
 #compdef install-my-apps
 
 _install-my-apps_apps() {
-  local build_dir="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
+  local build_dir="${INSTALL_MY_APPS_BUILD_DIR:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build}"
   local -a apps
-  for dmg in "$build_dir"/*.dmg(N); do
+  for dmg in "$build_dir"/Swift/*.dmg(N) "$build_dir"/Tauri/*.dmg(N) "$build_dir"/*.dmg(N); do
     apps+=("${${dmg##*/}%.dmg}")
   done
+  apps=("${(@u)apps}")
   _describe 'app' apps
 }
 
@@ -15,6 +16,8 @@ _install-my-apps() {
     '(-f --force)'{-f,--force}'[バージョンチェックをスキップして常にインストール（強制インストールモード）]' \
     '(-r --reinstall -u --uninstall)'{-u,--uninstall}'[インストール済みアプリを削除（アンインストールモード）]' \
     '--no-gui[GUI操作（終了・起動・ウィジェット編集画面）を省く]' \
+    '(--no-migrate-old)--migrate-old[旧い置き場（/Applications直下）の同じアプリを整理する（移行期間の措置・既定）]' \
+    '(--migrate-old)--no-migrate-old[旧い置き場の整理をしない]' \
     '(-h --help)'{-h,--help}'[ヘルプを表示]' \
     '*:app:_install-my-apps_apps'
 }

@@ -22,15 +22,128 @@
 #   アプリの終了・ウィジェットキャッシュのクリア・起動・ウィジェット編集画面の表示を省く
 #   （ssh 越し・ログインしていない Mac 向け）。ウィジェット拡張は、そのアプリを
 #   次に起動したときに登録される。他のモードと組み合わせられる
+# --migrate-old / --no-migrate-old フラグ（移行期間の措置。既定は ON）:
+#   旧い置き場（/Applications 直下）に残っている同じ自作アプリを、インストール時に削除する／しない。
+#   削除するのは、新しい置き場に同名のアプリがまだなく、App Store 版でなく、バンドル ID が
+#   同じときだけ。新旧の両方にあるときは削除せず知らせる。環境変数
+#   INSTALL_MY_APPS_MIGRATE_OLD=0 でも切れる。全 Mac の移行が済んだら既定を OFF にする
+#   （ロジックは残す）
+# 環境変数 INSTALL_MY_APPS_SWIFT_DIR / INSTALL_MY_APPS_TAURI_DIR:
+#   種類ごとの入れ先を変える（/Applications 直下に入れたいときは /Applications を指定）
 # -h, --help フラグ:
 #   このヘルプを表示
+#
+# インストール先: Swift のアプリは /Applications/My Swift、Tauri のアプリは /Applications/My Tauri
+# （App Store 版と同名でも衝突しないよう、/Applications 直下とは分ける）。
+# 種類は DMG の置き場で決まる: iCloud の Build/Swift/*.dmg と Build/Tauri/*.dmg。
+# 移行前の Build 直下の DMG は Swift として扱う（Build/Swift へ移すこと）。
 
 set -euo pipefail
 
-readonly BUILD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build"
-readonly APPS_DIR="/Applications"
+# テストでは環境変数で一時ディレクトリに差し替える（実環境の /Applications には触れない）
+readonly BUILD_DIR="${INSTALL_MY_APPS_BUILD_DIR:-$HOME/Library/Mobile Documents/com~apple~CloudDocs/Build}"
+readonly APPS_ROOT="${INSTALL_MY_APPS_APPS_ROOT:-/Applications}"
+# 入れ先は種類ごとに環境変数で変えられる。/Applications 直下に入れたいときは
+# INSTALL_MY_APPS_SWIFT_DIR=/Applications のように指定する（旧い置き場の整理は、入れ先と同じなので行わない）
+readonly SWIFT_APPS_DIR="${INSTALL_MY_APPS_SWIFT_DIR:-$APPS_ROOT/My Swift}"
+readonly TAURI_APPS_DIR="${INSTALL_MY_APPS_TAURI_DIR:-$APPS_ROOT/My Tauri}"
+
+# 移行期間の措置（旧い置き場の自作アプリの削除）の既定。全 Mac の移行が済んだら 0 にする。
+readonly MIGRATE_OLD_DEFAULT="${INSTALL_MY_APPS_MIGRATE_OLD:-1}"
 
 installed_apps=()
+installed_paths=()
+both_exist=" "
+dmg_files=()
+
+# DMG の置き場から種類を決める: Build/Tauri は Tauri、それ以外（Build/Swift と、
+# 移行前の Build 直下）は Swift
+kind_of_dmg() {
+    case "$(dirname "$1")" in
+        "$BUILD_DIR/Tauri") echo tauri ;;
+        *) echo swift ;;
+    esac
+}
+
+apps_dir_of_dmg() {
+    case "$(kind_of_dmg "$1")" in
+        tauri) echo "$TAURI_APPS_DIR" ;;
+        *) echo "$SWIFT_APPS_DIR" ;;
+    esac
+}
+
+# DMG を dmg_files に集める。同じ名前が Build/Swift か Build/Tauri にもある Build 直下の DMG は使わない
+collect_dmgs() {
+    local dir dmg name
+    for dir in "$BUILD_DIR/Swift" "$BUILD_DIR/Tauri"; do
+        for dmg in "$dir"/*.dmg; do
+            [[ -f "$dmg" ]] && dmg_files+=("$dmg")
+        done
+    done
+    for dmg in "$BUILD_DIR"/*.dmg; do
+        [[ -f "$dmg" ]] || continue
+        name=$(basename "$dmg")
+        [[ -f "$BUILD_DIR/Swift/$name" || -f "$BUILD_DIR/Tauri/$name" ]] && continue
+        dmg_files+=("$dmg")
+    done
+}
+
+# アプリ名から DMG を探す（Swift → Tauri → 移行前の Build 直下の順）
+find_dmg() {
+    local name="$1" dir
+    for dir in "$BUILD_DIR/Swift" "$BUILD_DIR/Tauri" "$BUILD_DIR"; do
+        if [[ -f "$dir/$name.dmg" ]]; then
+            echo "$dir/$name.dmg"
+            return 0
+        fi
+    done
+    return 1
+}
+
+bundle_id_of() {
+    /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$1/Contents/Info.plist" 2>/dev/null || true
+}
+
+# 移行期間の措置: /Applications 直下に残っている旧い自作アプリを削除する。
+# 削除するのは、(1) この実行の前から新旧の両方にあったのではなく、(2) App Store 版でなく、
+# (3) バンドル ID がインストールするアプリと同じときだけ。両方にあったときは削除せず知らせる。
+migrate_legacy_app() {
+    local name="$1" app_in_dmg="$2" new_app="$3"
+    $migrate_old || return 0
+    local legacy="$APPS_ROOT/${name}.app"
+    [[ -d "$legacy" ]] || return 0
+    # 入れ先が旧い置き場そのもの（環境変数で /Applications 直下を指定した）なら整理しない
+    [[ "$legacy" == "$new_app" ]] && return 0
+
+    if [[ "$both_exist" == *" $name "* ]]; then
+        echo "  注意: 新旧の両方にあるため、旧い場所は削除しません: $legacy"
+        return 0
+    fi
+    if [[ -d "$legacy/Contents/_MASReceipt" ]]; then
+        echo "  注意: App Store 版のため、旧い場所は削除しません: $legacy"
+        return 0
+    fi
+    local legacy_id new_id
+    legacy_id=$(bundle_id_of "$legacy")
+    new_id=$(bundle_id_of "$app_in_dmg")
+    if [[ -z "$new_id" || "$legacy_id" != "$new_id" ]]; then
+        echo "  注意: バンドル ID が違うため、旧い場所は削除しません: $legacy"
+        return 0
+    fi
+    quit_app "$name" "$legacy"
+    echo "  旧い場所を削除: $legacy"
+    rm -rf "$legacy"
+}
+
+# この実行の前の状態で、新旧の両方に同名のアプリがあるものを控える（再インストールで
+# 新しい置き場のアプリを消す前に確認するため）
+note_both_exist() {
+    local dmg="$1" name
+    name=$(basename "$dmg" .dmg)
+    if [[ -d "$APPS_ROOT/${name}.app" && -d "$(apps_dir_of_dmg "$dmg")/${name}.app" ]]; then
+        both_exist+="$name "
+    fi
+}
 
 check_icloud_sync() {
     local dir="$1"
@@ -63,7 +176,7 @@ check_icloud_sync() {
 
 quit_app() {
     local name="$1"
-    local app_path="$APPS_DIR/${name}.app"
+    local app_path="$2"
 
     $no_gui && return 0
 
@@ -101,7 +214,7 @@ is_dmg_same_version() {
     fi
 
     local installed_app
-    installed_app="$APPS_DIR/$(basename "$app_in_dmg")"
+    installed_app="$(apps_dir_of_dmg "$dmg")/$(basename "$app_in_dmg")"
     local same=1
     if [[ -d "$installed_app" ]]; then
         local dmg_mtime installed_mtime
@@ -118,11 +231,12 @@ remove_app() {
     local dmg="$1"
     local app_name
     app_name=$(basename "$dmg" .dmg)
-    local app_path="$APPS_DIR/${app_name}.app"
+    local app_path
+    app_path="$(apps_dir_of_dmg "$dmg")/${app_name}.app"
 
     echo ""
     echo "==> $app_name を削除"
-    quit_app "$app_name"
+    quit_app "$app_name" "$app_path"
 
     if [[ -d "$app_path" ]]; then
         echo "  削除: $app_path"
@@ -134,19 +248,26 @@ remove_app() {
 
 uninstall_app() {
     local app_name="$1"
-    local app_path="$APPS_DIR/${app_name}.app"
+    local dir app_path found=false
 
     echo ""
     echo "==> $app_name をアンインストール"
-    quit_app "$app_name"
-
-    if [[ -d "$app_path" ]]; then
-        echo "  削除: $app_path"
-        rm -rf "$app_path"
-    else
-        echo "  スキップ: $app_path が見つかりません"
+    for dir in "$SWIFT_APPS_DIR" "$TAURI_APPS_DIR"; do
+        app_path="$dir/${app_name}.app"
+        if [[ -d "$app_path" ]]; then
+            found=true
+            quit_app "$app_name" "$app_path"
+            echo "  削除: $app_path"
+            rm -rf "$app_path"
+        fi
+    done
+    if ! $found; then
+        echo "  スキップ: $SWIFT_APPS_DIR と $TAURI_APPS_DIR に ${app_name}.app が見つかりません"
     fi
-
+    # 旧い置き場のアプリは、他の（App Store 版などの）同名アプリかもしれないので、ここでは消さない
+    if [[ -d "$APPS_ROOT/${app_name}.app" ]]; then
+        echo "  注意: 旧い置き場に残っています（削除しません）: $APPS_ROOT/${app_name}.app"
+    fi
 }
 
 clear_widget_cache() {
@@ -186,7 +307,9 @@ install_dmg() {
 
     local installed_name
     installed_name=$(basename "$app_in_dmg" .app)
-    local installed_app="$APPS_DIR/${installed_name}.app"
+    local apps_dir
+    apps_dir=$(apps_dir_of_dmg "$dmg")
+    local installed_app="$apps_dir/${installed_name}.app"
 
     # インストール済み .app の更新日時と DMG 内 .app の更新日時を比較
     if ! $force && [[ -d "$installed_app" ]]; then
@@ -203,10 +326,17 @@ install_dmg() {
 
     echo ""
     echo "==> $installed_name をインストール"
-    quit_app "$installed_name"
-    echo "  インストール中..."
-    cp -Rp "$app_in_dmg" "$APPS_DIR/"
+    quit_app "$installed_name" "$installed_app"
+    migrate_legacy_app "$installed_name" "$app_in_dmg" "$installed_app"
+    echo "  インストール中...（${apps_dir}）"
+    if ! mkdir -p "$apps_dir"; then
+        echo "  エラー: フォルダを作れませんでした: $apps_dir" >&2
+        hdiutil detach "$mount_point" -quiet 2>/dev/null || true
+        return 1
+    fi
+    cp -Rp "$app_in_dmg" "$apps_dir/"
     installed_apps+=("$installed_name")
+    installed_paths+=("$installed_app")
 
     hdiutil detach "$mount_point" -quiet 2>/dev/null || true
 }
@@ -214,9 +344,10 @@ install_dmg() {
 relaunch_apps() {
     echo ""
     echo "==> アプリを起動してウィジェット拡張を登録..."
-    for app_name in "${installed_apps[@]}"; do
-        echo "  起動: $app_name"
-        open "$APPS_DIR/${app_name}.app" 2>/dev/null || echo "  警告: 起動できませんでした: $app_name"
+    local i
+    for i in "${!installed_apps[@]}"; do
+        echo "  起動: ${installed_apps[$i]}"
+        open "${installed_paths[$i]}" 2>/dev/null || echo "  警告: 起動できませんでした: ${installed_apps[$i]}"
     done
     # ウィジェット拡張が登録されるまで待機
     sleep 3
@@ -273,6 +404,10 @@ reinstall=false
 force=false
 uninstall=false
 no_gui=false
+case "$MIGRATE_OLD_DEFAULT" in
+    0|false|no|off) migrate_old=false ;;
+    *) migrate_old=true ;;
+esac
 
 # オプション解析
 args=()
@@ -282,6 +417,8 @@ for arg in "$@"; do
         --force|-f)     force=true ;;
         --uninstall|-u) uninstall=true ;;
         --no-gui)       no_gui=true ;;
+        --migrate-old)    migrate_old=true ;;
+        --no-migrate-old) migrate_old=false ;;
         --help|-h)      sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         -*) echo "不明なオプション: $arg" >&2; exit 1 ;;
         *) args+=("$arg") ;;
@@ -299,9 +436,10 @@ if $uninstall; then
     if (( ${#args[@]} > 0 )); then
         app_names=("${args[@]}")
     else
-        # 引数なし: BUILD_DIR の DMG に対応するアプリをアンインストール
-        for dmg in "$BUILD_DIR"/*.dmg; do
-            [[ -f "$dmg" ]] && app_names+=("$(basename "$dmg" .dmg)")
+        # 引数なし: Build の DMG に対応するアプリをアンインストール
+        collect_dmgs
+        for dmg in "${dmg_files[@]+"${dmg_files[@]}"}"; do
+            app_names+=("$(basename "$dmg" .dmg)")
         done
     fi
 
@@ -321,8 +459,15 @@ if $uninstall; then
 fi
 
 check_icloud_sync "$BUILD_DIR"
+for kind_dir in "$BUILD_DIR/Swift" "$BUILD_DIR/Tauri"; do
+    [[ -d "$kind_dir" ]] && check_icloud_sync "$kind_dir"
+done
 
 echo "Build フォルダ: $BUILD_DIR"
+echo "インストール先: ${SWIFT_APPS_DIR}（Swift）、${TAURI_APPS_DIR}（Tauri）"
+if $migrate_old; then
+    echo "旧い置き場の整理: ON（移行期間の措置。--no-migrate-old で切れます）"
+fi
 if $reinstall; then
     echo "モード: 再インストール（削除してからインストール）"
 elif $force; then
@@ -334,25 +479,32 @@ fi
 dmg_files=()
 if (( ${#args[@]} > 0 )); then
     for app_name in "${args[@]}"; do
-        dmg="$BUILD_DIR/${app_name}.dmg"
-        if [[ -f "$dmg" ]]; then
+        if dmg=$(find_dmg "$app_name"); then
             dmg_files+=("$dmg")
         else
             echo "警告: ${app_name}.dmg が見つかりません" >&2
         fi
     done
 else
-    for dmg in "$BUILD_DIR"/*.dmg; do
-        [[ -f "$dmg" ]] || continue
-        dmg_files+=("$dmg")
-    done
+    collect_dmgs
 fi
+
+# 移行前の Build 直下の DMG は Swift として扱う（置き場を直すよう知らせる）
+for dmg in "${dmg_files[@]+"${dmg_files[@]}"}"; do
+    if [[ "$(dirname "$dmg")" == "$BUILD_DIR" ]]; then
+        echo "注意: Build 直下の DMG は Swift として扱います。Build/Swift へ移してください: $(basename "$dmg")" >&2
+    fi
+done
 
 if (( ${#dmg_files[@]} == 0 )); then
     echo ""
     echo "DMG ファイルが見つかりませんでした。"
     exit 1
 fi
+
+for dmg in "${dmg_files[@]}"; do
+    note_both_exist "$dmg"
+done
 
 if $reinstall; then
     # 同バージョンの DMG は削除前に除外

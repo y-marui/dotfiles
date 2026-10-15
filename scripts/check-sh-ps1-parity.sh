@@ -16,6 +16,7 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # 相対パス（.sh または .ps1）:対応するスクリプトが不要な理由
 # bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
 EXCEPTIONS=(
+  "scripts/test-install-my-apps.sh:macOS専用（install-my-apps は macOS 専用で、hdiutil で DMG を作って検証する）"
   "macos/apply_brewpin.sh:macOS専用（Homebrew）"
   "macos/apply_brewfile.sh:macOS専用（Homebrew）"
   "macos/apply_dockfile.sh:macOS専用（Dock）"
