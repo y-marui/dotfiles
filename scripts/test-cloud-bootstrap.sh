@@ -130,6 +130,15 @@ if grep -rq "dummy-" "${PRIVATE}/.git/config" "${vault_dir}/.git/config" 2> /dev
   fail "token value stored in git config"
 fi
 
+# --- 取得元が失敗したときは ok と報告しない ---
+mv "${PRIVATE_REMOTE}" "${PRIVATE_REMOTE}.gone"
+output="$(run_bootstrap env \
+  DOTFILES_PRIVATE_TOKEN=dummy-private VAULT_TOKEN=dummy-vault \
+  bash "${DOTFILES}/scripts/cloud-bootstrap.sh" session)"
+[[ "${output}" == *"private=failed"* && "${output}" == *"vault=ok"* ]] \
+  || fail "pull failure must be reported as failed: ${output}"
+mv "${PRIVATE_REMOTE}.gone" "${PRIVATE_REMOTE}"
+
 # --- session（トークンなし）は失敗せず、警告だけを出す ---
 output="$(run_bootstrap env -u DOTFILES_PRIVATE_TOKEN -u VAULT_TOKEN \
   bash "${DOTFILES}/scripts/cloud-bootstrap.sh" session)"

@@ -66,13 +66,15 @@ set_repo_credential_helper() {
 sync_repo() {
   local dir="$1" repo="$2" var="$3"
   shift 3
+  # 呼び出し側が if 文の条件で使うと set -e が効かないため、失敗は && で明示的に伝える。
   if [[ -d "${dir}/.git" ]]; then
-    git_with_token "${var}" -C "${dir}" pull --ff-only --quiet >> "${LOG_FILE}" 2>&1
+    git_with_token "${var}" -C "${dir}" pull --ff-only --quiet >> "${LOG_FILE}" 2>&1 \
+      && set_repo_credential_helper "${dir}" "${var}"
   else
-    mkdir -p "$(dirname "${dir}")"
-    git_with_token "${var}" clone --quiet "$@" "${GIT_BASE}/${repo}.git" "${dir}" >> "${LOG_FILE}" 2>&1
+    mkdir -p "$(dirname "${dir}")" \
+      && git_with_token "${var}" clone --quiet "$@" "${GIT_BASE}/${repo}.git" "${dir}" >> "${LOG_FILE}" 2>&1 \
+      && set_repo_credential_helper "${dir}" "${var}"
   fi
-  set_repo_credential_helper "${dir}" "${var}"
 }
 
 link_one() {
@@ -132,7 +134,7 @@ register_hook() {
       [(.hooks.SessionStart // [])[]
         | select(((.hooks // []) | map(.command // "") | map(contains("cloud-bootstrap.sh")) | any) | not)]
       + [{matcher: "startup|resume", hooks: [{type: "command", command: $cmd, timeout: 300}]}]
-    )' "${settings}" > "${tmp}" && mv "${tmp}" "${settings}"
+    )' "${settings}" > "${tmp}" && mv "${tmp}" "${settings}" || { rm -f "${tmp}"; return 1; }
 }
 
 run_setup() {
