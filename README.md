@@ -126,7 +126,7 @@ pre-commitで両者の対応関係を検証する。
 | `ghq-update [--all\|--pull-all\|--sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
 | `ghq-sweep [--no-pull]` | ghq管理リポジトリ全件に`git-sweep --all`を実行（`--no-pull`はローカルブランチの更新を行わない） |
 | `my-hosts [status\|pull\|sweep\|update\|apps] [--no-status\|-f pattern\|-H host\|--dry-run] [-- install-my-appsの引数]` | 宣言した他のホスト（Mac/Windows）で`ghq-pull`/`ghq-sweep`/`ghq-update`と`ghq-status`、`install-my-apps`をssh経由で実行（`status`=statusのみ、`pull`=pull→status、`sweep`=sweep→status（省略時）、`update`=pull→依存更新→status、`apps`=`install-my-apps`のみ（リモートは`--no-gui`付き）、`--no-status`でstatusを省く。ホスト間は並列、実行元はmacOS専用、対象にはWindows（OpenSSH+pwsh、`<host>:windows`）とRaspberry Pi（`<host>:rpi`、`apps`のみ`skip`）も宣言できる。Windowsは`apps`が`skip`で、`pull`系はGitHub認証の制限で未対応（詳細はspecification）、対象は`dotfiles-private`の`hosts/hosts`で実行元ごとに宣言） |
-| `install-my-apps [-f\|-r\|-u\|--no-gui] [app...]` | iCloud Driveの`Build/*.dmg`から自作アプリを`/Applications`へインストール（macOS専用。Windows版は`my-hosts`用の何もしないスタブで、終了コード64を返す。`--no-gui`でアプリの終了・起動・ウィジェット編集画面を省く） |
+| `install-my-apps [-f\|-r\|-u\|--no-gui\|--migrate-old\|--no-migrate-old] [app...]` | iCloud Driveの`Build/Swift/*.dmg`と`Build/Tauri/*.dmg`から自作アプリを`/Applications/My Swift`と`/Applications/My Tauri`へインストール（App Store版と同名でも衝突しない。`Build`直下の移行前のDMGはSwift扱い。移行期間の措置として、`/Applications`直下に残っている同じ自作アプリを整理する`--migrate-old`が既定でONで、新旧の両方にあるときは消さない。macOS専用。Windows版は`my-hosts`用の何もしないスタブで、終了コード64を返す。`--no-gui`でアプリの終了・起動・ウィジェット編集画面を省く） |
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
 | `sync-labpc <job-name\|host-ip\|all\|list>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`。`list`でジョブ一覧表示） |
