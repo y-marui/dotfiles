@@ -49,6 +49,9 @@ deckの表示には、Obsidianのコミュニティプラグイン Marp Inline P
 2. **citekeyを確定する。** 論文の題名・著者・DOIなどで`paper-find <query>`（`--json --limit 5`も可）を実行する。1件に絞れなければ候補（citekey、年、第一著者、題名）を示してユーザーに選んでもらう。推測で決めない。
 3. **deckを作る。** 「Layout」の側のdeck（`knowledge/research/papers/<citekey>.md`、Privateなら`private/knowledge/research/papers/<citekey>.md`）が無ければ、`paper-note <citekey>`（Privateは`--private`）で雛形を作る。既にあれば上書きせず、読んで追記・更新する（1論文1deck、Recordは複数でよい）。
    - 本文は会話から次の区分に分けて書く: 原文が示すこと／著者の解釈／ChatGPTの推論／自分の着想／検証案。
+   - 会話に含まれる研究背景・未解決課題、物理的原理（支配方程式・スケーリング・対称性と成立条件）、手法の妥当性、主要結果の数値・単位・誤差・比較条件を、結論に至る因果関係が追える形で残す。以下も含め、保存時に不足分のレビューを新規生成せず、会話で扱っていない事項を埋めない。
+   - Figureの議論は図・パネル番号と結び付け、会話にある軸名・単位、図が直接示す事実、解釈上の限界、前後の図との論理的接続を保つ。画像だけで説明を代替しない。
+   - 批判・研究戦略は、対象の主張と証拠、代替解釈、測定限界、打破すべき課題、具体的な検証方法を対応付ける。会話にある他系への一般化の条件やHIJ展開が難しい理由も残し、提案を確立済みの結論に変えない。
    - Marpスライドとして書く。frontmatterに`marp: true`、`paginate: true`、`style: |`で`section { font-size: 22px; } section img { max-height: 380px; }`を含める（`paper-note`の雛形が出す。既存deckに追記するときも、無ければ補う）。
    - スライドは`---`区切り、数式は`$...$`にする。Marpは通常の文章・表を自動縮小しないため、1枚に入る分量にし、長い表・長文は複数スライドに分ける。
    - 図には原文のFig.番号・pageを書き、`zotero://open-pdf/library/items/<PDF添付キー>?page=N`を併記する（グループライブラリは`zotero://open-pdf/groups/<groupID>/items/<添付キー>?page=N`）。PDF添付キーは`paper-find --json`の`pdf_key`を使う。`null`や複数PDFでページ対応が不明なら未確認とし、キーやページを捏造しない。
