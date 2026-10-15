@@ -16,7 +16,9 @@ Git repository内外の作業セッションを、別チャット・別作業へ
 3. 安全に完了できるものはこの時点で完了する。commit・push・破壊的操作の確認要否は通常の安全ルールのまま変わらない。特にcommitは、今回のタスクでユーザーが明示的に指示していない限り、このskillを使うこと自体を理由に新規作成しない。
 4. 判断が必要で完了できないものは、無理に片付けず一覧にする。「一旦保留」を暗黙のまま終わらせない。
 
-Git repositoryで`obsidian-project-home`が使える場合は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`3`（なし）、`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
+Git repositoryで`obsidian-project-home`が使える場合は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
+
+`3`（なし）の場合は、Step 1〜3の作業を終えたあとに`obsidian-project-home ensure --repo <repository-root>`を実行して作る（作業開始時の解決は読み取り専用のまま作らない）。作成が許されるのはresolver設定の`auto_create_owners`に挙げたオーナーのリポジトリだけで、それ以外は`ensure`が何も作らず終了コード`3`を返すので、そのまま「Project Homeなし」として報告する。作成できた場合は、出力されたパスの雛形（`（未記入）`の箇所）を、Step 2の基準でこのセッションの内容から埋める。`--description`には、リポジトリの目的を1行で渡してよい。`ensure`はcommitもpushもしない。
 
 ## Step 2: Classify what emerged this session
 

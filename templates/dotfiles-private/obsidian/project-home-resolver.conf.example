@@ -1,3 +1,6 @@
 # Obsidian Project Home resolver configuration.
 # Use a path relative to $HOME (or an absolute path kept only in this private repo).
 vault_root=path/to/obsidian-vault
+# Optional. GitHub owners (comma separated) whose repositories `obsidian-project-home ensure`
+# may create a Project Home for when none exists. Leave unset to never create one.
+# auto_create_owners=owner-one,owner-two

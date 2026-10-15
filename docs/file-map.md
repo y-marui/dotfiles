@@ -60,7 +60,7 @@ _最終更新: 2026-10-15_
 | `bin/unix/git-pull-all` / `bin/windows/git-pull-all.ps1` | 1リポジトリの全ローカルブランチのfast-forward同期（現在ブランチはpull、他は作業ツリーを動かさず同期。upstream fork sync含む） | `bin/unix/_git-fork-lib.sh` / `_git-branch-lib.sh`（Windowsは`.ps1`）、`scripts/test-git-pull-all.sh`（Unix版回帰テスト） |
 | `bin/unix/git-sweep` / `bin/windows/git-sweep.ps1` | マージ済みブランチの自動整理（`git-pull-all`のあと削除。dirty worktree・他worktree使用中ブランチの保護、squash/rebase merge内容検証。詳細は[specification.md](specification.md#git-pull-all--git-sweep--ghq-pull--ghq-update--ghq-sweep--my-hosts)） | `bin/unix/git-pull-all`、`_git-branch-lib.sh` / `_git-branch-lib.ps1`、`.gitattributes`（repo-main-branch、repo-protected-branches）、属性未設定時の`local.repo-*`、`scripts/test-git-sweep.sh`（Unix版回帰テスト） |
 | `bin/unix/_git-branch-lib.sh` / `bin/windows/_git-branch-lib.ps1` | ブランチ方針（main/protectedの解決）とworktree判定の共通関数。`git-sweep`と`git-pull-all`が共有する | `.gitattributes`、`local.repo-*` |
-| `bin/unix/obsidian-project-home` / `bin/windows/obsidian-project-home.ps1` | Git `origin`と通常領域Project Homeの`repositories`を正規化して一意に解決。本文・Privateは探索せず、未登録・重複・不正設定を終了コードで明示する | `dotfiles-private/obsidian/project-home-resolver.conf`、`templates/dotfiles-private/obsidian/project-home-resolver.conf.example`、`scripts/test-obsidian-project-home.sh` |
+| `bin/unix/obsidian-project-home` / `bin/windows/obsidian-project-home.ps1` | Git `origin`と通常領域Project Homeの`repositories`を正規化して一意に解決。本文・Privateは探索せず、未登録・重複・不正設定を終了コードで明示する。`ensure`は許可オーナーの未登録リポジトリにだけ雛形を作る | `dotfiles-private/obsidian/project-home-resolver.conf`、`templates/dotfiles-private/obsidian/project-home-resolver.conf.example`、`scripts/test-obsidian-project-home.sh` |
 
 ## dev-charter Installation
 

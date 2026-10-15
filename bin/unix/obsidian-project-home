@@ -3,6 +3,7 @@
 #
 # Usage:
 #   obsidian-project-home [--repo DIR] [--vault DIR]
+#   obsidian-project-home ensure [--repo DIR] [--vault DIR] [--description TEXT]
 #   obsidian-project-home check [--vault DIR]
 #
 # The command compares the current repository's origin with the `repositories`
@@ -11,6 +12,16 @@
 # https://github.com/owner/repository. It never searches note bodies or private/
 # paths. Exit status: 0 unique (or check passed), 3 no mapping, 4 duplicates,
 # 5 invalid configuration or frontmatter.
+#
+# `ensure` resolves like the default mode, and when no Project Home maps to the
+# repository it creates one in projects/repositories/ and then re-resolves to
+# confirm exactly one mapping. It creates only for repositories whose GitHub owner
+# is listed in auto_create_owners (the resolver config, or the
+# OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS environment variable; comma separated),
+# so cloned third-party repositories never get a note. With no owner listed it
+# behaves like the default mode (exit 3). It never overwrites a file, never
+# commits, and leaves a created note as a stub for the session-handoff to fill in.
+# Creation is reported on stderr as `created: <path>`; stdout is always the path.
 
 set -euo pipefail
 
@@ -20,6 +31,7 @@ CONFIG_FILE="${DOTFILES_DIR}-private/obsidian/project-home-resolver.conf"
 MODE="resolve"
 REPO_DIR="$(pwd)"
 VAULT_DIR=""
+DESCRIPTION=""
 
 usage() {
   sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
@@ -143,6 +155,9 @@ load_vault_dir() {
       value="${line#*=}"
       trim "${key}"; key="${REPLY}"
       trim "${value}"; value="${REPLY}"
+      if [[ "${key}" == auto_create_owners ]]; then
+        continue
+      fi
       [[ "${key}" == vault_root && -n "${value}" && -z "${configured}" ]] || \
         die "invalid resolver config: ${CONFIG_FILE}" 5
       configured="${value}"
@@ -191,12 +206,107 @@ check_mappings() {
   return 0
 }
 
+# Owners (lower case, one per line) whose repositories may get an automatically
+# created Project Home.
+auto_create_owners() {
+  local raw="${OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS:-}" line key value
+  if [[ -z "${raw}" && -f "${CONFIG_FILE}" ]]; then
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      trim "${line}"
+      line="${REPLY}"
+      [[ "${line}" == *=* ]] || continue
+      key="${line%%=*}"
+      trim "${key}"
+      [[ "${REPLY}" == auto_create_owners ]] || continue
+      value="${line#*=}"
+      trim "${value}"
+      raw="${REPLY}"
+    done < "${CONFIG_FILE}"
+  fi
+  printf '%s\n' "${raw}" | tr ',' '\n' | tr '[:upper:]' '[:lower:]' | while IFS= read -r key || [[ -n "${key}" ]]; do
+    trim "${key}"
+    [[ -n "${REPLY}" ]] && printf '%s\n' "${REPLY}"
+  done
+  return 0
+}
+
+# Escapes text for a YAML double-quoted scalar.
+yaml_quote() {
+  local text="$1"
+  text="${text//\\/\\\\}"
+  text="${text//\"/\\\"}"
+  printf '"%s"' "${text}"
+}
+
+# Creates a stub Project Home for ${normalized_origin} and echoes its path. The
+# caller re-resolves afterwards, so a wrong result is detected and undone.
+create_project_home() {
+  local owner repository directory target description today
+  owner="${normalized_origin#https://github.com/}"
+  owner="${owner%%/*}"
+  repository="${normalized_origin##*/}"
+
+  directory="${VAULT_DIR}/projects/repositories"
+  mkdir -p "${directory}"
+  target="${directory}/${repository}.md"
+  if [[ -e "${target}" ]]; then
+    target="${directory}/${owner}-${repository}.md"
+  fi
+  [[ ! -e "${target}" ]] || die "cannot choose a free Project Home file name for ${normalized_origin}" 5
+
+  description="${DESCRIPTION:-${owner}/${repository} の現在地を管理する}"
+  case "${description}" in
+    *$'\n'*|*$'\r'*) die '--description must be a single line' 1 ;;
+  esac
+  today="$(date +%Y-%m-%d)"
+
+  # noclobber makes the redirection fail instead of replacing an existing file.
+  (
+    set -o noclobber
+    {
+      printf '%s\n' '---'
+      printf '%s\n' 'type: project'
+      printf 'description: %s\n' "$(yaml_quote "${description}")"
+      printf '%s\n' 'status: active'
+      printf 'created: "%s"\n' "${today}"
+      printf '%s\n' 'repositories:'
+      printf '  - "%s"\n' "${normalized_origin}"
+      printf '%s\n' '---'
+      printf '\n# %s\n\n' "${repository}"
+      printf '%s\n\n' '## Outcome'
+      printf '%s\n\n' '（未記入。完了条件を、session-handoffまたはユーザーが書く）'
+      printf '%s\n\n' '## Current state'
+      printf '%s\n\n' '（未記入）'
+      printf '%s\n\n' '## Next actions'
+      printf '%s\n\n' '## Decisions'
+      printf '%s\n\n' '## Open questions'
+      printf '%s\n\n' '## Key context'
+      printf '%s\n\n' "- 仕様・使い方は[リポジトリ](${normalized_origin})のREADMEとdocsを正本とする。"
+      printf '%s\n\n' '## External systems'
+      printf '%s\n\n' "- [${owner}/${repository}](${normalized_origin})"
+      printf '%s\n\n' '## Changelog'
+      printf '%s\n' "- ${today}: Project Homeを自動作成した（内容は未記入）。"
+    } > "${target}"
+  ) || die "could not create ${target}" 5
+  printf '%s\n' "${target}"
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     check)
       [[ "${MODE}" == resolve ]] || die 'check may be specified once' 1
       MODE=check
       shift
+      ;;
+    ensure)
+      [[ "${MODE}" == resolve ]] || die 'ensure may be specified once and not with check' 1
+      MODE=ensure
+      shift
+      ;;
+    --description)
+      [[ $# -ge 2 ]] || die '--description requires text' 1
+      DESCRIPTION="$2"
+      shift 2
       ;;
     --repo)
       [[ $# -ge 2 ]] || die '--repo requires a directory' 1
@@ -238,7 +348,31 @@ match_count="$(wc -l < "${MATCH_FILE}" | tr -d '[:space:]')"
 
 case "${match_count}" in
   0)
-    exit 3
+    if [[ "${MODE}" != ensure ]]; then
+      exit 3
+    fi
+    owner="${normalized_origin#https://github.com/}"
+    owner="${owner%%/*}"
+    if ! auto_create_owners | grep -qxF -- "${owner}"; then
+      printf 'no Project Home maps to %s and automatic creation is not enabled for %s\n' \
+        "${normalized_origin}" "${owner}" >&2
+      exit 3
+    fi
+    created_file="$(create_project_home)" || exit $?
+    # Confirm the new note resolves to exactly itself before reporting success.
+    rm -f "${MAPPING_FILE}" "${MATCH_FILE:-}"
+    collect_mappings
+    check_mappings || { rm -f "${created_file}"; die 'the new Project Home made the mappings ambiguous; it was removed' 5; }
+    MATCH_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home-matches.XXXXXX")"
+    awk -F '\t' -v repository="${normalized_origin}" '$1 == repository { print $2 }' \
+      "${MAPPING_FILE}" > "${MATCH_FILE}"
+    if [[ "$(cat "${MATCH_FILE}")" != "${created_file}" ]]; then
+      rm -f "${created_file}"
+      die 'the new Project Home did not resolve to itself; it was removed' 5
+    fi
+    printf 'created: %s\n' "${created_file}" >&2
+    printf '%s\n' "${created_file}"
+    exit 0
     ;;
   1)
     cat "${MATCH_FILE}"
