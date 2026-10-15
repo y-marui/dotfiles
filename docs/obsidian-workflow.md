@@ -21,4 +21,6 @@ ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒�
 
 保存系スキル（Record・Knowledge・Project・Tarot・Zotero）は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)に従い、提供済み原資料を優先する。未取得ならChatGPT Exporter拡張の「素材を含むZIPを作成」から取得・保存完了確認まで行い、自力操作できなければ理由と具体的手順を示してユーザーへ依頼する。公式会話リーダーは不足の補完に使う。Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
 
-論文deckはMarpスライド（frontmatterに`marp: true`）として書き、表示にはコミュニティプラグイン Marp Inline Preview を使う。Marpは通常の文章・表を自動縮小しないため、1枚に入る分量にし、長い表・長文は複数スライドに分ける。論文deckでは、会話由来の原文紹介・著者の解釈と、AIの批判・研究案・ユーザー本人の着想を分ける。原論文に未照合の内容は未確認とし、人の確認までは`review_status: pending`を維持する。PDFへのページリンクは対象itemのPDF添付キーをローカルAPIで確認して作る。図はZIP内のファイルに加えてMarkdownのdata URIも確認し、deckへ使う候補をユーザーが選ぶ。
+論文の議論の保存先は、公開済み論文（技術調査）なら通常領域（Record: `records/conversations/`、deck: `knowledge/research/papers/`）を既定とし、未公開の着想・原稿や所属機関の制限を含む場合、またはユーザーの指定がある場合はPrivate（`private/records/conversations/`、`private/knowledge/research/papers/`）にする。判断できなければ確認し、deckとRecordは同じ側に置く。
+
+論文deckはMarpスライド（frontmatterに`marp: true`）として書き、表示にはコミュニティプラグイン Marp Inline Preview を使う。Marpは通常の文章・表を自動縮小しないため、1枚に入る分量にし、長い表・長文は複数スライドに分ける。論文deckでは、会話由来の原文紹介・著者の解釈と、AIの批判・研究案・ユーザー本人の着想を分ける。原論文に未照合の内容は未確認とし、人の確認までは`review_status: pending`を維持する。PDFへのページリンクは`paper-find --json`の`pdf_key`で作り、`null`なら未確認とする。図はZIP内のファイルに加えてMarkdownのdata URIも確認し、deckへ使う候補をユーザーが選ぶ。
