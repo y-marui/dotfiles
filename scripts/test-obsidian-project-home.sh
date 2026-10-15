@@ -87,6 +87,11 @@ set -e
 [[ "${LINK_OUTPUT}" != *"${WORK}-private"* ]] || fail "resolver config path derived from symlink location: ${LINK_OUTPUT}"
 
 # --- ensure: 許可オーナーのProject Homeだけを作る ---
+# 実機のprivate設定(auto_create_owners)を読まないよう、設定の置き場所が存在しない
+# 一時ディレクトリへコピーしたコマンドでテストする。
+mkdir -p "${WORK}/dot/bin/unix"
+command cp -f "${COMMAND}" "${WORK}/dot/bin/unix/obsidian-project-home"
+COMMAND="${WORK}/dot/bin/unix/obsidian-project-home"
 ENSURE_ERR="${WORK}/ensure-stderr"
 
 reset_ensure() {
@@ -178,12 +183,11 @@ ensure_run 1 --description $'two\nlines'
 
 # 許可オーナーはresolver configの auto_create_owners からも読まれる。
 reset_ensure 'https://github.com/y-marui/fromconfig.git'
-mkdir -p "${WORK}/dot/bin/unix" "${WORK}/dot-private/obsidian"
-command cp -f "${COMMAND}" "${WORK}/dot/bin/unix/obsidian-project-home"
+mkdir -p "${WORK}/dot-private/obsidian"
 printf 'vault_root=%s\n  auto_create_owners = y-marui\n' "${VAULT}" > "${WORK}/dot-private/obsidian/project-home-resolver.conf"
-result="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/dot/bin/unix/obsidian-project-home" ensure --repo "${REPOSITORY}" 2>/dev/null)"
+result="$(env -u OBSIDIAN_VAULT_ROOT "${COMMAND}" ensure --repo "${REPOSITORY}" 2>/dev/null)"
 [[ "${result}" == "${VAULT}/projects/repositories/fromconfig.md" ]] || fail "owners from the config were not honored: ${result}"
-result="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/dot/bin/unix/obsidian-project-home" --repo "${REPOSITORY}")"
+result="$(env -u OBSIDIAN_VAULT_ROOT "${COMMAND}" --repo "${REPOSITORY}")"
 [[ "${result}" == "${VAULT}/projects/repositories/fromconfig.md" ]] || fail 'resolve fails with the extended config'
 
 # 既定のresolveは、許可オーナーでも何も作らない。
