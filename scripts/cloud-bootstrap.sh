@@ -179,6 +179,9 @@ run_session() {
     CLOUD_BOOTSTRAP_REEXEC=1 exec bash "${BASH_SOURCE[0]}" session
   fi
 
+  # 起動時と復元時のどちらで走ったかを、ログから判別できるようにする。
+  log "== session $(date -u +%FT%TZ) =="
+
   if [[ -n "${DOTFILES_PRIVATE_TOKEN:-}" ]]; then
     if sync_repo "${PRIVATE_DIR}" "y-marui/dotfiles-private" DOTFILES_PRIVATE_TOKEN --depth 1; then
       STATUS+=("private=ok")
