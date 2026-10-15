@@ -116,13 +116,37 @@ link_config() {
   ) >> "${LOG_FILE}" 2>&1
 }
 
+# cloud-code.json から外された skill のリンクを消す。キャッシュ済みのスナップショットに
+# 古いリンクが残ると、一覧から外したはずの skill が使えてしまうため。
+# dotfiles が作ったリンク（指す先が ai/ 配下か外部 skill のキャッシュ）だけを対象にする。
+prune_skills() {
+  local skills_home="${HOME}/.claude/skills" cache_home link name target
+  cache_home="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/skills"
+  command -v jq > /dev/null 2>&1 || return 0
+  for link in "${skills_home}"/*; do
+    [[ -L "${link}" ]] || continue
+    name="$(basename "${link}")"
+    target="$(readlink "${link}")"
+    case "${target}" in
+      "${DOTFILES_DIR}/ai/"* | "${cache_home}/"*) ;;
+      *) continue ;;
+    esac
+    if ! jq -e --arg n "${name}" '.skills | index($n)' "${SELECT_FILE}" > /dev/null 2>&1; then
+      rm -f "${link}"
+      log "PRUNE ${link}"
+    fi
+  done
+}
+
 link_skills() {
   SKILL_SELECT_FILE="${SELECT_FILE}" \
-    bash "${DOTFILES_DIR}/ai/skills/apply.sh" claude >> "${LOG_FILE}" 2>&1
+    bash "${DOTFILES_DIR}/ai/skills/apply.sh" claude >> "${LOG_FILE}" 2>&1 || return 1
+  prune_skills
 }
 
 # ~/.claude/settings.json の SessionStart に、このスクリプトの session を登録する。
-# 既存のフックは残し、この登録だけを置き換える（何度実行しても重複しない）。
+# 既存のフックは、同じ matcher 内の他のコマンドも含めて残し、この登録だけを置き換える
+# （何度実行しても重複しない）。
 register_hook() {
   local settings="${HOME}/.claude/settings.json" tmp command
   command="bash \"${DOTFILES_DIR}/scripts/cloud-bootstrap.sh\" session"
@@ -132,7 +156,8 @@ register_hook() {
   jq --arg cmd "${command}" '
     .hooks.SessionStart = (
       [(.hooks.SessionStart // [])[]
-        | select(((.hooks // []) | map(.command // "") | map(contains("cloud-bootstrap.sh")) | any) | not)]
+        | .hooks = [(.hooks // [])[] | select(((.command // "") | contains("cloud-bootstrap.sh")) | not)]
+        | select((.hooks | length) > 0)]
       + [{matcher: "startup|resume", hooks: [{type: "command", command: $cmd, timeout: 300}]}]
     )' "${settings}" > "${tmp}" && mv "${tmp}" "${settings}" || { rm -f "${tmp}"; return 1; }
 }

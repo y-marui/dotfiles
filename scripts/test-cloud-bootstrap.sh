@@ -78,6 +78,7 @@ git_quiet -C "${VAULT_REMOTE}" commit -m init
 
 run_bootstrap() {
   HOME="${HOME_DIR}" \
+    CODEX_HOME="${WORK}/no-codex" \
     DOTFILES_EXTERNAL_FILE="${WORK}/external.json" \
     SKILL_GIT_BASE="file://${BASE}" \
     CLOUD_GIT_BASE="file://${BASE}" \
@@ -86,8 +87,12 @@ run_bootstrap() {
 
 # 既存のフックと、ハーネスが置く想定の設定を残せることの確認用。
 mkdir -p "${HOME_DIR}/.claude"
-printf '{"model":"keep","hooks":{"SessionStart":[{"matcher":"startup","hooks":[{"type":"command","command":"echo existing"}]}]}}\n' \
+printf '%s\n' '{"model":"keep","hooks":{"SessionStart":[{"matcher":"startup","hooks":[{"type":"command","command":"echo existing"}]},{"matcher":"startup|resume","hooks":[{"type":"command","command":"bash /old/scripts/cloud-bootstrap.sh session"},{"type":"command","command":"echo sibling"}]}]}}' \
   > "${HOME_DIR}/.claude/settings.json"
+
+# 以前の setup が展開した、いまはリストにない skill と、dotfiles 管理外の skill。
+mkdir -p "${HOME_DIR}/.claude/skills/synced"
+ln -s "${DOTFILES}/ai/skills/morning-brief" "${HOME_DIR}/.claude/skills/morning-brief"
 
 # --- setup（トークンなし）を2回実行しても結果が変わらない ---
 run_bootstrap bash "${DOTFILES}/scripts/cloud-bootstrap.sh" setup > /dev/null
@@ -110,6 +115,12 @@ settings="${HOME_DIR}/.claude/settings.json"
   || fail "existing SessionStart hook was lost"
 [[ "$(jq '[.hooks.SessionStart[].hooks[].command] | map(select(contains("cloud-bootstrap.sh"))) | length' "${settings}")" == "1" ]] \
   || fail "bootstrap hook must be registered exactly once"
+[[ "$(jq '[.hooks.SessionStart[].hooks[].command] | map(select(. == "echo sibling")) | length' "${settings}")" == "1" ]] \
+  || fail "sibling command in the same matcher was lost"
+[[ "$(jq '[.hooks.SessionStart[].hooks[].command] | map(select(contains("/old/"))) | length' "${settings}")" == "0" ]] \
+  || fail "stale bootstrap hook was not replaced"
+expect_absent "${HOME_DIR}/.claude/skills/morning-brief"
+[[ -d "${HOME_DIR}/.claude/skills/synced" ]] || fail "unmanaged skill dir was removed"
 
 # --- session（トークンあり） ---
 env_file="${WORK}/claude-env"
