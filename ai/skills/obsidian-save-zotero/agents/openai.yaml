@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian 論文議論保存"
+  short_description: "ChatGPTの論文議論をRecord・deck・Zoteroリンクとして保存"
+  default_prompt: "Use $obsidian-save-zotero to save the referenced ChatGPT paper discussion as a Record, a paper deck, and a Zotero link."
