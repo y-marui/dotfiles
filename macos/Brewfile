@@ -218,3 +218,9 @@ cask "font-noto-serif-cjk-jp"
 cask "macshot"
 cask "raindropio"
 cask "realvnc-connect-viewer"
+
+# Craft apps
+cask "artcraft"
+cask "pdfcraft"
+cask "photocraft"
+cask "vectorcraft"

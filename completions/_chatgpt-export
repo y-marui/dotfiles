@@ -1,0 +1,10 @@
+#compdef chatgpt-export
+_arguments -s \
+  '1:command:(install doctor capture)' \
+  '--browser=[install target browser]:browser:(chrome brave edge)' \
+  '--extension-id=[Chrome extension ID]:ID:' \
+  '--output=[ZIP destination]:ZIP:_files -g "*.zip"' \
+  '--timeout=[timeout in seconds (30-600)]:seconds:' \
+  '--json[output JSON]' \
+  '(-h --help)'{-h,--help}'[show help]' \
+  '*:conversation URL:'

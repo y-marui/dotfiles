@@ -662,3 +662,20 @@ BRANCHESの方針違反、古いDEV-CHARTER）で示す。KEEPは更新対象の
 ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単位では並列に処理する。
 並列数は環境変数`GHQ_STATUS_JOBS`で変更でき、未設定時は8とする。収集完了後に
 元のリポジトリ順へ並べ直すため、並列数によって表示順は変わらない。
+
+## chatgpt-export
+
+`chatgpt-export`は隣接する`chrome-chatgpt-exporter/cli/`のNode.js CLIを起動する薄いラッパー。
+CLI・Native Messagingホストは拡張のリポジトリで管理し、dotfilesへ変換・通信処理を複製しない。
+`CHATGPT_EXPORTER_ROOT`で取得済みリポジトリの場所を指定できる。Node.js 22.12以上が必要。
+Unix・Windowsとも同じJSエントリーポイントを直接起動し、OS間でシェルスクリプトを呼び出さない。
+
+- `install --extension-id ID [--browser chrome|brave|edge]`: 同じPCの対象ブラウザへNative Messagingホストを登録する（初回だけユーザーが明示実行）。その後、拡張を再読み込みするか設定画面でCLIに再接続する。
+- `doctor --json`: 拡張との接続を確認する。未接続は終了コード3。
+- `capture URL --output FILE --json`: ログイン済みChromeの拡張に保存済み会話のZIP作成を依頼し、未使用の出力先へ保存する。自動作成した取得用タブだけを開閉する。
+- 終了コード0は転送成功であり完全性の保証ではない。原本・補足・取得レポートの照合はスキルが行う。終了コード2は引数・保存先エラー、3は手動エクスポートが必要。
+
+Obsidian保存系スキルは、提供済みZIP・展開資料を優先し、なければ接続済みCLIを使う。
+未導入・未接続・ログイン切れ・クラウド等では会話を開くリンクを提示し、ユーザーへ
+ChatGPT Exporterの素材ZIPの作成と受け渡しを依頼する。取得にComputer Useは使わない。
+詳細な導入・通信・復旧手順は拡張リポジトリの`docs/cli.md`を正本とする。

@@ -23,7 +23,7 @@ description: "Read referenced Codex or ChatGPT chats, verify their claims, and s
   ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。Private由来または
   個人識別情報を含む内容は、通常のKnowledgeへ混ぜずPrivate内へ保存する。
 
-ChatGPT会話の保存では、原資料の取得前に[共通のダウンロード・原資料読取手順](../obsidian-save-record/references/exported-chat.md)を全文読み、既存ZIPがなければChatGPT Exporter拡張から対象会話のZIPを取得する。操作できなければ具体的なダウンロード手順をユーザーに依頼する。提供済みZIP・展開済み資料は再取得せず優先し、原本・上流Markdown・補足・添付を照合する。ChatGPTの会話リーダーは不足資料の取得に使い、Codex task等は以下の公式リーダーで読む。出力は本skillの現行形式を維持する。
+ChatGPT会話の保存では、原資料の取得前に[共通のダウンロード・原資料読取手順](../obsidian-save-record/references/exported-chat.md)を全文読み、既存ZIPがなければ接続確認済みの`chatgpt-export` CLIで取得し、利用できなければ対象会話をブラウザで開くリンクと手動エクスポート手順をユーザーへ提示する。取得にComputer Useは使わない。提供済みZIP・展開済み資料は再取得せず優先し、原本・上流Markdown・補足・添付を照合する。ChatGPTの会話リーダーは不足資料の取得に使い、Codex task等は以下の公式リーダーで読む。出力は本skillの現行形式を維持する。
 
 ## 1. Read the source material completely
 
