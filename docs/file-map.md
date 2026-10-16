@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-10-15_
+_最終更新: 2026-10-16_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
@@ -137,3 +137,19 @@ Glance Task の「美術展: 関東」「美術展: 東北」タスクを、AI�
 ## Chat Archive Launcher
 
 `bin/unix/chatgpt-export`・`bin/windows/chatgpt-export.ps1`（`.cmd` shim）は隣接する`chrome-chatgpt-exporter/cli/index.js`を起動するだけ。`CHATGPT_EXPORTER_ROOT`で場所を指定できる。実装・通信仕様・テストは拡張側で管理し、取得・読取順序は`ai/skills/obsidian-save-record/references/exported-chat.md`に集約する。
+
+## Cinema Skills
+
+| ファイル | 役割 | 主な依存先 |
+| --- | --- | --- |
+| `ai/skills/cinema-check-sendai/SKILL.md`・`references/` | 仙台3館の推薦と好み分析。通常はvaultの傾向だけ読む | 劇場公式サイト、Filmarks、vaultの映画の好み |
+| `ai/skills/glance-task-add-movie/SKILL.md`・`scripts/movie_tasks.py` | 映画の同定・重複更新・開始日順登録・再取得検証 | Python 3.11以上、macOS、Glance TaskのAppleScript |
+| `ai/skills/glance-task-add-movie/scripts/test_movie_tasks.py` | 実アカウントへ書かない登録処理の回帰テスト | 同梱CLI、標準unittest |
+| `docs/cinema-skills.md` | 導入・個人データ境界・登録契約・復旧 | 上記skill、`make links`、`make check-skills` |
+
+## Spotify Skills
+
+| ファイル | 役割 | 主な依存先 |
+| --- | --- | --- |
+| `ai/skills/spotify-distribute-liked-songs/SKILL.md` | お気に入り曲の既存プレイリストへの振り分け | vaultの`knowledge/music/spotify-playlists.md`、`spotify-inventory`、`split-playlist` |
+| `ai/skills/spotify-reorder-playlist-by-key/SKILL.md` | ユーザー提供のキー情報で曲順を変更 | `spotify-inventory`、`reorder-by-key`。移動対象ノートへの固定参照なし |

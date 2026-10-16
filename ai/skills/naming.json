@@ -5,6 +5,11 @@
       "skill_name_prefix": "bookmeter",
       "display_name_prefix": "読書メーター"
     },
+    "cinema-check-sendai": {
+      "kind": "domain",
+      "skill_name_prefix": "cinema",
+      "display_name_prefix": "映画"
+    },
     "consolidate-global-memory": {"kind": "generic"},
     "docx-proofreading": {"kind": "generic"},
     "docx-proofreading-handoff": {"kind": "generic"},
@@ -12,6 +17,11 @@
       "kind": "service",
       "skill_name_prefix": "filmarks",
       "display_name_prefix": "Filmarks"
+    },
+    "glance-task-add-movie": {
+      "kind": "service",
+      "skill_name_prefix": "glance-task",
+      "display_name_prefix": "Glance Task"
     },
     "glance-task-add-museum-event": {
       "kind": "service",

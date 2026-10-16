@@ -186,6 +186,8 @@ IDE/app と local/project scope のMCPは検出するが `prune` の対象外と
 
 参照: [Claude Code ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 
+仙台3館の映画推薦とGlance Taskへの映画登録は [Cinema Skills](docs/cinema-skills.md) を参照する。
+
 ### Codex
 
 | ファイル | リンク先 | 説明 |

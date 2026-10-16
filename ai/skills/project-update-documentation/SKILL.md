@@ -12,7 +12,7 @@ description: "Audit and update repository documentation such as README, specific
 - 対象リポジトリのAI指示、README、開発規約、文書構成・言語方針を指定順に読む。対象が不明なら確認する。既存の構成・命名・正本を尊重し、日英ペアや特定のファイル数を一律に強制しない。
 - `git status`と差分を確認し、先行変更を保護する。依頼された範囲から関連するコード、設定、テスト、CLIのhelp、合意済みの判断を追い、文書の主張と照合する。全リポジトリを無差別に読み込まない。
 - 「意図された仕様」「実装の現状」「確認した動作」を区別する。不一致を見つけても実装を常に正として仕様を変更しない。根拠が足りない重要な要件、互換性、公開範囲の判断は確認し、推測で確定しない。
-- Obsidianを参照する場合は対象vaultの`README.md`・`AI_CONTEXT.md`、`docs/vault-architecture.md`・`docs/vault-operations.md`を読む。`areas/personal-operations/task-management.md`は補足として使い、現在の正本が指定されていればそちらを優先する。Privateは対象パスと目的が明示された範囲だけ読む。
+- Obsidianを参照する場合は対象vaultの`README.md`・`AI_CONTEXT.md`、`docs/vault-architecture.md`・`docs/vault-operations.md`を読む。`knowledge/personal-operations/task-management.md`は補足として使い、現在の正本が指定されていればそちらを優先する。Privateは対象パスと目的が明示された範囲だけ読む。
 - `obsidian-project-home --repo <repository-root>`が使える場合は、一意に解決されたProject Homeだけを読み、現在地・重要判断・未解決事項を確認する。解決失敗・重複・未導入の場合は本文検索で対応を推測したり、新規Homeを作ったりしない。技術文書の更新自体は独立して進められる。
 
 ## Route information before writing
