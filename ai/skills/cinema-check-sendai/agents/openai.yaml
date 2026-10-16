@@ -1,0 +1,4 @@
+interface:
+  display_name: "映画 仙台の上映チェック"
+  short_description: "仙台3館の上映中・上映予定から好みに合う映画を画像と期間付きで紹介"
+  default_prompt: "Use $cinema-check-sendai to recommend current and upcoming films at the three Sendai cinemas using my saved movie preferences."

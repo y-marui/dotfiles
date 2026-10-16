@@ -1,0 +1,4 @@
+interface:
+  display_name: "Glance Task 映画追加"
+  short_description: "指定した映画を上映開始日順で登録し、日付属性を使わず上映情報を管理"
+  default_prompt: "Use $glance-task-add-movie to register this film in Glance Task, ordered by its screening start date without setting a deadline."
