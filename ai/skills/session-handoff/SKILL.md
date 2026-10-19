@@ -18,7 +18,7 @@ Git repository内外の作業セッションを、別チャット・別作業へ
 
 Git repositoryで`obsidian-project-home`が使える場合は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
 
-`3`（なし）の場合は、Step 1〜3の作業を終えたあとに`obsidian-project-home ensure --repo <repository-root>`を実行して作る（作業開始時の解決は読み取り専用のまま作らない）。作成が許されるのはresolver設定の`auto_create_owners`に挙げたオーナーのリポジトリだけで、それ以外は`ensure`が何も作らず終了コード`3`を返すので、そのまま「Project Homeなし」として報告する。作成できた場合は、出力されたパスの雛形（`（未記入）`の箇所）を、Step 2の基準でこのセッションの内容から埋める。`--description`には、リポジトリの目的を1行で渡してよい。`ensure`はcommitもpushもしない。
+`obsidian-project-home` が終了コード`3`（なし）を返した場合は、Step 1〜3の後に [references/project-home-ensure.md](references/project-home-ensure.md) を全文読んで従う（`ensure`は作業開始時には実行しない）。
 
 ## Step 2: Classify what emerged this session
 
