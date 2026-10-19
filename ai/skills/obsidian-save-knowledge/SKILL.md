@@ -82,6 +82,8 @@ ChatGPT会話の保存では、原資料の取得前に[共通のダウンロー
 AIが新規合成または大幅統合した永続Knowledgeには`review_status: pending`を付け、`sources`に
 根拠SourceまたはRecordへのObsidian内部リンクを列挙する。人が確認するまで`reviewed`へ変更しない。
 
+`knowledge/proposals/`へ置く新しい企画には`status: considering`を付ける。仕様が固まっていると明示された場合は`ready`、保留・見送りなら`shelved`（理由を本文に書く）とする。値の意味と企画採用時の扱いは、対象vaultの`docs/vault-architecture.md`のPropertiesの節に従う。
+
 参照チャットに対応するRecordが存在しない場合は、同じ作業内で`records/conversations/<YYYY>/`に
 Conversation Recordを`obsidian-save-record`の形式で作る。原資料を校正し、発話順、表、候補、判断、棄却理由、未確認事項を忠実に残す。Knowledge本文の要約でRecordを置き換えない。
 Private内容はPrivate内の対応するRecordsへ置く。作成したRecordをKnowledgeの`sources`から参照する。新規Recordの`description`と`project`は`obsidian-save-record`の「Set description and project」に従う。

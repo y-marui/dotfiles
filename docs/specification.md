@@ -677,6 +677,29 @@ ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単�
 - `--path <file>...`で任意のファイルを測る。`--json`で機械可読な出力にする
 - 回帰テストは[scripts/test-measure-doc-size.sh](../scripts/test-measure-doc-size.sh)（一時ファイルのみ使う）
 
+## vault-move-notes
+
+`scripts/vault-move-notes.py`は、Obsidian Vaultのノート（.md）を`git mv`で移動・改名し、Vault全体の
+`[[...]]`のターゲットを書き換える。commitとpushはしない。Python標準ライブラリのみで全OS共通に動かす。
+
+~~~text
+vault-move-notes.py [--vault DIR] [--dry-run] [--include-private] OLD NEW [OLD NEW ...]
+~~~
+
+- `--vault`の既定は`~/src/github.com/y-marui/obsidian-vault`。パスはVault基準
+- 書き換える形は`[[path]]`、`[[path|alias]]`、`[[path#heading]]`、`[[path#^block]]`、`![[path]]`、
+  frontmatterの`"[[path]]"`（リスト値を含む）、表内の`\|`。パス付きと最短パス（ファイル名のみ）の両方を扱い、
+  名前が変わらず一意なら名前のみのリンクは書き換えない
+- `private/**`と`.git/`・`.obsidian/`は既定で読まない・書かない（`--include-private`で`private/`を対象にする）。
+  コードフェンスとインラインコードの内部は書き換えず、該当を警告に出す
+- 書き込み前にメモリ上で検証し、失敗すると何も書かずに終了コード1で終わる: (1) 変更ファイルの前後差分がリンクの
+  ターゲット部分だけ（ターゲットを伏せ字にして完全一致）、(2) 書き換えたリンクが移動先に解決し、変更ファイル内に
+  新たな壊れたリンクがない（もともと壊れたリンクは別に報告）、(3) 移動先が存在せず、移動元が存在する
+- 書き込み中の失敗は、移動・内容・作成したディレクトリを元に戻す
+- `--dry-run`は変更対象ファイルとリンク件数、警告（旧パスを含む`.base`と`.obsidian`配下の参照、コード内の該当）を
+  表示し、何も書かない
+- 回帰テストは[scripts/test-vault-move-notes.sh](../scripts/test-vault-move-notes.sh)（一時Vaultのみ使う）
+
 ## chatgpt-export
 
 `chatgpt-export`は隣接する`chrome-chatgpt-exporter/cli/`のNode.js CLIを起動する薄いラッパー。

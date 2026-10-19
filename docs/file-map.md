@@ -70,6 +70,7 @@ _最終更新: 2026-10-16_
 | `docs/dev-charter/` | dev-charter lite 版（`git subtree`、直接編集禁止） | `docs/dev-charter/VERSION` |
 | `.pre-commit-config.yaml` | pre-commit フック定義（独自フック + dev-charter 準拠フック） | `scripts/check-*.sh` |
 | `scripts/measure-doc-size.py` | AI_CONTEXT（`~/.ai/`と各リポジトリ直下）の行数・表示幅・概算トークン数を測って表示する（目安の測定のみ、強制しない。詳細は[specification.md#measure-doc-size](specification.md#measure-doc-size)） | `ghq list -p`、`scripts/test-measure-doc-size.sh`（回帰テスト） |
+| `scripts/vault-move-notes.py` | Obsidian Vaultのノート（.md）を`git mv`で移動・改名し、Vault全体の`[[...]]`のターゲットを検証付きで書き換える（commit・pushはしない。詳細は[specification.md#vault-move-notes](specification.md#vault-move-notes)） | `git`、`scripts/test-vault-move-notes.sh`（回帰テスト） |
 | `scripts/check-*.sh`（dev-charter系12本） | dev-charter の各憲章ルールを機械的に検証 | `docs/dev-charter/SECURITY_POLICY.md` |
 
 ## Private Links

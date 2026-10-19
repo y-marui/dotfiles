@@ -65,6 +65,13 @@ scripts/test-my-hosts.sh
 
 ```bash
 scripts/test-measure-doc-size.sh
+
+`scripts/vault-move-notes.py`（Vaultのノート移動とリンク書き換え）を変更した場合は、
+一時ディレクトリのフィクスチャVaultで回帰テストを実行する（実Vaultには触れない）:
+
+```bash
+scripts/test-vault-move-notes.sh
+```
 ```
 
 `bin/unix/dots`・`bin/unix/_dots-verbs.sh` や `npm/`・`pipx/` の動詞スクリプトを変更した場合は、
