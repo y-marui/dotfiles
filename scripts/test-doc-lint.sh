@@ -37,11 +37,12 @@ git add -A
 
 err="$(python3 "$TOOL" 2>&1 >/dev/null)"; rc=$?
 check "exit code 0 with warnings" 0 "$rc"
-check "header" 1 "$(grep -c 'doc-lint (warn only): 3 file' <<<"$err")"
+check "header" 1 "$(grep -c 'doc-lint (warn only): 5 file' <<<"$err")"
+check "default scope reaches sub/" 1 "$(grep -c 'sub/out-of-scope.md' <<<"$err")"
 check "lines warning" 1 "$(grep -c 'big.md: lines 250>200' <<<"$err")"
-check "frontmatter warnings" 3 "$(grep -cE 'frontmatter (no-frontmatter|multiline-description)' <<<"$err")"
-check "good/README/vendored/sub not reported" 0 "$(grep -cE 'good.md|README|vendored|out-of-scope' <<<"$err")"
-check "log rows" 4 "$(wc -l < "$DOC_LINT_LOG" | tr -d ' ')"
+check "frontmatter warnings" 5 "$(grep -cE 'frontmatter (no-frontmatter|multiline-description)' <<<"$err")"
+check "good/README/vendored not reported" 0 "$(grep -cE 'good.md|README|vendored' <<<"$err")"
+check "log rows" 7 "$(wc -l < "$DOC_LINT_LOG" | tr -d ' ')"
 check "log has 6 TSV columns" 6 "$(head -1 "$DOC_LINT_LOG" | awk -F'\t' '{print NF}')"
 check "log repo name" myrepo "$(head -1 "$DOC_LINT_LOG" | cut -f2)"
 
