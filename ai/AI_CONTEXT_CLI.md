@@ -3,15 +3,10 @@
 ## Scope
 
 `AI_CONTEXT.md` を先に読み、次のいずれかを行う場合にこのファイルを全文読む。
+ターミナル・シェルの使用、コードや管理対象ファイルの作成・変更、Git リポジトリや GitHub の Issue・PR・Actions の操作、build・test・lint・依存関係・ツール設定、その他の開発作業。
 
-- ターミナルまたはシェルを使う
-- コードや管理対象ファイルを作成・変更する
-- Git リポジトリ、GitHub の Issue・PR・Actions を扱う
-- build・test・lint・依存関係・ツール設定を扱う
-- その他の開発作業を行う
-
-コマンド出力・シェルの規約は、プロジェクトレスの調査や個人ファイル操作を含む
-すべてのターミナル操作に適用する。Git・GitHub・コーディングの規約は該当する作業にだけ適用する。
+コマンド出力・シェルの規約は、プロジェクトレスの調査や個人ファイル操作を含むすべてのターミナル操作に適用する。
+Git・GitHub・コーディングの規約は該当する作業にだけ適用する。
 通常の会話、説明、文章作成、開発に関係しない調査には適用しない。
 矛盾時は `AI_CONTEXT.md` を優先する。
 
@@ -19,266 +14,120 @@
 
 シークレット・認証情報をコードや管理対象ファイルに書かない。
 `git commit`/`push` 等で `--no-verify`（`commit` の `-n` 含む）は使わない。
-pre-commit フックのエラーは無視・回避せず原因を修正する
-（shell では git wrapper 関数（`dotfiles/shell/zshrc`）で技術的にも禁止済みだが、
-フルパス実行や IDE 統合はこれを回避し得るため、指示としても明記する）。
+pre-commit フックのエラーは無視・回避せず原因を修正する。
+shell の git wrapper 関数（`dotfiles/shell/zshrc`）でも禁止済みだが、フルパス実行や IDE 統合は回避し得るため明記する。
 
 ## Chat and Work Directory
 
 大規模な開発を含む作業は、1 chat につき 1 作業ディレクトリ（リポジトリ）を原則とする。
-並列で進める作業や、軽微な派生タスクの場合はこの限りでない。
-別のリポジトリで大規模な作業が必要になったら、その chat の作業として抱え込まず、
-必要な情報を Issue に移して別 chat で進める（引き継ぎには `session-handoff` を使う）。
+並列で進める作業や、軽微な派生タスクはこの限りでない。
+別のリポジトリで大規模な作業が必要になったら、必要な情報を Issue に移して別 chat で進める（引き継ぎには `session-handoff`）。
 
 ## Commit and Push Authorization
 
-ユーザーから明示的に指示された時だけコミットする。作業完了後に自動でコミットしない。
+ユーザーから明示的に指示された時だけコミットし、作業完了後に自動でコミットしない。
 commit と push は別の操作として扱い、commit の依頼だけでは push しない。
 「push して」「PR を作成して」など、リモートへの反映を含む依頼がある場合に push する。
 
 ## Session Closeout
 
-記録の整理だけなら`session-handoff`、記録からcommit・push・branch整理まで一度に終えるなら
-`session-finish`を使う。`session-handoff`の実行自体はcommit・push・merge・branch cleanupの
-承認ではない。`session-finish`はユーザーが明示的に呼び出したときだけ使い、承認の範囲と手順は
-その skill に従う。
+記録の整理だけなら`session-handoff`、記録からcommit・push・branch整理まで一度に終えるなら`session-finish`を使う。
+`session-handoff`の実行自体はcommit・push・merge・branch cleanupの承認ではない。
+`session-finish`はユーザーが明示的に呼び出したときだけ使い、手順と承認範囲はその skill に従う。
 
-## Concise Command Output
+## Core Development Rules
 
-ビルド・テスト・lint・pre-commit など出力が多いコマンドは、利用可能なら `run-quiet` で
-ラップする。未導入の場合、親シェルの関数に依存する場合、詳細ログや進捗表示が必要な場合は
-直接実行してよい。終了コードと、表示された警告・エラーを確認する。
-`run-quiet` は成功時の通常出力を保存せず、警告の抜粋もすべての書式を拾うとは限らない。
-詳細確認が必要な処理は初回からログを残す。再実行が安全な検証コマンドに限り、
-診断情報が不足したら直接実行で再確認する。
-commit・push など副作用のある操作は出力確認だけを目的に再実行しない。
-特にシェル関数の Git ガードに依存する場合、外部スクリプトの `run-quiet` を通さず実行する。
-どの実行経路でもフック回避禁止は維持する。
+詳細は下表の `dev-workflow.md` を、該当する作業の前に読む。
 
-## Read Project Home Before Starting Work
-
-Git リポジトリで開発作業（調査・変更・Issue/PR 対応）を始めるときは、`obsidian-project-home`
-が使えるなら `obsidian-project-home --repo <repository-root>` で Project Home を解決し、
-終了コード `0`（一意）の場合だけ、その Current state・Next actions・Decisions・Open questions
-を読んでから着手する。`session-handoff` が Project Home に残した現在地を、次のセッションが
-拾うための読み込み側の規約。
-
-- 終了コード `3`（なし）・`4`（重複）・`5`（不正）、コマンド未導入、vault 未取得の場合は、
-  本文検索による推測・新規作成をせず、そのまま進める（報告は必要な場合だけ）。開始時の
-  解決は読み取り専用で、作成しない
-- 対応する Project Home がない新規リポジトリは、作業のあと `session-handoff` の中で
-  `obsidian-project-home ensure --repo <repository-root>` を使って作る。作成が許されるのは
-  resolver 設定の `auto_create_owners` に挙げたオーナー（`y-marui`、`fukami-lab-sot`）の
-  リポジトリだけで、他者のリポジトリには作らない。作られるのは雛形（未記入）なので、
-  `session-handoff` が内容を埋める。作成しても commit・push はしない
-- Project Home は要約と判断の記録であり、技術的な正本はリポジトリの docs と Issue。
-  食い違う場合はリポジトリ側を正とし、Project Home の古い記述は指摘する
-- 読み取りだけで、vault の変更や commit は伴わない。ユーザーの依頼と無関係な Project
-  を読み込まない（解決できた対象リポジトリのものだけ）
-
-## Fetch Before Starting Work
-
-git リポジトリでコード変更を伴うタスクに着手する前は、ブランチの保護有無やリポジトリの
-push ポリシーに関わらず、常に `git fetch` でリモートの最新状態を取り込んでからにする
-（ワーキングツリーを変更しない読み取り専用操作なので dirty な状態でも常時実行できる）。
-ローカルが古いベースのままコミットすると、後から origin と diverge して余計なマージ
-作業が発生するため。
-
-取り込んだ結果を実際に `git pull` や `git merge` で取り込むかどうかは、ワーキングツリーを
-変更する操作なので、clean かつユーザーの変更を壊さないことを確認してから行う。
-
-## Scope-Based PR Requirement
-
-作業ブランチを作成するのは、変更規模・影響・復旧の難しさから PR レビューが必要な場合とする。
-それ以外は現在のブランチで作業し、clean な `main` にいることだけを理由にブランチを作成しない。
-
-- **現在のブランチで進めてよい**: memory/コンテキストの移管、Brewfile 等の依存関係定義
-  ファイルの追従的な更新、typo 修正等の小さな変更、既存ドキュメント・skill の軽微な更新
-- **PR 経由にする**: 新規スクリプトの追加、新規 skill の追加や既存 skill の大規模改修、
-  プロジェクトの全体構造（AI コンテキスト階層等）に関わる refactoring。
-  認証・データ削除・公開 API 等、変更量が小さくても影響が大きい、または復旧が難しい変更
-
-ユーザーから commit を指示され、既読のプロジェクト指示に明示的な禁止がない場合は、
-現在のブランチで通常どおり commit を試みる。pre-commit 等のフックが commit を拒否したら
-回避せずに理由を確認し、その時点で作業ブランチへの移動等を判断する。
-
-規模・影響・復旧の難しさを確認しても判断できない場合はユーザーに確認する。プロジェクトの
-AI_CONTEXT.md/CLAUDE.md がこの既定と異なる基準を明記している場合はそちらに従う。
-
-## Local CI Checks Before Creating a PR or Pushing
-
-PR を作成する前、またはブランチに push する前に、そのプロジェクトの CI 設定
-（`.github/workflows/`）を確認し、変更に関連する lint・build・test をローカルで実行する。
-文書だけの変更は文書 lint・リンク検査等、コード変更は影響する build・test を対象とする。
-リポジトリ固有の必須チェックは優先する。実行できない検証は理由と未確認範囲を報告する。
-
-## Draft PRs and Redundant CI Runs
-
-PR を開いた後の push ごとに CI が走る。高額ランナー（macOS 等）の課金や待ち時間を無駄に
-しないため、次のように運用する。draft の間は CI が走らない（`ready_for_review` で 1 回走る）。
-
-- AI が作る PR は、最初から draft で開く。ローカルで lint・test・build を通してから ready にする
-- PR の作成後にバグや仕様変更が判明したら、PR を draft に戻して修正し、揃ってから ready にする
-- レビュー指摘への対応は、複数のコミットをまとめてから push する（指摘ごとに push しない）
-- 自動レビュー（`@codex review`、`@copilot review`）は draft の PR でも動くため、依頼のためだけに
-  ready にしない
-
-詳細は dev-charter の `topics/CI_POLICY-full.md`（Draft PRs・Runner Billing）を参照する。
-
-## Documentation and Task Management
-
-- 完成後も参照する設計判断、仕様、運用手順、確認方法、復旧・rollback、長期間有効な
-  制約は、リポジトリの `docs/`、README、AI_CONTEXT 等の恒久ドキュメントに記録する
-- TODO、進捗、担当、期限、ブロッカー、調査途中の仮説、実装チェックリスト等、完了後に
-  不要になる情報は、GitHub Issue・sub-issue・Project（または同等のタスク管理機能）で管理する
-- 一時的なローカル作業メモは Git 管理外または gitignore 対象に置いてよい。
-  コミット・push はしない。記録先の規則自体は Issue 等の作成・更新権限を与えない。
-  課題登録・管理が依頼範囲に含まれる場合に外部へ記録し、それ以外は必要な Issue 案を回答に含める
-- タスク中に確定した知識は、利用者への影響・再利用の見込み・復旧上の重要性の
-  いずれかがあり、将来も参照する場合に恒久ドキュメントへ要点を昇格する。
-  変更作業が依頼範囲に含まれる場合は同じ作業内で記録し、調査・説明のみの依頼では
-  記録案を回答に含める。docs と Issue へ同じチェックリストや進捗を重複させない
-- 公開リポジトリのIssue・Project・docsには、秘密情報に加えて、ホスト名、IPアドレス、鍵情報、
-  詳細なサービス構成等、不要な運用情報も掲載しない
-
-## Coding Style
-
-- シェルスクリプト: 対応するシェルでは ShellCheck 準拠。
-  `set -euo pipefail` を基本とし、指定シェルが未対応のオプションは使わない
-- Swift: SwiftLint 準拠
-- Python: ruff / black 準拠。新規プロジェクトの最低サポートバージョンは 3.11 以上を基準とする
-  （3.11 の EOL は 2027-10-24。近づいたら基準の引き上げを検討する）
-- ハードコードされたパスを避ける（`$HOME` を使う）
-- 対話コマンドは実行環境のシェルに、スクリプトは shebang で指定したシェルに合わせる。
-  zsh / bash 両対応は必要な成果物だけに限定する
-- 依存関係は必要に応じて既存 lockfile に基づき同期・インストールする。
-  バージョン更新（`uv sync --upgrade`、`npm update` 等）は、依頼された保守作業か、
-  タスク遂行に更新が必要な具体的根拠がある場合に限定する
+- 出力が多いコマンドは、利用可能なら `run-quiet` でラップし、終了コードと警告・エラーを確認する。
+  副作用のある操作は出力確認だけを目的に再実行しない
+- 開発作業の開始時は、`obsidian-project-home --repo <repository-root>` が使えれば解決し、終了コード `0` の場合だけ読む。
+  それ以外は推測・新規作成をせず進める。
+  正本はリポジトリの docs と Issue
+- コード変更を伴うタスクの前に `git fetch` する。
+  `git pull`/`merge` は clean で変更を壊さないと確認してから行う
+- 作業ブランチは、PR レビューが必要な規模・影響の場合だけ作る。
+  それ以外は現在のブランチで作業し、commit を指示されたらまず試み、フックが拒否したら理由を確認する
+- PR 作成前・push 前に `.github/workflows/` を確認し、関連する lint・build・test をローカルで実行する。
+  できない検証は理由と未確認範囲を報告する
+- AI の PR は最初から draft で開き、ローカル検証後に ready にする。
+  レビュー対応はまとめて push し、自動レビュー依頼のためだけに ready にしない
+- 恒久的な設計・仕様・運用手順は `docs/`・README・AI_CONTEXT に、TODO・進捗・ブロッカーは Issue・Project に記録する。
+  公開リポジトリに不要な運用情報（ホスト名、IP、鍵情報、サービス構成）を載せない
+- シェルは ShellCheck 準拠で `set -euo pipefail`、Swift は SwiftLint、Python は ruff / black（新規は 3.11 以上）。
+  パスは `$HOME`。
+  依存バージョンの更新は、依頼された保守作業か具体的根拠がある場合に限る
 
 ## GitHub
 
-PR・Issue・Feature Request を作成する場合は、事前に `.github/` ディレクトリを確認し、
-テンプレート（`PULL_REQUEST_TEMPLATE.md`、`ISSUE_TEMPLATE/`）があればその形式に従う。
+PR・Issue の作成前に `.github/` のテンプレートを確認し、あれば従う。
+詳細は下表の `github-operations.md` を、該当する作業の前に読む。
 
-- PR・Issue の操作は GitHub MCP サーバーを優先し、使えない場合は `gh` CLI を使う。
-  いずれも Web UI から直接作成・更新・マージしない（`AI_CONTEXT.md` の Tool Selection 参照）
-- `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
-- PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
-- 関連する issue がある場合、PR 本文に `Fixes #123`/`Closes #123`（マージ時に自動クローズしたい場合）または `Refs #123`（クローズせず関連付けのみの場合）等のキーワードでリンクする
-- PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
-- マージ依頼には、マージ済みで未コミット変更や他の作業での使用がないブランチの整理を含める。
-  マージ後は対象リポジトリと各 worktree の状態を確認し、現在のローカル tip が統合済みで、
-  未 push の未統合コミットがない場合だけ整理する。upstream の消失だけで削除を判断しない。
-  `git-sweep` はこれらの条件を守れる場合に使い、満たせない場合は対象を残す。
-  `git branch -d` は、リモートの同名ブランチを追跡している場合、その追跡先を基準に「統合済み」と
-  判定するため、PR が未マージでも削除できてしまう。削除の前に、PR が MERGED であること
-  （または `git merge-base --is-ancestor <branch> origin/<base>`）を確認する。
-  ツールが使えない場合や整理を保留した場合は、マージの完了と分けて報告する
-- `y-marui/*` および `fukami-lab-sot/*` リポジトリで Issue を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する。
-  自分（`y-marui`）が作成する PR は、作成者として GitHub 上で追えるため assignee を付けない。
-  Dependabot 等の bot や他者が作る PR は、各リポジトリの `auto-assign-self.yml`（`pull_request_target`）が assign する（assignee 本人が作った PR は対象外）。組織所有リポジトリでは Actions 変数 `AUTO_ASSIGN_USER=y-marui` が必要（未設定だと `repository_owner` が組織名になる）
-- PR での自動レビュー依頼は、PR コメントでのメンションで行う: Codex は `@codex review`、GitHub Copilot は `@copilot review`
-- 自動レビュー（Copilot 等）の指摘は無条件に正しいものとして受け入れない。各指摘を自分で検証し、妥当と判断したものだけ修正する
-- GitHub の PR レビューコメント（Copilot・Codex 等の自動レビュー、人間のレビュアー問わず）に対応したら、修正やコメントでの回答が完了した時点でそのレビュースレッド（conversation）を resolve する。却下した指摘（対応しない判断をしたもの）も、理由をコメントで返信したうえで resolve する
-- 自動レビューの指摘に対応して resolve したら、同じ PR で再度のレビュー依頼（`@codex review` 等の再メンション）はせずそのままマージしてよい。レビュー→修正→再レビューを繰り返して待たない
-
-## Account Information
-
-GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles-private で管理）
-
-プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
-`make private` を実行済みであればファイルが存在する。
+- PR・Issue の操作は GitHub MCP を優先し、不可なら `gh` CLI を使う。
+  Web UI から直接作成・更新・マージしない。
+  `gh` 未認証なら `gh auth login -h github.com` を案内する
+- マージは merge commit を標準とし、squash・rebase は明示された場合のみ
+- 関連 issue は PR 本文に `Fixes #123`/`Closes #123`（自動クローズ）か `Refs #123`（関連付けのみ）でリンクする
+- コンフリクト解消は rebase でなく merge を使う。
+  rebase は明示指示がある場合のみ
+- マージ依頼には統合済みブランチの整理を含める。
+  PR が MERGED で未 push の未統合コミットがないことを確認してから整理し、満たせなければ残して別に報告する
+- `y-marui/*`・`fukami-lab-sot/*` の Issue は assignee に `y-marui` を設定する。
+  自分の PR には付けない
+- 自動レビューは PR コメントで依頼する（`@codex review`、`@copilot review`）。
+  指摘は検証して妥当なものだけ修正し、対応後は却下分も理由を返信して resolve する。
+  再レビューは依頼せずマージしてよい
+- Issue 本文の言語は残作業の実行者で決める（ユーザー自身の TODO は日本語）
+- クローズ済み Issue に内容を書き込まない。
+  新規 Issue に書き、旧 Issue にはリンクのみ残す
+- アカウント対応表は `~/.identity/accounts.yaml`
 
 ## Commit Messages
 
-Conventional Commits 形式:
-
-- `feat:`新機能
-- `fix:`バグ修正
-- `chore:`ビルド・設定変更
-- `docs:`ドキュメント
-- `refactor:`リファクタリング
+Conventional Commits 形式（`feat:` 新機能、`fix:` バグ修正、`chore:` ビルド・設定、`docs:` ドキュメント、`refactor:` リファクタリング）。
 
 ## MCP Configuration Scope
 
 個人の恒常的なツール連携は、各エージェントの user / global scope に登録する。
-特定リポジトリだけで使う連携のみ project / local scope に登録する。登録コマンド、
-設定ファイルの所有境界、既存設定との共存方法は、各エージェント固有の設定文書に従う。
+特定リポジトリだけで使う連携のみ project / local scope に登録する。
+登録方法や設定ファイルの所有境界は、各エージェント固有の設定文書に従う。
 
-## Language for Self-Executed Issues
+## zsh Caveats
 
-GitHub Issue の本文言語は、その Issue の残作業を誰が実行するかで決める。
-他のコントリビューターや一般ユーザー向けの作業、あるいは一般的なプロジェクト
-文書として書く場合は、そのリポジトリが定める言語ポリシー（`y-marui/*` は
-原則英語）に従う。一方、実質的にユーザー自身が後で手を動かす TODO リスト
-（手動セットアップ手順、実機での検証、本人しか判断できない意思決定など）で
-あれば、リポジトリの言語ポリシーに関わらず本文は日本語で書く（タイトルは
-どちらでもよい）。自分用のチェックリストは日本語の方が速く読めるため。
-
-## Closed Issues: Don't Write Problem Content There
-
-クローズ済みの GitHub Issue に、新しい問題点・調査結果・進捗を直接コメントとして
-書き込まない。話題が元の Issue と近く見える場合も同様。
-
-内容を書く先は新規 Issue とする。クローズ済みの Issue 側には、必要であれば
-その新規 Issue へのリンクのみを残す（内容は書かない）。この方針はリポジトリを
-問わず適用する。
-
-## Overwriting Files in zsh
-
-この環境の zsh は `noclobber` が有効で、`cat > file` や `echo > file` は既存ファイルの
-上書きに失敗する。`>>` で存在しないファイルを新規作成する場合も失敗する。ログ用ファイルへの
-`2>> log` や `2> log` のリダイレクトが失敗すると、コマンド自体が実行されず、ループが何もせずに
-終わることがある。ログは先に `: >| file` で作ってから使う。既存ファイルの更新は
-Write/Edit ツールで行い、シェルでは `>|` を使う。失敗した heredoc 書き込みは、その後の処理が
-古い内容のまま進みやすいため、書き込み後に内容を確認する。
-
-## Interactive Prompts and Auto-ls in zsh
-
-この環境の zsh には、Bash ツールの出力に影響する挙動が 4 つある。
-
-- `cd` は、移動後に自動で `ls` を実行する（`dotfiles/shell/zshrc` の関数）。`cd` を含むコマンドの
-  出力にディレクトリの一覧が混ざり、`grep` などの結果を読み違えやすい。ディレクトリを変えずに
-  済む場合は `git -C <dir>` や絶対パスを使う
-- `rm` は確認を求めることがあり（`remove <file>?`）、確認待ちのまま停止して、後続のコマンドを
-  含む処理全体が止まる。非対話で削除する場合は、対象を確認したうえで `rm -f` を使う
-- `cp` は `cp -i` のエイリアスで、既存ファイルの上書き時に確認を求める。非対話では
-  `not overwritten` となり、終了コード 1 で上書きされない。`;` や改行で後続コマンドを続けると
-  失敗を見落とし、バックアップ復元などで古い内容が残る。上書きが必要な場合は、対象を
-  確認したうえで `command cp -f` を使う
-- `log` は zsh の組み込みコマンドで、macOS の統合ログ（`/usr/bin/log`）を隠す。`log show` や
-  `log stream` は `too many arguments` で失敗する。ログを見るときは `/usr/bin/log` と
-  フルパスで呼ぶ
+この環境の zsh は `noclobber` が有効で、`cat > file` は既存ファイルの上書きに失敗する。
+既存ファイルの更新は Write/Edit ツールで行い、シェルでは `>|` を使う。
+他の挙動は下表の `cli-environments.md` を読む。
 
 ## Detail References
 
-使う場面が限られる手順は `references/` に置く。次の作業の前に、該当する節だけ全文読む。
+使う場面が限られる手順は `references/` に置く。
+次の作業の前に、該当する節だけ全文読む。
 
-- Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 -` を実行しない
-  （Python 3.14 が REPL を起動し、非 tty でエラーを無限に出力してディスクを埋めた実績がある。
-  スクリプトはファイルに置くか `python -c` で渡す）。詳細は下表の Windows・WSL の行を読む
-- 新規リポジトリは、最初から public で（公開予定がなければ private）、必ず既存のテンプレートリポジトリから、
-  命名規則に従って作る（詳細は下表）
-- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わない（数個ずつ時間をずらす。詳細は下表）
-- Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証はユーザーが行う（手順は下表）
-- zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、配列かリテラルを使う（具体例は下表）
+- Windows の Git Bash 等で、標準入力が空のまま `python -` を実行しない（スクリプトはファイルか `python -c` で渡す）
+- 新規リポジトリは public（公開予定がなければ private）で、既存のテンプレートリポジトリから命名規則に従って作る
+- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わず、数個ずつ時間をずらす
+- Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証はユーザーが行う
+- zsh で複数値を反復する場合は、文字列の暗黙分割に頼らず配列かリテラルを使う
 
 | 作業 | 読む場所 |
 | --- | --- |
-| Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証を行う | `cli-environments.md` の `#native-app-verification` |
-| iOS Simulator を操作・確認する | `cli-environments.md` の `#ios-simulator-moved-to-device-hub` |
-| Warp でラッパー由来のコマンド実行エラーが出た | `cli-environments.md` の `#warp-command-wrappers` |
-| zsh で複数値を反復する具体例が必要 | `cli-environments.md` の `#zsh-word-splitting` |
-| Windows（Git Bash）・WSL・Windows ホストへの ssh でコマンドを実行する | `windows-wsl.md` |
-| App Store Connect への登録・提出準備の入力 | `app-store-connect.md` |
-| SSH Host エイリアスのリモートで `gh` が default remote エラーを出した | `github-rare.md` の `#gh-default-repository-with-ssh-host-alias` |
-| Copilot の PR レビューを依頼した | `github-rare.md` の `#copilot-review-latency` |
-| GitHub Actions が課金エラーで実行されない | `github-rare.md` の `#actions-billing-errors` |
-| repo-status の一覧を再生成・更新する | `github-rare.md` の `#repo-status` |
-| 新規リポジトリを作成する（命名・公開範囲・テンプレート） | `github-rare.md` の `#new-repository-creation` |
-| 多数のリポジトリへ同じ PR を一括で出して ready にする | `github-rare.md` の `#bulk-pr-ready-conflicts` |
-| 規約レビューを依頼された、または dev-charter の引用元の変更を把握した | `github-rare.md` の `#documentation-section-and-dev-charter` |
+| Project Home、fetch、PR 要否、draft PR、ドキュメント管理、コーディングスタイル、`run-quiet` | `dev-workflow.md` |
+| ブランチ整理、assignee、自動レビュー対応、Issue の言語、クローズ済み Issue、アカウント | `github-operations.md` |
+| zsh の `noclobber` | `cli-environments.md` の `#zsh-overwrite-and-noclobber` |
+| zsh の `cd`・`rm`・`cp`・`log` の挙動 | `cli-environments.md` の `#zsh-interactive-prompts-and-auto-ls` |
+| zsh で複数値を反復する | `cli-environments.md` の `#zsh-word-splitting` |
+| ネイティブアプリ・Alfred Workflow の UI 検証 | `cli-environments.md` の `#native-app-verification` |
+| iOS Simulator の操作・確認 | `cli-environments.md` の `#ios-simulator-moved-to-device-hub` |
+| Warp のラッパー由来のコマンド実行エラー | `cli-environments.md` の `#warp-command-wrappers` |
+| Windows（Git Bash）・WSL・Windows ホストへの ssh | `windows-wsl.md` |
+| App Store Connect の登録・提出準備 | `app-store-connect.md` |
+| SSH Host エイリアスのリモートで `gh` が default remote エラー | `github-rare.md` の `#gh-default-repository-with-ssh-host-alias` |
+| Copilot の PR レビュー依頼 | `github-rare.md` の `#copilot-review-latency` |
+| GitHub Actions の課金エラー | `github-rare.md` の `#actions-billing-errors` |
+| repo-status の再生成・更新 | `github-rare.md` の `#repo-status` |
+| 新規リポジトリの作成 | `github-rare.md` の `#new-repository-creation` |
+| 多数のリポジトリへ同じ PR を一括で出す | `github-rare.md` の `#bulk-pr-ready-conflicts` |
+| 規約レビュー、dev-charter の引用元の変更把握 | `github-rare.md` の `#documentation-section-and-dev-charter` |
 
-このファイルがシンボリックリンク経由の場合は、リンクの実体である `AI_CONTEXT_CLI.md` の
-ディレクトリを基準に `references/` を解決する。参照先を読めない場合は、その制約を報告し、
-未確認の手順を推測して実行しない。
+このファイルがシンボリックリンク経由の場合は、リンクの実体である `AI_CONTEXT_CLI.md` のディレクトリを基準に `references/` を解決する。
+参照先を読めない場合は、その制約を報告し、未確認の手順を推測して実行しない。
