@@ -55,6 +55,22 @@ python3 "$TOOL" --path "$WORK/long.md" > "$WORK/out.txt"
 check "exit code 0 when exceeded" 0 "$?"
 check "table marks exceeded" 1 "$(grep -c '201\*' "$WORK/out.txt")"
 
+# 別種のフェンスは閉じない(``` の中の ~~~ は本文扱いで、閉じ ``` までが対象外)
+{
+  printf '%s\n' '```'
+  printf '%s\n' '~~~'
+  printf '%.0sx' {1..150}; echo
+  printf '%s\n' '```'
+  printf '%s\n' 'abc'
+} > "$WORK/fence.md"
+check "fence closes only on matching marker" 3 "$(field "$WORK/fence.md" width)"
+
+# --kind reference の超過もフッターに数える
+printf '%s\n' 'x' > "$WORK/small.md"
+python3 -c "print(('あ' * 50 + chr(10)) * 130, end='')" > "$WORK/ref.md"
+python3 "$TOOL" --path "$WORK/ref.md" --kind reference > "$WORK/ref.txt"
+check "reference footer counts exceeded" 1 "$(grep -c '1 over guideline' "$WORK/ref.txt")"
+
 if ((FAILURES > 0)); then
   echo "$FAILURES failure(s)"
   exit 1
