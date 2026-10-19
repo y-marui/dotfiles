@@ -93,7 +93,7 @@ Windows では対応する `scripts/*.ps1` を、それ以外では `scripts/*.s
 
 ## Zellij Auto-Attach and SSH Wrapper
 
-挙動の説明は README の「Zellij Auto-Attach & SSH Wrapper」を参照する。実装で守る点:
+挙動の説明は [docs/zellij-ssh-wrapper.md](docs/zellij-ssh-wrapper.md)を参照する。実装で守る点:
 
 - 起動条件: macOS は `$TERM_PROGRAM == "iTerm.app"` または `$SSH_CONNECTION`、Raspberry Pi は
   `$SSH_CONNECTION` のみ、Windows(pwsh) は `$env:WT_SESSION` または `$env:SSH_CONNECTION`
@@ -177,11 +177,11 @@ docsへ同じチェックリストを重複させない。公開リポジトリ�
 
 ## Frequently Used Commands
 
-コマンド一覧は [README.md](README.md)（`make` 表・`dots` 動詞表）、動作定義は
+コマンド一覧は [docs/commands.md](docs/commands.md)（`make` 表・`dots` 動詞表）、動作定義は
 [docs/specification.md](docs/specification.md) を参照する。変更時に外せない点:
 
 - `dots verbs` / `dots <domain> help` の正本は `bin/unix/_dots-verbs.sh` の動詞テーブル。
-  README の動詞表と `bin/windows/dots.ps1` は `scripts/check-dots-verb-table.sh`（pre-commit）が検証する
+  docs/commands.md の動詞表と `bin/windows/dots.ps1` は `scripts/check-dots-verb-table.sh`（pre-commit）が検証する
 - `dots {npm|pipx} prune` は宣言にないパッケージを削除する（`--dry-run`・`--backup-dir`）。
   `apply` は追加後にpruneするため、無人経路は `--no-prune` を付ける
 - `dots brew apply` は管理状態との差分だけを適用する（`--full` で全件、`--no-prune` でcleanup省略）

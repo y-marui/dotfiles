@@ -70,7 +70,7 @@ Commands:
   verbs   ドメイン×動詞の対応表（実装済み・対象外・未実装）をTSVで出力
 
 動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
-どのコマンドが実装しているかは README.md の動詞表を参照する。
+どのコマンドが実装しているかは docs/commands.md の動詞表を参照する。
 `dots <domain> help` でそのドメインの実装状況を表示する。
 「N/A」は意図的に存在しない動詞（終了コード0）、「未実装」は実装予定の動詞（エラー）。
 

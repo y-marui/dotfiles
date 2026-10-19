@@ -4,6 +4,12 @@ _最終更新: 2026-10-16_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
+## README and Reference Docs
+
+| ファイル | 役割 | 主な依存先 |
+|---|---|---|
+| `README.md` | 概要・セットアップと、`docs/commands.md`・`ai-configuration.md`・`zellij-ssh-wrapper.md`・`local-settings.md`・`security-hooks.md` への入口 | 各文書 |
+
 ## Raspberry Pi Platform
 
 | ファイル | 役割 | 主な依存先 |
@@ -38,7 +44,7 @@ _最終更新: 2026-10-16_
 |---|---|---|
 | `bin/unix/_dots-verbs.sh` | ドメイン×動詞（apply/diff/sync/merge/prune/cache）の状態（ok/na/todo）、N/Aの理由、共通オプションの許可、動詞ゲート、`dots help`・`dots verbs` の生成元（正本） | `bin/unix/dots`（source） |
 | `bin/windows/dots.ps1`（`$verbSpecs`） | Windowsで使えるドメイン（ghq・winget・ai・claude・codex・copilot）の同形式のテーブルと動詞ゲート | `scripts/check-dots-verb-table.sh`（Unix側との一致を検証） |
-| `scripts/check-dots-verb-table.sh` | Unix側テーブルを正本に、READMEの動詞表とWindows側テーブルの一致を検証（pre-commit） | `README.md`、`bin/unix/dots verbs`、`bin/windows/dots.ps1` |
+| `scripts/check-dots-verb-table.sh` | Unix側テーブルを正本に、docs/commands.mdの動詞表とWindows側テーブルの一致を検証（pre-commit） | `docs/commands.md`、`bin/unix/dots verbs`、`bin/windows/dots.ps1` |
 | `scripts/test-dots-verbs.sh` | 動詞ゲートとnpm/pipxの`apply`・`prune`・`sync`・`merge`の回帰テスト（Unix版のみ。偽の`npm`/`pipx`を使う） | `bin/unix/dots`、`npm/*.sh`、`pipx/*.sh` |
 | `npm/{apply,diff,prune,sync,update_npmcache}...sh` / `pipx/...` | npm・pipxの動詞実装。`--dry-run`・`--no-prune`・`--yes`・`--backup-dir` を受け付ける | `npm/npmfile`・`pipx/pipxfile`、各`*.cache`（gitignore） |
 
