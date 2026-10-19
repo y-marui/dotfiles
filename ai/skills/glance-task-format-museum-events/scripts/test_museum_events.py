@@ -266,7 +266,7 @@ class MuseumEventsTests(unittest.TestCase):
                         "-o",
                         str(Path(directory) / f"script-{index}.scpt"),
                         "-e",
-                        source,
+                        museum_events.bind_app(source),
                     ],
                     check=False,
                     capture_output=True,

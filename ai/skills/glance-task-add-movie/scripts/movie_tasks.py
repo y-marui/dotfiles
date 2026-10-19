@@ -399,6 +399,7 @@ def app_path():
         [Path(os.environ["GLANCE_TASK_APP"])]
         if os.environ.get("GLANCE_TASK_APP")
         else [
+            Path("/Applications/My Swift/Glance Task.app"),
             Path("/Applications/Glance Task.app"),
             Path.home() / "Applications/Glance Task.app",
         ]

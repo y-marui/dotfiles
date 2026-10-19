@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
-APP_PATH = Path("/Applications/Glance Task.app")
 SKILL_NAME = Path(__file__).resolve().parents[1].name
 ALLOWED_GROUPS = ("美術展: 関東", "美術展: 東北")
 RECORD_SEPARATOR = "\x1e"
@@ -23,6 +23,30 @@ FIELD_SEPARATOR = "\x1f"
 
 class MuseumEventError(RuntimeError):
     """A user-actionable validation or AppleScript error."""
+
+
+APP_NAME = "Glance Task.app"
+APP_PLACEHOLDER = "/Applications/Glance Task.app"
+APP_CANDIDATES = (
+    Path("/Applications/My Swift") / APP_NAME,
+    Path("/Applications") / APP_NAME,
+    Path.home() / "Applications" / APP_NAME,
+)
+
+
+def app_path() -> Path:
+    override = os.environ.get("GLANCE_TASK_APP")
+    for path in [Path(override)] if override else APP_CANDIDATES:
+        if path.is_dir():
+            return path.resolve()
+    raise MuseumEventError(
+        f"{APP_NAME} is not installed; set GLANCE_TASK_APP to its actual path."
+    )
+
+
+def bind_app(source: str) -> str:
+    app = str(app_path()).replace("\\", "\\\\").replace('"', '\\"')
+    return source.replace(APP_PLACEHOLDER, app)
 
 
 @dataclass(frozen=True)
@@ -145,9 +169,7 @@ end using terms from
 
 
 def run_applescript(source: str, arguments: Sequence[str]) -> str:
-    if not APP_PATH.is_dir():
-        raise MuseumEventError(f"Glance Task is not installed at {APP_PATH}.")
-    command = ["osascript", "-e", source, "--", *arguments]
+    command = ["osascript", "-e", bind_app(source), "--", *arguments]
     try:
         result = subprocess.run(
             command,
