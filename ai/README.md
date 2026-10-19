@@ -74,7 +74,7 @@ skillは、ツール固有の機能や記法へ依存しない限り `skills/` �
 - `dots ai {diff|apply|prune}`: Claude CodeとCodexをまとめて処理
 
 `apply` と `prune` の所有範囲はツールごとに異なる。
-実装・例外・認証情報の扱いはルート[AI Configuration](../docs/ai-configuration.md)を参照する。
+実装・例外・認証情報の扱いは[AI Configuration](../docs/ai-configuration.md)を参照する。
 
 ## Change Checklist
 
@@ -89,7 +89,7 @@ skillは、ツール固有の機能や記法へ依存しない限り `skills/` �
 8. `pre-commit run --all-files` を実行する。新規未追跡ファイルは
    `pre-commit run --files <path>` でも確認する。
 
-構成や管理境界を変更した場合は、このREADMEとルートREADMEを同じ作業内で更新する。
+構成や管理境界を変更した場合は、このREADMEと[docs/ai-configuration.md](../docs/ai-configuration.md)を同じ作業内で更新する。
 
 ## Obsidian conversation records
 
