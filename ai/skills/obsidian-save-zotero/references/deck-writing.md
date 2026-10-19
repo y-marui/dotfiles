@@ -7,6 +7,6 @@
    - Marpスライドとして書く。frontmatterに`marp: true`、`paginate: true`、`style: |`で`section { font-size: 22px; } section img { max-height: 380px; }`を含める（`paper-note`の雛形が出す。既存deckに追記するときも、無ければ補う）。
    - スライドは`---`区切り、数式は`$...$`にする。Marpは通常の文章・表を自動縮小しないため、1枚に入る分量にし、長い表・長文は複数スライドに分ける。
    - 図には原文のFig.番号・pageを書き、`zotero://open-pdf/library/items/<PDF添付キー>?page=N`を併記する（グループライブラリは`zotero://open-pdf/groups/<groupID>/items/<添付キー>?page=N`）。PDF添付キーは`paper-find --json`の`pdf_key`を使う。`null`や複数PDFでページ対応が不明なら未確認とし、キーやページを捏造しない。
-   - frontmatterの`sources`にステップ1のRecordをwikilinkで入れ、deckからRecordへの相対リンクも付ける（同じ側に置く）。`review_status: pending`を保ち、人が確認するまで`reviewed`にしない。
+   - frontmatterの`sources`に親の `SKILL.md` のステップ1で保存したRecordをwikilinkで入れ、deckからRecordへの相対リンクも付ける（同じ側に置く）。`review_status: pending`を保ち、人が確認するまで`reviewed`にしない。
    - 会話にない主張を足さず、原論文に未照合の記述は「会話内の情報・未確認」と書く。
    - ChatGPTが提示した批判・研究案をユーザー本人の着想に振り分けない。該当するユーザー発話がなければ「自分の着想：会話内に記録なし」とする。

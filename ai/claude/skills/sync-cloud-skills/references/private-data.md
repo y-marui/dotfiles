@@ -24,5 +24,5 @@
 - この形式なら、本文は（末尾セクションの有無と、参照文言1文を除いて）ローカルとcloudで
   同一に保てるため、次回同期時の差分比較で「意図した私有データ差分」と「本当の内容変更」を
   区別しやすい。
-- cloud→localへ反映する場合（「Reconcile per skill」4番）は、末尾の「Private Data (cloud-only)」
+- cloud→localへ反映する場合（親の `SKILL.md` の「Reconcile per skill」4番）は、末尾の「Private Data (cloud-only)」
   節をローカル側にコピーせず、参照文言も `~/.identity/<name>.yaml` へ戻す。
