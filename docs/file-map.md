@@ -1,6 +1,6 @@
 # File Map
 
-_最終更新: 2026-10-16_
+_最終更新: 2026-10-19_
 
 全ファイルを網羅する必要はない。AI が参照・編集したファイルを作業のたびに追記していく運用（[DOCS_STRUCTURE.md](dev-charter/DOCS_STRUCTURE.md) 参照）。
 
