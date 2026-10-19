@@ -122,9 +122,6 @@ PR を開いた後の push ごとに CI が走る。高額ランナー（macOS �
 - レビュー指摘への対応は、複数のコミットをまとめてから push する（指摘ごとに push しない）
 - 自動レビュー（`@codex review`、`@copilot review`）は draft の PR でも動くため、依頼のためだけに
   ready にしない
-- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わない。self-hosted runner の
-  共有キャッシュ（`/runner/.cache/pre-commit`）で競合し、pre-commit が `Text file busy` 等で
-  失敗する（37 PR 中 11 件で発生。1 つずつ再実行すると通る）。数個ずつ時間をずらして ready にする
 
 詳細は dev-charter の `topics/CI_POLICY-full.md`（Draft PRs・Runner Billing）を参照する。
 
@@ -143,16 +140,6 @@ PR を開いた後の push ごとに CI が走る。高額ランナー（macOS �
   記録案を回答に含める。docs と Issue へ同じチェックリストや進捗を重複させない
 - 公開リポジトリのIssue・Project・docsには、秘密情報に加えて、ホスト名、IPアドレス、鍵情報、
   詳細なサービス構成等、不要な運用情報も掲載しない
-
-この節は `y-marui/dev-charter` の
-[`DOCS_STRUCTURE.md`](https://github.com/y-marui/dev-charter/blob/main/DOCS_STRUCTURE.md)、
-[`PRINCIPLES.md`](https://github.com/y-marui/dev-charter/blob/main/PRINCIPLES.md)、
-[`AI_CONTEXT_HIERARCHY.md`](https://github.com/y-marui/dev-charter/blob/main/AI_CONTEXT_HIERARCHY.md)、
-[`topics/GITHUB_SETTINGS.md`](https://github.com/y-marui/dev-charter/blob/main/topics/GITHUB_SETTINGS.md)
-から必要部分だけを選択的に引用・一般化したもので、dev-charterのfull適用ではない。
-引用元の関連ファイルの変更を把握したとき、関連する文書・タスク運用を変更するとき、
-またはユーザーが規約レビューを依頼したときに整合性を確認し、必要な差分だけを反映する。
-定期レビューを設ける場合は、別途依頼された定期タスクとして管理する。
 
 ## Coding Style
 
@@ -176,9 +163,6 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
 - PR・Issue の操作は GitHub MCP サーバーを優先し、使えない場合は `gh` CLI を使う。
   いずれも Web UI から直接作成・更新・マージしない（`AI_CONTEXT.md` の Tool Selection 参照）
 - `gh` が未認証の場合は、Web UI に切り替えず `gh auth login -h github.com` をユーザーに案内する
-- リモートが `github-public:owner/repo` のような SSH Host エイリアス形式の場合、ユーザーの対話シェルの `gh`
-  は `gh pr merge` 等で「No default remote repository has been set」を出すことがある
-  （リポジトリ直下でも発生し得る）。`gh repo set-default owner/repo` の実行を案内する
 - PR のマージ方法は merge commit を標準とする。ユーザーが明示した場合のみ squash merge または rebase merge を使用する
 - 関連する issue がある場合、PR 本文に `Fixes #123`/`Closes #123`（マージ時に自動クローズしたい場合）または `Refs #123`（クローズせず関連付けのみの場合）等のキーワードでリンクする
 - PR ブランチのコンフリクト解消は rebase ではなく merge（base ブランチを PR ブランチにマージ）を使う。rebase は履歴を書き換え force push が必要になるため、他者が同じ PR ブランチに push している場合に問題になる。rebase は明示的に指示された場合のみ実施する
@@ -190,38 +174,13 @@ PR・Issue・Feature Request を作成する場合は、事前に `.github/` デ
   判定するため、PR が未マージでも削除できてしまう。削除の前に、PR が MERGED であること
   （または `git merge-base --is-ancestor <branch> origin/<base>`）を確認する。
   ツールが使えない場合や整理を保留した場合は、マージの完了と分けて報告する
-- GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
-  ローカル等で同等の検証が完了していればマージ判断を進められる。
-  代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
 - `y-marui/*` および `fukami-lab-sot/*` リポジトリで Issue を作成する場合（AI が直接操作する場合・自動化コマンド経由の場合を問わない）は、見逃し防止のため assignee に `y-marui` を設定する。
   自分（`y-marui`）が作成する PR は、作成者として GitHub 上で追えるため assignee を付けない。
   Dependabot 等の bot や他者が作る PR は、各リポジトリの `auto-assign-self.yml`（`pull_request_target`）が assign する（assignee 本人が作った PR は対象外）。組織所有リポジトリでは Actions 変数 `AUTO_ASSIGN_USER=y-marui` が必要（未設定だと `repository_owner` が組織名になる）
 - PR での自動レビュー依頼は、PR コメントでのメンションで行う: Codex は `@codex review`、GitHub Copilot は `@copilot review`
-- GitHub Copilot の PR レビューをリクエストした場合、結果はインクリメンタルに表示されず完了時に一括で反映される。数分待たずに「反映されない＝利用不可」と結論づけない（間隔を空けてポーリングする）
 - 自動レビュー（Copilot 等）の指摘は無条件に正しいものとして受け入れない。各指摘を自分で検証し、妥当と判断したものだけ修正する
 - GitHub の PR レビューコメント（Copilot・Codex 等の自動レビュー、人間のレビュアー問わず）に対応したら、修正やコメントでの回答が完了した時点でそのレビュースレッド（conversation）を resolve する。却下した指摘（対応しない判断をしたもの）も、理由をコメントで返信したうえで resolve する
 - 自動レビューの指摘に対応して resolve したら、同じ PR で再度のレビュー依頼（`@codex review` 等の再メンション）はせずそのままマージしてよい。レビュー→修正→再レビューを繰り返して待たない
-- y-marui配下の全repo（および主要forkのupstream）のCI・Issue・PR状況は `y-marui/repo-status` のREADMEに一覧化されている。再生成は新規repo作成/削除・workflow構成変更時のみ `scripts/status-badges.sh` を実行する（自動更新ではなく都度手動実行）。
-  private repo の Issue/PR 件数だけは、Actions の `Update private repo counts` を手動実行して更新する
-  （self-hosted runner で実行。詳細は `y-marui/repo-status` の `docs/private-counts.md`）
-- 新規リポジトリ名は、先頭に言語（`python-`、`swift-`、`go-`）または対象のサービス・プラットフォーム
-  （`alfred-`、`chrome-`、`docker-`）を付ける。当てはまらない場合はユーザーに確認する
-- 最終的に公開するリポジトリは、最初から public で作成する（`gh repo create --public`）。
-  private で作ってから公開に切り替えない（公開化は権限の確認で止まり、手動の設定変更が必要になる）。
-  不安定な状態が main に入るのを避けたいだけなら、private にせず `develop` 等のブランチで作業する。
-  公開予定のないリポジトリは private でよい
-- 新規リポジトリは、空で作らず、対応する既存のテンプレートリポジトリから作る
-  （`gh repo create y-marui/<name> --template y-marui/<template> --public`。非公開は `--private`）。
-  作成後に GitHub 上でテンプレートへ結び付けることはできないため、最初から使う。
-  - テンプレート: Python（公開向け）は `python-package-template`、Python（非公開向け）は
-    `python-closed-template`、Swift アプリは `swift-closed-template`、Chrome 拡張は
-    `chrome-closed-template`、Alfred ワークフローは `alfred-workflow-template`。
-    該当するテンプレートがない場合はユーザーに確認する
-  - テンプレートの README の手順に従い、プレースホルダー・パッケージ名・README を置き換える
-  - dev-charter は full を `docs/dev-charter` に git subtree で入れる（lite は文書のみの
-    リポジトリ向け）。手順は dev-charter の `src/README-full.md` に従う
-  - `AI_CONTEXT.md` はテンプレートのものを、そのプロジェクト向けに書き換える。公開リポジトリには
-    個人のパス・ホスト名・設定値を載せない
 
 ## Account Information
 
@@ -229,14 +188,6 @@ GitHub / BMC アカウントの対応表: `~/.identity/accounts.yaml`（dotfiles
 
 プロジェクトの GitHub オーナーを確認し、対応する `github` / `bmc` の値を使用すること。
 `make private` を実行済みであればファイルが存在する。
-
-## App Store Connect Registration
-
-新しいアプリの登録や、バージョンの提出準備で App Store Connect に入力するときは、
-`~/.identity/app-store-connect.yaml`（dotfiles-private で管理）の値を使う。App Review の連絡先、
-サポート窓口、著作権の表記、サポート・プライバシーポリシー URL の規則が入っている。
-値は個人情報なので、ユーザーが依頼した App Store Connect の入力以外に使わず、チャットや
-リポジトリに複写しない。ファイルがない、または値が足りない場合は、推測せずユーザーに確認する。
 
 ## Commit Messages
 
@@ -253,11 +204,6 @@ Conventional Commits 形式:
 個人の恒常的なツール連携は、各エージェントの user / global scope に登録する。
 特定リポジトリだけで使う連携のみ project / local scope に登録する。登録コマンド、
 設定ファイルの所有境界、既存設定との共存方法は、各エージェント固有の設定文書に従う。
-
-## UI Verification for Mac/iOS Apps
-
-Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証はユーザーが行う。
-該当する開発時に、[環境別手順](references/cli-environments.md#native-app-verification) を読む。
 
 ## Language for Self-Executed Issues
 
@@ -277,16 +223,6 @@ GitHub Issue の本文言語は、その Issue の残作業を誰が実行する
 内容を書く先は新規 Issue とする。クローズ済みの Issue 側には、必要であれば
 その新規 Issue へのリンクのみを残す（内容は書かない）。この方針はリポジトリを
 問わず適用する。
-
-## Running Commands in the Warp Terminal
-
-Warp でラッパー由来のコマンド実行エラーが起きた場合は、
-[環境別手順](references/cli-environments.md#warp-command-wrappers) を読む。
-
-## Word Splitting in zsh Loops
-
-zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、配列かリテラルを使う。
-具体例が必要な場合は、[環境別手順](references/cli-environments.md#zsh-word-splitting) を読む。
 
 ## Overwriting Files in zsh
 
@@ -314,47 +250,35 @@ Write/Edit ツールで行い、シェルでは `>|` を使う。失敗した he
   `log stream` は `too many arguments` で失敗する。ログを見るときは `/usr/bin/log` と
   フルパスで呼ぶ
 
-## Empty stdin to `python -` on Windows
+## Detail References
 
-Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 -`（本文が空の heredoc、
-`</dev/null` を含む）を実行しない。Windows は NUL を端末とみなすため、Python 3.14 が REPL
-を起動し、非 tty でエラーを無限に出力して終了しない。バックグラウンドに回されたタスクの出力は
-上限がなく、数百 GB に膨らんで C: を埋め、WSL を入出力エラーにした実績がある。スクリプトは
-ファイルに置くか `python -c` で渡す。`PYTHON_BASIC_REPL=1` を設定すると、空入力でも正常終了する。
-バックグラウンドに回ったコマンドが止まらないときは、`%TEMP%\claude\...\tasks\*.output` の
-サイズを確認して停止する。
+使う場面が限られる手順は `references/` に置く。次の作業の前に、該当する節だけ全文読む。
 
-## Inline Scripts to `wsl.exe` from Git Bash
+- Windows の Git Bash 等で、標準入力が空のまま `python -` / `python3 -` を実行しない
+  （Python 3.14 が REPL を起動し、非 tty でエラーを無限に出力してディスクを埋めた実績がある。
+  スクリプトはファイルに置くか `python -c` で渡す）。詳細は下表の Windows・WSL の行を読む
+- 新規リポジトリは、最初から public で（公開予定がなければ private）、必ず既存のテンプレートリポジトリから、
+  命名規則に従って作る（詳細は下表）
+- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わない（数個ずつ時間をずらす。詳細は下表）
+- Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証はユーザーが行う（手順は下表）
+- zsh で複数値を反復する場合は文字列の暗黙分割に頼らず、配列かリテラルを使う（具体例は下表）
 
-Git Bash から `wsl.exe -d <distro> -- bash -lc '...'` に渡した文字列は、WSL 側の前段シェルで
-`$VAR`・`$1`・`$(...)` が先に展開されて空になる（単一引用符で囲んでも同じ）。変数や
-コマンド置換を使った処理が、エラーを出さずに空文字で進み、`backup-.db` のような
-名前のファイルができた実績がある。また `/mnt/c/...` のような絶対パスの引数は MSYS の
-パス変換で `C:/Program Files/Git/mnt/...` に書き換わる。変数・コマンド置換・複数行を含む
-処理はスクリプトファイルに書き、`MSYS_NO_PATHCONV=1 wsl.exe -d <distro> -u root -- bash <script>`
-で実行する。Windows 側のリポジトリは root から見ると所有者が違うため、WSL 内の
-`git rev-parse` は空を返すことがある。その値は Windows 側で取得して渡す。
+| 作業 | 読む場所 |
+| --- | --- |
+| Mac/iOS ネイティブアプリや Alfred Workflow の UI 検証を行う | `cli-environments.md` の `#native-app-verification` |
+| iOS Simulator を操作・確認する | `cli-environments.md` の `#ios-simulator-moved-to-device-hub` |
+| Warp でラッパー由来のコマンド実行エラーが出た | `cli-environments.md` の `#warp-command-wrappers` |
+| zsh で複数値を反復する具体例が必要 | `cli-environments.md` の `#zsh-word-splitting` |
+| Windows（Git Bash）・WSL・Windows ホストへの ssh でコマンドを実行する | `windows-wsl.md` |
+| App Store Connect への登録・提出準備の入力 | `app-store-connect.md` |
+| SSH Host エイリアスのリモートで `gh` が default remote エラーを出した | `github-rare.md` の `#gh-default-repository-with-ssh-host-alias` |
+| Copilot の PR レビューを依頼した | `github-rare.md` の `#copilot-review-latency` |
+| GitHub Actions が課金エラーで実行されない | `github-rare.md` の `#actions-billing-errors` |
+| repo-status の一覧を再生成・更新する | `github-rare.md` の `#repo-status` |
+| 新規リポジトリを作成する（命名・公開範囲・テンプレート） | `github-rare.md` の `#new-repository-creation` |
+| 多数のリポジトリへ同じ PR を一括で出して ready にする | `github-rare.md` の `#bulk-pr-ready-conflicts` |
+| 規約レビューを依頼された、または dev-charter の引用元の変更を把握した | `github-rare.md` の `#documentation-section-and-dev-charter` |
 
-## Running Commands in WSL over SSH from the Mac
-
-Mac から `ssh <windows-host>` で入った Windows の既定シェルは PowerShell なので、`uname` などの
-Unix コマンドは使えない。WSL の中の処理は `wsl.exe -d <distro> -- bash -c "..."` で実行するが、
-ssh・PowerShell・`wsl.exe`・`bash` と引用符が重なるため、`$`・引用符・Docker の `{{...}}` が
-壊れる。スクリプトは Mac 側で base64 にして渡す（base64 には空白も記号もないので、引用符が崩れない）。
-
-~~~sh
-b=$(base64 </tmp/script.sh | tr -d '\n')
-ssh <windows-host> "wsl.exe -d <distro> -- bash -c \"echo $b | base64 -d | bash\""
-~~~
-
-- 出力に `your 131072x1 screen size is bogus. expect trouble` が混ざるが無害。`grep -v` で除く
-- 既定ユーザーが root の distro では `~` は `/root`。処理は何のユーザーで動くかを先に確認する
-- スクリプトに秘密情報を埋め込まない。トークンなどはファイルで渡し、値は出力しない
-- 待ち時間の長い処理（数十秒以上のループなど）は、出力が途中で切れたことがあった。分割して実行し、
-  切れたら状態（`docker ps` など）を確認し直す。「出力がない」を「失敗」と決めつけない
-
-## Reference Resolution
-
-環境別手順は必要な節だけ読む。このファイルがシンボリックリンク経由の場合は、
-リンクの実体である `AI_CONTEXT_CLI.md` のディレクトリを基準に `references/` を解決する。
-参照先を読めない場合は、その制約を報告し、未確認の手順を推測して実行しない。
+このファイルがシンボリックリンク経由の場合は、リンクの実体である `AI_CONTEXT_CLI.md` の
+ディレクトリを基準に `references/` を解決する。参照先を読めない場合は、その制約を報告し、
+未確認の手順を推測して実行しない。

@@ -26,6 +26,8 @@ MCP / plugin宣言と、各ツール固有設定の正本である。
 - [`copilot/instructions.md`](copilot/instructions.md): 共通コンテキストと Context Routing を参照
 
 補完規約の詳細手順は [`references/`](references/) に分離し、必要な節だけ読む。
+使う場面が限られる手順だけを移し、頻繁に必要な規則は補完規約の本文に残す。移した手順は、
+`AI_CONTEXT_CLI.md` 末尾の Detail References の表に「どの作業の前に、どの節を読むか」を載せる。
 
 ## Directory Responsibilities
 
