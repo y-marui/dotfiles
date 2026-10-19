@@ -15,13 +15,12 @@ Git・GitHub・コーディングの規約は該当する作業にだけ適用�
 シークレット・認証情報をコードや管理対象ファイルに書かない。
 `git commit`/`push` 等で `--no-verify`（`commit` の `-n` 含む）は使わない。
 pre-commit フックのエラーは無視・回避せず原因を修正する。
-shell の git wrapper 関数（`dotfiles/shell/zshrc`）でも禁止済みだが、フルパス実行や IDE 統合は回避し得るため明記する。
+shell の git wrapper 関数（`dotfiles/shell/zshrc`）でも禁止済みだが、回避され得るため明記する。
 
 ## Chat and Work Directory
 
-大規模な開発を含む作業は、1 chat につき 1 作業ディレクトリ（リポジトリ）を原則とする。
-並列で進める作業や、軽微な派生タスクはこの限りでない。
-別のリポジトリで大規模な作業が必要になったら、必要な情報を Issue に移して別 chat で進める（引き継ぎには `session-handoff`）。
+大規模な開発を含む作業は、1 chat につき 1 作業ディレクトリ（リポジトリ）を原則とする（並列作業や軽微な派生タスクは除く）。
+別のリポジトリで大規模な作業が必要になったら、情報を Issue に移して別 chat で進める。
 
 ## Commit and Push Authorization
 
@@ -40,7 +39,8 @@ commit と push は別の操作として扱い、commit の依頼だけでは pu
 詳細は下表の `dev-workflow.md` を、該当する作業の前に読む。
 
 - 出力が多いコマンドは、利用可能なら `run-quiet` でラップし、終了コードと警告・エラーを確認する。
-  副作用のある操作は出力確認だけを目的に再実行しない
+  副作用のある操作は出力確認だけを目的に再実行しない。
+  commit 時の doc-lint 警告は見えないため、Markdown を変更したら commit 前に `doc-lint` を実行して直す
 - 開発作業の開始時は、`obsidian-project-home --repo <repository-root>` が使えれば解決し、終了コード `0` の場合だけ読む。
   それ以外は推測・新規作成をせず進める。
   正本はリポジトリの docs と Issue
@@ -55,8 +55,7 @@ commit と push は別の操作として扱い、commit の依頼だけでは pu
 - 恒久的な設計・仕様・運用手順は `docs/`・README・AI_CONTEXT に、TODO・進捗・ブロッカーは Issue・Project に記録する。
   公開リポジトリに不要な運用情報（ホスト名、IP、鍵情報、サービス構成）を載せない
 - シェルは ShellCheck 準拠で `set -euo pipefail`、Swift は SwiftLint、Python は ruff / black（新規は 3.11 以上）。
-  パスは `$HOME`。
-  依存バージョンの更新は、依頼された保守作業か具体的根拠がある場合に限る
+  パスは `$HOME`。依存バージョンの更新は、依頼された保守作業か具体的根拠がある場合に限る
 
 ## GitHub
 
