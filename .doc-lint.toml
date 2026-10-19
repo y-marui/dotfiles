@@ -1,0 +1,8 @@
+# 長くて当然の参照文書・手順書はサイズ検査だけ除く（frontmatter検査は残す）
+exempt_size = [
+  "docs/specification.md",
+  "docs/file-map.md",
+  "docs/self-hosted-runner.md",
+  "docs/raspberry-pi-platform.md",
+  "docs/setup-mac.md",
+]
