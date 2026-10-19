@@ -91,6 +91,7 @@ EXCEPTIONS=(
   "scripts/run_quiet_hook.sh:Claude Codeフックはbash経由で実行される前提のためOS問わず動作"
   "scripts/test-run-quiet-hook.sh:run_quiet_hook.shの回帰テスト。フック本体と同じくbash経由で全OS共通実行"
   "scripts/test-measure-doc-size.sh:measure-doc-size.pyはPython標準ライブラリのみで全OS共通実行のため、bash経由の回帰テストも共通"
+  "scripts/test-doc-lint.sh:doc-lint.pyはPython標準ライブラリのみで、グローバルフック（bash）から全OS共通に実行するため回帰テストも共通"
   "scripts/test-vault-move-notes.sh:vault-move-notes.pyはPython標準ライブラリのみで全OS共通実行のため、bash経由の回帰テストも共通"
   "ai/claude/hooks/status.sh:Claude Codeのstatuslineはbash経由で実行される前提のためOS問わず動作"
   "npm/apply_npmfile.sh:TODO: dots.ps1がnpmサブコマンド未実装のため未移植"

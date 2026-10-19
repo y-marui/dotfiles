@@ -8,6 +8,22 @@ if [[ "$(git config --local hooks.skip-policy-check 2>/dev/null)" == "true" ]]; 
   exit 0
 fi
 
+# --- doc-lint（警告のみ・commit を止めない。docs/specification.md#doc-lint） ---
+# shellcheck disable=SC2120 # 引数は commit-msg 側だけが渡す
+run_doc_lint() {
+  local here tool py
+  here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 0
+  tool="${here}/../../scripts/doc-lint.py"
+  [[ -f "${tool}" ]] || return 0
+  for py in python3 python; do
+    if "${py}" -c 'import sys; sys.exit(sys.version_info < (3, 11))' >/dev/null 2>&1; then
+      "${py}" "${tool}" "$@" || true
+      return 0
+    fi
+  done
+  return 0 # python が無い環境では静かにスキップ
+}
+
 # --- identity チェック ---
 name="$(git config user.name)"
 email="$(git config user.email)"
@@ -54,6 +70,8 @@ fi
 # pre-commit run（core.hooksPath 経由なので直接実行）
 if command -v pre-commit &>/dev/null; then
   pre-commit run --hook-stage pre-commit
+  # shellcheck disable=SC2119
+  run_doc_lint
 else
   echo "エラー: pre-commit コマンドが見つかりません。" >&2
   echo "  pip install pre-commit  または  brew install pre-commit" >&2

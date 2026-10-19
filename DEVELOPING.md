@@ -60,11 +60,18 @@ scripts/test-install-my-apps.sh
 scripts/test-my-hosts.sh
 ```
 
-`scripts/measure-doc-size.py`（AI_CONTEXT の行数・表示幅・概算トークン数の測定）を変更した場合は、
-一時ファイルで回帰テストを実行する:
+`scripts/measure-doc-size.py`（Markdownの行数・文ごとの表示幅・概算トークン数の測定と`--inventory`）を
+変更した場合は、一時ファイルで回帰テストを実行する:
 
 ```bash
 scripts/test-measure-doc-size.sh
+```
+
+`scripts/doc-lint.py`と`git/hooks/`のdoc-lint連携（commit時のMarkdown警告）を変更した場合は、
+一時リポジトリ・一時ログで回帰テストを実行する（実リポジトリや`~/.local/state`には触れない）:
+
+```bash
+scripts/test-doc-lint.sh
 
 `scripts/vault-move-notes.py`（Vaultのノート移動とリンク書き換え）を変更した場合は、
 一時ディレクトリのフィクスチャVaultで回帰テストを実行する（実Vaultには触れない）:

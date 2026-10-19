@@ -667,15 +667,73 @@ ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単�
 
 `scripts/measure-doc-size.py`は、常時読込文書（`~/.ai/AI_CONTEXT*.md`と、`ghq list -p`で列挙した
 各リポジトリ直下の`AI_CONTEXT.md`）の行数・最大表示幅・概算トークン数を表で出す。月1回の手動実行を想定し、
-`pre-commit`や`dots`には組み込まない。
+`pre-commit`や`dots`には組み込まない。[doc-lint](#doc-lint)の測定・対象範囲・frontmatter判定の共通ロジックでもある。
 
-- 目安は行数200、表示幅100桁、トークン数3,000（`--kind reference`では6,000）。超過した値に`*`を付けるだけで、
+- 目安は行数200、表示幅200桁、トークン数3,000（`--kind reference`では6,000）。超過した値に`*`を付けるだけで、
   終了コードは常に0（強制しない）。分割の判断はこの出力を見て人が行う
-- 表示幅は全角（East Asian WidthがW/F）を2桁と数え、コードブロック内・表の行・URLを含む行は対象外。
-  行数とトークン数は全体を数える
+- 行数・トークン数はfrontmatterを除いた本文で数える
+- 表示幅は、行を文末（`。！？!?`と、後ろに空白が続く`.`）で切った断片の最大幅。全角（East Asian WidthがW/F）を
+  2桁と数え、コードブロック内・表の行・URLを含む行は対象外。長い1行でも文が短ければ超過にならない
 - トークン数はClaudeの正確なトークナイザがないため、`ASCII文字数 / 4 + 非ASCII文字数`の概算（表では`~`付き）
 - `--path <file>...`で任意のファイルを測る。`--json`で機械可読な出力にする
+- `--inventory`は、全リポジトリ（`ghq list -p`。`--root DIR...`で差し替え可）の追跡済み`.md`を、各リポジトリの
+  [`.doc-lint.toml`](#doc-lint)の対象範囲で走査し、リポジトリ別の集計表と、サイズ超過・frontmatter不備のファイル一覧を出す。
+  `--json`は全ファイルの値を出す。`obsidian-vault`の`private/**`は既定で対象外。`--include-private-counts`を付けると
+  ファイルのパスや内容を出さず件数だけを集計する（`private/records/**`は常に対象外）
 - 回帰テストは[scripts/test-measure-doc-size.sh](../scripts/test-measure-doc-size.sh)（一時ファイルのみ使う）
+
+## doc-lint
+
+`git/hooks/pre-commit`（グローバルフック）が、`pre-commit run`の成功後に`scripts/doc-lint.py`を実行し、
+commitでステージされたMarkdownのサイズとfrontmatterを検査する。**警告のみ**で、終了コードは常に0（commitを止めない。
+内部エラーも握りつぶす）。`hooks.skip-policy-check=true`のリポジトリではフック自体が先に終了するため検査しない。
+Python 3.11以上（`python3`または`python`）が無い環境では静かにスキップする。Python標準ライブラリのみ。
+
+- 検査対象はステージ済み（index内容）のファイルだけ。編集していないファイルは警告しない
+- 警告は標準エラー出力に先頭10件まで出す（例: `doc-lint (warn only): 3 file(s)`）。pre-commitフレームワーク経由では
+  成功時の出力が隠れるため、フックのスクリプトから直接出す。`private/`配下のパスは`private/<redacted>`と表示・記録する
+- 1ファイル2MiB超は内容を解析せず`size-bytes`の警告だけにする（遅くならないため）
+
+### Scope and .doc-lint.toml
+
+既定は、リポジトリ直下の`*.md`と`docs/**/*.md`（`docs/dev-charter/**`は除く）。リポジトリ直下に
+`.doc-lint.toml`があればそれを優先する。すべて省略可能で、読めない・型が違う場合は既定にする。
+
+~~~toml
+scope = "default"   # "default"（上記）または "all"（.git と .obsidian を除く全 *.md）
+exempt_all = []          # 検査から完全に除く（サイズ・frontmatterとも）
+exempt_size = []         # サイズ検査（行数・トークン・幅）だけ除く
+exempt_frontmatter = []  # frontmatter検査だけ除く
+~~~
+
+globはgitignore風で、パスはリポジトリ基準。`**`はディレクトリをまたぎ、`*`と`?`は`/`にマッチしない。
+`/`を含まないパターンはファイル名だけに対して全階層でマッチする（例: `CHANGELOG*.md`）。
+
+### Checks
+
+- サイズ: 本文（frontmatter除く）が200行を超える、または概算トークンが上限を超えると警告する。上限は
+  `AI_CONTEXT*.md`・`CLAUDE.md`・`AGENTS.md`・`GEMINI.md`・`SKILL.md`が3,000（常時読込）、それ以外が6,000（参照文書）
+- 表示幅: 警告ではなく参考表示（`(info)`）。定義は[measure-doc-size](#measure-doc-size)と同じ（文ごとの最大幅が200桁超）
+- frontmatter: YAML frontmatterがあり、`description`が空でない1行であること（`|`・`>`・複数行・閉じていない引用符は不可）。
+  警告の値は`no-frontmatter`・`no-description`・`empty-description`・`multiline-description`。
+  除外: `README*`、`CHANGELOG.md`、`CONTRIBUTING.md`、`SECURITY.md`、`CODE_OF_CONDUCT.md`、`DEVELOPING.md`、
+  `LICENSE*`、`.github/**`（`exempt_frontmatter`で追加できる）。`read_when`は任意で、無くても警告しない
+  （`docs/**`とAI向け文書では書くことを推奨する）
+
+### Deviation log and Doc-Lint-Override
+
+警告ごとに`~/.local/state/doc-lint/deviations.log`（リポジトリ外。ディレクトリは自動作成）へTSVで追記する。
+列は、ISO8601時刻・リポジトリ名（worktreeでも本体のリポジトリ名）・ファイル（リポジトリ基準の相対パス）・検査名
+（`lines`・`tokens`・`frontmatter`・`size-bytes`）・値・上限（frontmatterは`-`）。ファイルの内容は記録しない。
+テストでは環境変数`DOC_LINT_LOG`でログの場所を差し替える。
+
+commitメッセージに`Doc-Lint-Override: <理由>`の行があると、`git/hooks/commit-msg`が`commit-msg`ステージの
+`pre-commit run`の成功後に同じ検査をやり直し、理由を7列目に付けた行を追記する（pre-commit時の行は残るため、
+同じ警告が理由なし・理由ありの2行になる。集計では7列目の有無で区別する）。理由を付けても警告の表示は変わらない。
+
+数か月運用した後に、ブロック化するかを別途判断する。回帰テストは
+[scripts/test-doc-lint.sh](../scripts/test-doc-lint.sh)（一時リポジトリ・一時ログのみ。グローバルフック経由で
+警告が出てもcommitが成功することを含む）。
 
 ## vault-move-notes
 
