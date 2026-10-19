@@ -40,7 +40,7 @@ Windowsでは status / check / update / winget / ghq / ai / claude / codex / cop
 check は警告を1行ずつ要約し（--verbose で詳細）、結果を ~/.cache/dots/check-summary 等へ書きます。
 brew / npm / pipx / dock / shortcuts / sudo Touch ID などmacOS固有の項目、定期実行・通知は対象外です。
 動詞（apply / diff / sync / merge / prune / cache）の意味は docs/specification.md、
-実装状況は README.md の動詞表を参照してください。
+実装状況は docs/commands.md の動詞表を参照してください。
 `dots <domain> help` でそのドメインの実装状況を表示します。
 「N/A」は意図的に存在しない動詞（終了コード0）、「未実装」は実装予定の動詞（エラー）です。
 

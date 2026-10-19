@@ -87,7 +87,7 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 
 状態を管理ファイルと突き合わせるコマンド（`dots brew|dock|shortcuts|npm|pipx|ghq|claude|codex|copilot|winget`）
 が持つ動詞の標準的な意味。どの動詞をどのコマンドが実装しているか、および標準動作との違いは
-[README.md](../README.md#command-list) の動詞表を正本とする。
+[docs/commands.md](commands.md) の動詞表を正本とする。
 
 | 動詞 | 標準動作 |
 |---|---|
@@ -104,7 +104,7 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 ### Verb states and the verb gate
 
 `bin/unix/_dots-verbs.sh` の動詞テーブルが、ドメイン×動詞の状態を定義する単一の正本である。
-`dots help`・`dots <domain> help`・`dots verbs`・READMEの動詞表との整合チェック
+`dots help`・`dots <domain> help`・`dots verbs`・commands.mdの動詞表との整合チェック
 （`scripts/check-dots-verb-table.sh`）はすべてここから導く。Windowsは `bin/windows/dots.ps1` の
 `$verbSpecs`（ghq・winget）と、動詞ごとの共通オプションの表 `$verbOptions` が同じ書式で持つ。
 どちらもUnix側のテーブルとの一致を `scripts/check-dots-verb-table.sh` が検証する。
@@ -169,7 +169,7 @@ pipx は、各仮想環境を作成した基底 Python の実体パス・バー�
 
 ### Migration status
 
-すべてのドメインで、READMEの表の「未実装」はなくなった。`--dry-run` は ai 系を除く全ドメイン、
+すべてのドメインで、commands.mdの表の「未実装」はなくなった。`--dry-run` は ai 系を除く全ドメイン、
 `--yes` は宣言側の項目を削除する `sync` を持つ全ドメイン（brew・dock・shortcuts・npm・pipx・ghq）が
 受け付ける。ai 系（claude・codex・copilot）の `apply` / `prune` は `--dry-run` を受け付けない。
 

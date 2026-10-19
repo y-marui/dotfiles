@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # _dots-verbs.sh — dots の「ドメイン × 動詞」テーブル（単一の正本）。
 #
-# bin/unix/dots が source する。help・N/A 表示・オプション検証・README の動詞表との
+# bin/unix/dots が source する。help・N/A 表示・オプション検証・docs/commands.md の動詞表との
 # 整合チェック（scripts/check-dots-verb-table.sh）はすべてこのテーブルから導く。
 # bin/windows/dots.ps1 の同名テーブル（ghq / winget）は、ここと同じ書式の文字列を持ち、
 # 同じチェックで一致を検証する。
@@ -9,7 +9,7 @@
 # 動詞の状態:
 #   ok    実装済み
 #   na    対象外（意図的に存在しない。理由を _dots_na_reason に書く）
-#   todo  未実装（実装予定。README では「未実装」と表示される）
+#   todo  未実装（実装予定。docs/commands.md では「未実装」と表示される）
 #
 # bash 3.2（macOS標準）で動くよう、連想配列は使わず case 文で表現する。
 
@@ -86,7 +86,7 @@ _dots_verb_options() {
 
 DOTS_COMMON_OPTIONS="--dry-run --yes --no-prune --backup-dir --exit-code --summary"
 
-# `dots verbs`（README の表との整合チェック用）: domain<TAB>verb<TAB>state<TAB>理由
+# `dots verbs`（docs/commands.md の表との整合チェック用）: domain<TAB>verb<TAB>state<TAB>理由
 _dots_print_verb_matrix() {
   local domain verb state reason
   for domain in ${DOTS_DOMAINS}; do

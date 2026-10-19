@@ -3,16 +3,16 @@ set -euo pipefail
 
 # scripts/check-dots-verb-table.sh
 # dots の動詞テーブルの整合性を検証する。
-#   1. README.md の動詞表（apply/diff/sync/merge/prune/cache × ドメイン）の各セルが、
+#   1. docs/commands.md の動詞表（apply/diff/sync/merge/prune/cache × ドメイン）の各セルが、
 #      bin/unix/_dots-verbs.sh のテーブル（`dots verbs`）と一致する
 #      （◯ = ok、N/A（理由） = na、未実装 = todo）
 #   2. bin/windows/dots.ps1 の $verbSpecs（ghq / winget）と、動詞ごとの共通オプションの表
 #      $verbOptions が Unix 側（_dots_verb_options）と一致する
-#   3. README に載っていないドメイン、テーブルに無いドメインがない
+#   3. docs/commands.md に載っていないドメイン、テーブルに無いドメインがない
 # 動詞テーブルを正本とし、表の書き写し間違い・実装追加時の更新漏れを防ぐ。
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-README="${DOTFILES_DIR}/README.md"
+README="${DOTFILES_DIR}/docs/commands.md"
 PS1_FILE="${DOTFILES_DIR}/bin/windows/dots.ps1"
 VERBS="apply diff sync merge prune cache"
 
@@ -52,7 +52,7 @@ cell_state() {
   esac
 }
 
-# ── 1. README の動詞表 ────────────────────────────────────────────────────────
+# ── 1. docs/commands.md の動詞表 ────────────────────────────────────────────────────────
 # ヘッダー行「| コマンド | apply | ...」から「| 標準動作 |」行の手前までを読む。
 rows="$(awk '
   /^\| コマンド \| apply \|/ { in_table = 1; next }
@@ -61,7 +61,7 @@ rows="$(awk '
 ' "${README}")"
 
 if [[ -z "${rows}" ]]; then
-  fail "README.md に動詞表（| コマンド | apply | ... ）が見つからない"
+  fail "docs/commands.md に動詞表（| コマンド | apply | ... ）が見つからない"
 fi
 
 readme_domains=""
@@ -74,14 +74,14 @@ while IFS= read -r row; do
     cell="$(printf '%s' "${row}" | awk -F'|' -v i="${index}" '{ print $i }')"
     actual="$(cell_state "${cell}")"
     if [[ "${actual}" == invalid ]]; then
-      fail "README の動詞表: '$(printf '%s' "${first_cell}" | trim)' の ${verb} セルが ◯ / N/A（理由） / 未実装 のいずれでもない: $(printf '%s' "${cell}" | trim)"
+      fail "docs/commands.md の動詞表: '$(printf '%s' "${first_cell}" | trim)' の ${verb} セルが ◯ / N/A（理由） / 未実装 のいずれでもない: $(printf '%s' "${cell}" | trim)"
     else
       for domain in ${domains}; do
         expected="$(state_of "${domain}" "${verb}")"
         if [[ -z "${expected}" ]]; then
-          fail "README の動詞表にあるドメイン '${domain}' が dots の動詞テーブルにない"
+          fail "docs/commands.md の動詞表にあるドメイン '${domain}' が dots の動詞テーブルにない"
         elif [[ "${expected}" != "${actual}" ]]; then
-          fail "README の動詞表: dots ${domain} ${verb} は テーブルでは ${expected}、README では ${actual}"
+          fail "docs/commands.md の動詞表: dots ${domain} ${verb} は テーブルでは ${expected}、docs/commands.md では ${actual}"
         fi
       done
     fi
@@ -93,7 +93,7 @@ done <<< "${rows}"
 for domain in $(printf '%s\n' "${matrix}" | cut -f1 | awk '!seen[$0]++'); do
   case " ${readme_domains} " in
     *" ${domain} "*) ;;
-    *) fail "動詞テーブルのドメイン '${domain}' が README の動詞表にない" ;;
+    *) fail "動詞テーブルのドメイン '${domain}' が docs/commands.md の動詞表にない" ;;
   esac
 done
 
@@ -154,7 +154,7 @@ done
 
 if (( errors > 0 )); then
   echo "dots の動詞テーブルの不整合が ${errors} 件ある。" >&2
-  echo "正本は bin/unix/_dots-verbs.sh。README.md の動詞表と bin/windows/dots.ps1 を合わせること。" >&2
+  echo "正本は bin/unix/_dots-verbs.sh。docs/commands.md の動詞表と bin/windows/dots.ps1 を合わせること。" >&2
   exit 1
 fi
-echo "dots の動詞テーブル: README・Windows とも整合"
+echo "dots の動詞テーブル: docs/commands.md・Windows とも整合"
