@@ -155,8 +155,8 @@ pre-commitで両者の対応関係を検証する。
 Computer Use は [`ai/AI_CONTEXT_COMPUTER_USE.md`](ai/AI_CONTEXT_COMPUTER_USE.md)、
 CLI・Coding・リポジトリ・Git/GitHub の作業は
 [`ai/AI_CONTEXT_CLI.md`](ai/AI_CONTEXT_CLI.md) を必要時だけ読む。
-環境固有の詳細は [`ai/references/cli-environments.md`](ai/references/cli-environments.md) を
-必要時だけ参照する。リンク経由で読む場合は、CLI 規約ファイルの実体から参照先を解決する。
+使う場面が限られる環境固有の詳細は [`ai/references/`](ai/references/) に分けてあり、
+`ai/AI_CONTEXT_CLI.md` 末尾の Detail References の表に従って必要時だけ参照する。リンク経由で読む場合は、CLI 規約ファイルの実体から参照先を解決する。
 リポジトリ固有のコンテキストは [`AI_CONTEXT.md`](AI_CONTEXT.md) に集約し、各エージェントのリポジトリ固有ファイルから参照している。
 
 ### Claude Code

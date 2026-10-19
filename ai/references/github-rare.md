@@ -1,0 +1,65 @@
+# GitHub Rare Procedures
+
+`AI_CONTEXT_CLI.md` から、該当する作業時だけ参照する詳細手順。
+共通規約の安全制約と commit・push の承認条件は引き続き適用する。
+
+## gh Default Repository with SSH Host Alias
+
+- リモートが `github-public:owner/repo` のような SSH Host エイリアス形式の場合、ユーザーの対話シェルの `gh`
+  は `gh pr merge` 等で「No default remote repository has been set」を出すことがある
+  （リポジトリ直下でも発生し得る）。`gh repo set-default owner/repo` の実行を案内する
+
+## Copilot Review Latency
+
+- GitHub Copilot の PR レビューをリクエストした場合、結果はインクリメンタルに表示されず完了時に一括で反映される。数分待たずに「反映されない＝利用不可」と結論づけない（間隔を空けてポーリングする）
+
+## Actions Billing Errors
+
+- GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
+  ローカル等で同等の検証が完了していればマージ判断を進められる。
+  代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
+
+## repo-status
+
+- y-marui配下の全repo（および主要forkのupstream）のCI・Issue・PR状況は `y-marui/repo-status` のREADMEに一覧化されている。再生成は新規repo作成/削除・workflow構成変更時のみ `scripts/status-badges.sh` を実行する（自動更新ではなく都度手動実行）。
+  private repo の Issue/PR 件数だけは、Actions の `Update private repo counts` を手動実行して更新する
+  （self-hosted runner で実行。詳細は `y-marui/repo-status` の `docs/private-counts.md`）
+
+## New Repository Creation
+
+- 新規リポジトリ名は、先頭に言語（`python-`、`swift-`、`go-`）または対象のサービス・プラットフォーム
+  （`alfred-`、`chrome-`、`docker-`）を付ける。当てはまらない場合はユーザーに確認する
+- 最終的に公開するリポジトリは、最初から public で作成する（`gh repo create --public`）。
+  private で作ってから公開に切り替えない（公開化は権限の確認で止まり、手動の設定変更が必要になる）。
+  不安定な状態が main に入るのを避けたいだけなら、private にせず `develop` 等のブランチで作業する。
+  公開予定のないリポジトリは private でよい
+- 新規リポジトリは、空で作らず、対応する既存のテンプレートリポジトリから作る
+  （`gh repo create y-marui/<name> --template y-marui/<template> --public`。非公開は `--private`）。
+  作成後に GitHub 上でテンプレートへ結び付けることはできないため、最初から使う。
+  - テンプレート: Python（公開向け）は `python-package-template`、Python（非公開向け）は
+    `python-closed-template`、Swift アプリは `swift-closed-template`、Chrome 拡張は
+    `chrome-closed-template`、Alfred ワークフローは `alfred-workflow-template`。
+    該当するテンプレートがない場合はユーザーに確認する
+  - テンプレートの README の手順に従い、プレースホルダー・パッケージ名・README を置き換える
+  - dev-charter は full を `docs/dev-charter` に git subtree で入れる（lite は文書のみの
+    リポジトリ向け）。手順は dev-charter の `src/README-full.md` に従う
+  - `AI_CONTEXT.md` はテンプレートのものを、そのプロジェクト向けに書き換える。公開リポジトリには
+    個人のパス・ホスト名・設定値を載せない
+
+## Bulk PR Ready Conflicts
+
+- 多数のリポジトリへ同じ PR を一括で出す場合、ready 化を一斉に行わない。self-hosted runner の
+  共有キャッシュ（`/runner/.cache/pre-commit`）で競合し、pre-commit が `Text file busy` 等で
+  失敗する（37 PR 中 11 件で発生。1 つずつ再実行すると通る）。数個ずつ時間をずらして ready にする
+
+## Documentation Section and dev-charter
+
+この節は `y-marui/dev-charter` の
+[`DOCS_STRUCTURE.md`](https://github.com/y-marui/dev-charter/blob/main/DOCS_STRUCTURE.md)、
+[`PRINCIPLES.md`](https://github.com/y-marui/dev-charter/blob/main/PRINCIPLES.md)、
+[`AI_CONTEXT_HIERARCHY.md`](https://github.com/y-marui/dev-charter/blob/main/AI_CONTEXT_HIERARCHY.md)、
+[`topics/GITHUB_SETTINGS.md`](https://github.com/y-marui/dev-charter/blob/main/topics/GITHUB_SETTINGS.md)
+から必要部分だけを選択的に引用・一般化したもので、dev-charterのfull適用ではない。
+引用元の関連ファイルの変更を把握したとき、関連する文書・タスク運用を変更するとき、
+またはユーザーが規約レビューを依頼したときに整合性を確認し、必要な差分だけを反映する。
+定期レビューを設ける場合は、別途依頼された定期タスクとして管理する。

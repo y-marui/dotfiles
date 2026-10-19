@@ -27,7 +27,7 @@ Git repositoryで`obsidian-project-home`が使える場合は、`obsidian-projec
 | 情報の性質 | 記録先 |
 | --- | --- |
 | このプロジェクトに固有の仕様・設計判断・手順・制約、または「なぜこうなっているか」という背景（他プロジェクトとの関係・共有元リポジトリの存在なども含む） | プロジェクトの `AI_CONTEXT.md`（または `CLAUDE.md`/`AGENTS.md` が import する先）や `docs/`。「メタ情報っぽいから」「個人的な文脈だから」を理由に long-term memory へ逃がさない — 将来そのプロジェクトを読む人・AI の理解を助けるなら docs の役割。構成はプロジェクトの `DOCS_STRUCTURE.md` 相当の指示に従う |
-| 特定プロジェクトに限らない、ユーザーの作業スタイル・恒久的な指示・Computer Use・CLI/Coding/GitHub運用フィードバック | まず `~/.ai/AI_CONTEXT.md`（常時読む対話・安全・ツール選択の原則）、`~/.ai/AI_CONTEXT_COMPUTER_USE.md`（ブラウザ・GUI操作）、`~/.ai/AI_CONTEXT_CLI.md`（CLI・Coding・リポジトリ・Git/GitHubの作業ルール）に書けないか検討する。これらは dotfiles 管理下でユーザー自身が全プロジェクト共通で使う恒久contextなので、Claude の long-term memory より優先する |
+| 特定プロジェクトに限らない、ユーザーの作業スタイル・恒久的な指示・Computer Use・CLI/Coding/GitHub運用フィードバック | まず `~/.ai/AI_CONTEXT.md`（常時読む対話・安全・ツール選択の原則）、`~/.ai/AI_CONTEXT_COMPUTER_USE.md`（ブラウザ・GUI操作）、`~/.ai/AI_CONTEXT_CLI.md`（CLI・Coding・リポジトリ・Git/GitHubの作業ルール）に書けないか検討する。頻度の低い手順は本文を増やさず、dotfilesの`ai/references/`へ置き、`AI_CONTEXT_CLI.md`末尾のDetail Referencesの表に読むトリガーを足す。これらは dotfiles 管理下でユーザー自身が全プロジェクト共通で使う恒久contextなので、Claude の long-term memory より優先する |
 | 上記どちらにも当てはまらない、Claude自身の運用にのみ関わる情報（ユーザー自身のcontextファイルに書くには細かすぎる／Claude固有の挙動に関する事項） | 実行中のagentが対応し、ユーザーが明示的に保存を求めた場合だけ長期memoryに保存する。保存不可または基準が不明な場合は保存せず、ユーザーへ報告する |
 | 未完了のTODO・バックログ・調査中の仮説・実装チェックリスト | GitHubのIssue/Sub-issue/Project。リポジトリに `TODO.md` 等の一時ファイルとして残さない |
 | 一意に対応付けられたコードProjectの現在地、重要な横断判断、解決していない問い、代表的な次の一手、安定した外部参照 | Obsidian Project Home。技術的な設計・実装・設定・テスト・復旧手順の正本はコードリポジトリのdocsに残し、同じ詳細を複製しない |

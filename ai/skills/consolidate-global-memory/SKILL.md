@@ -31,7 +31,7 @@ bash <skill-dir>/scripts/list-memories.sh
 各候補の内容全体を読み、最も広く適用できる層を選ぶ。
 
 1. **Universal + Computer-Use-specific** — ブラウザやネイティブアプリの許可・操作・検証に特化するが、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_COMPUTER_USE.md`。
-2. **Universal + CLI/Coding-specific** — CLI、コーディング、リポジトリ、Git/GitHubに特化するが（例: コーディングスタイル、ツール呼び出し、コミットのタイミング、Issue・PR運用）、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_CLI.md`。
+2. **Universal + CLI/Coding-specific** — CLI、コーディング、リポジトリ、Git/GitHubに特化するが（例: コーディングスタイル、ツール呼び出し、コミットのタイミング、Issue・PR運用）、どのプロジェクトにも適用できる内容。対象は `~/.ai/AI_CONTEXT_CLI.md`。頻繁に必要な規則は本文に、使う場面が限られる手順は dotfiles の `ai/references/` に置き、`AI_CONTEXT_CLI.md` 末尾の Detail References の表にトリガーを足す。
 3. **Universal core** — 任意のプロジェクト、ツール、画面に常時適用する対話・安全・文章・ツール選択の原則と、補完規約のルーティング。対象は `~/.ai/AI_CONTEXT.md`。
 4. **Claude-Code-only** — 一般のCLI agentではなく、CodexやGemini CLIにも当てはまらない、Claude Code製品だけに真に固有の内容。対象は `~/.claude/CLAUDE.md`（`@` importの後に追記）。
 5. **One project only** — そのプロジェクトの `AI_CONTEXT.md`。エスケープされたパスは `-` を `/` に置換して候補を試し、存在と可能なら `.git` を確認する。
