@@ -689,6 +689,10 @@ commitでステージされたMarkdownのサイズとfrontmatterを検査する�
 内部エラーも握りつぶす）。`hooks.skip-policy-check=true`のリポジトリではフック自体が先に終了するため検査しない。
 Python 3.11以上（`python3`または`python`）が無い環境では静かにスキップする。Python標準ライブラリのみ。
 
+手動実行用に`doc-lint`コマンド（`bin/unix/doc-lint`・`bin/windows/doc-lint.ps1`）がある。`scripts/doc-lint.py --all`を呼び、
+カレントのリポジトリの作業ツリー（追跡・未追跡、`.gitignore`除く）のMarkdownを検査対象範囲に従って全件、標準出力へ出す。
+ログは書かず、10件の省略もしない。フックと違い内部エラーは握りつぶさず表示する。
+
 - 検査対象はステージ済み（index内容）のファイルだけ。編集していないファイルは警告しない
 - 警告は標準エラー出力に先頭10件まで出す（例: `doc-lint (warn only): 3 file(s)`）。pre-commitフレームワーク経由では
   成功時の出力が隠れるため、フックのスクリプトから直接出す。`private/`配下のパスは`private/<redacted>`と表示・記録する

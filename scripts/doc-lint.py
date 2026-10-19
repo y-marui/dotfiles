@@ -3,6 +3,8 @@
 
 Called from git/hooks/pre-commit (and git/hooks/commit-msg for Doc-Lint-Override).
 Never blocks: any problem, including internal errors, ends with exit code 0.
+`--all` (used by bin/*/doc-lint) lints every Markdown file in the working tree instead:
+it prints every finding to stdout, writes no log, and reports internal errors.
 Spec: docs/specification.md#doc-lint
 """
 
@@ -88,6 +90,27 @@ def append_log(rows: list[list[str]]) -> None:
         pass
 
 
+def worktree_markdown(top: str) -> list[str]:
+    out = git("ls-files", "--cached", "--others", "--exclude-standard", "-z", cwd=top)
+    names = [n.decode("utf-8", "replace") for n in out.split(b"\0") if n]
+    return sorted({n for n in names if n.lower().endswith(".md") and "\n" not in n and (Path(top) / n).is_file()})
+
+
+def lint_worktree(top: str) -> list[dict]:
+    lib = load_lib()
+    cfg = lib.load_config(Path(top))
+    results = []
+    for name in worktree_markdown(top):
+        if not lib.in_scope(name, cfg):
+            continue
+        path = Path(top) / name
+        if path.stat().st_size > lib.MAX_BLOB_BYTES:
+            results.append({"path": name, "findings": [("size-bytes", f">{lib.MAX_BLOB_BYTES}", str(lib.MAX_BLOB_BYTES))], "info": []})
+        else:
+            results.append(lib.evaluate(name, path.read_text(encoding="utf-8", errors="replace"), cfg))
+    return results
+
+
 def lint(top: str) -> list[dict]:
     lib = load_lib()
     cfg = lib.load_config(Path(top))
@@ -101,7 +124,7 @@ def lint(top: str) -> list[dict]:
     return results
 
 
-def report(results: list[dict]) -> None:
+def report(results: list[dict], limit: int | None = MAX_SHOWN, stream=None, hint: bool = True) -> None:
     warned = [r for r in results if r["findings"]]
     infos = [r for r in results if r["info"] and not r["findings"]]
     lines = []
@@ -114,16 +137,20 @@ def report(results: list[dict]) -> None:
     if not lines:
         return
     head = f"doc-lint (warn only): {len(warned)} file(s)" if warned else "doc-lint (info only):"
-    out = [head, *lines[:MAX_SHOWN]]
-    if len(lines) > MAX_SHOWN:
-        out.append(f"  ... and {len(lines) - MAX_SHOWN} more")
-    out.append("  override reason: add 'Doc-Lint-Override: <reason>' to the commit message")
-    print("\n".join(out), file=sys.stderr)
+    out = [head, *(lines if limit is None else lines[:limit])]
+    if limit is not None and len(lines) > limit:
+        out.append(f"  ... and {len(lines) - limit} more")
+    if hint:
+        out.append("  override reason: add 'Doc-Lint-Override: <reason>' to the commit message")
+    print("\n".join(out), file=stream or sys.stderr)
 
 
 def run(argv: list[str]) -> None:
     top = git("rev-parse", "--show-toplevel").decode().strip()
     reason = ""
+    if argv[:1] == ["--all"]:
+        report(lint_worktree(top), limit=None, stream=sys.stdout, hint=False)
+        return
     if argv[:1] == ["--commit-msg"]:
         m = OVERRIDE_RE.search(Path(argv[1]).read_text(encoding="utf-8", errors="replace"))
         if not m:
@@ -144,7 +171,9 @@ def run(argv: list[str]) -> None:
 def main() -> int:
     try:
         run(sys.argv[1:])
-    except Exception:  # noqa: BLE001 - warn-only: never block a commit
+    except Exception:
+        if sys.argv[1:2] == ["--all"]:
+            raise  # noqa: BLE001 - warn-only: never block a commit
         pass
     return 0
 

@@ -122,6 +122,7 @@ pre-commitで両者の対応関係を検証する。
 | `git-sweep [--all] [--no-pull] [main-branch]` | `git-pull-all`のあと、マージ済みブランチを整理（fast-forward・squash・rebase merge 対応）。`--no-pull`で同期を省く |
 | `chatgpt-export {install\|doctor\|capture}` | 隣接する`chrome-chatgpt-exporter/cli/`を起動。ログイン済みChromeの拡張から会話ZIPを取得。導入・接続・手動代替は[仕様](docs/specification.md#chatgpt-export)を参照 |
 | `obsidian-project-home [check\|ensure] [--repo DIR] [--vault DIR] [--description TEXT]` | Git `origin`と通常領域のProject Home `repositories`を照合し、一意の対応先を解決。`ensure`は許可オーナー（`auto_create_owners`）の未登録リポジトリだけ雛形を作る。設定は`dotfiles-private/obsidian/project-home-resolver.conf` |
+| `doc-lint` | カレントのリポジトリの全Markdownのサイズ・frontmatterを検査して表示（警告のみ・ログなし。[仕様](docs/specification.md#doc-lint)） |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
 | `ghq-update [--all\|--pull-all\|--sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
