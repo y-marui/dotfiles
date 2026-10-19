@@ -663,6 +663,20 @@ ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単�
 並列数は環境変数`GHQ_STATUS_JOBS`で変更でき、未設定時は8とする。収集完了後に
 元のリポジトリ順へ並べ直すため、並列数によって表示順は変わらない。
 
+## measure-doc-size
+
+`scripts/measure-doc-size.py`は、常時読込文書（`~/.ai/AI_CONTEXT*.md`と、`ghq list -p`で列挙した
+各リポジトリ直下の`AI_CONTEXT.md`）の行数・最大表示幅・概算トークン数を表で出す。月1回の手動実行を想定し、
+`pre-commit`や`dots`には組み込まない。
+
+- 目安は行数200、表示幅100桁、トークン数3,000（`--kind reference`では6,000）。超過した値に`*`を付けるだけで、
+  終了コードは常に0（強制しない）。分割の判断はこの出力を見て人が行う
+- 表示幅は全角（East Asian WidthがW/F）を2桁と数え、コードブロック内・表の行・URLを含む行は対象外。
+  行数とトークン数は全体を数える
+- トークン数はClaudeの正確なトークナイザがないため、`ASCII文字数 / 4 + 非ASCII文字数`の概算（表では`~`付き）
+- `--path <file>...`で任意のファイルを測る。`--json`で機械可読な出力にする
+- 回帰テストは[scripts/test-measure-doc-size.sh](../scripts/test-measure-doc-size.sh)（一時ファイルのみ使う）
+
 ## chatgpt-export
 
 `chatgpt-export`は隣接する`chrome-chatgpt-exporter/cli/`のNode.js CLIを起動する薄いラッパー。

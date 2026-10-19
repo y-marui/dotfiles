@@ -60,6 +60,13 @@ scripts/test-install-my-apps.sh
 scripts/test-my-hosts.sh
 ```
 
+`scripts/measure-doc-size.py`（AI_CONTEXT の行数・表示幅・概算トークン数の測定）を変更した場合は、
+一時ファイルで回帰テストを実行する:
+
+```bash
+scripts/test-measure-doc-size.sh
+```
+
 `bin/unix/dots`・`bin/unix/_dots-verbs.sh` や `npm/`・`pipx/` の動詞スクリプトを変更した場合は、
 動詞テーブル（N/A・未実装・オプションゲート）と npm / pipx の `apply` `prune` `sync` `merge` を、
 一時ディレクトリと偽の `npm` / `pipx` で検証する（実環境には影響しない）:
