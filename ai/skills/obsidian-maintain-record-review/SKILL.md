@@ -42,7 +42,7 @@ commitとpushは、呼び出し側が明示的に依頼した場合だけ行う�
 
 ## Proofread
 
-会話の全文形式はvaultの`docs/conversation-record-format.md`に従う。この定期校正では新たな原資料取得・全文復元・分析を行わず、既存本文の明白な誤字・書式だけを直す。Private除外は維持する。
+会話の全文形式はvaultの`docs/conversation-record-format.md`に従う。この定期校正では新たな原資料取得・全文復元・分析を行わず、既存本文の明白な誤字・書式だけを直す。既存の`description`と`project`は削除・変更しない。Private除外は維持する。
 
 `obsidian-maintain-record`を実行し、`Target Selection`で得たファイルを対象Recordとして明示する。次を伝える。
 

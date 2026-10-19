@@ -48,6 +48,8 @@ ChatGPT会話の保存では、原資料の取得前に[共通のダウンロー
 
 ## Write faithfully and make the cards learnable
 
+新規ノートの`description`は`obsidian-save-record`の「Set description and project」に従い、占いのテーマとスプレッドの主題を1行にする（カード解釈の結論は入れすぎない）。`project`はユーザーが指定した場合だけ付け、推測しない。
+
 新規ノートはvaultのConversation templateに従い、`# <題名>`、`## Summary`、
 `## Participants / Source`、`## Related context`、`## Detailed record`、
 `## Extracted Knowledge / Decisions`を必要に応じて持たせる。既存Legacyノートをその場で更新する場合だけ、

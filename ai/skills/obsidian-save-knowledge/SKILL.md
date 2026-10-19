@@ -84,7 +84,7 @@ AIが新規合成または大幅統合した永続Knowledgeには`review_status:
 
 参照チャットに対応するRecordが存在しない場合は、同じ作業内で`records/conversations/<YYYY>/`に
 Conversation Recordを`obsidian-save-record`の形式で作る。原資料を校正し、発話順、表、候補、判断、棄却理由、未確認事項を忠実に残す。Knowledge本文の要約でRecordを置き換えない。
-Private内容はPrivate内の対応するRecordsへ置く。作成したRecordをKnowledgeの`sources`から参照する。
+Private内容はPrivate内の対応するRecordsへ置く。作成したRecordをKnowledgeの`sources`から参照する。新規Recordの`description`と`project`は`obsidian-save-record`の「Set description and project」に従う。
 
 元チャットIDをRecordへ新規に転記しない。根拠は内容を保存したRecordと、主張を直接支える外部資料へリンクする。
 

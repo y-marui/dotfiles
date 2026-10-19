@@ -45,7 +45,7 @@ deckの表示には、Obsidianのコミュニティプラグイン Marp Inline P
 
 ## Steps
 
-1. **会話Recordを保存する。** [ChatGPT ZIPの取得・読取手順](../obsidian-save-record/references/exported-chat.md)に従い、提供済みZIP、接続済みCLI、会話リンクを添えた手動エクスポート依頼の順で原資料を確保し（Computer Useは使わない）、`obsidian-save-record`の手順で可視の全発話を忠実に保存する。保存先は「Layout」で決めた側の`records/conversations/<YYYY>/`とする。原本JSONの話者・選択中ノードと上流Markdown・補足・画面を照合し、Markdownに混入した内部toolのPDF抽出文をAI発話として保存しない。取得レポートの未取得表示だけで画像欠落と決めず、Markdown内のdata URIも確認する。完全に取得できなければ欠落を明記し、推測で補わない。
+1. **会話Recordを保存する。** [ChatGPT ZIPの取得・読取手順](../obsidian-save-record/references/exported-chat.md)に従い、提供済みZIP、接続済みCLI、会話リンクを添えた手動エクスポート依頼の順で原資料を確保し（Computer Useは使わない）、`obsidian-save-record`の手順で可視の全発話を忠実に保存する。保存先は「Layout」で決めた側の`records/conversations/<YYYY>/`とする。新規Recordの`description`と`project`は`obsidian-save-record`の「Set description and project」に従う（`project`は対応するProject Homeが実在し根拠がある場合だけで、`projects/zotero-paper-discussion`も根拠なく付けない）。deckのfrontmatterはこの規則の対象外で、従来どおり扱う。原本JSONの話者・選択中ノードと上流Markdown・補足・画面を照合し、Markdownに混入した内部toolのPDF抽出文をAI発話として保存しない。取得レポートの未取得表示だけで画像欠落と決めず、Markdown内のdata URIも確認する。完全に取得できなければ欠落を明記し、推測で補わない。
 2. **citekeyを確定する。** 論文の題名・著者・DOIなどで`paper-find <query>`（`--json --limit 5`も可）を実行する。1件に絞れなければ候補（citekey、年、第一著者、題名）を示してユーザーに選んでもらう。推測で決めない。
 3. **deckを作る。** 「Layout」の側のdeck（`knowledge/research/papers/<citekey>.md`、Privateなら`private/knowledge/research/papers/<citekey>.md`）が無ければ、`paper-note <citekey>`（Privateは`--private`）で雛形を作る。既にあれば上書きせず、読んで追記・更新する（1論文1deck、Recordは複数でよい）。
    - 本文は会話から次の区分に分けて書く: 原文が示すこと／著者の解釈／ChatGPTの推論／自分の着想／検証案。

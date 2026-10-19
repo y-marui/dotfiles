@@ -32,6 +32,8 @@ description: Proofread, restructure, or update existing Obsidian Records in reco
 
 ### Common Rules
 
+- 会話Recordの既存の`description`と`project`は、校正・再構成・形式整備でも削除せず、値を書き換えない。空の場合だけ、`obsidian-save-record`の「Set description and project」に従って補える。
+
 - 文体は簡潔な「だ・である」調または体言止め。メッセージ、メール、対話文は元の敬体を維持する。
 - 原文の敬称を保ち、ない敬称を追加しない。要約だけにせず、意味を保って文脈を補完する。
 - 会話Recordでは保存時の追記・分析を元の発話へ統合せず、補足と明示する。他のRecordの「追記」「Append」「後日談」は本文の適切な位置へ統合する。コード、参考文献、`## Appendix`、`## 付録` は末尾の独立節として残す。
