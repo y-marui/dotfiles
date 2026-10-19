@@ -40,8 +40,46 @@ printf 'a\n%.0s' {1..201} > "$WORK/long.md"
 check "lines over guideline" "['lines']" "$(field "$WORK/long.md" over)"
 
 # 幅超過
-printf '%.0sa' {1..101} > "$WORK/wide.md"
+printf '%.0sa' {1..201} > "$WORK/wide.md"
 check "width over guideline" "['width']" "$(field "$WORK/wide.md" over)"
+
+# 幅は文末(。！？!? と後ろに空白が続く .)で切った断片の最大値
+python3 -c "print('あ' * 60 + '。' + 'い' * 60 + '。' + 'x. ' + 'y' * 150)" > "$WORK/sent.md"
+check "width is per sentence fragment" 150 "$(field "$WORK/sent.md" width)"
+printf '%s\n' 'v1.2.3' > "$WORK/dots.md"
+check "dot without trailing space does not split" 6 "$(field "$WORK/dots.md" width)"
+
+# frontmatter は行数・トークン・幅の対象外
+{ printf -- '---\ndescription: x\n---\n'; printf 'a\n%.0s' {1..3}; } > "$WORK/fm.md"
+check "frontmatter excluded from lines" 3 "$(field "$WORK/fm.md" lines)"
+
+# --inventory: .doc-lint.toml の対象範囲・private/** は件数のみ
+INV="$WORK/inv"
+mkdir -p "$INV/repo/docs/dev-charter" "$INV/obsidian-vault/private/records" "$INV/obsidian-vault/private/x" "$INV/obsidian-vault/notes"
+git -C "$INV/repo" init -q
+git -C "$INV/obsidian-vault" init -q
+printf -- '---\ndescription: ok\n---\nbody\n' > "$INV/repo/AGENTS.md"
+printf 'no fm\n' > "$INV/repo/docs/a.md"
+printf 'x\n' > "$INV/repo/docs/dev-charter/v.md"
+printf 'x\n' > "$INV/repo/README.md"
+printf 'scope = "all"\n' > "$INV/obsidian-vault/.doc-lint.toml"
+printf 'x\n' > "$INV/obsidian-vault/notes/n.md"
+printf 'secret\n' > "$INV/obsidian-vault/private/x/secret-title.md"
+printf 'secret\n' > "$INV/obsidian-vault/private/records/r.md"
+git -C "$INV/repo" add -A
+git -C "$INV/obsidian-vault" add -A
+python3 "$TOOL" --inventory --root "$INV/repo" "$INV/obsidian-vault" --json > "$WORK/inv.json"
+q() { python3 -c "import json,sys; d=json.load(sys.stdin); $1" < "$WORK/inv.json"; }
+check "inventory default scope files" "AGENTS.md README.md docs/a.md" \
+  "$(q "print(' '.join(sorted(f['path'] for f in d['files'] if f['repo']=='repo')))")"
+check "inventory excludes private by default" "notes/n.md" \
+  "$(q "print(' '.join(f['path'] for f in d['files'] if f['repo']=='obsidian-vault'))")"
+python3 "$TOOL" --inventory --include-private-counts --root "$INV/repo" "$INV/obsidian-vault" --json > "$WORK/inv.json"
+check "private counted only (records excluded)" 1 \
+  "$(q "print([r for r in d['repos'] if r['repo']=='obsidian-vault'][0]['private']['files'])")"
+check "private paths never listed" 0 "$(grep -c 'secret-title' "$WORK/inv.json" || true)"
+python3 "$TOOL" --inventory --root "$INV/repo" > "$WORK/inv.txt"
+check "inventory table lists flagged file" 1 "$(grep -c 'repo/docs/a.md' "$WORK/inv.txt")"
 
 # トークン: kind ごとの閾値(3,000 / 6,000)。日本語は1文字約1
 python3 -c "print(('あ' * 50 + chr(10)) * 70, end='')" > "$WORK/tok.md"

@@ -8,6 +8,22 @@ if [[ "$(git config --local hooks.skip-policy-check 2>/dev/null)" == "true" ]]; 
   exit 0
 fi
 
+# --- doc-lint（警告のみ・commit を止めない。docs/specification.md#doc-lint） ---
+# shellcheck disable=SC2120 # 引数は commit-msg 側だけが渡す
+run_doc_lint() {
+  local here tool py
+  here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 0
+  tool="${here}/../../scripts/doc-lint.py"
+  [[ -f "${tool}" ]] || return 0
+  for py in python3 python; do
+    if "${py}" -c 'import sys; sys.exit(sys.version_info < (3, 11))' >/dev/null 2>&1; then
+      "${py}" "${tool}" "$@" || true
+      return 0
+    fi
+  done
+  return 0 # python が無い環境では静かにスキップ
+}
+
 # --- .pre-commit-config.yaml が無いリポジトリはチェック対象外（pre-commit フック側で必須化済み） ---
 if [[ ! -f ".pre-commit-config.yaml" ]]; then
   exit 0
@@ -17,6 +33,10 @@ fi
 # 無いリポジトリでは何も検査せず成功するだけなので無条件で実行してよい）
 if command -v pre-commit &>/dev/null; then
   pre-commit run --hook-stage commit-msg --commit-msg-filename "$1"
+  # Doc-Lint-Override: <理由> があれば、同じ commit の警告に理由を付けてログへ追記する
+  if grep -q '^Doc-Lint-Override:' "$1" 2>/dev/null; then
+    run_doc_lint --commit-msg "$1"
+  fi
 else
   echo "エラー: pre-commit コマンドが見つかりません。" >&2
   echo "  pip install pre-commit  または  brew install pre-commit" >&2
