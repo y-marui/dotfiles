@@ -197,9 +197,7 @@ def in_scope(rel: str, cfg: dict) -> bool:
     parts = rel.split("/")
     if cfg["scope"] == "all":
         return not ({".git", ".obsidian"} & set(parts[:-1]))
-    if len(parts) == 1:
-        return True
-    return parts[0] == "docs" and not rel.startswith("docs/dev-charter/")
+    return not rel.startswith("docs/dev-charter/") and not ({".git", ".obsidian"} & set(parts[:-1]))
 
 
 def frontmatter_exempt(rel: str, cfg: dict) -> bool:

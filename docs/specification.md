@@ -700,11 +700,11 @@ Python 3.11以上（`python3`または`python`）が無い環境では静かに�
 
 ### Scope and .doc-lint.toml
 
-既定は、リポジトリ直下の`*.md`と`docs/**/*.md`（`docs/dev-charter/**`は除く）。リポジトリ直下に
+既定は、リポジトリ内のすべての`*.md`（`.git`・`.obsidian`と`docs/dev-charter/**`は除く）。リポジトリ直下に
 `.doc-lint.toml`があればそれを優先する。すべて省略可能で、読めない・型が違う場合は既定にする。
 
 ~~~toml
-scope = "default"   # "default"（上記）または "all"（.git と .obsidian を除く全 *.md）
+scope = "default"   # "default"（上記）または "all"（docs/dev-charter/** も含める）
 exempt_all = []          # 検査から完全に除く（サイズ・frontmatterとも）
 exempt_size = []         # サイズ検査（行数・トークン・幅）だけ除く
 exempt_frontmatter = []  # frontmatter検査だけ除く
