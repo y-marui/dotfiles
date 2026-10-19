@@ -84,6 +84,17 @@ printf 'feat: x\n' > "$WORK/msg2"
 python3 "$TOOL" --commit-msg "$WORK/msg2"
 check "no override, no rows" 0 "$(wc -l < "$DOC_LINT_LOG" | tr -d ' ')"
 
+# --all: 作業ツリー全体（未ステージ・未追跡を含む）を stdout に全件表示し、ログは書かない
+: >| "$DOC_LINT_LOG"
+printf 'untracked\n' > docs/untracked.md
+out="$(python3 "$TOOL" --all 2>/dev/null)"
+check "--all reports untracked file" 1 "$(grep -c 'docs/untracked.md' <<<"$out")"
+check "--all not truncated" 0 "$(grep -c '\.\.\. and .* more' <<<"$out")"
+check "--all shows all 12 w*.md" 12 "$(grep -cE '^  w[0-9]+\.md' <<<"$out")"
+check "--all writes no log" 0 "$(wc -l < "$DOC_LINT_LOG" | tr -d ' ')"
+check "--all has no override hint" 0 "$(grep -c 'Doc-Lint-Override' <<<"$out")"
+rm docs/untracked.md
+
 # --- グローバルフック経由: 警告が出ても commit が成功する ---
 HREPO="$WORK/hookrepo"
 mkdir -p "$HREPO" "$WORK/bin"

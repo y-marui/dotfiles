@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# doc-lint: 作業ツリーの Markdown のサイズ・frontmatter を検査して表示する
+#
+# 使い方:
+#   doc-lint            カレントのリポジトリの全 Markdown を検査する
+#
+# オプション:
+#   -h, --help          ヘルプを表示
+#
+# 対象範囲は .doc-lint.toml に従う。ログは記録しない。
+# commit 時の検査（ステージ済みのみ）は git/hooks/pre-commit が行う。
+
+set -euo pipefail
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+fi
+
+source_path="${BASH_SOURCE[0]}"
+while [[ -L "${source_path}" ]]; do
+  source_dir="$(cd -P "$(dirname "${source_path}")" && pwd)"
+  link_target="$(readlink "${source_path}")"
+  if [[ "${link_target}" == /* ]]; then
+    source_path="${link_target}"
+  else
+    source_path="${source_dir}/${link_target}"
+  fi
+done
+dotfiles_dir="$(cd -P "$(dirname "${source_path}")/../.." && pwd)"
+
+for py in python3 python; do
+  if "${py}" -c 'import sys; sys.exit(sys.version_info < (3, 11))' >/dev/null 2>&1; then
+    exec "${py}" "${dotfiles_dir}/scripts/doc-lint.py" --all
+  fi
+done
+echo "エラー: Python 3.11 以上が必要です。" >&2
+exit 1
