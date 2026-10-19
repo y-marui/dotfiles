@@ -74,7 +74,7 @@ skillは、ツール固有の機能や記法へ依存しない限り `skills/` �
 - `dots ai {diff|apply|prune}`: Claude CodeとCodexをまとめて処理
 
 `apply` と `prune` の所有範囲はツールごとに異なる。
-実装・例外・認証情報の扱いはルート[`README.md`](../README.md#ai-configuration)を参照する。
+実装・例外・認証情報の扱いはルート[AI Configuration](../docs/ai-configuration.md)を参照する。
 
 ## Change Checklist
 
