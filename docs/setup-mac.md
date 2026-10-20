@@ -225,6 +225,19 @@ Tailscale 経由でアクセスする場合は、ファイアウォールの例�
 | `dots brew apply` | Brewfileとの差分パッケージをインストール |
 | `dots dock apply` | Dock アプリ・Finder サイドバーを設定 |
 
+### Rust Toolchain (rustup)
+
+`rustup` は Brewfile で入れる keg-only の formula で、`macos/profile` が
+`/opt/homebrew/opt/rustup/bin` を PATH に足す（`rust` formula とは競合するため併用しない）。
+ツールチェーンは新しいマシンで一度だけ入れる。
+
+~~~sh
+rustup toolchain install stable --profile minimal -c clippy -c rustfmt
+~~~
+
+`~/.rustup` と `~/.cargo` は既定の場所のままにし、dotfiles では管理しない。
+どちらも再生成できるキャッシュとツールチェーンなので、バックアップや ignore の対象にもしない。
+
 ## 11. Set Up a Self-hosted GitHub Actions Runner (Optional)
 
 private リポジトリの macOS ジョブを、この Mac で実行したい場合は
