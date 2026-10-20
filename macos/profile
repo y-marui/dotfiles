@@ -14,6 +14,11 @@ if [ "$(uname)" = Darwin ]; then
     export PATH="/opt/homebrew/opt/openssl@3/bin:$PATH"
   fi
 
+  # Homebrew の rustup は keg-only のため、cargo / rustc / rustup のプロキシを PATH に足す。
+  if [ -d '/opt/homebrew/opt/rustup/bin' ]; then
+    export PATH="/opt/homebrew/opt/rustup/bin:$PATH"
+  fi
+
   export PATH="/Library/TeX/texbin:$PATH"
   export XML_CATALOG_FILES='/opt/homebrew/etc/xml/catalog'
   export CPPFLAGS="-I/opt/homebrew/opt/sqlite/include${CPPFLAGS:+ $CPPFLAGS}"
