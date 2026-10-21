@@ -77,6 +77,9 @@ PR・Issue の作成前に `.github/` のテンプレートを確認し、あれ
   指摘は検証して妥当なものだけ修正し、対応後は却下分も理由を返信して resolve する。
   再レビューは依頼せずマージしてよい
 - Issue 本文の言語は残作業の実行者で決める（ユーザー自身の TODO は日本語）
+- 前提条件が整うまで延期・凍結する Issue には、`on hold` ラベルを付ける（`y-marui/*` 管理下のリポジトリ共通）。
+  ラベルがなければ作成する（色 `C5DEF5`、説明 `Postponed until a precondition is met`）。
+  延期の理由と再開の条件は Issue にコメントで残す
 - クローズ済み Issue に内容を書き込まない。
   新規 Issue に書き、旧 Issue にはリンクのみ残す
 - アカウント対応表は `~/.identity/accounts.yaml`
