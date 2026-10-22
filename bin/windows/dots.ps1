@@ -26,7 +26,7 @@ function Show-Usage {
 Usage:
   dots status [-NoFetch]
   dots check [--verbose]
-  dots update
+  dots update [--all]  # --all: ghq-updateの依存更新対象を.venv/node_modulesがあるリポジトリまで拡張
   dots winget {apply|diff|prune|cache}  # N/A: sync merge
   dots ghq    {apply|diff|sync|merge|prune}  # N/A: cache
   dots ai     {apply|diff|prune}  # N/A: sync merge cache（Claude Code・Codex を一括）
@@ -580,14 +580,22 @@ switch ($commandName) {
         }
     }
     'update' {
-        if ($commandArgs.Count -gt 0) {
-            throw "unexpected argument: $($commandArgs[0])"
+        $updateAll = $false
+        foreach ($argument in $commandArgs) {
+            switch ($argument) {
+                '--all' { $updateAll = $true }
+                default { throw "unexpected argument: $argument" }
+            }
         }
         Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\update-dotfiles.ps1"
         Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\setup-jq.ps1"
         Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\install.ps1"
         Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\scripts\setup-zellij.ps1"
-        Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\update-windows.ps1"
+        if ($updateAll) {
+            Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\update-windows.ps1" -All
+        } else {
+            Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\update-windows.ps1"
+        }
     }
     'winget' {
         $wingetDir = "$dotfilesDir\windows"

@@ -38,7 +38,7 @@ _usage() {
   cat <<'USAGE_HEAD'
 Usage:
   dots status [--no-fetch]
-  dots update
+  dots update [--all]
 USAGE_HEAD
   _dots_all_domains_help
   cat <<'USAGE_TAIL'
@@ -51,6 +51,8 @@ USAGE_HEAD
 Commands:
   status  dotfiles / dotfiles-privateの未コミット・未push・未pullを確認
   update  dotfilesを更新・再リンク後、OS別の更新を実行
+          （--allでghq管理リポジトリの依存更新対象を.venv/node_modulesがある
+          リポジトリまで拡張。既定はkeep-up-to-date=trueのみ）
   brew    Homebrewパッケージ設定を操作
   dock    Dock・Finderサイドバー設定を操作
   shortcuts  macOSのアプリケーションショートカット設定を操作
@@ -338,16 +340,30 @@ _push() {
 }
 
 _update() {
-  _require_no_args "$@"
+  local all=false a
+  for a in "$@"; do
+    case "${a}" in
+      --all) all=true ;;
+      *) _error "unexpected argument: ${a}" ;;
+    esac
+  done
 
   case "$(uname -s)" in
     Darwin)
       bash "${DOTFILES_DIR}/scripts/update-dotfiles.sh"
-      zsh "${DOTFILES_DIR}/scripts/update-macos.zsh"
+      if [[ "${all}" == true ]]; then
+        zsh "${DOTFILES_DIR}/scripts/update-macos.zsh" --all
+      else
+        zsh "${DOTFILES_DIR}/scripts/update-macos.zsh"
+      fi
       ;;
     Linux)
       bash "${DOTFILES_DIR}/scripts/update-dotfiles.sh"
-      bash "${DOTFILES_DIR}/scripts/update-rpi-homebridge.sh"
+      if [[ "${all}" == true ]]; then
+        bash "${DOTFILES_DIR}/scripts/update-rpi-homebridge.sh" --all
+      else
+        bash "${DOTFILES_DIR}/scripts/update-rpi-homebridge.sh"
+      fi
       ;;
     *) _error "unsupported OS: $(uname -s)" ;;
   esac

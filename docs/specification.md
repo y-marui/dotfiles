@@ -30,6 +30,10 @@
 2. インストーラーでリンクを再適用し、macOSでは`dots check`監視用LaunchAgentと美術展タスクのステータス更新用LaunchAgentを再登録
 3. zprezto をサブモジュール込みで更新
 4. OS 別パッケージマネージャー（Homebrew / winget）の更新
+5. `ghq-update --pull-all`でghq管理リポジトリを更新。`dots update --all`を指定した場合は
+   `ghq-update --pull-all --all`になり、依存更新（uv sync --upgrade / npm update）の対象を
+   `keep-up-to-date=true`のリポジトリから`.venv`または`node_modules`があるリポジトリまで
+   拡張する（詳細は[git-pull-all / git-sweep / ghq-pull / ghq-update / ghq-sweep / my-hosts](#git-pull-all--git-sweep--ghq-pull--ghq-update--ghq-sweep--my-hosts)）
 
 pipx は、各仮想環境を作成した基底 Python の実体パス・バージョンを現在の global Python と
 比較する。異なる環境や Python 実行ファイルが失われた環境がある場合は、

@@ -1,6 +1,18 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
+# --all: ghq-update の依存更新対象を keep-up-to-date=true から
+# .venv/node_modules があるリポジトリまで拡張する（ghq-update --all 相当）。
+GHQ_UPDATE_ALL=false
+if [[ "${1:-}" == "--all" ]]; then
+  GHQ_UPDATE_ALL=true
+  shift
+fi
+if [[ $# -gt 0 ]]; then
+  echo "error: unknown argument: $1" >&2
+  exit 1
+fi
+
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') Update started ==="
 
 # tlmgr 等、途中で sudo が必要なコマンドのためにここで認証を済ませておく。
@@ -94,7 +106,11 @@ log bash "${0:A:h}/update-prezto.sh"
 log mas upgrade
 log softwareupdate -i -a
 
-log ghq-update --pull-all
+if [[ "${GHQ_UPDATE_ALL}" == true ]]; then
+  log ghq-update --pull-all --all
+else
+  log ghq-update --pull-all
+fi
 
 echo ""
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') Warnings ==="

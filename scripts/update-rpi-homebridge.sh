@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --all: ghq-update の依存更新対象を keep-up-to-date=true から
+# .venv/node_modules があるリポジトリまで拡張する（ghq-update --all 相当）。
+ghq_update_all=false
+if [[ "${1:-}" == "--all" ]]; then
+  ghq_update_all=true
+  shift
+fi
+if [[ $# -gt 0 ]]; then
+  echo "error: unknown argument: $1" >&2
+  exit 1
+fi
+
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 compose_env="${HOMEBRIDGE_COMPOSE_ENV:-/etc/homebridge/compose.env}"
 container_mode=false
@@ -32,7 +44,11 @@ fi
 
 # ghq 管理リポジトリの更新
 if command -v ghq-update >/dev/null 2>&1; then
-  ghq-update --pull-all
+  if [[ "${ghq_update_all}" == true ]]; then
+    ghq-update --pull-all --all
+  else
+    ghq-update --pull-all
+  fi
 else
   echo "  SKIP    ghq-update (command not found)"
 fi

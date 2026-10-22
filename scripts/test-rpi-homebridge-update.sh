@@ -54,6 +54,22 @@ if grep -Eq 'docker|hb-service|npm|systemctl restart homebridge' "$TEST_LOG"; th
 fi
 echo 'PASS: OS updates leave Homebridge untouched when no container is configured'
 
+: > "$TEST_LOG"
+HOMEBRIDGE_COMPOSE_ENV="$test_dir/missing.env" bash "$repo_dir/scripts/update-rpi-homebridge.sh" > "$test_dir/output"
+grep -q 'ghq-update --pull-all$' "$TEST_LOG"
+echo 'PASS: default run does not pass --all to ghq-update'
+
+: > "$TEST_LOG"
+HOMEBRIDGE_COMPOSE_ENV="$test_dir/missing.env" bash "$repo_dir/scripts/update-rpi-homebridge.sh" --all > "$test_dir/output"
+grep -q 'ghq-update --pull-all --all' "$TEST_LOG"
+echo 'PASS: --all forwards ghq-update --pull-all --all'
+
+if HOMEBRIDGE_COMPOSE_ENV="$test_dir/missing.env" bash "$repo_dir/scripts/update-rpi-homebridge.sh" --bogus > "$test_dir/output" 2>&1; then
+  echo 'FAIL: unknown argument was accepted' >&2
+  exit 1
+fi
+echo 'PASS: unknown argument is rejected'
+
 # A bad Compose configuration must fail before even an OS update is attempted.
 cat > "$test_dir/bin/sudo" <<'SH'
 #!/usr/bin/env bash
