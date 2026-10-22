@@ -133,7 +133,7 @@ while IFS= read -r -d '' f; do
   _is_exception "${rel}" && continue
   ps1="${rel%.sh}.ps1"
   [[ -f "${DOTFILES_DIR}/${ps1}" ]] || missing_ps1+=("${rel}")
-done < <(cd "${DOTFILES_DIR}" && find . -name "*.sh" -not -path "./.git/*" -not -path "./.venv/*" -print0)
+done < <(cd "${DOTFILES_DIR}" && find . -name "*.sh" -not -path "./.git/*" -not -path "./.venv/*" -not -path "./.claude/worktrees/*" -print0)
 
 missing_sh=()
 while IFS= read -r -d '' f; do
@@ -142,7 +142,7 @@ while IFS= read -r -d '' f; do
   _is_exception "${rel}" && continue
   sh="${rel%.ps1}.sh"
   [[ -f "${DOTFILES_DIR}/${sh}" ]] || missing_sh+=("${rel}")
-done < <(cd "${DOTFILES_DIR}" && find . -name "*.ps1" -not -path "./.git/*" -not -path "./.venv/*" -print0)
+done < <(cd "${DOTFILES_DIR}" && find . -name "*.ps1" -not -path "./.git/*" -not -path "./.venv/*" -not -path "./.claude/worktrees/*" -print0)
 
 # EXCEPTIONS に列挙されているが実在しない、または不要になったパスを検出
 # （ファイルの削除・移動時の登録漏れ防止）

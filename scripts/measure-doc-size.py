@@ -200,6 +200,12 @@ def in_scope(rel: str, cfg: dict) -> bool:
     return not rel.startswith("docs/dev-charter/") and not ({".git", ".obsidian"} & set(parts[:-1]))
 
 
+def size_exempt_builtin(rel: str) -> bool:
+    """Changelogs are append-only logs, so their length is not limited."""
+    name = rel.rsplit("/", 1)[-1].lower()
+    return name.startswith("changelog") or name.endswith("-changelog.md")
+
+
 def frontmatter_exempt(rel: str, cfg: dict) -> bool:
     name = rel.rsplit("/", 1)[-1]
     return (
@@ -219,7 +225,7 @@ def evaluate(rel: str, text: str, cfg: dict) -> dict:
     fm_status = "exempt" if frontmatter_exempt(rel, cfg) else description_status(fm)
     findings: list[tuple[str, str, str]] = []
     info: list[tuple[str, str, str]] = []
-    if not any_match(cfg["exempt_size"], rel):
+    if not size_exempt_builtin(rel) and not any_match(cfg["exempt_size"], rel):
         if "lines" in m["over"]:
             findings.append(("lines", str(m["lines"]), str(MAX_LINES)))
         if "tokens" in m["over"]:

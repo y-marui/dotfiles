@@ -715,7 +715,7 @@ globはgitignore風で、パスはリポジトリ基準。`**`はディレクト
 
 ### Checks
 
-- サイズ: 本文（frontmatter除く）が200行を超える、または概算トークンが上限を超えると警告する。上限は
+- サイズ: 本文（frontmatter除く）が200行を超える、または概算トークンが上限を超えると警告する。変更履歴（`CHANGELOG*.md`と`*-changelog.md`）は追記するだけの記録なので、サイズ（行数・トークン・幅）は検査しない（`exempt_size`なしの組み込みの除外）。上限は
   `AI_CONTEXT*.md`・`CLAUDE.md`・`AGENTS.md`・`GEMINI.md`・`SKILL.md`が3,000（常時読込）、それ以外が6,000（参照文書）
 - 表示幅: 警告ではなく参考表示（`(info)`）。定義は[measure-doc-size](#measure-doc-size)と同じ（文ごとの最大幅が200桁超）
 - frontmatter: YAML frontmatterがあり、`description`が空でない1行であること（`|`・`>`・複数行・閉じていない引用符は不可）。

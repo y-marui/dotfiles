@@ -69,6 +69,13 @@ check "exempt_all honored" 0 "$(grep -cE 'multi|vendored' <<<"$err")"
 check "private path redacted" 0 "$(grep -c secret-title <<<"$err$(cat "$DOC_LINT_LOG")")"
 check "private redaction shown" 1 "$(grep -c 'private/<redacted>' <<<"$err")"
 
+# 変更履歴（CHANGELOG*.md と *-changelog.md）は長さを制限しない
+{ printf -- '---\ndescription: "log"\n---\n'; for i in $(seq 250); do echo "- entry $i"; done; } > app-changelog.md
+{ printf -- '---\ndescription: "log"\n---\n'; for i in $(seq 250); do echo "- entry $i"; done; } > CHANGELOG.md
+git add -A
+err="$(python3 "$TOOL" 2>&1 >/dev/null)"
+check "changelog files exempt from size" 0 "$(grep -cE 'changelog.md|CHANGELOG.md' <<<"$err")"
+
 # 10件を超える警告は省略表示
 for i in $(seq 1 12); do printf 'x\n' > "w$i.md"; done
 git add -A
