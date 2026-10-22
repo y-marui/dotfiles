@@ -1,0 +1,10 @@
+#!/bin/sh
+# Git LFS hook (git lfs install 生成物を、git-lfs 未導入の環境でも止まらないよう改変)。
+# core.hooksPath がグローバルのため、各 repo の .git/hooks の LFS フックは効かず、これが代わりに動く。
+command -v git-lfs >/dev/null 2>&1 || exit 0
+git lfs post-checkout "$@"
+#!/bin/sh
+# Git LFS hook (git lfs install 生成物を、git-lfs 未導入の環境でも止まらないよう改変)。
+# core.hooksPath がグローバルのため、各 repo の .git/hooks の LFS フックは効かず、これが代わりに動く。
+command -v git-lfs >/dev/null 2>&1 || exit 0
+git lfs post-checkout "$@"
