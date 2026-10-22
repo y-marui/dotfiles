@@ -65,6 +65,10 @@ PR・Issue の作成前に `.github/` のテンプレートを確認し、あれ
 - PR・Issue の操作は GitHub MCP を優先し、不可なら `gh` CLI を使う。
   Web UI から直接作成・更新・マージしない。
   `gh` 未認証なら `gh auth login -h github.com` を案内する
+- GitHub MCP の `create_pull_request` 等、書き込み系ツールが対話フォームを表示するだけで
+  実行されない環境（Claude Code デスクトップアプリの Code タブ等）がある。
+  フォームが表示されたが実行結果が返らない・ユーザーから見えないと言われた場合は、
+  そのツール呼び出しを繰り返さず `gh` CLI に切り替える
 - マージは merge commit を標準とし、squash・rebase は明示された場合のみ
 - 関連 issue は PR 本文に `Fixes #123`/`Closes #123`（自動クローズ）か `Refs #123`（関連付けのみ）でリンクする
 - コンフリクト解消は rebase でなく merge を使う。
