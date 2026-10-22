@@ -1,3 +1,10 @@
+#   -All  ghq-update の依存更新対象を keep-up-to-date=true から .venv/node_modules が
+#         あるリポジトリまで拡張する（ghq-update --all 相当）
+
+param(
+    [switch]$All
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
@@ -105,7 +112,11 @@ if (Get-Command pipx -ErrorAction SilentlyContinue) {
 }
 
 if (Get-Command ghq-update -ErrorAction SilentlyContinue) {
-    Invoke-NativeCommand ghq-update --pull-all
+    if ($All) {
+        Invoke-NativeCommand ghq-update --pull-all --all
+    } else {
+        Invoke-NativeCommand ghq-update --pull-all
+    }
 } else {
     Write-Host '  SKIP    ghq-update (command not found)'
 }

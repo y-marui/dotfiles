@@ -62,7 +62,7 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 |---------|------|
 | `dots status` | dotfiles / dotfiles-private の未コミット・未push・未pullを確認 |
 | `dots check` | リンク・dotfilesの状態・パッケージ管理・AI Agentの差分を一括検査（Windowsは簡易版） |
-| `dots update` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新 |
+| `dots update [--all]` | dotfiles を更新・再リンクし、PreztoとOS別パッケージを更新（`--all`で`ghq-update`の依存更新対象を`.venv`/`node_modules`があるリポジトリまで拡張） |
 | `dots commit` | sync系コマンドが書き換えたファイルのみの変更を自動commit |
 | `dots push` | 未pushのcommitが自動commitのみならpush、対象外ファイルが混じれば手動pushを促す |
 
