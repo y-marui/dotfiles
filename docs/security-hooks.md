@@ -102,3 +102,11 @@ pre-commit autoupdate
 # CI での利用（キャッシュを使って高速化）
 pre-commit run --all-files --show-diff-on-failure
 ```
+
+## Git LFS Hooks
+
+グローバルの `core.hooksPath`（`~/.config/git/hooks` → `git/hooks`）が設定されているため、各リポジトリの
+`.git/hooks` に `git lfs install` が書いたフックは実行されない。LFS を使うリポジトリ（例: `line-research-life`）の
+ために、`git/hooks/{post-checkout,post-commit,post-merge,pre-push}` を管理している。`git-lfs` が PATH に
+なければ `exit 0` で何もしないため、未導入の環境でもほかのリポジトリの commit・push は止まらない。
+`git lfs install` を再実行するとこれらが上書き・再生成されるので、差分が出たらこの形に戻す。
