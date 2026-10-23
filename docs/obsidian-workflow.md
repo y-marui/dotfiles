@@ -20,6 +20,10 @@
 
 ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒久複製しない。会話の取得状態と外部主張の正確さは別に検証する。形式変更は通常・Private・要約記録を小さく試用し、本文・添付・リンク・表示を確認してから広げる。
 
+## Source ChatGPT archive
+
+保存系スキルで会話Recordを残した場合は、依頼された成果物すべての保存・検証完了後に元ChatGPT会話を標準でアーカイブする。削除はしない。部分取得・欠落・照合未完了・保存失敗では実行しない。ユーザーのアーカイブ不要指定を優先する。対象同定・公式ツール・失敗時の報告は[共通のアーカイブ手順](../ai/skills/obsidian-save-record/SKILL.md#archive-the-source-chatgpt-conversation)に従い、過去の保存済み会話には遡及しない。
+
 ## ChatGPT source acquisition
 
 保存系スキル（Record・Knowledge・Project・Tarot・Zotero）の原資料取得・照合は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)を正本とする。提供済みZIP・展開済み資料を優先し、未取得なら`chatgpt-export capture ... --auto-start`で通常ブラウザの既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。公式会話リーダーは不足の補完に使い、Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
