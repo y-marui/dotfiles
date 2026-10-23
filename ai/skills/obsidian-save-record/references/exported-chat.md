@@ -4,28 +4,17 @@
 
 ## Acquire the ChatGPT ZIP
 
-ChatGPT会話の取得にはComputer Useを使わない。提供済みZIP・展開済み資料を最優先し、なければ次の順で取得する。Codex task等にはこの手順を適用せず、公式の`read_thread`等を使う。
+ChatGPT会話の取得にはComputer Use、画面キャプチャ、マウス操作を使わない。提供済みZIP・展開済み資料を最優先し、なければ次のCLI手順で取得する。人へ依頼してよい操作はChatGPTへのログインだけ。Codex task等にはこの手順を適用せず、公式の`read_thread`等を使う。
 
 ### Capture with the CLI
 
-1. `chatgpt-export --help`と`chatgpt-export doctor --json`で導入・接続を確認する。CLI本体は`chrome-chatgpt-exporter/cli/`、dotfilesの同名コマンドは起動ラッパー。ログイン済みChrome・Brave・Edgeのいずれかと対応する拡張が同じPCで動いている必要がある。保存依頼を理由にホスト登録・権限追加を自動実行しない。
-2. 接続済みなら`chatgpt-export capture '<対象会話URL>' --output '<Downloads等の未使用ZIPパス>' --json`を実行する。コマンドは自分の取得用タブだけを開閉し、会話を削除・変更しない。
-3. 終了コード0、`ok: true`、ローカル実ファイルを確認してZIPを読む。`status`は`partial`または`captured-unverified`で、完全取得の証明ではない。本文と`capture-report.json`を照合し、素材権限不足等の未取得と画面未照合を区別する。新しい素材権限はCLIから要求せず、必要ならユーザーに手動取得・補完を依頼する。
-4. 終了コード3（`manual-export-required`）、未導入、未接続、ログイン切れ、別ホスト・クラウド環境では以下の手動手順へ進む。終了コード2は引数・保存先を確認して直す。アクセス制限は繰り返し試行せず、別経路でも回避しない。
+1. CLI本体は`chrome-chatgpt-exporter/cli/`、dotfilesの`chatgpt-export`は起動ラッパー。`chatgpt-export --help`で利用可能なことを確認する。通常Chrome・Brave・Edgeのいずれかに`stage/chrome/`を読み込んだ拡張とChatGPTログインが必要。既定はChromeなので、利用ブラウザが分かる場合は`--browser`で明示する。
+2. `chatgpt-export capture '<対象会話URL>' --output '<一時領域等の未使用ZIPパス>' --browser <browser> --auto-start --json`を実行する。未接続ならCLIが通常プロファイルから既存拡張IDを検出し、ユーザー単位のNative Messagingホストを登録して拡張だけを再読込・接続する。既存のChatGPTログインとBitwardenを利用し、ブラウザ本体は再起動しない。コマンドは自分の取得用タブだけを開閉し、既存タブや会話を変更しない。
+3. `login-required`なら通常ブラウザでChatGPTへログインするよう依頼し、完了後に同じコマンドを1回再実行する。認証を回避せず、Cookieやトークンを読み取らない。ログイン以外のクリック、権限変更、手動ZIP保存は依頼しない。
+4. 終了コード0、`ok: true`、ローカル実ファイルを確認してZIPを読む。`status`は`partial`または`captured-unverified`で、完全取得の証明ではない。本文と`capture-report.json`を照合し、素材権限不足等の未取得と画面未照合を区別する。
+5. 終了コード2は引数・保存先を直す。`automated-capture-unavailable`、拡張未導入、サイト権限不足、別ホスト・クラウド環境、アクセス制限はComputer Useや手動エクスポートへ切り替えず、試したコマンドと理由を報告して停止する。アクセス制限を繰り返し試行したり、別経路で回避したりしない。
 
-### Request a manual export
-
-対象会話の確認済みURLを使って、クリックできる`[対象の会話をブラウザで開く](会話URL)`リンクを提示する。URLが不明ならユーザーへ対象URLを尋ね、タイトル等から推測しない。ブラウザをAIが操作する前提には戻さない。
-
-次の操作を依頼する:
-
-1. リンクから拡張を導入済みのChrome・Brave・Edgeで対象会話を開く。
-2. ツールバーのChatGPT Exporter →「素材を含むZIPを作成」を選ぶ。
-3. 「取得を開始」を押し、元の会話タブと作成画面を開いたままにする。必要なら「素材へのアクセスを許可して取得」で画像・添付を取得する。
-4. 「ZIPを保存」で保存を完了する。
-5. ZIPを添付するか、保存先のファイルパスを伝える。
-
-ChatGPT内の「すべてエクスポート」はこの単一会話ZIPの代用にしない。拡張が未導入ならその旨を伝え、導入か別の原資料提供を相談する。受け渡しを待つ間にプレビューだけで保存を完了したり、発話を推測したりしない。ユーザーからZIP・パスが届いたらその原資料から続行し、再取得しない。
+ChatGPT内の「すべてエクスポート」はこの単一会話ZIPの代用にしない。プレビューだけで保存を完了したり、発話を推測したりしない。ユーザーからZIP・パスが届いたらその原資料から続行し、再取得しない。
 
 ## Read and reconcile
 
