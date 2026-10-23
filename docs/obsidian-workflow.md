@@ -22,7 +22,9 @@ ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒�
 
 ## ChatGPT source acquisition
 
-保存系スキル（Record・Knowledge・Project・Tarot・Zotero）は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)に従い、提供済み原資料を優先する。未取得ならChatGPT Exporter拡張の「素材を含むZIPを作成」から取得・保存完了確認まで行い、自力操作できなければ理由と具体的手順を示してユーザーへ依頼する。公式会話リーダーは不足の補完に使う。Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
+保存系スキル（Record・Knowledge・Project・Tarot・Zotero）の原資料取得・照合は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)を正本とする。提供済みZIP・展開済み資料を優先し、未取得なら`chatgpt-export capture ... --auto-start`で通常ブラウザの既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。公式会話リーダーは不足の補完に使い、Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
+
+Knowledge・Project・Tarot・Zoteroで会話Recordを作るときは、[obsidian-save-record](../ai/skills/obsidian-save-record/SKILL.md)を全文読み、共通の保存基準に従う。各skillは固有の保存先・補足・成果物だけを上書きし、取得手順やRecord形式を複製しない。形式の正本はvaultの`docs/conversation-record-format.md`である。
 
 論文の議論の保存先は、公開済み論文（技術調査）なら通常領域（Record: `records/conversations/`、deck: `knowledge/research/papers/`）を既定とし、未公開の着想・原稿や所属機関の制限を含む場合、またはユーザーの指定がある場合はPrivate（`private/records/conversations/`、`private/knowledge/research/papers/`）にする。判断できなければ確認し、deckとRecordは同じ側に置く。
 

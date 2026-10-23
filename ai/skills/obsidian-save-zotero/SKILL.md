@@ -45,7 +45,7 @@ deckの表示には、Obsidianのコミュニティプラグイン Marp Inline P
 
 ## Steps
 
-1. **会話Recordを保存する。** [ChatGPT ZIPの取得・読取手順](../obsidian-save-record/references/exported-chat.md)に従い、提供済みZIP、接続済みCLI、会話リンクを添えた手動エクスポート依頼の順で原資料を確保し（Computer Useは使わない）、`obsidian-save-record`の手順で可視の全発話を忠実に保存する。保存先は「Layout」で決めた側の`records/conversations/<YYYY>/`とする。新規Recordの`description`と`project`は`obsidian-save-record`の「Set description and project」に従う（`project`は対応するProject Homeが実在し根拠がある場合だけで、`projects/zotero-paper-discussion`も根拠なく付けない）。deckのfrontmatterはこの規則の対象外で、従来どおり扱う。原本JSONの話者・選択中ノードと上流Markdown・補足・画面を照合し、Markdownに混入した内部toolのPDF抽出文をAI発話として保存しない。取得レポートの未取得表示だけで画像欠落と決めず、Markdown内のdata URIも確認する。完全に取得できなければ欠落を明記し、推測で補わない。
+1. **会話Recordを保存する。** [obsidian-save-record](../obsidian-save-record/SKILL.md)を全文読み、原資料取得・照合はそこから参照する[共通手順](../obsidian-save-record/references/exported-chat.md)に従う。提供済みZIPを優先し、未取得ならCLIの自動起動で既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。可視の全発話・添付を忠実に保存し、保存先は「Layout」で決めた側とする。新規Recordの`description`と`project`も共通基準に従い、`projects/zotero-paper-discussion`を根拠なく付けない。deckのfrontmatterは対象外とする。内部toolのPDF抽出文をAI発話として保存せず、画像はMarkdownのdata URIも確認する。取得済み資料が部分的なら欠落を明記し、推測で補わない。
 2. **citekeyを確定する。** 論文の題名・著者・DOIなどで`paper-find <query>`（`--json --limit 5`も可）を実行する。1件に絞れなければ候補（citekey、年、第一著者、題名）を示してユーザーに選んでもらう。推測で決めない。
 3. **deckを作る。** 「Layout」の側のdeck（`knowledge/research/papers/<citekey>.md`、Privateなら`private/knowledge/research/papers/<citekey>.md`）が無ければ、`paper-note <citekey>`（Privateは`--private`）で雛形を作る。既にあれば上書きせず、読んで追記・更新する（1論文1deck、Recordは複数でよい）。
    - deckの本文区分・書き方（Marp形式、スライド分割、図のFig.番号とPDFリンク、frontmatter、会話にない主張の扱い）は、deckを書く前に [references/deck-writing.md](references/deck-writing.md) を全文読んで従う。

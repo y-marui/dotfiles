@@ -23,7 +23,7 @@ description: "Save a referenced chat as a faithful Obsidian Record in records/co
 - 会話の意味を保つため、私的な内容はユーザーが保存を求めた範囲で残す。認証情報、秘密鍵、
   トークン、パスワードなどのセキュリティ情報は転記しない。
 
-ChatGPT会話の保存では、原資料の取得前に[共通のダウンロード・原資料読取手順](references/exported-chat.md)を全文読む。提供済みZIP・展開済み資料を最優先し、なければ`chatgpt-export capture ... --auto-start`で通常ブラウザの既存拡張を外部トリガーする。人へ依頼してよい操作はChatGPTへのログインだけで、Computer Use、画面キャプチャ、マウス操作、手動エクスポートへ切り替えない。取得できなければ理由を報告して停止する。原本・上流Markdown・補足・添付を照合し、ChatGPTの会話リーダーは不足資料の取得に使う。Codex task等は以下の公式リーダーで読む。出力は本skillの現行形式を維持する。
+ChatGPT会話の原資料取得・照合は、取得前に[共通手順](references/exported-chat.md)を全文読み、その手順を正本として従う。提供済みZIPを優先し、未取得ならCLIの自動起動で既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。Codex task等は公式リーダーで読む。出力は本skillとvaultの規約を維持する。
 
 ## Read the chat completely
 
