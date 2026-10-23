@@ -27,6 +27,7 @@ make private
 マシン固有の設定は以下のファイルに書く（git 管理外）：
 
 - `./host/$(hostname -s).zsh` — zsh のマシン固有設定
+- `./host/role` — 端末の役割（`work` か `other` の1語）。`work` の端末だけ `dots ghq get` と pipx の `ghq:` 指定の editable 導入を行う（[specification.md](specification.md#dots-ghq-get)）
 - `~/.profile.local` — zsh / bash 共通。このMacだけの設定や、privateにも置かない機密値（`shell/profile.local.example` をコピー）
 - `~/.zshrc.local` — zsh専用の追加設定（`shell/zshrc.local.example` をコピー）
 - `~/.bashrc.local` — bash: 自動的に読み込まれる追加設定

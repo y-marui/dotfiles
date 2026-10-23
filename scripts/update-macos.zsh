@@ -106,6 +106,9 @@ log bash "${0:A:h}/update-prezto.sh"
 log mas upgrade
 log softwareupdate -i -a
 
+# host/role が work の端末だけ、ghq/get の宣言のうち未取得のリポジトリを取得する
+log bash "${0:A:h}/../ghq/get.sh"
+
 if [[ "${GHQ_UPDATE_ALL}" == true ]]; then
   log ghq-update --pull-all --all
 else
