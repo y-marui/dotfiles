@@ -41,7 +41,7 @@ command -v paper-find paper-note paper-link
 
 deckの表示には、Obsidianのコミュニティプラグイン Marp Inline Preview（`marp: true`のノートだけを描画する）が有効であること。表示用なので、無くても`---`区切りのノートとして読める。
 
-未導入なら、リポジトリを取得して`pipx install --force --editable .`を行うようユーザーへ案内する（dotfilesでは`pipx/pipxfile`の`python-zotero-paper-tools`を`dots pipx apply`で入れる）（CLIの変更が必要になってもこのskillで直さず、ユーザーに報告する）。vaultの解決は`--vault`、`OBSIDIAN_VAULT_ROOT`、`~/.config/zotero-paper-tools/config.toml`の順で、解決できないとCLIは止まる。
+未導入なら、リポジトリを取得して`pipx install --force --editable .`を行うようユーザーへ案内する（dotfilesでは`pipx/pipxfile`の`python-zotero-paper-tools`を`dots pipx apply`で入れる。作業PCでは`ghq get`済みのcheckoutからeditableで入る）（CLIの変更が必要になってもこのskillで直さず、ユーザーに報告する）。vaultの解決は`--vault`、`OBSIDIAN_VAULT_ROOT`、`~/.config/zotero-paper-tools/config.toml`の順で、解決できないとCLIは止まる。
 
 ## Steps
 

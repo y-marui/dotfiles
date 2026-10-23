@@ -5,11 +5,14 @@
 # 各行は `pipx の仮想環境名 [インストール元]`。インストール元を省略した場合は
 # 仮想環境名をそのまま `pipx install` に渡す。VCS URL を使う場合は、仮想環境名を
 # 明示して導入元を追跡する。
-# 開発中にローカル checkout を使うときは、対象リポジトリで
-# `pipx install --force --editable .` を実行する。これはこの正本を変更しない
-# ローカルの開発用オーバーライドである。
+# インストール元が `ghq:<ghq root からの相対パス>` の行は、host/role が work の端末では
+# ghq で取得した checkout から `pipx install --editable` で入れる（未取得なら ghq get）。
+# work でない端末（サーバーなど）では `git+https://<相対パス>` から通常どおり入れる。
+# それ以外の開発中のローカル checkout は、対象リポジトリで
+# `pipx install --force --editable .` を実行する（この正本を変更しないローカルの上書き）。
 
-docx-redline git+https://github.com/y-marui/python-docx-redline
+docx-redline ghq:github.com/y-marui/python-docx-redline
 pre-commit
-spotify-tools git+https://github.com/y-marui/python-spotify-tools
-python-zotero-paper-tools git+https://github.com/y-marui/python-zotero-paper-tools
+python-note-wxr-tools ghq:github.com/y-marui/python-note-wxr-tools
+spotify-tools ghq:github.com/y-marui/python-spotify-tools
+python-zotero-paper-tools ghq:github.com/y-marui/python-zotero-paper-tools

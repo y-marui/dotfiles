@@ -102,6 +102,7 @@ pre-commitで両者の対応関係を検証する。
 | `obsidian-project-home [check\|ensure] [--repo DIR] [--vault DIR] [--description TEXT]` | Git `origin`と通常領域のProject Home `repositories`を照合し、一意の対応先を解決。`ensure`は許可オーナー（`auto_create_owners`）の未登録リポジトリだけ雛形を作る。設定は`dotfiles-private/obsidian/project-home-resolver.conf` |
 | `doc-lint` | カレントのリポジトリの全Markdownのサイズ・frontmatterを検査して表示（警告のみ・ログなし。[仕様](specification.md#doc-lint)） |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
+| `dots ghq get [--dry-run] [--force]` | `host/role`が`work`の端末で、`ghq/get`（dotfiles-private）の宣言のうち未取得のリポジトリを`ghq get`（動詞表の外の独立アクション。`dots update`が呼ぶ） |
 | `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
 | `ghq-update [--all\|--pull-all\|--sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
 | `ghq-sweep [--no-pull]` | ghq管理リポジトリ全件に`git-sweep --all`を実行（`--no-pull`はローカルブランチの更新を行わない） |

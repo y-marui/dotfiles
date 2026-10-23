@@ -583,6 +583,35 @@ dotfiles-privateの宣言ファイルとして管理し、`dots ghq`で実状態
 上書きできる。回帰テストは[scripts/test-ghq-keep-up-to-date.sh](../scripts/test-ghq-keep-up-to-date.sh)
 （Unix版のみ）。
 
+### dots ghq get
+
+`keep-up-to-date`は「取得済みのうち更新するもの」の宣言で、取得そのものは宣言しない。
+skillが使うPythonスクリプトやChrome拡張、`obsidian-vault`を作業PCで常に取得済みにするため、
+取得の宣言を別に持つ。
+
+- **端末の役割**: `host/role`（`.gitignore`対象）に`work`か`other`と1語で書く。`work`の端末だけが
+  下記の取得とpipxの`ghq:`指定のeditable導入を行う。ファイルがなければ`other`（サーバーや、
+  まだ作業PCにしないWindowsなど）。環境変数`DOTS_HOST_ROLE`が`host/role`より優先する。
+  `dots check`は、macOSで未設定・不正なときだけ`⚠ host/role`を表示する。判定は
+  [scripts/host-role.sh](../scripts/host-role.sh)
+- **宣言**（dotfiles-private）: `ghq/get`（共通）と`ghq/get.local`（この端末だけ、`.gitignore`対象）。
+  書式は`keep-up-to-date`と同じ（ghq rootからの相対パスを1行1件）。雛形は
+  `templates/dotfiles-private/ghq/get.example`
+- **`dots ghq get [--dry-run] [--force]`**: 宣言のうち未取得のものだけ`ghq get`する。取得済みは
+  更新しない（更新は`ghq-pull`/`ghq-update`）。役割が`work`でなければ何もせず正常終了する
+  （`--force`で役割を無視）。取得に失敗した（privateリポジトリで`gh`未認証など）場合は
+  失敗を表示して続行し、最後に終了コード1を返す。動詞表（apply/diff/…）の外の独立アクションで、
+  `dots update`（macOS）が`ghq-update`の前に呼ぶ
+- `dots check`は`work`の端末で未取得の宣言があると`⚠ ghq get: -N 未取得`を表示する
+- **pipx連携**: `pipx/pipxfile`のインストール元を`ghq:<ghq rootからの相対パス>`にすると、
+  `work`の端末では`dots pipx apply`が取得済みのcheckoutから`pipx install --editable`で入れる
+  （未取得なら`ghq get`。`git+https`で導入済みのものは`--force --editable`で入れ直す）。
+  `work`でない端末やghqがない端末では`git+https://<相対パス>`から通常どおり入れる。
+  editableのパッケージの更新は`ghq-pull`が担い、`pipx upgrade-all`は不要
+- Windowsは未対応（`ghq/get.ps1`と`host-role.ps1`を足せば`work`にできる）
+
+回帰テストは[scripts/test-ghq-get.sh](../scripts/test-ghq-get.sh)。
+
 ## my-hosts
 
 `bin/unix/my-hosts`は、宣言した他のホストで`ghq-pull`/`ghq-update`/`ghq-sweep`/`ghq-status`/`install-my-apps`を

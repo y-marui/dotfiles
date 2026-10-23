@@ -1,0 +1,6 @@
+# 作業PC（host/role が work の端末）で取得しておくリポジトリの宣言（ghq/get）の書式例。
+# ghq root からの相対パス（github.com/<owner>/<repo>）を1行1件で書く。# 以降はコメント。
+# この端末だけの追加分は ghq/get.local（コミット対象外）へ書く。
+# 取得: dots ghq get [--dry-run] [--force]
+#
+# github.com/example-owner/example-repo

@@ -9,7 +9,7 @@ Spotifyの「お気に入り」（Liked Songs）を既存プレイリストへ�
 
 ## Sources
 
-- 操作ツール: PATH上の `spotify-inventory` / `split-playlist` コマンド（dotfiles の `pipxfile` により [y-marui/python-spotify-tools](https://github.com/y-marui/python-spotify-tools) から導入）
+- 操作ツール: PATH上の `spotify-inventory` / `split-playlist` コマンド（dotfiles の `pipxfile` により [y-marui/python-spotify-tools](https://github.com/y-marui/python-spotify-tools) から導入。作業PCでは `ghq get` 済みの checkout から editable で入る）
 - プレイリストの正本: `$OBSIDIAN_ROOT/knowledge/music/spotify-playlists.md`（`$HOME/.ai/zsh_path.local` から解決）
 
 作業開始時に通常のシェル初期化を読まず `zsh -f` で `$HOME/.ai/zsh_path.local` だけを source し、`OBSIDIAN_ROOT` を解決する。設定ファイル・変数・上記の正本のいずれかが存在しないまたは読めない場合は作業を開始せず、欠けている項目を示してユーザーに修正を求める。同名ファイルの探索はしない。解決後にObsidianの正本を全文読み、Spotifyのライブ一覧と照合する。公式のObsidian MCPが利用可能なら既知のファイル名を指定してよい。公式と確認できないMCPは使わず、ローカルファイルを読む。
