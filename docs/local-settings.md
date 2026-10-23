@@ -89,3 +89,9 @@ vscode "publisher.extension" # VS Code 拡張
 |------|-----------|------|
 | `DOTFILES_DIR` | ghq 等で `~/dotfiles` 以外にクローンした場合は**必須** | dotfiles のクローン先パス（例: `/path/to/dotfiles`）。未設定時は `~/dotfiles` が使われる |
 | `HOMEBREW_GITHUB_API_TOKEN` | `brew search` 等でレート制限に当たる場合 | GitHub API への認証トークン。現在の Homebrew では必須ではないが、API 制限が頻繁に発生する場合に設定する |
+
+## Private global AI context
+
+個人用のAI運用設定はprivate側の`ai/AI_CONTEXT_PRIVATE.md`に置き、
+`~/.ai/AI_CONTEXT_PRIVATE.md`へリンクする。共通の`AI_CONTEXT.md`から読み込む。
+認証情報は記載しない。

@@ -19,3 +19,4 @@ all|ai/claude/claude-perms.json|.claude/claude-perms.json
 all|shell/profile.private|.profile.private
 unix|labpc|.config/labpc
 all|spotify-tools/groups.toml|.config/spotify-tools-groups.toml
+all|ai/AI_CONTEXT_PRIVATE.md|.ai/AI_CONTEXT_PRIVATE.md

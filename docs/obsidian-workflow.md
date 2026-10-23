@@ -22,11 +22,11 @@ ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒�
 
 ## Source ChatGPT archive
 
-保存系スキルで会話Recordを残した場合は、依頼された成果物すべての保存・検証完了後に元ChatGPT会話を標準でアーカイブする。削除はしない。部分取得・欠落・照合未完了・保存失敗では実行しない。ユーザーのアーカイブ不要指定を優先する。対象同定・公式ツール・失敗時の報告は[共通のアーカイブ手順](../ai/skills/obsidian-save-record/SKILL.md#archive-the-source-chatgpt-conversation)に従い、過去の保存済み会話には遡及しない。
+保存系スキルで会話Recordを残した場合は、依頼された成果物すべての保存・検証完了後に元ChatGPT会話を標準でアーカイブする。削除はしない。保存対象の可視本文・画像・添付の実際の欠落、原資料との未解決の不一致、保存失敗では実行しない。一律の表示未確認警告やCLIの`partial`だけでは停止せず、保存対象を検証して問題がなければアーカイブまで進める。ユーザーのアーカイブ不要指定を優先する。対象同定・公式ツール・失敗時の報告は[共通のアーカイブ手順](../ai/skills/obsidian-save-record/SKILL.md#archive-the-source-chatgpt-conversation)に従い、過去の保存済み会話には遡及しない。
 
 ## ChatGPT source acquisition
 
-保存系スキル（Record・Knowledge・Project・Tarot・Zotero）の原資料取得・照合は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)を正本とする。提供済みZIP・展開済み資料を優先し、未取得なら`chatgpt-export capture ... --auto-start`で通常ブラウザの既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。公式会話リーダーは不足の補完に使い、Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。
+保存系スキル（Record・Knowledge・Project・Tarot・Zotero）の原資料取得・照合は、[共通手順](../ai/skills/obsidian-save-record/references/exported-chat.md)を正本とする。提供済みZIP・展開済み資料を優先し、未取得なら`chatgpt-export capture ... --auto-start`で通常ブラウザの既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。公式会話リーダーは不足の補完に使い、Codex task等は対応する公式リーダーを使う。取得レポートの内部メッセージ数・思考要約の要確認数と、保存すべき可視発話の件数・欠落を区別する。取得不具合は共通手順に従い、機密を含めず拡張機能側のIssueへ引き継ぐ。
 
 Knowledge・Project・Tarot・Zoteroで会話Recordを作るときは、[obsidian-save-record](../ai/skills/obsidian-save-record/SKILL.md)を全文読み、共通の保存基準に従う。各skillは固有の保存先・補足・成果物だけを上書きし、取得手順やRecord形式を複製しない。形式の正本はvaultの`docs/conversation-record-format.md`である。
 
