@@ -15,6 +15,12 @@
 
 ## Actions Billing Errors
 
+- private リポジトリで、ジョブが数秒で失敗し step も runner 名も付かない場合は、課金・利用上限のブロックを疑う
+  （`gh api repos/<owner>/<repo>/check-runs/<id>/annotations` に "recent account payments have failed" が出る）。
+  その前に、そのリポジトリがself-hostedへ移行済みか確認する：`gh variable list -R <owner>/<repo>` に
+  `LINUX_RUNNER`（Windowsジョブがあれば `WINDOWS_RUNNER`）があるか、
+  `gh api repos/<owner>/<repo>/actions/runners` に runner が登録されているか。
+  どちらかが欠ければ設定漏れなので、下の `New Repository Creation` の runner 手順で直す
 - GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
   ローカル等で同等の検証が完了していればマージ判断を進められる。
   代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
@@ -43,6 +49,12 @@
   - テンプレートの README の手順に従い、プレースホルダー・パッケージ名・README を置き換える
   - dev-charter は full を `docs/dev-charter` に git subtree で入れる（lite は文書のみの
     リポジトリ向け）。手順は dev-charter の `src/README-full.md` に従う
+  - private リポジトリは、作成後に Linux の self-hosted runner を登録し、リポジトリ変数 `LINUX_RUNNER=linux-sh`
+    を設定する（GitHub-hosted の Linux は課金対象で、無料枠を超えるとCIが起動しなくなる）。登録は
+    `y-marui/docker-github-actions-runner` の `setup.sh install y-marui/<repo>`（runner ホスト上で実行）。
+    登録先の台帳は非公開の dotfiles-private の `docs/self-hosted-runners.md` で、登録したら更新する。
+    runner のホスト名・運用情報は公開リポジトリに書かない。public リポジトリには登録しない。
+    詳細は dev-charter の `topics/CI_POLICY.md`（Runner Billing）
   - `AI_CONTEXT.md` はテンプレートのものを、そのプロジェクト向けに書き換える。公開リポジトリには
     個人のパス・ホスト名・設定値を載せない
 

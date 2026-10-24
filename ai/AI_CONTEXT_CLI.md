@@ -49,7 +49,8 @@ commit と push は別の操作として扱い、commit の依頼だけでは pu
 - 作業ブランチは、PR レビューが必要な規模・影響の場合だけ作る。
   それ以外は現在のブランチで作業し、commit を指示されたらまず試み、フックが拒否したら理由を確認する
 - PR 作成前・push 前に `.github/workflows/` を確認し、関連する lint・build・test をローカルで実行する。
-  できない検証は理由と未確認範囲を報告する
+  できない検証は理由と未確認範囲を報告する。
+  private リポジトリでは、`LINUX_RUNNER` の設定と runner の登録があるかも確認する（手順は `github-rare.md` の `#actions-billing-errors`）
 - AI の PR は最初から draft で開き、ローカル検証後に ready にする。
   レビュー対応はまとめて push し、自動レビュー依頼のためだけに ready にしない
 - 恒久的な設計・仕様・運用手順は `docs/`・README・AI_CONTEXT に、TODO・進捗・ブロッカーは Issue・Project に記録する。
