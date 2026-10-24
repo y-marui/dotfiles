@@ -8,11 +8,11 @@ ChatGPT会話の取得にはComputer Use、画面キャプチャ、マウス操�
 
 ### Capture with the CLI
 
-1. CLI本体は`chrome-chatgpt-exporter/cli/`、dotfilesの`chatgpt-export`は起動ラッパー。`chatgpt-export --help`で利用可能なことを確認する。通常Chrome・Brave・Edgeのいずれかに`stage/chrome/`を読み込んだ拡張とChatGPTログインが必要。既定はChromeなので、利用ブラウザが分かる場合は`--browser`で明示する。
-2. `chatgpt-export capture '<対象会話URL>' --output '<一時領域等の未使用ZIPパス>' --browser <browser> --auto-start --json`を実行する。未接続ならCLIが通常プロファイルから既存拡張IDを検出し、ユーザー単位のNative Messagingホストを登録して拡張だけを再読込・接続する。既存のChatGPTログインとBitwardenを利用し、ブラウザ本体は再起動しない。コマンドは自分の取得用タブだけを開閉し、既存タブや会話を変更しない。
-3. `login-required`なら通常ブラウザでChatGPTへログインするよう依頼し、完了後に同じコマンドを1回再実行する。認証を回避せず、Cookieやトークンを読み取らない。ログイン以外のクリック、権限変更、手動ZIP保存は依頼しない。
+1. CLI本体は`chrome-chatgpt-exporter/cli/`、dotfilesの`chatgpt-export`は起動ラッパー。`chatgpt-export --help`で利用可能なことを確認する。専用プロファイルのChrome・Brave・Edgeのいずれかに、CLI専用ビルド`stage/cli/`の拡張を読み込み、ChatGPTへログイン済みであることが必要（初回は`chatgpt-export setup --browser <browser>`）。既定はChromeなので、利用ブラウザが分かる場合は`--browser`で明示する。対象OSはmacOSとLinuxだけ。
+2. `chatgpt-export capture '<対象会話URL>' --output '<一時領域等の未使用ZIPパス>' --browser <browser> --json`を実行する。CLIが専用プロファイルのブラウザを起動（または再利用）してCDPで制御し、拡張にZIPを作らせる。専用プロファイルの既存のChatGPTログインとBitwardenを利用する。コマンドは自分の取得用タブだけを開閉し、既存タブや会話を変更しない。
+3. 終了コード4（`login-required`）なら、専用ブラウザにログイン画面が開いている。そこでChatGPTへログインするよう依頼し、完了後に同じコマンドを1回再実行する。コマンドは待たない。認証を回避せず、Cookieやトークンを読み取らない。ログイン以外のクリック、権限変更、手動ZIP保存は依頼しない。
 4. 終了コード0、`ok: true`、ローカル実ファイルを確認してZIPを読む。`status`は`partial`または`captured-unverified`で、完全取得の証明ではない。本文と`capture-report.json`を照合し、素材権限不足等の未取得と画面未照合を区別する。
-5. 終了コード2は引数・保存先を直す。`automated-capture-unavailable`、拡張未導入、サイト権限不足、別ホスト・クラウド環境、アクセス制限はComputer Useや手動エクスポートへ切り替えず、試したコマンドと理由を報告して停止する。アクセス制限を繰り返し試行したり、別経路で回避したりしない。
+5. 終了コード2は引数・保存先を直す。終了コード3（`bridge-unavailable`、`capture-failed`、`capture-in-progress`）、拡張未導入、サイト権限不足、別ホスト・クラウド環境、アクセス制限はComputer Useや手動エクスポートへ切り替えず、試したコマンドと理由を報告して停止する。アクセス制限を繰り返し試行したり、別経路で回避したりしない。
 
 ChatGPT内の「すべてエクスポート」はこの単一会話ZIPの代用にしない。プレビューだけで保存を完了したり、発話を推測したりしない。ユーザーからZIP・パスが届いたらその原資料から続行し、再取得しない。
 

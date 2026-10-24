@@ -802,13 +802,15 @@ vault-move-notes.py [--vault DIR] [--dry-run] [--include-private] OLD NEW [OLD N
 ## chatgpt-export
 
 `chatgpt-export`は隣接する`chrome-chatgpt-exporter/cli/`のNode.js CLIを起動する薄いラッパー。
-CLI・Native Messagingホストは拡張のリポジトリで管理し、dotfilesへ変換・通信処理を複製しない。
+CLIは拡張のリポジトリで管理し、dotfilesへ変換・通信処理を複製しない。
 `CHATGPT_EXPORTER_ROOT`で取得済みリポジトリの場所を指定できる。Node.js 22.12以上が必要。
-Unix・Windowsとも同じJSエントリーポイントを直接起動し、OS間でシェルスクリプトを呼び出さない。
+対象OSはmacOSとLinuxだけ。同じJSエントリーポイントを直接起動する。
+CLIは専用プロファイルのChrome・Brave・EdgeにCLI専用ビルド（`stage/cli/`）の拡張を読み込み、CDPで制御する
+（Native Messagingホストは廃止）。通常プロファイルのブラウザには触れない。
 
-- `install --extension-id ID [--browser chrome|brave|edge]`: 同じPCの対象ブラウザへNative Messagingホストを登録する（初回だけユーザーが明示実行）。その後、拡張を再読み込みするか設定画面でCLIに再接続する。
-- `doctor --json`: 拡張との接続を確認する。未接続は終了コード3。
-- `capture URL --output FILE --json`: ログイン済みChromeの拡張に保存済み会話のZIP作成を依頼し、未使用の出力先へ保存する。自動作成した取得用タブだけを開閉する。
+- `setup --browser chrome|brave|edge`: 専用プロファイルのブラウザを起動し、ChatGPTのログイン画面を開く（初回だけユーザーが実行）。`stage/cli/`の読み込みとログインは専用ブラウザで行う。
+- `doctor --json`: 専用ブラウザと拡張の接続を確認する。失敗は終了コード3。
+- `capture URL --output FILE --json`: 専用ブラウザの拡張に保存済み会話のZIP作成を依頼し、未使用の出力先へ保存する。自動作成した取得用タブだけを開閉する。
 - 終了コード0は転送成功であり完全性の保証ではない。原本・補足・取得レポートの照合はスキルが行う。終了コード2は引数・保存先エラー、3は手動エクスポートが必要。
 
 Obsidian保存系スキルは、提供済みZIP・展開資料を優先し、なければ接続済みCLIを使う。
