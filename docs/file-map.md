@@ -56,6 +56,7 @@ _最終更新: 2026-10-19_
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリ全件に `git-pull-all` を実行（ロックファイル stash 付き） | `bin/unix/git-pull-all`、`bin/unix/_ghq-lib.sh` |
 | `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行 | `bin/unix/git-sweep` |
+| `bin/windows/update-wsl.ps1`（+ `.cmd`） | WSL登録のapt系ディストリビューションをrootで更新（Windows専用。`dots update`の最後に呼ぶ） | `wsl.exe`、`bin/windows/dots.ps1`、`scripts/check-bin-parity.sh`（例外宣言） |
 | `bin/unix/my-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`、`install-my-apps`をサブコマンド（`status`/`pull`/`sweep`/`update`/`apps`）に応じてssh経由で実行し、結果表を出す（実行元はmacOS専用、対象はWindowsも可。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `dotfiles-private/hosts/hosts`・`.local`、`ssh`、`scutil`、`install-my-apps`、`scripts/test-my-hosts.sh`（回帰テスト） |
 | `bin/unix/install-my-apps` | iCloud Drive の `Build/Swift`・`Build/Tauri` の DMG から自作アプリを `/Applications/My Swift`・`/Applications/My Tauri` へインストール・削除する（macOS 専用。旧い置き場の整理は移行期間のオプション。詳細は[specification.md#install-my-apps](specification.md#install-my-apps)） | `hdiutil`、`scripts/test-install-my-apps.sh`（回帰テスト） |
 | `bin/windows/install-my-apps.ps1` / `.cmd` | `install-my-apps`のWindows側スタブ（何もせず終了コード64を返す。`my-hosts apps`がWindowsの対象を`skip`扱いにする合図。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `bin/unix/my-hosts` |

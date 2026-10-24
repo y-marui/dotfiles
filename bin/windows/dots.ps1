@@ -596,6 +596,8 @@ switch ($commandName) {
         } else {
             Invoke-NativeCommand gsudo pwsh -NoLogo -NonInteractive -File "$dotfilesDir\scripts\update-windows.ps1"
         }
+        # WSLのディストリビューションは利用者ごとの登録のため、gsudoを通さず現在のユーザーで更新する。
+        Invoke-NativeCommand pwsh -NoLogo -NoProfile -File "$dotfilesDir\bin\windows\update-wsl.ps1"
     }
     'winget' {
         $wingetDir = "$dotfilesDir\windows"

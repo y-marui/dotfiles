@@ -34,6 +34,10 @@
    `ghq-update --pull-all --all`になり、依存更新（uv sync --upgrade / npm update）の対象を
    `keep-up-to-date=true`のリポジトリから`.venv`または`node_modules`があるリポジトリまで
    拡張する（詳細は[git-pull-all / git-sweep / ghq-pull / ghq-update / ghq-sweep / my-hosts](#git-pull-all--git-sweep--ghq-pull--ghq-update--ghq-sweep--my-hosts)）
+6. Windowsのみ、`update-wsl`でWSL内のapt系ディストリビューションのOSパッケージを更新する。
+   対象は`wsl -l -q`の登録一覧から毎回取得し、`apt-get`があるものだけを更新する
+   （ディストリビューションの追加・名前変更に追従。`docker-desktop`等は除外）。単体でも
+   `update-wsl [--list] [distro...]`で実行できる
 
 pipx は、各仮想環境を作成した基底 Python の実体パス・バージョンを現在の global Python と
 比較する。異なる環境や Python 実行ファイルが失われた環境がある場合は、
