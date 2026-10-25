@@ -20,6 +20,13 @@
 
 ZIP・JSONはDownloads等の一時的な原資料として扱い、vaultへ恒久複製しない。会話の取得状態と外部主張の正確さは別に検証する。形式変更は通常・Private・要約記録を小さく試用し、本文・添付・リンク・表示を確認してから広げる。
 
+## Source markup and rendering
+
+保存系5スキルは、[原文保持と表示の共通基準](../ai/skills/obsidian-save-record/references/exported-chat.md#preserve-source-markup-and-separate-rendering)に従う。
+会話内のHTML・CSS・JavaScript・JSX/DIL・genuiは原文を保持し、表示はObsidianのカスタムプラグイン等へ委ねる。
+表示未対応を理由に静的な表・画像・要約へ置換しない。
+通常・Privateで同じ保存基準を使い、プラグインの適用範囲と安全境界は別に確認する。
+
 ## Source ChatGPT archive
 
 保存系スキルで会話Recordを残した場合は、依頼された成果物すべての保存・検証完了後に元ChatGPT会話を標準でアーカイブする。削除はしない。保存対象の可視本文・画像・添付の実際の欠落、原資料との未解決の不一致、保存失敗では実行しない。一律の表示未確認警告やCLIの`partial`だけでは停止せず、保存対象を検証して問題がなければアーカイブまで進める。ユーザーのアーカイブ不要指定を優先する。対象同定・公式ツール・失敗時の報告は[共通のアーカイブ手順](../ai/skills/obsidian-save-record/SKILL.md#archive-the-source-chatgpt-conversation)に従い、過去の保存済み会話には遡及しない。

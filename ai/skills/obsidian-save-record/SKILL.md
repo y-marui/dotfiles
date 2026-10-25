@@ -8,6 +8,9 @@ description: "Save a referenced chat as a faithful Obsidian Record in records/co
 参照されたチャット、モーニングジャーナル、またはフリートークの内容を、Obsidian vault の
 `records/conversations/` または `private/records/conversations/` に保存する。Knowledgeへの要約ではなく、対話の流れと文脈を残す作業に使う。
 
+HTML・独自UIの保存・表示は
+[共通基準](references/exported-chat.md#preserve-source-markup-and-separate-rendering)に従い、原文を静的な表・画像へ置換しない。
+
 ## Scope
 
 - チャットを保存する依頼は、対象ログの作成・更新を許可する。commit、push、既存ログの

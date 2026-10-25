@@ -7,6 +7,9 @@ description: "Save a ChatGPT paper discussion as a conversation Record, a slide-
 
 ChatGPTで行った論文の議論を、vaultの会話Record、論文1本につき1つのdeck（`---`区切りのスライド形式Markdown）、Zotero itemからdeckを開くリンクとして1回の依頼で残す。設計と決定事項はvaultの`projects/zotero-paper-discussion.md`（Project Home）を正本とし、Zotero操作の詳細はCLI [python-zotero-paper-tools](https://github.com/y-marui/python-zotero-paper-tools) のREADMEに委ねる。
 
+HTML・独自UIの保存・表示は
+[共通基準](../obsidian-save-record/references/exported-chat.md#preserve-source-markup-and-separate-rendering)に従い、原文を静的な表・画像へ置換しない。
+
 ## Scope
 
 - 保存依頼は、会話Record・deck・`-img/`の作成または更新とZoteroへのリンク付与を許可する。commit、push、既存ノートの削除・大規模再構成は、別途明示された場合だけ行う。

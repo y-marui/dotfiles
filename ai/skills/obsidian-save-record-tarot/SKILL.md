@@ -8,6 +8,9 @@ description: "Save a referenced tarot-reading chat as a faithful private Obsidia
 参照チャットで行ったタロットリーディングを、会話の文脈とカード画像を保った
 ObsidianのPrivate Conversation Recordとして保存する。通常のRecord作成やKnowledge抽出には使わない。
 
+HTML・独自UIの保存・表示は
+[共通基準](../obsidian-save-record/references/exported-chat.md#preserve-source-markup-and-separate-rendering)に従い、原文を静的な表・画像へ置換しない。
+
 対象vaultの`README.md`、`AI_CONTEXT.md`、Home、Conversation・assets・Private・移行に関する正本文書を
 定められた順序で読む。通常探索では`private/**`とvaultが指定する移行前Private対象を
 読み取り前に除外し、ユーザーがPrivateの対象パスと目的を明示した場合だけ、その範囲を読む。

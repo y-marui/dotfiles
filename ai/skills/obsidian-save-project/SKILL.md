@@ -7,6 +7,9 @@ description: Create a Project Home in projects from a referenced Codex or ChatGP
 
 参照チャットから、実行を決めた活動のProject Homeを作る。検討だけの企画や単なる調査には使わない。
 
+HTML・独自UIの保存・表示は
+[共通基準](../obsidian-save-record/references/exported-chat.md#preserve-source-markup-and-separate-rendering)に従い、原文を静的な表・画像へ置換しない。
+
 ChatGPT会話の原資料取得・照合は、取得前に[共通手順](../obsidian-save-record/references/exported-chat.md)を全文読み、その手順を正本として従う。提供済みZIPを優先し、未取得ならCLIの自動起動で既存拡張を外部トリガーする。Computer Use・画面キャプチャ・マウス操作・手動エクスポートへ切り替えず、人への操作依頼はChatGPTログインだけとする。取得不能なら理由を報告して停止する。Codex task等は公式リーダーで読む。出力は本skillとvaultの規約を維持する。
 
 会話Recordを作成する前に、[obsidian-save-record](../obsidian-save-record/SKILL.md)を全文読み、保存先・忠実な全発話保存・添付・description/project・検証の共通基準に従う。本skill固有の保存先・補足・成果物の規則は維持する。
