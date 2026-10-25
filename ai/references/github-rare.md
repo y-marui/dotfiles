@@ -18,9 +18,14 @@
 - private リポジトリで、ジョブが数秒で失敗し step も runner 名も付かない場合は、課金・利用上限のブロックを疑う
   （`gh api repos/<owner>/<repo>/check-runs/<id>/annotations` に "recent account payments have failed" が出る）。
   その前に、そのリポジトリがself-hostedへ移行済みか確認する：`gh variable list -R <owner>/<repo>` に
-  `LINUX_RUNNER`（Windowsジョブがあれば `WINDOWS_RUNNER`）があるか、
+  使用OSに対応する`LINUX_RUNNER`・`MACOS_RUNNER`・`WINDOWS_RUNNER`があるか、
   `gh api repos/<owner>/<repo>/actions/runners` に runner が登録されているか。
   どちらかが欠ければ設定漏れなので、下の `New Repository Creation` の runner 手順で直す
+- 変数と登録があっても、jobの`runs-on`が`ubuntu-latest`等に固定されていればhostedで動く。
+  新規repoだけでなく、workflow追加・変更時も、変更判定・検証・集約gateと再利用workflowへのrunner入力を確認する。
+  使用OSごとに`LINUX_RUNNER`・`MACOS_RUNNER`・`WINDOWS_RUNNER`と、対応ラベルのonline runnerを照合し、
+  実ジョブのrunner名まで確認する。hostedに残すjobは理由を記録する（forkのPR、特権トークンを使う
+  `pull_request_target`、OIDC releaseなど、既存の例外は維持する）。
 - GitHub Actions が課金エラーで検証を実行できない場合、コードの検証成功とはみなさない。
   ローカル等で同等の検証が完了していればマージ判断を進められる。
   代替できない検証が残る場合は、その内容を示してユーザーに判断を求める
@@ -54,6 +59,7 @@
     `y-marui/docker-github-actions-runner` の `setup.sh install y-marui/<repo>`（runner ホスト上で実行）。
     登録先の台帳は非公開の dotfiles-private の `docs/self-hosted-runners.md` で、登録したら更新する。
     runner のホスト名・運用情報は公開リポジトリに書かない。public リポジトリには登録しない。
+    macOS・Windowsのjobがある場合は、そのOSのrunner登録と対応する変数も設定し、上の確認手順で実ジョブを検証する。
     詳細は dev-charter の `topics/CI_POLICY.md`（Runner Billing）
   - `AI_CONTEXT.md` はテンプレートのものを、そのプロジェクト向けに書き換える。公開リポジトリには
     個人のパス・ホスト名・設定値を載せない
