@@ -1,22 +1,30 @@
 ---
 name: session-handoff
-description: "Close out a Git or non-Git work session: resolve or surface leftover tasks, then route durable decisions to project docs, an Obsidian Project Home when uniquely mapped, GitHub Issues, or supported agent memory so work resumes accurately in another chat. Use when the user asks to wrap up, hand off, or close out work before ending or switching a chat; not for routine task completion alone."
+description: "Close out a work session before compacting or switching chats: resolve leftover tasks, route durable decisions to project docs, Obsidian Project Home, GitHub Issues, or memory, and ship completed work to main (commit, push, PR, merge). Supports main/sub roles. Use when the user asks to wrap up or hand off; to end the session, use session-finish."
 ---
 
 # Session Handoff
 
 Git repository内外の作業セッションを、別チャット・別作業へ安全に引き継げる状態にする。今回の会話だけに残る一時的な記憶を正本にせず、性質ごとに適切な記録先（プロジェクトdocs、対応するObsidian Project Home、GitHub Issue、対応するagentの長期memory、git自体）へ振り分ける。
 
+このskillは、`/compact`の前の区切りとして使う。compactで失われる情報を記録先へ移し、区切りのついた作業をremoteとmainに反映して、セッションを続けられる状態にする。セッション自体を終える場合は`session-finish`を使う。
+
 対象は、明示的に区切るGit作業（コード・設定・プロジェクトdocs等）と非Git作業全般。単発の質問や、区切りのない作業途中では呼び出さない。
+
+## Role
+
+引数（`sub`・`main`・`solo`）を優先し、なければ`list_sessions {linked:true}`で子がいれば`main`、なければ`solo`とみなす。`sub`は、依頼文や会話からサブセッションとして起動されたと分かる場合。`sub`はProject Homeを編集せず、mergeもせず、報告で返す。判定と役割ごとの違い、`sub`の報告の形は [references/roles.md](references/roles.md) を全文読んで従う。
 
 ## Step 1: Resolve or surface loose ends
 
 1. 会話を振り返り、実施すると述べたが未完了の変更、ユーザーの未回答の質問、確認待ちの判断を洗い出す。
 2. Git repositoryであれば、`git status` / `git diff` / `git log`で作業ツリーの実態を確認する。非Git作業では、対象の成果物・未完了事項・外部システムの状態を確認する。会話の記憶ではなく、今の実際の状態を正とする。
-3. 安全に完了できるものはこの時点で完了する。commit・push・破壊的操作の確認要否は通常の安全ルールのまま変わらない。特にcommitは、今回のタスクでユーザーが明示的に指示していない限り、このskillを使うこと自体を理由に新規作成しない。
+3. 安全に完了できるものはこの時点で完了する。破壊的操作の確認要否は通常の安全ルールのまま変わらない。commit・push・PR・mergeはStep 4（`references/ship.md`）の範囲だけ、このskillの呼び出しを承認として行う。
 4. 判断が必要で完了できないものは、無理に片付けず一覧にする。「一旦保留」を暗黙のまま終わらせない。
 
-Git repositoryで`obsidian-project-home`が使える場合は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
+`main`は、各子セッションのPRがmerge済みか確認する。未mergeのものは止めて報告する（mainがmergeを代行するのは、そのPRのCI・レビューが`references/ship.md`の条件を満たすときだけ）。
+
+Git repositoryで`obsidian-project-home`が使える場合（`sub`を除く）は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
 
 `obsidian-project-home` が終了コード`3`（なし）を返した場合は、Step 1〜3の後に [references/project-home-ensure.md](references/project-home-ensure.md) を全文読んで従う（`ensure`は作業開始時には実行しない）。
 
@@ -46,14 +54,16 @@ Project Homeは、解決済みの対応付けがあり、Current state・Open qu
 
 - プロジェクトdocsの編集は通常の編集操作として行う。
 - `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`（dotfiles管理）の編集も通常の編集操作として行うが、dotfilesリポジトリへのcommit・pushはユーザーの明示的な指示があるときのみ行う。
-- GitHub Issueの新規作成・更新、対象プロジェクト側のcommit・pushはそれぞれ影響を確認し、ユーザーの承認を得てから行う。
-- Project Home（Obsidian vault内のファイル）の編集は通常の編集操作として行う。そのvaultリポジトリへのcommit・pushは、このskillでは行わず、ユーザーが明示的に呼び出す`session-finish`で行う（`session-finish`はProject Homeのcommit・pushを承認範囲に含む）。
+- このセッションの未完了事項のGitHub Issue新規作成・更新は、このskillの呼び出しを承認として行う（重複を`search_issues`で確認し、`y-marui/*`・`fukami-lab-sot/*`はassigneeに`y-marui`を設定する）。このセッションと無関係なIssueの更新や、対象プロジェクト側のcommit・push・PR・mergeはStep 4の範囲だけ行う。
+- Project Home（Obsidian vault内のファイル）の編集は通常の編集操作として行う（`sub`は編集しない）。そのvaultリポジトリのcommit・pushも、このskillの呼び出しを承認として行う。更新・新規作成したProject Homeのファイルだけを明示してstageし、メッセージはvaultの`git log`の直近の形式に合わせる。今回のセッション以外の未コミット変更が混ざる、またはリモートとdivergしている場合は、vaultだけ止めて報告する。
 - 今回の作業の一時的な状態や進行中のタスク詳細はmemoryに書かない。
 
-## Step 4: Git lifecycle
+## Step 4: Ship
 
-このskillはcommit・push・merge・ブランチ整理を実行しない。これらを含めて一度に終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。Project Homeを更新した場合も、そのvaultリポジトリのcommit・pushは`session-finish`で行える。
+[references/ship.md](references/ship.md)を全文読んで従う。このskillの呼び出しは、ship.mdのAuthorizationに挙げた操作（このセッションの変更のcommit・push、自分のPRの作成・ready化・merge）の承認として扱う。区切りのついた作業単位はmainまで反映し、未完了の単位はブランチへのpushまでにとどめる。
+
+このskillはセッションを閉じない。archive、`git-sweep --all`、実機への反映（post-merge）は行わない。これらを含めて終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。
 
 ## Completion report
 
-完了・保留した項目、どこに何を記録したか（リポジトリdocs／Obsidian Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開時に見るべき場所（ブランチ・ファイル・Issue番号）を簡潔に報告する。未コミットの変更（Project Homeを更新した場合は、そのvaultリポジトリの変更を含む）が残る場合は、その旨と`session-finish`で終えられることを示す。未解決のまま残った項目は隠さず明示する。
+完了・保留した項目、記録先（docs／Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開点（ブランチ・ファイル・Issue番号）を簡潔に報告する。shipの結果（commit・push・PR・merge、止めた単位とその理由）を示す。残った未完了の単位は、ブランチ・PR番号とともに再開点として書く。その後に`/compact`して作業を続けてよいこと、終えるなら`session-finish`を使うことを示す。`sub`は上記の報告の形で返す。未解決のまま残った項目は隠さず明示する。

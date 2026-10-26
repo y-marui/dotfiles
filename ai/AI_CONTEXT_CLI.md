@@ -30,9 +30,13 @@ commit と push は別の操作として扱い、commit の依頼だけでは pu
 
 ## Session Closeout
 
-記録の整理だけなら`session-handoff`、記録からcommit・push・branch整理まで一度に終えるなら`session-finish`を使う。
-`session-handoff`の実行自体はcommit・push・merge・branch cleanupの承認ではない。
-`session-finish`はユーザーが明示的に呼び出したときだけ使い、手順と承認範囲はその skill に従う。
+`/compact`の前の区切りには`session-handoff`、セッションを終えるには`session-finish`を使う。
+どちらも、記録の整理に加えて、区切りのついた作業のcommit・push・PR・mergeまでを呼び出しの承認として行う
+（CI緑・レビュー解決済み・自分のPR、のときだけ。満たさなければ止めて報告する）。
+`session-finish`は、さらにサブセッションとこのセッションのarchive、`git-sweep --all`、
+実機・環境への反映（プロジェクトの Post-merge 宣言）を行う。
+どちらもユーザーが明示的に呼び出したときだけ使い、手順と承認範囲はその skill に従う。
+プロジェクトで実機反映が要る場合は、`AI_CONTEXT.md`等に Post-merge（コマンド・反映先・条件）を宣言する。
 
 ## Core Development Rules
 

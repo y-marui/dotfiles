@@ -40,7 +40,7 @@ claude mcp add -s user --transport http <name> <url>
   merge はしない
 - 恒久的に残す内容は、サブセッションが同じ PR の docs に書く
 - `session-finish` はメインセッションだけで実行する。サブセッションでは実行しない
-- サブセッションは、最後に次を報告する: PR のリンク、設計上の判断、問題点・未解決の点、
+- サブセッションは、最後に `session-handoff sub` を実行し、次を報告する: PR のリンク、設計上の判断、問題点・未解決の点、
   Project Home に残すべき知識（やってみて分かったこと）
 - メインは報告を確認し、Project Home と issue に反映してから merge する
 - サブセッションの使用コンテキストも約 150k 以内に抑える。1 つのサブセッションには
