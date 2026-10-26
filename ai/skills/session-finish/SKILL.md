@@ -22,7 +22,7 @@ description: "Finish a work session end to end when the user explicitly invokes 
 次は含めず、必要になった時点で止めてユーザーに確認する。
 
 - force push、squash・rebase merge、フックの回避（`--no-verify`等）
-- 他リポジトリの変更（Project Homeのvaultを除く）、ユーザーの変更でない既存の未コミット差分のcommit
+- 他リポジトリの変更（Project Homeのvault・dotfiles管理下のファイルを除く）、ユーザーの変更でない既存の未コミット差分のcommit
 - 署名・公開（ストア提出など）
 
 ## Step 1: Check the state
@@ -60,4 +60,4 @@ Step 4の確認結果を含む完了報告を出してから、最後に`archive
 
 ## Completion report
 
-実施した項目（記録先の整理、commit、push、PR・merge、子セッションのarchive、worktree・ブランチの整理、`main`への復帰確認、sweep、post-merge、このセッションのarchive）と、止めた項目・未実施の項目を分けて示す。Project Homeを更新した場合は、vaultリポジトリのcommit・pushの結果を、コードリポジトリとは別に書く。止めた理由と、再開時に見る場所（ブランチ・PR番号・Issue番号）を併記する。
+実施した項目（記録先の整理、commit、push、PR・merge、子セッションのarchive、worktree・ブランチの整理、`main`への復帰確認、sweep、post-merge、このセッションのarchive）と、止めた項目・未実施の項目を分けて示す。Project Homeやdotfiles（skill・AI_CONTEXT*.md等）を更新した場合は、それぞれのリポジトリのcommit・pushの結果を、コードリポジトリとは別に書く。作業対象リポジトリだけpushして関連リポジトリを未commit・未pushのまま終えない。止めた理由と、再開時に見る場所（ブランチ・PR番号・Issue番号）を併記する。

@@ -22,7 +22,7 @@ Git repository内外の作業セッションを、別チャット・別作業へ
 3. 安全に完了できるものはこの時点で完了する。破壊的操作の確認要否は通常の安全ルールのまま変わらない。commit・push・PR・mergeはStep 4（`references/ship.md`）の範囲だけ、このskillの呼び出しを承認として行う。
 4. 判断が必要で完了できないものは、無理に片付けず一覧にする。「一旦保留」を暗黙のまま終わらせない。
 
-`main`は、各子セッションのPRがmerge済みか確認する。未mergeのものは止めて報告する（mainがmergeを代行するのは、そのPRのCI・レビューが`references/ship.md`の条件を満たすときだけ）。
+`main`は、各子セッションのPRがmerge済みか確認する。未mergeのものは止めて報告する（mainがmergeを代行するのは、そのPRのCI・レビューが`references/ship.md`の条件を満たすときだけ）。全ての子セッションがmerge済みで追加作業が無い場合は、Completion reportで`session-finish`の実行を次の一手として明示的に提案する（サブセッションはコンテキスト節約のために起動しているため、完了後も残すとコンテキストが溜まるだけで、archiveとworktree整理の対象になる）。
 
 Git repositoryで`obsidian-project-home`が使える場合（`sub`を除く）は、`obsidian-project-home --repo <repository-root>`でProject Homeを解決する。終了コード`0`（一意）だけを対応付けとして使う。`4`（重複）、`5`（設定またはfrontmatter不正）の場合は、Project Homeを本文検索して推測・新規作成・更新せず、その状態を報告して以後の処理を続ける。
 
@@ -53,17 +53,17 @@ Project Homeは、解決済みの対応付けがあり、Current state・Open qu
 ## Step 3: Apply updates with the right permission level
 
 - プロジェクトdocsの編集は通常の編集操作として行う。
-- `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`（dotfiles管理）の編集も通常の編集操作として行うが、dotfilesリポジトリへのcommit・pushはユーザーの明示的な指示があるときのみ行う。
+- `~/.ai/AI_CONTEXT.md` / `AI_CONTEXT_COMPUTER_USE.md` / `AI_CONTEXT_CLI.md`・skill本体など、dotfiles管理下のファイルの編集は通常の編集操作として行う。このセッションで変更した場合は、vaultと同様にStep 4（Ship）の範囲でcommit・pushする（作業対象リポジトリだけに限らず、このセッションで変更した関連リポジトリすべてが対象）。
 - このセッションの未完了事項のGitHub Issue新規作成・更新は、このskillの呼び出しを承認として行う（重複を`search_issues`で確認し、`y-marui/*`・`fukami-lab-sot/*`はassigneeに`y-marui`を設定する）。このセッションと無関係なIssueの更新や、対象プロジェクト側のcommit・push・PR・mergeはStep 4の範囲だけ行う。
 - Project Home（Obsidian vault内のファイル）の編集は通常の編集操作として行う（`sub`は編集しない）。そのvaultリポジトリのcommit・pushも、このskillの呼び出しを承認として行う。更新・新規作成したProject Homeのファイルだけを明示してstageし、メッセージはvaultの`git log`の直近の形式に合わせる。今回のセッション以外の未コミット変更が混ざる、またはリモートとdivergしている場合は、vaultだけ止めて報告する。
 - 今回の作業の一時的な状態や進行中のタスク詳細はmemoryに書かない。
 
 ## Step 4: Ship
 
-[references/ship.md](references/ship.md)を全文読んで従う。このskillの呼び出しは、ship.mdのAuthorizationに挙げた操作（このセッションの変更のcommit・push、自分のPRの作成・ready化・merge）の承認として扱う。区切りのついた作業単位はmainまで反映し、未完了の単位はブランチへのpushまでにとどめる。
+[references/ship.md](references/ship.md)を全文読んで従う。このskillの呼び出しは、ship.mdのAuthorizationに挙げた操作（このセッションの変更のcommit・push、自分のPRの作成・ready化・merge）の承認として扱う。区切りのついた作業単位はmainまで反映し、未完了の単位はブランチへのpushまでにとどめる。対象は作業対象リポジトリだけでなく、このセッションでdotfiles・vaultなど関連リポジトリに加えた変更も含み、片方だけpushして別の関連リポジトリを未commit・未pushのまま残さない。
 
 このskillはセッションを閉じない。archive、`git-sweep --all`、実機への反映（post-merge）は行わない。これらを含めて終える場合は、ユーザーが明示的に呼び出す`session-finish`を使う。
 
 ## Completion report
 
-完了・保留した項目、記録先（docs／Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開点（ブランチ・ファイル・Issue番号）を簡潔に報告する。shipの結果（commit・push・PR・merge、止めた単位とその理由）を示す。残った未完了の単位は、ブランチ・PR番号とともに再開点として書く。その後に`/compact`して作業を続けてよいこと、終えるなら`session-finish`を使うことを示す。`sub`は上記の報告の形で返す。未解決のまま残った項目は隠さず明示する。
+完了・保留した項目、記録先（docs／Project HomeまたはInbox/Daily／`~/.ai/AI_CONTEXT*.md`／Issue／memoryの別）、Project Homeの解決結果、再開点（ブランチ・ファイル・Issue番号）を簡潔に報告する。shipの結果（commit・push・PR・merge、止めた単位とその理由）を示す。残った未完了の単位は、ブランチ・PR番号とともに再開点として書く。子セッションが全てmerge済み・追加作業無しなら、`/compact`を挙げるだけでなく`session-finish`の実行を次の一手として提案する。未完了の子セッションが残る、または子セッションが無い場合は、`/compact`して作業を続けてよいこと、終えるなら`session-finish`を使うことを示す。`sub`は上記の報告の形で返す。未解決のまま残った項目は隠さず明示する。
