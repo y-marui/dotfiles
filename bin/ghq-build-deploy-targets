@@ -12,3 +12,6 @@
 # 例:
 #   swift-oldapp deploy        # ios ターゲットが無い旧アプリ
 #   y-marui/chrome-foo build deploy
+
+# iOS ターゲット未導入（macOS のみ）。make ios は scheme が無く失敗する
+swift-call-timer deploy
