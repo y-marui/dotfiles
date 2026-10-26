@@ -52,7 +52,7 @@ _最終更新: 2026-10-19_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
+| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示（`git worktree add`で作った追加worktreeがあれば本体行の直後に行を追加。詳細は[specification.md#linked-worktrees](specification.md#linked-worktrees)） | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated`、`git worktree list`、`scripts/test-ghq-status.sh`（回帰テスト） |
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリ全件に `git-pull-all` を実行（ロックファイル stash 付き） | `bin/unix/git-pull-all`、`bin/unix/_ghq-lib.sh` |
 | `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行 | `bin/unix/git-sweep` |

@@ -103,7 +103,7 @@ pre-commitで両者の対応関係を検証する。
 | `doc-lint` | カレントのリポジトリの全Markdownのサイズ・frontmatterを検査して表示（警告のみ・ログなし。[仕様](specification.md#doc-lint)） |
 | `git-survey [main-branch]` | main以外のブランチをlocal/remote別に表示 |
 | `dots ghq get [--dry-run] [--force]` | `host/role`が`work`の端末で、`ghq/get`（dotfiles-private）の宣言のうち未取得のリポジトリを`ghq get`（動詞表の外の独立アクション。`dots update`が呼ぶ） |
-| `ghq-pull [--fetch-only]` | ghq管理リポジトリ全件をfetch + pull |
+| `ghq-pull [--fetch-only] [-s\|--status-only]` | ghq管理リポジトリ全件をfetch + pull（`-s`はghq-statusで異常のあるリポジトリのみ） |
 | `ghq-update [--all\|--pull-all\|--sync-only\|--pull-only\|--no-auto-pr]` | ghq管理リポジトリを更新（uv sync・npm update/build、lock自動PR含む） |
 | `update-wsl [--list] [distro...]` | （Windows専用）WSLに登録された`apt-get`のあるディストリビューション（Ubuntu・Debian等）をrootで`apt update/upgrade/dist-upgrade/autoremove/autoclean`。対象は`wsl -l -q`から毎回取得し、名前を指定すると絞り込む（`--list`は更新せず対象表示）。`docker-desktop`等の内部ディストリビューションは除外。`dots update`の最後に呼ばれる |
 | `ghq-sweep [--no-pull]` | ghq管理リポジトリ全件に`git-sweep --all`を実行（`--no-pull`はローカルブランチの更新を行わない） |

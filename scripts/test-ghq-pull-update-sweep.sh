@@ -109,6 +109,16 @@ check "exit 0 with clean pull" rc_is 0
 run ghq-pull --uv-sync-only
 check "unknown option rejected" rc_is 1
 
+section "ghq-pull: -s/--status-only limits to ghq-status's abnormal repos"
+make_repo f-clean
+make_repo g-dirty
+echo dirty >> "$(repo g-dirty)/untracked.txt"
+run ghq-pull -s -f 'f-clean$|g-dirty$'
+check "exit 0 (dirty repo is a skip, not a failure)" rc_is 0
+check "clean repo on main is not an abnormal row, so untouched" lacks "$OUT" "f-clean"
+check "dirty repo is an abnormal row, so targeted" contains "$OUT" "g-dirty"
+check "targeted repo reports the dirty skip" contains "$OUT" "uncommitted changes"
+
 section "ghq-update: pull failure is counted, dirty skipped"
 remote_commit a-ok main README.md
 run ghq-update --pull-all --pull-only

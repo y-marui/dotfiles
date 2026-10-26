@@ -7,6 +7,9 @@
 # オプション:
 #   --fetch-only        fetch のみ実行（ローカルブランチは更新しない）
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
+#                        （ghq-status --paths-only の結果を使う。-f と併用可。
+#                        dotfiles・dev-charterを先に処理する優先順位は適用されない）
 #   -h, --help          ヘルプを表示
 #
 # 動作:
@@ -31,6 +34,7 @@ source "${SCRIPT_DIR}/_ghq-lib.sh"
 
 FETCH_ONLY=false
 FILTER=''
+STATUS_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -38,6 +42,7 @@ while [[ $# -gt 0 ]]; do
     -f|--filter)
       [[ $# -lt 2 ]] && { echo "error: --filter requires an argument" >&2; exit 1; }
       FILTER="$2"; shift 2 ;;
+    -s|--status-only) STATUS_ONLY=1; shift ;;
     -h|--help)    sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)            echo "error: unknown option: $1" >&2; exit 1 ;;
   esac
@@ -56,6 +61,12 @@ while IFS= read -r f; do
   echo ""
   echo "==> $f"
   _ghq_pull_repo "$f" ${pull_args[@]+"${pull_args[@]}"} || failed=$((failed + 1))
-done < <(_ghq_ordered_list "$FILTER")
+done < <(
+  if [[ "$STATUS_ONLY" == 1 ]]; then
+    "${SCRIPT_DIR}/ghq-status" --paths-only --filter "$FILTER"
+  else
+    _ghq_ordered_list "$FILTER"
+  fi
+)
 
 [[ "$failed" -eq 0 ]] || exit 1

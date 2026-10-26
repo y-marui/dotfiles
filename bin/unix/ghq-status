@@ -63,26 +63,22 @@ _cleanup_status_tmp() {
   _GHQ_STATUS_TMP_DIR=''
 }
 
-_collect_repo() {
-  local repo="$1" root="$2"
-  local rel branch staged=0 unstaged=0 untracked=0 stashed=0 ahead=0 behind=0 status_str
-  local main_branch protected_raw remote_only_raw base is_protected p
-  local status_output attrs_output config_output refs_output line key value xy ref sym origin_head='' main_name=main
-  local br_name br_pat expected policy_ok=1 legacy_remote_extra=0 matched
-  local local_br origin_br br_str charter_ver keep_val expected_br
-  typeset -A attrs config_values
-  typeset -a protected_list remote_only_list legacy_remote_patterns local_branch_names origin_branch_names
-
-  rel="${repo#"$root/"}"
-
-  # status、branch、upstream差分、stashを1回の走査で取得する。
-  status_output="$(git -C "$repo" status --porcelain=v2 --branch --show-stash \
+# _status_summary <path>
+# そのworktreeのbranch・GIT STATUSサマリを1回のgit呼び出しで取得し、
+# _SS_BRANCH / _SS_STATUS にセットする（本体・追加worktree行の両方から呼ぶ）。
+_status_summary() {
+  # 変数名 path は zsh の特殊パラメータ $PATH と連動する配列のため使わない
+  # （local path=... で宣言すると $PATH が壊れ、以降の git 呼び出しが失敗する）。
+  local target_path="$1" status_output line value xy
+  local staged=0 unstaged=0 untracked=0 stashed=0 ahead=0 behind=0
+  _SS_BRANCH=''
+  status_output="$(git -C "$target_path" status --porcelain=v2 --branch --show-stash \
     --ahead-behind --untracked-files=all 2>/dev/null || true)"
   while IFS= read -r line; do
     case "$line" in
       '# branch.head '*)
-        branch="${line#\# branch.head }"
-        [[ "$branch" == '(detached)' ]] && branch=HEAD
+        _SS_BRANCH="${line#\# branch.head }"
+        [[ "$_SS_BRANCH" == '(detached)' ]] && _SS_BRANCH=HEAD
         ;;
       '# branch.ab +'*)
         value="${line#\# branch.ab +}"
@@ -100,7 +96,35 @@ _collect_repo() {
       '? '*) (( untracked++ )) ;;
     esac
   done <<< "$status_output"
-  [[ -n "$branch" ]] || branch='?'
+  [[ -n "$_SS_BRANCH" ]] || _SS_BRANCH='?'
+
+  _SS_STATUS=''
+  (( staged    > 0 )) && _SS_STATUS+=" +${staged}"
+  (( unstaged  > 0 )) && _SS_STATUS+=" !${unstaged}"
+  (( untracked > 0 )) && _SS_STATUS+=" ?${untracked}"
+  (( stashed   > 0 )) && _SS_STATUS+=" *${stashed}"
+  (( ahead     > 0 )) && _SS_STATUS+=" ⇡${ahead}"
+  (( behind    > 0 )) && _SS_STATUS+=" ⇣${behind}"
+  _SS_STATUS="${_SS_STATUS# }"
+  [[ -n "$_SS_STATUS" ]] || _SS_STATUS='✓'
+}
+
+_collect_repo() {
+  local repo="$1" root="$2"
+  local rel branch status_str
+  local main_branch protected_raw remote_only_raw base is_protected p
+  local status_output attrs_output config_output refs_output line key value ref sym origin_head='' main_name=main
+  local br_name br_pat expected policy_ok=1 legacy_remote_extra=0 matched
+  local local_br origin_br br_str charter_ver keep_val expected_br
+  typeset -A attrs config_values
+  typeset -a protected_list remote_only_list legacy_remote_patterns local_branch_names origin_branch_names
+
+  rel="${repo#"$root/"}"
+
+  # status、branch、upstream差分、stashのサマリ（追加worktree行でも使う共通関数）。
+  _status_summary "$repo"
+  branch="$_SS_BRANCH"
+  status_str="$_SS_STATUS"
 
   # リポジトリ属性は属性ごとではなく1回のGit呼び出しで取得する。
   attrs_output="$(git -C "$repo" check-attr \
@@ -185,16 +209,6 @@ _collect_repo() {
     [[ "$branch" == "$p" ]] && { is_protected=1; break; }
   done
 
-  status_str=''
-  (( staged    > 0 )) && status_str+=" +${staged}"
-  (( unstaged  > 0 )) && status_str+=" !${unstaged}"
-  (( untracked > 0 )) && status_str+=" ?${untracked}"
-  (( stashed   > 0 )) && status_str+=" *${stashed}"
-  (( ahead     > 0 )) && status_str+=" ⇡${ahead}"
-  (( behind    > 0 )) && status_str+=" ⇣${behind}"
-  status_str="${status_str# }"
-  [[ -n "$status_str" ]] || status_str='✓'
-
   local_br=${#local_branch_names[@]}
   origin_br=${#origin_branch_names[@]}
   for expected in "${protected_list[@]}"; do
@@ -252,6 +266,26 @@ _collect_repo() {
 
   printf '%s\0' "${rel%/*}" "${rel##*/}" "$branch" "$status_str" "$br_str" \
     "$charter_ver" "$keep_val" "$expected_br" "$is_protected" "$policy_ok" "$repo"
+
+  # 本体以外のworktree（別ブランチを別ディレクトリにcheckoutしたもの）があれば、
+  # BRANCHES/DEV-CHARTER/KEEP/policy_ok（リポジトリ全体で共通）はそのまま使い、
+  # branch・GIT STATUSだけをworktreeごとに再計算して追加行を出す。
+  local wt_line wt_path wt_branch wt_status wt_protected
+  while IFS= read -r wt_line; do
+    [[ "$wt_line" == 'worktree '* ]] || continue
+    wt_path="${wt_line#worktree }"
+    [[ -d "$wt_path" ]] || continue
+    [[ "$wt_path" -ef "$repo" ]] && continue
+    _status_summary "$wt_path"
+    wt_branch="$_SS_BRANCH"
+    wt_status="$_SS_STATUS"
+    wt_protected=0
+    for p in "${protected_list[@]}"; do
+      [[ "$wt_branch" == "$p" ]] && { wt_protected=1; break; }
+    done
+    printf '%s\0' "${rel%/*}" "↳ $(basename "$wt_path")" "$wt_branch" "$wt_status" "$br_str" \
+      "$charter_ver" "$keep_val" "$expected_br" "$wt_protected" "$policy_ok" "$wt_path"
+  done < <(git -C "$repo" worktree list --porcelain 2>/dev/null)
 }
 
 _pad() {
@@ -338,7 +372,17 @@ main() {
 
   typeset -a all_groups all_repo_names all_branches all_statuses all_brs all_charters all_keeps all_bases all_protected all_policy_ok all_paths
   typeset -a repo_list worker_pids
-  repo_list=("${(@f)$(ghq list -p | sort -fV | grep -iE -- "$filter")}")
+  local repo_list_raw
+  repo_list_raw="$(ghq list -p | sort -fV | grep -iE -- "$filter")"
+  # ${(@f)""} は空文字列1件の配列になってしまい、_collect_repo が空パスで
+  # 呼ばれて git -C "" が「カレントディレクトリのまま」解釈される
+  # （フィルタが何にも一致しない場合に無関係なリポジトリを表示してしまう）ため、
+  # 空のときは明示的に空配列にする。
+  if [[ -n "$repo_list_raw" ]]; then
+    repo_list=("${(@f)repo_list_raw}")
+  else
+    repo_list=()
+  fi
 
   local jobs="${GHQ_STATUS_JOBS:-8}"
   [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || { print -u2 "error: GHQ_STATUS_JOBS must be a positive integer"; return 1; }
@@ -362,32 +406,37 @@ main() {
   done
   for pid in "${worker_pids[@]}"; do wait "$pid" || return 1; done
 
+  # 各リポジトリは本体1行＋追加worktree0行以上を出すため、ファイル1つにつき
+  # レコード数が可変（fdを開いたまま空になるまで読む。都度のリダイレクトでは
+  # ファイルの先頭に戻ってしまうため不可）。
   local group repo_name branch status_str br_str charter_ver keep_val expected_br is_protected policy_ok repo_path
+  local wfd
   for (( i = 1; i <= ${#repo_list}; i++ )); do
-    {
-      IFS= read -r -d $'\0' group
-      IFS= read -r -d $'\0' repo_name
-      IFS= read -r -d $'\0' branch
-      IFS= read -r -d $'\0' status_str
-      IFS= read -r -d $'\0' br_str
-      IFS= read -r -d $'\0' charter_ver
-      IFS= read -r -d $'\0' keep_val
-      IFS= read -r -d $'\0' expected_br
-      IFS= read -r -d $'\0' is_protected
-      IFS= read -r -d $'\0' policy_ok
-      IFS= read -r -d $'\0' repo_path
-    } < "$_GHQ_STATUS_TMP_DIR/$i"
-    all_groups+=("$group")
-    all_repo_names+=("$repo_name")
-    all_branches+=("$branch")
-    all_statuses+=("$status_str")
-    all_brs+=("$br_str")
-    all_charters+=("$charter_ver")
-    all_keeps+=("$keep_val")
-    all_bases+=("$expected_br")
-    all_protected+=("$is_protected")
-    all_policy_ok+=("$policy_ok")
-    all_paths+=("$repo_path")
+    exec {wfd}<"$_GHQ_STATUS_TMP_DIR/$i"
+    while IFS= read -r -d $'\0' group <&$wfd; do
+      IFS= read -r -d $'\0' repo_name <&$wfd
+      IFS= read -r -d $'\0' branch <&$wfd
+      IFS= read -r -d $'\0' status_str <&$wfd
+      IFS= read -r -d $'\0' br_str <&$wfd
+      IFS= read -r -d $'\0' charter_ver <&$wfd
+      IFS= read -r -d $'\0' keep_val <&$wfd
+      IFS= read -r -d $'\0' expected_br <&$wfd
+      IFS= read -r -d $'\0' is_protected <&$wfd
+      IFS= read -r -d $'\0' policy_ok <&$wfd
+      IFS= read -r -d $'\0' repo_path <&$wfd
+      all_groups+=("$group")
+      all_repo_names+=("$repo_name")
+      all_branches+=("$branch")
+      all_statuses+=("$status_str")
+      all_brs+=("$br_str")
+      all_charters+=("$charter_ver")
+      all_keeps+=("$keep_val")
+      all_bases+=("$expected_br")
+      all_protected+=("$is_protected")
+      all_policy_ok+=("$policy_ok")
+      all_paths+=("$repo_path")
+    done
+    exec {wfd}<&-
   done
   _cleanup_status_tmp
   trap - EXIT HUP INT TERM

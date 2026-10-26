@@ -325,10 +325,12 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 
 ### ghq-pull / ghq-update / ghq-sweep
 
-- **対象**: `ghq-pull`と`ghq-sweep`は全リポジトリ（`ghq-sweep -s`は`ghq-status`で異常のある
-  もののみ）。`ghq-update`はkeep-up-to-dateのリポジトリ（`--pull-all`で全リポジトリのpull、
-  `--all`で`.venv`/`node_modules`のあるリポジトリまでsync対象を拡張）。`-f/--filter`は
-  3コマンド共通。dotfilesとdev-charterは他より先に処理する
+- **対象**: `ghq-pull`と`ghq-sweep`は全リポジトリ（`-s/--status-only`指定時は`ghq-status`で
+  異常のあるもののみ。`ghq-status --paths-only --filter`の結果を使うため、dotfilesと
+  dev-charterを先に処理する優先順位は適用されない）。`ghq-update`はkeep-up-to-dateの
+  リポジトリ（`--pull-all`で全リポジトリのpull、`--all`で`.venv`/`node_modules`のある
+  リポジトリまでsync対象を拡張）。`-f/--filter`は3コマンド共通。dotfilesとdev-charterは
+  （`-s`未指定時）他より先に処理する
 - **ロックファイルstash**: `uv.lock`/`package-lock.json`のみdirtyなら一時的にstashして実行し、
   実行後に復元する（復元でコンフリクトしたら失敗として扱い、stashは残す）。
   それ以外にもdirtyなら、`ghq-pull`は`git-pull-all`がwarning付きで現在ブランチの更新を見送り、
@@ -695,10 +697,41 @@ BRANCHESの方針違反、古いDEV-CHARTER）で示す。KEEPは更新対象の
 
 各リポジトリの状態取得では、status・branch・upstream差分・stashを
 `git status --porcelain=v2 --branch --show-stash --ahead-behind --untracked-files=all`で
-一括取得する。属性、fallback設定、
+一括取得する（この取得は`_status_summary`として独立しており、本体・追加worktree行の
+両方から呼ぶ。内部で使うローカル変数名に`path`を使わないこと — zshでは`path`が
+`$PATH`と連動する特殊パラメータで、`local path=...`が`$PATH`自体を壊し、以降の
+git呼び出しがすべて失敗する）。属性、fallback設定、
 ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単位では並列に処理する。
 並列数は環境変数`GHQ_STATUS_JOBS`で変更でき、未設定時は8とする。収集完了後に
 元のリポジトリ順へ並べ直すため、並列数によって表示順は変わらない。
+
+### Linked worktrees
+
+`ghq list -p`の各リポジトリで`git worktree list --porcelain`も見て、本体以外の
+worktree（`git worktree add`で別ブランチを別ディレクトリにcheckoutしたもの）があれば、
+本体の行の直後に追加行として表示する（存在しなければ何も増えない）。
+
+- **追加行のREPO列**: `↳ <worktreeディレクトリのbasename>`。グループ（表の見出し）は
+  本体と同じ（`ghq list -p`上のパスのディレクトリ階層で決まる。worktree自体は
+  ghqルート外にあることが多い）
+- **BRANCH・GIT STATUS**: その worktree 自身の値（本体とは独立。`_status_summary`を
+  worktreeのパスに対して個別に呼ぶ）
+- **BRANCHES・DEV-CHARTER・KEEP・policy_ok**: リポジトリ全体（`.git`を共有）で
+  共通の値を再利用する（worktreeごとに変わらない。DEV-CHARTERはworktree側の
+  チェックアウト内容を見ていないため、本体のVERSIONをそのまま使う）
+- **quiet row判定**: 本体行と同じ`_is_quiet_row`を使うため、保護ブランチでclean、かつ
+  リポジトリ全体がpolicy_ok・BRANCHES一致・DEV-CHARTER最新であれば、追加行も
+  `-a`無指定時は非表示になる。ただしpolicy_ok・BRANCHESはリポジトリ全体の値なので、
+  worktreeで未知のローカルブランチをcheckoutしている時点でリポジトリ全体がpolicy違反
+  となり、本体行も含めて表示される（想定どおり: アクティブなworktreeがあれば注目対象）
+- **`-p/--paths-only`**: worktreeのパスも対象外のリポジトリと同様の基準で出力される
+  （`ghq-pull -s`/`ghq-sweep -s`がそのまま使えば、dirtyなworktreeも処理対象になる）
+
+`-f/--filter`が1件もマッチしない場合、`repo_list`は空配列になる（zshの
+`${(f)$(...)}`は空文字列の展開結果を1件の空文字列を持つ配列にしてしまうため、
+展開前に空文字列判定をしている。この対処が無いと`_collect_repo`が空パスで呼ばれ、
+`git -C ""`が「カレントディレクトリのまま」解釈されて無関係なリポジトリ（ghq-status
+を実行したディレクトリ）を表示してしまう）。
 
 ## ghq-build-deploy
 
