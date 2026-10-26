@@ -111,4 +111,5 @@ pre-commitで両者の対応関係を検証する。
 | `install-my-apps [-f\|-r\|-u\|--no-gui\|--migrate-old\|--no-migrate-old] [app...]` | iCloud Driveの`Build/Swift/*.dmg`と`Build/Tauri/*.dmg`から自作アプリを`/Applications/My Swift`と`/Applications/My Tauri`へインストール（App Store版と同名でも衝突しない。`Build`直下の移行前のDMGはSwift扱い。移行期間の措置として、`/Applications`直下に残っている同じ自作アプリを整理する`--migrate-old`が既定でONで、新旧の両方にあるときは消さない。macOS専用。Windows版は`my-hosts`用の何もしないスタブで、終了コード64を返す。`--no-gui`でアプリの終了・起動・ウィジェット編集画面を省く） |
 | `ghq-check [--sync]` | GitHub の全リポジトリの取得状況を確認。`--sync` で未取得リポジトリを `ghq get` |
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
+| `ghq-build-deploy [-f pattern] [-n\|--dry-run]` | swift-*/chrome-*/tauri-*（template除外、個別上書きは`bin/ghq-build-deploy-targets`）のうちMakefileに実在する候補ターゲット（deploy/ios/build等）だけを逐次make実行（macOS専用） |
 | `sync-labpc <job-name\|host-ip\|all\|list>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`。`list`でジョブ一覧表示） |

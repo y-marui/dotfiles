@@ -700,6 +700,39 @@ ref一覧もそれぞれ1回のGit呼び出しで取得し、リポジトリ単�
 並列数は環境変数`GHQ_STATUS_JOBS`で変更でき、未設定時は8とする。収集完了後に
 元のリポジトリ順へ並べ直すため、並列数によって表示順は変わらない。
 
+## ghq-build-deploy
+
+`bin/unix/ghq-build-deploy`は、swift系・chrome系・tauri系のように複数リポジトリへ分かれた
+自作アプリの`make build`/`make deploy`/`make ios`を1コマンドでまとめて回すためのもの
+（macOS専用。`xcodebuild`を伴うswift-\*のビルドがmacOS前提のため、chrome-\*/tauri-\*も
+同じMacでの一括実行に合わせている。`scripts/check-bin-parity.sh`のEXCEPTIONSに記載）。
+
+- **対象リポジトリの判定**: `ghq list -p`のbasenameが次のグロブに大小文字区別なく一致する
+  ものを対象にする。名前に`template`を含むリポジトリ（closed-template等の雛形）は対象外。
+  - `swift-*` → 候補ターゲット: `deploy ios`
+  - `chrome-*` → 候補ターゲット: `build`
+  - `tauri-*` → 候補ターゲット: `deploy`
+- **候補ターゲットの絞り込み**: 候補のうち、そのリポジトリのMakefileに実在するもの
+  （`make -n <target>`が成功するもの）だけを、記載順にすべて実行する。候補が1つも
+  存在しない・Makefileが無いリポジトリはスキップする（例: swift-\*でも`ios`ターゲットが
+  無いmacOS専用アプリは`deploy`だけ実行する）。
+- **個別リポジトリの上書き**: [bin/ghq-build-deploy-targets](../bin/ghq-build-deploy-targets)に
+  `<パターン> <ターゲット...>`を1行書くと、そのリポジトリでは既定のグループ判定・template
+  除外より優先してその候補を使う。`bin/ghq-upstream-pr-allow`と同じ書式（`#`コメント、
+  globパターン）
+- **`-f/--filter`**: 上記の判定より前に、リポジトリパスを正規表現でさらに絞り込む
+  （`ghq-status`等と同じ位置づけ）
+- **`-n/--dry-run`**: 実際には`make`を実行せず、実行対象（リポジトリ・ターゲットの組）だけ表示する
+- **実行**: 1リポジトリ・1ターゲットずつ逐次実行し、出力はバッファリングせずそのまま流す
+  （並列化しない。ビルドログを順番に確認できることを優先する）
+- **失敗の扱い**: 失敗した`make`実行があっても処理は継続し、最後に失敗の一覧を表示して
+  終了コード1で終了する。対象ターゲットが1つも無いリポジトリへのスキップは終了コード0
+
+回帰テスト: [scripts/test-ghq-build-deploy.sh](../scripts/test-ghq-build-deploy.sh)。使い捨ての
+ghqルートとリポジトリ（Makefile付き）を用意し、グループ判定・template除外・個別上書き・
+複数候補ターゲットの絞り込み・`--dry-run`・失敗時の終了コードを検証する。ネットワーク
+アクセスはしない。
+
 ## measure-doc-size
 
 `scripts/measure-doc-size.py`は、常時読込文書（`~/.ai/AI_CONTEXT*.md`と、`ghq list -p`で列挙した

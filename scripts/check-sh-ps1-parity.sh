@@ -20,6 +20,7 @@ EXCEPTIONS=(
   "scripts/host-role.sh:macOS専用（ghq/get.sh と pipx/apply_pipxfile.sh が source する役割判定。Windows対応時に host-role.ps1 を追加する）"
   "scripts/test-ghq-get.sh:macOS専用（ghq/get.sh の回帰テスト）"
   "scripts/test-install-my-apps.sh:macOS専用（install-my-apps は macOS 専用で、hdiutil で DMG を作って検証する）"
+  "scripts/test-ghq-build-deploy.sh:macOS専用（bin/unix/ghq-build-deploy の回帰テスト。ghq-build-deploy自体がmacOS専用のため対のWindows実装はない）"
   "macos/apply_brewpin.sh:macOS専用（Homebrew）"
   "macos/apply_brewfile.sh:macOS専用（Homebrew）"
   "macos/apply_dockfile.sh:macOS専用（Dock）"

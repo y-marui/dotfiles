@@ -16,6 +16,7 @@ EXCEPTIONS=(
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
   "my-hosts:macOS（実行元）専用（ssh経由でghq-pull・install-my-apps等を実行する。Windowsは実行元にならず、対象としてのみ宣言できる）"
   "update-wsl:Windows専用（WSL内のapt系ディストリビューションを更新する。Linuxには対象がない）"
+  "ghq-build-deploy:macOS専用（swift-*リポジトリのmake deploy/iosはXcode前提。chrome-*/tauri-*も同じMacでの一括実行を前提にしている）"
 )
 
 _exception_key() {
