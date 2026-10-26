@@ -34,9 +34,10 @@
 
 ## Session Closeout
 
-ユーザーが作業セッションの終了・引き継ぎを明示したときは、記録の整理だけなら`session-handoff`、
-Gitの後始末まで含めて終えるなら`session-finish`を使う。`session-handoff`は
-commit・push・merge・ブランチ削除を暗黙に承認しない。詳細は`AI_CONTEXT_CLI.md`を参照する。
+ユーザーが作業セッションの区切り・終了を明示したときは、`/compact`の前に続けるなら`session-handoff`、
+セッションごと終えるなら`session-finish`を使う。どちらも、呼び出しを区切りのついた作業の
+commit・push・PR・mergeの承認として扱う（条件は skill に従う）。archive・ブランチ削除・実機反映は
+`session-finish`だけが行う。詳細は`AI_CONTEXT_CLI.md`を参照する。
 
 ## Interaction Rules
 
