@@ -52,10 +52,12 @@ _最終更新: 2026-10-19_
 
 | ファイル | 役割 | 主な依存先 |
 |---|---|---|
-| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示 | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated` |
+| `bin/unix/ghq-status` | ghq 管理下の全リポジトリの git 状態・BRANCHES・dev-charter追従・keep-up-to-date を一覧表示（`git worktree add`で作った追加worktreeがあれば本体行の直後に行を追加。詳細は[specification.md#linked-worktrees](specification.md#linked-worktrees)） | `.gitattributes`（repo-main-branch、repo-protected-branches、repo-remote-only-branches）、属性未設定時の`local.repo-*`、`local.status-ignore-charter-outdated`、`git worktree list`、`scripts/test-ghq-status.sh`（回帰テスト） |
 | `bin/unix/ghq-update` | ghq 管理下リポジトリの fetch/pull と uv/npm 同期、upstream fork sync、ロックファイル更新の自動PR | `git config local.keep-up-to-date`、`upstream` remote、`bin/ghq-upstream-pr-allow` |
 | `bin/unix/ghq-pull` | ghq 管理下リポジトリ全件に `git-pull-all` を実行（ロックファイル stash 付き） | `bin/unix/git-pull-all`、`bin/unix/_ghq-lib.sh` |
 | `bin/unix/ghq-sweep` | ghq 管理下リポジトリの `git-sweep --all` 一括実行 | `bin/unix/git-sweep` |
+| `bin/unix/ghq-build-deploy` | swift-\*/chrome-\*/tauri-\*（template除外）のリポジトリを対象に、Makefileに実在する候補ターゲット（deploy/ios/build等）だけを逐次`make`実行（macOS専用。詳細は[specification.md#ghq-build-deploy](specification.md#ghq-build-deploy)） | `ghq list -p`、`make`、`bin/ghq-build-deploy-targets`、`completions/_ghq-build-deploy`、`scripts/check-bin-parity.sh`（例外宣言）、`scripts/test-ghq-build-deploy.sh`（回帰テスト） |
+| `bin/ghq-build-deploy-targets` | `ghq-build-deploy`の候補ターゲットを個別リポジトリ単位で上書きする宣言（既定のグループ判定・template除外より優先） | `bin/unix/ghq-build-deploy` |
 | `bin/windows/update-wsl.ps1`（+ `.cmd`） | WSL登録のapt系ディストリビューションをrootで更新（Windows専用。`dots update`の最後に呼ぶ） | `wsl.exe`、`bin/windows/dots.ps1`、`scripts/check-bin-parity.sh`（例外宣言） |
 | `bin/unix/my-hosts` | 宣言した他のMacで`ghq-pull`/`ghq-update`/`ghq-sweep`と`ghq-status`、`install-my-apps`をサブコマンド（`status`/`pull`/`sweep`/`update`/`apps`）に応じてssh経由で実行し、結果表を出す（実行元はmacOS専用、対象はWindowsも可。詳細は[specification.md#my-hosts](specification.md#my-hosts)） | `dotfiles-private/hosts/hosts`・`.local`、`ssh`、`scutil`、`install-my-apps`、`scripts/test-my-hosts.sh`（回帰テスト） |
 | `bin/unix/install-my-apps` | iCloud Drive の `Build/Swift`・`Build/Tauri` の DMG から自作アプリを `/Applications/My Swift`・`/Applications/My Tauri` へインストール・削除する（macOS 専用。旧い置き場の整理は移行期間のオプション。詳細は[specification.md#install-my-apps](specification.md#install-my-apps)） | `hdiutil`、`scripts/test-install-my-apps.sh`（回帰テスト） |

@@ -7,6 +7,9 @@
 # オプション:
 #   --fetch-only        fetch のみ実行（ローカルブランチは更新しない）
 #   -f, --filter PATTERN  リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#   -s, --status-only    ghq-status で異常が検出されたリポジトリだけを対象にする
+#                        （ghq-status --paths-only の結果を使う。-f と併用可。
+#                        dotfiles・dev-charterを先に処理する優先順位は適用されない）
 #   -h, --help          ヘルプを表示
 #
 # 動作:
@@ -37,6 +40,7 @@ function Show-Help {
 
 $FETCH_ONLY = $false
 $FILTER = ''
+$STATUS_ONLY = $false
 
 $i = 0
 while ($i -lt $args.Count) {
@@ -51,6 +55,9 @@ while ($i -lt $args.Count) {
         }
         $FILTER = $args[$i + 1]
         $i += 2
+    } elseif ($arg -eq '-s' -or $arg -eq '--status-only') {
+        $STATUS_ONLY = $true
+        $i++
     } elseif ($arg -eq '-h' -or $arg -eq '--help') {
         Show-Help
         exit 0
@@ -65,7 +72,12 @@ if (-not (Get-Command ghq -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$repos = Get-GhqOrderedList $FILTER
+if ($STATUS_ONLY) {
+    $global:LASTEXITCODE = $null
+    $repos = @(& "$PSScriptRoot\ghq-status.ps1" --paths-only --filter $FILTER)
+} else {
+    $repos = Get-GhqOrderedList $FILTER
+}
 
 $failed = 0
 $pullArgs = @()

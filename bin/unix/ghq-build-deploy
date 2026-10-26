@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# ghq-build-deploy: swift-* / chrome-* / tauri-* などのリポジトリをパターンで識別し、
+# 各リポジトリのMakefileに実在するターゲットだけをmakeで逐次実行する
+#
+# 使い方:
+#   ghq-build-deploy [options]
+#
+# オプション:
+#   -f, --filter PATTERN   リポジトリパスが正規表現 PATTERN にマッチするものだけを対象にする
+#                          （グループ判定・template除外より前に適用する追加フィルタ）
+#   -n, --dry-run          make を実行せず、実行対象（リポジトリ・ターゲット）だけ表示する
+#   -h, --help             ヘルプを表示
+#
+# 対象リポジトリと候補ターゲット（既定）:
+#   リポジトリ名（ghqのbasename）が次のグロブに大小文字区別なく一致するものを対象にする。
+#   名前に "template" を含むリポジトリは対象外（closed-template等の雛形リポジトリを除くため）。
+#     swift-*   候補: deploy ios
+#     chrome-*  候補: build
+#     tauri-*   候補: deploy
+#   個別リポジトリの候補ターゲットは bin/ghq-build-deploy-targets で上書きできる
+#   （template除外より優先する。書式は同ファイル参照。パスは環境変数
+#   GHQ_BUILD_DEPLOY_TARGETS_FILE で変更できる。主にテスト用）。
+#
+#   候補のうち、実際にそのリポジトリのMakefileに定義されているもの（`make -n <target>`が
+#   成功するもの）だけを、記載順にすべて実行する。候補が1つも存在しない・Makefileが無い
+#   リポジトリはスキップする。
+#
+# 実行:
+#   1リポジトリ・1ターゲットずつ逐次実行し、出力はそのまま流す（並列化・バッファリングはしない）。
+#   失敗したmake実行があっても処理は継続し、最後に[failed]の一覧を表示して終了コード1で
+#   終了する（スキップは終了コード0）。
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OVERRIDE_FILE="${GHQ_BUILD_DEPLOY_TARGETS_FILE:-${SCRIPT_DIR}/../ghq-build-deploy-targets}"
+
+GROUP_PATTERNS=(
+  'swift-*:deploy ios'
+  'chrome-*:build'
+  'tauri-*:deploy'
+)
+
+FILTER=''
+DRY_RUN=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f|--filter)
+      [[ $# -lt 2 ]] && { echo "error: --filter requires an argument" >&2; exit 1; }
+      FILTER="$2"; shift 2 ;;
+    -n|--dry-run) DRY_RUN=1; shift ;;
+    -h|--help)    sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)            echo "error: unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+if ! command -v ghq >/dev/null 2>&1; then
+  echo "error: 'ghq' が見つかりません。" >&2
+  exit 1
+fi
+
+# _candidates_for_repo <basename> <relpath>
+# 標準出力に候補ターゲット（空白区切り1行）を出す。対象外なら何も出さない
+# （override一致・グループ一致のどちらも無ければ出力無し。グループ一致でも
+# template除外に当たれば出力無し）。
+_candidates_for_repo() {
+  local base="$1" rel="$2" line pat targets entry
+  shopt -s nocasematch
+
+  if [[ -f "$OVERRIDE_FILE" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%%#*}"
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      [[ -z "$line" ]] && continue
+      pat="${line%% *}"
+      targets="${line#* }"
+      # shellcheck disable=SC2053  # $pat はグロブパターンとして意図的にunquote
+      if [[ "$base" == $pat || "$rel" == $pat ]]; then
+        shopt -u nocasematch
+        printf '%s\n' "$targets"
+        return 0
+      fi
+    done < "$OVERRIDE_FILE"
+  fi
+
+  if [[ "$base" == *template* ]]; then
+    shopt -u nocasematch
+    return 0
+  fi
+
+  for entry in "${GROUP_PATTERNS[@]}"; do
+    pat="${entry%%:*}"
+    targets="${entry#*:}"
+    # shellcheck disable=SC2053  # $pat はグロブパターンとして意図的にunquote
+    if [[ "$base" == $pat ]]; then
+      shopt -u nocasematch
+      printf '%s\n' "$targets"
+      return 0
+    fi
+  done
+
+  shopt -u nocasematch
+}
+
+# _existing_targets <repo> <candidates...>
+# 標準出力に、そのリポジトリのMakefileに実在する候補だけを記載順に1行ずつ出す。
+_existing_targets() {
+  local repo="$1" target
+  shift
+  for target in "$@"; do
+    (cd "$repo" && make -n "$target") >/dev/null 2>&1 && printf '%s\n' "$target"
+  done
+  return 0
+}
+
+root="$(ghq root)"
+failed_list=()
+ran_any=0
+
+while IFS= read -r repo; do
+  [[ -z "$repo" ]] && continue
+  rel="${repo#"$root"/}"
+  base="$(basename "$repo")"
+
+  candidates="$(_candidates_for_repo "$base" "$rel")"
+  [[ -z "$candidates" ]] && continue
+
+  # shellcheck disable=SC2207,SC2086 # 単語分割が意図（空白区切りのターゲット一覧を配列化）
+  existing=($(_existing_targets "$repo" $candidates))
+  [[ "${#existing[@]}" -eq 0 ]] && continue
+
+  for target in "${existing[@]}"; do
+    ran_any=1
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      echo "==> (dry-run) $rel: make $target"
+      continue
+    fi
+    echo ""
+    echo "==> $rel: make $target"
+    if ! (cd "$repo" && make "$target"); then
+      echo "  [failed] $rel: make $target" >&2
+      failed_list+=("$rel: make $target")
+    fi
+  done
+done < <(ghq list -p | sort -fV | grep -iE -- "$FILTER")
+
+if [[ "$ran_any" -eq 0 ]]; then
+  echo "対象リポジトリ・ターゲットがありません（swift-*/chrome-*/tauri-*、template除外、bin/ghq-build-deploy-targets を確認してください）" >&2
+fi
+
+if [[ "${#failed_list[@]}" -gt 0 ]]; then
+  echo ""
+  echo "failed:"
+  printf '  %s\n' "${failed_list[@]}"
+  exit 1
+fi

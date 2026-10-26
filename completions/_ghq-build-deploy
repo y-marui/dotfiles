@@ -1,0 +1,10 @@
+#compdef ghq-build-deploy
+
+_ghq-build-deploy() {
+  _arguments \
+    '(-f --filter)'{-f,--filter}'[対象リポジトリを正規表現で絞り込む]:pattern:' \
+    '(-n --dry-run)'{-n,--dry-run}'[実際にはmakeを実行せず対象だけ表示する]' \
+    '(-h --help)'{-h,--help}'[ヘルプを表示]'
+}
+
+_ghq-build-deploy "$@"
