@@ -724,6 +724,8 @@ worktree（`git worktree add`で別ブランチを別ディレクトリにchecko
   `-a`無指定時は非表示になる。ただしpolicy_ok・BRANCHESはリポジトリ全体の値なので、
   worktreeで未知のローカルブランチをcheckoutしている時点でリポジトリ全体がpolicy違反
   となり、本体行も含めて表示される（想定どおり: アクティブなworktreeがあれば注目対象）
+  追加行が1行でも表示される場合は、本体行がquietでも、どのリポジトリのworktreeか分かるよう
+  本体行も表示する
 - **`-p/--paths-only`**: worktreeのパスも対象外のリポジトリと同様の基準で出力される
   （`ghq-pull -s`/`ghq-sweep -s`がそのまま使えば、dirtyなworktreeも処理対象になる）
 

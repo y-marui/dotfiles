@@ -443,8 +443,24 @@ main() {
 
   if [[ "$show_all" != 1 || "$paths_only" == 1 ]]; then
     typeset -a q_groups q_repo_names q_branches q_statuses q_brs q_charters q_keeps q_bases q_protected q_policy_ok q_paths
+    typeset -a keep_row
+    local k
     for (( i = 1; i <= ${#all_groups}; i++ )); do
-      _is_quiet_row "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" "${all_protected[$i]}" "${all_bases[$i]}" "${all_policy_ok[$i]}" && continue
+      keep_row[i]=1
+      _is_quiet_row "${all_statuses[$i]}" "${all_brs[$i]}" "${all_charters[$i]}" "${all_protected[$i]}" "${all_bases[$i]}" "${all_policy_ok[$i]}" && keep_row[i]=0
+    done
+    # 追加worktree行（"↳ "始まり）が残る場合は、どのリポジトリのworktreeか分かるよう
+    # 本体行が quiet でも残す（本体行は直後に連続する↳行の前にある）
+    for (( i = ${#all_groups}; i >= 1; i-- )); do
+      [[ "${all_repo_names[$i]}" == '↳ '* ]] && continue
+      k=$(( i + 1 ))
+      while (( k <= ${#all_groups} )) && [[ "${all_repo_names[$k]}" == '↳ '* ]]; do
+        (( ${keep_row[$k]} )) && { keep_row[i]=1; break; }
+        (( k++ ))
+      done
+    done
+    for (( i = 1; i <= ${#all_groups}; i++ )); do
+      (( ${keep_row[$i]} )) || continue
       q_groups+=("${all_groups[$i]}")
       q_repo_names+=("${all_repo_names[$i]}")
       q_branches+=("${all_branches[$i]}")
