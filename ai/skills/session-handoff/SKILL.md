@@ -48,7 +48,7 @@ Git repositoryで`obsidian-project-home`が使える場合（`sub`を除く）�
 - 既存のagent長期memoryを見つけた場合、その内容が実際には上記いずれか（プロジェクトdocsまたはグローバルcontext）に属するなら、この機会に移管して重複を解消する（該当プロジェクトのセッションでは、次回セッションで気づいた際にも同様に扱う）。
 - 該当する記録先が存在しない、またはどちらに書くべきか不明な場合は、推測で新規ファイルを作らずユーザーに確認する。
 
-Project Homeは、解決済みの対応付けがあり、Current state・Open questions・重要判断・代表的なNext action・安定リンクのいずれかが実際に変わる場合だけ更新する。日付・PR番号つきの経過（merge、デプロイ、確認の結果）はProject HomeのNext actionsに溜めず、同じディレクトリの`<project>-changelog.md`へ追記する（`-changelog`・`CHANGELOG*.md`は`doc-lint`のサイズ検査の対象外）。コードのPRやIssueが閉じただけでは`status: completed`にしない。Project Outcomeが満たされ、ユーザーが完了を明示した場合だけ変更する。
+Project Homeは、解決済みの対応付けがあり、Current state・Open questions・重要判断・代表的なNext action・安定リンクのいずれかが実際に変わる場合だけ更新する。日付・PR番号つきの経過（merge、デプロイ、確認の結果）はProject HomeのNext actionsに溜めず、`<project>-changelog.md`へ追記する。Changelogが未作成の単体ファイルProjectでは、Project Homeと一緒に`<project>/`フォルダへ移してから作る（vault側`docs/vault-architecture.md`の規約。移動は`vault-move-notes.py`でリンクを書き換える）（`-changelog`・`CHANGELOG*.md`は`doc-lint`のサイズ検査の対象外）。コードのPRやIssueが閉じただけでは`status: completed`にしない。Project Outcomeが満たされ、ユーザーが完了を明示した場合だけ変更する。
 
 ## Step 3: Apply updates with the right permission level
 

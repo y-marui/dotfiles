@@ -20,9 +20,9 @@ ChatGPT会話の原資料取得・照合は、取得前に[共通手順](../obsi
 2. vaultの入口文書と構造・運用文書を読み、既存Projectと関連Knowledgeを検索する。
 3. ユーザーが実行を決め、Outcomeと代表的なNext actionが確認できる場合だけ作成する。不足する場合は`obsidian-save-knowledge`を使う。
 4. 根拠となる会話Recordがなければ、`obsidian-save-record`の基準で作成する。
-5. 小規模なProjectは`projects/<project-id>.md`、補助文書が必要な場合だけ`projects/<project-id>/<project-id>.md`とする。
-   元になる企画が`knowledge/proposals/`にある場合は、先に`${HOME}/src/github.com/y-marui/dotfiles/scripts/vault-move-notes.py`（`--dry-run`で確認後に実行）で企画を`projects/<名前>/<名前>-proposal.md`へ移してリンクを書き換え、企画の`status`を削除する。この場合Project Homeは子ノートが2件以上になるため`projects/<名前>/<名前>.md`の形で作る。規則の本体はvaultの`docs/vault-architecture.md`のPropertiesの節と`docs/conversation-record-format.md`に従い、ここへ複製しない。
-   `repositories`を持つProjectは`obsidian-project-home ensure`の挙動（`projects/repositories/<名前>.md`の単体ファイル）を変えず、子ノートが増えた時点でvault側の規約に従ってフォルダ化する。`repositories`は1リポジトリにつき1ファイルだけとし、子ノートには付けない。
+5. 小規模なProjectは`projects/<project-id>.md`、Changelog・proposal等の補助文書で1ファイルを分ける場合は`projects/<project-id>/<project-id>.md`と補助文書を同じフォルダにまとめる（補助文書を同じ階層へ並べない）。`repositories`を持つProjectは`projects/repositories/`配下に置く。
+   元になる企画が`proposals/`にある場合は、先に`${HOME}/src/github.com/y-marui/dotfiles/scripts/vault-move-notes.py`（`--dry-run`で確認後に実行）で企画を`projects/<名前>/<名前>-proposal.md`へ移してリンクを書き換え、企画の`status`を削除する。この場合Project Homeは子ノートが2件以上になるため`projects/<名前>/<名前>.md`の形で作る。規則の本体はvaultの`docs/vault-architecture.md`のPropertiesの節と`docs/conversation-record-format.md`に従い、ここへ複製しない。
+   `repositories`を持つProjectは`obsidian-project-home ensure`の挙動（`projects/repositories/<名前>.md`の単体ファイル）を変えず、補助文書（Changelog等）が生じた時点で`projects/repositories/<名前>/<名前>.md`の形にフォルダ化する（vault側の規約に従う）。`repositories`は1リポジトリにつき1ファイルだけとし、子ノートには付けない。
 6. `system/templates/project.md`を使い、Outcome、Current state、Next actions、Decisions、Open questions、Key context、External systems、Changelogを合意範囲だけ記す。
 7. コード実装の仕様と作業タスクは対応するコードリポジトリとGitHubを正本にし、Project Homeには背景、現在地、安定参照を残す。Issueやリポジトリは明示依頼なしに作成しない。
 
