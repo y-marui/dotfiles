@@ -51,16 +51,28 @@ def run_defaults(*arguments: str) -> subprocess.CompletedProcess[bytes]:
     )
 
 
-def export_domain(domain: str) -> dict[str, Any] | None:
-    result = run_defaults("export", domain, "-")
+def read_key_equivalents(domain: str) -> dict[str, Any] | None:
+    # Read only the NSUserKeyEquivalents key, not the whole domain: some domains
+    # contain unrelated malformed sentinel dates (e.g. year 0000, seen in
+    # com.apple.stocks.widget / com.microsoft.autoupdate2) that make
+    # `defaults export` output plistlib cannot parse. `defaults read` is lenient
+    # about those (it surfaces them as the literal string "UNKNOWN"), so reading
+    # just this key sidesteps domains that are broken elsewhere.
+    result = run_defaults("read", domain, KEY)
     if result.returncode != 0 or not result.stdout:
         return None
+    converted = subprocess.run(
+        ["plutil", "-convert", "xml1", "-o", "-", "-"],
+        input=result.stdout,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+    )
+    if converted.returncode != 0 or not converted.stdout:
+        return None
     try:
-        value = plistlib.loads(result.stdout)
+        value = plistlib.loads(converted.stdout)
     except (plistlib.InvalidFileException, ValueError):
-        # Some domains contain malformed sentinel dates (e.g. year 0000, seen in
-        # com.apple.stocks.widget / com.microsoft.autoupdate2) that plistlib
-        # cannot parse; treat those domains as unreadable rather than aborting.
         return None
     return value if isinstance(value, dict) else None
 
@@ -108,10 +120,7 @@ def preference_domains() -> list[str]:
 def current_shortcuts() -> dict[str, dict[str, str]]:
     captured: dict[str, dict[str, str]] = {}
     for domain in preference_domains():
-        exported = export_domain(domain)
-        if not exported:
-            continue
-        equivalents = exported.get(KEY)
+        equivalents = read_key_equivalents(domain)
         if not isinstance(equivalents, dict):
             continue
         shortcuts = {
