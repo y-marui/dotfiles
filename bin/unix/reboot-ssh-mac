@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: reboot-ssh-mac [--check | -h | --help]
+
+FileVault の次回起動時の解除を事前認証して、この Mac を再起動する。
+SSH 接続先のシェルで実行する。接続元からは ssh -t HOST reboot-ssh-mac。
+sudo と FileVault の認証は端末で入力する（パスワードは保存しない）。
+
+  --check     FileVault と認証付き再起動の対応状況だけ確認する
+  -h, --help  ヘルプを表示する
+
+FileVault 無効・非対応・確認失敗時は再起動しない。
+EOF
+}
+
+die() { printf 'reboot-ssh-mac: %s\n' "$*" >&2; exit 1; }
+
+mode=reboot
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  --check) mode=check; shift ;;
+esac
+[[ $# -eq 0 ]] || die '不明な引数です。reboot-ssh-mac --help を参照してください。'
+[[ "$(uname -s)" == Darwin ]] || die 'macOS 専用コマンドです。'
+if [[ "$mode" == reboot ]]; then
+  [[ -t 0 && -t 1 ]] || die '対話端末が必要です。ssh -t HOST reboot-ssh-mac を使ってください。'
+fi
+
+privileged() {
+  if [[ "$EUID" -eq 0 ]]; then
+    "$@"
+  else
+    /usr/bin/sudo "$@"
+  fi
+}
+
+active=$(privileged /usr/bin/fdesetup isactive) || die 'FileVault が無効、または状態を確認できません。再起動しません。'
+[[ "$active" == true ]] || die 'FileVault の有効状態を確認できません。再起動しません。'
+supported=$(privileged /usr/bin/fdesetup supportsauthrestart) || die '認証付き再起動の対応状況を確認できません。再起動しません。'
+[[ "$supported" == true ]] || die 'この Mac は認証付き再起動に対応していません。再起動しません。'
+
+if [[ "$mode" == check ]]; then
+  printf 'FileVault: 有効 / 認証付き再起動: 対応（再起動はしていません）\n'
+  exit 0
+fi
+
+printf 'FileVault の認証後、直ちに再起動します。SSH は切断されます。\n'
+privileged /usr/bin/fdesetup authrestart -delayminutes 0
