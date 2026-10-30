@@ -1,0 +1,5 @@
+#compdef reboot-ssh-mac
+
+_arguments \
+  '--check[FileVault と認証付き再起動の対応状況だけ確認する]' \
+  '(-h --help)'{-h,--help}'[ヘルプを表示する]'

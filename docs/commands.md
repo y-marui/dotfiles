@@ -113,3 +113,8 @@ pre-commitで両者の対応関係を検証する。
 | `ghq-status` | ghq 管理リポジトリの git 状態・ブランチをテーブル表示 |
 | `ghq-build-deploy [-f pattern] [-n\|--dry-run]` | swift-*/chrome-*/tauri-*（template除外、個別上書きは`bin/ghq-build-deploy-targets`）のうちMakefileに実在する候補ターゲット（deploy/ios/build等）だけを逐次make実行（macOS専用） |
 | `sync-labpc <job-name\|host-ip\|all\|list>` | 測定器室PCのデータをSMB経由で一方向同期（macOS専用、ジョブ定義は`~/.config/labpc/jobs.d/`。`list`でジョブ一覧表示） |
+
+## reboot-ssh-mac
+
+macOS の FileVault を事前認証して再起動する。`reboot-ssh-mac --check` は状態確認のみ。
+SSH からの使い方・制約は [SSH 接続中の Mac の再起動](reboot-ssh-mac.md) を参照。

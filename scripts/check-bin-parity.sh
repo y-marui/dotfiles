@@ -13,6 +13,7 @@ WINDOWS_DIR="${DOTFILES_DIR}/bin/windows"
 # コマンド名:片方だけに存在してよい理由
 # bash 3.2（macOS標準）は連想配列(declare -A)未対応のため key:value 文字列で代用
 EXCEPTIONS=(
+  "reboot-ssh-mac:macOS専用（FileVaultのfdesetup authrestartを使う）"
   "sync-labpc:macOS専用ツール（mount_smbfsによるSMBマウント）"
   "my-hosts:macOS（実行元）専用（ssh経由でghq-pull・install-my-apps等を実行する。Windowsは実行元にならず、対象としてのみ宣言できる）"
   "update-wsl:Windows専用（WSL内のapt系ディストリビューションを更新する。Linuxには対象がない）"
