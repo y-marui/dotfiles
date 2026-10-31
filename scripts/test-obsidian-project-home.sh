@@ -86,6 +86,17 @@ LINK_OUTPUT="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/a/link/obsidian-project-home"
 set -e
 [[ "${LINK_OUTPUT}" != *"${WORK}-private"* ]] || fail "resolver config path derived from symlink location: ${LINK_OUTPUT}"
 
+# ファイルのシンボリックリンク（Windows の Git Bash の ~/bin 相当）経由でも、本体の位置から
+# 設定ファイルの場所を導出する。シンボリックリンクを作れないシェルではスキップする。
+mkdir -p "${WORK}/b"
+ln -s "${COMMAND}" "${WORK}/b/obsidian-project-home" 2>/dev/null || true
+if [[ -L "${WORK}/b/obsidian-project-home" ]]; then
+  set +e
+  FILE_LINK_OUTPUT="$(env -u OBSIDIAN_VAULT_ROOT "${WORK}/b/obsidian-project-home" --repo "${REPOSITORY}" 2>&1)"
+  set -e
+  [[ "${FILE_LINK_OUTPUT}" != *"${WORK}-private"* ]] || fail "resolver config path derived from a file symlink location: ${FILE_LINK_OUTPUT}"
+fi
+
 # --- ensure: 許可オーナーのProject Homeだけを作る ---
 # 実機のprivate設定(auto_create_owners)を読まないよう、設定の置き場所が存在しない
 # 一時ディレクトリへコピーしたコマンドでテストする。

@@ -28,6 +28,18 @@ lacks() { [[ "$1" != *"$2"* ]]; }
 
 section() { echo; echo "== $1 =="; }
 
+# ファイルのシンボリックリンク（Windows の Git Bash の ~/bin 相当）経由で呼んでも、
+# 兄弟のライブラリを本体の位置から見つける。シンボリックリンクを作れないシェルではスキップする。
+section "invoked through a file symlink"
+mkdir -p "$WORK/link"
+ln -s "$SWEEP" "$WORK/link/git-sweep" 2>/dev/null || true
+if [[ -L "$WORK/link/git-sweep" ]]; then
+  link_help="$("$WORK/link/git-sweep" --help 2>&1)" || true
+  check "a file symlink still finds the sibling libraries" contains "$link_help" "git-sweep:"
+else
+  echo "  skip - symlinks are not available in this shell"
+fi
+
 cd "$WORK"
 git init --bare -q origin.git
 
