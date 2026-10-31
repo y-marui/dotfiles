@@ -146,3 +146,15 @@ MCP と plugin の管理ファイルは公開可能な宣言だけを保持し�
 workspace・plugin・builtin MCP は検出対象だが `prune` の対象外とする。
 
 参照: [Copilot CLI ベストプラクティス](https://docs.github.com/ja/copilot/how-tos/copilot-cli/cli-best-practices)
+
+## Private Skill Declarations
+
+外部skillの非公開な取得元は、隣接する `dotfiles-private/ai/skills/external.json` に
+公開側と同じ形式で宣言する。省略可能で、公開宣言と結合して検証する。
+同名の二重宣言はエラーにし、上書きしない。`ref` はコミットSHAへ固定する。
+`dots claude apply --skill-only` / `dots codex apply --skill-only` で取得・配置し、
+`diff` / `prune` も両宣言を参照する。`dots check` は未導入・リンク不一致に加え、固定refの更新も検知する。認証には既存のGit資格情報を使い、トークンは宣言に書かない。
+スキルのassetsはスキルディレクトリ内へ同梱する。
+
+`DOTFILES_EXTERNAL_FILE` を指定した場合はその宣言だけを使う（既存のクラウド用途）。
+必要なときだけ `DOTFILES_PRIVATE_EXTERNAL_FILE` も指定して結合する。

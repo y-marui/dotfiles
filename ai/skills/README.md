@@ -71,9 +71,7 @@ skill本体に直接書かない。
   `~/.identity/<service>-*.yaml` 等の固定パスへリンクする。skillはそのパスだけを読み、
   中身のスキーマだけを前提にする（例: `bookmeter-add-want-to-read` は
   `~/.identity/bookmeter-accounts.yaml` の `genre`/`label`/`display_name` を、
-  `sendaicmc-*` は `~/.identity/sendaicmc-calendars.yaml` の `key`/`label`/`calendar_id`
-  や `~/.identity/sendaicmc-jimoty.yaml` の `fallback_article_url`/`fallback_edit_url`
-  を、`google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
+  `google-maps-add-saved-place` は `~/.identity/google-maps-account.yaml` の
   `authuser` を、`weather-check` は `~/.identity/weather-location.yaml` の
   `label`/`prefecture_code`/`area_code`/`latitude`/`longitude` を、`morning-brief` は
   `~/.identity/morning-brief-calendars.yaml` の `key`/`label`/`calendar_id` を読む）。
@@ -107,3 +105,15 @@ skill本体に直接書かない。
 ## Obsidian conversation records
 
 Obsidianの会話Recordは、対象vaultの`docs/conversation-record-format.md`を形式の正本とする。保存・整備skillは通常とPrivateの会話を全文で保持し、Knowledge・Projectへの整理と区別する。skillの責務と原資料の扱いは[Obsidian skill workflow](../../docs/obsidian-workflow.md)を参照する。
+
+## Private Skill Declarations
+
+外部skillの非公開な取得元は、隣接する `dotfiles-private/ai/skills/external.json` に
+公開側と同じ形式で宣言する。省略可能で、公開宣言と結合して検証する。
+同名の二重宣言はエラーにし、上書きしない。`ref` はコミットSHAへ固定する。
+`dots claude apply --skill-only` / `dots codex apply --skill-only` で取得・配置し、
+`diff` / `prune` も両宣言を参照する。`dots check` は未導入・リンク不一致に加え、固定refの更新も検知する。認証には既存のGit資格情報を使い、トークンは宣言に書かない。
+スキルのassetsはスキルディレクトリ内へ同梱する。
+
+`DOTFILES_EXTERNAL_FILE` を指定した場合はその宣言だけを使う（既存のクラウド用途）。
+必要なときだけ `DOTFILES_PRIVATE_EXTERNAL_FILE` も指定して結合する。

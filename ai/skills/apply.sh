@@ -5,7 +5,17 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 AGENT="${1:-}"
-EXTERNAL_FILE="${DOTFILES_EXTERNAL_FILE:-${DOTFILES_DIR}/ai/skills/external.json}"
+PUBLIC_EXTERNAL_FILE="${DOTFILES_EXTERNAL_FILE:-${DOTFILES_DIR}/ai/skills/external.json}"
+PRIVATE_EXTERNAL_FILE="${DOTFILES_PRIVATE_EXTERNAL_FILE:-${DOTFILES_DIR}-private/ai/skills/external.json}"
+# An explicit public override retains the isolated/cloud manifest behavior.
+if [[ -n "${DOTFILES_EXTERNAL_FILE:-}" && -z "${DOTFILES_PRIVATE_EXTERNAL_FILE:-}" ]]; then
+  PRIVATE_EXTERNAL_FILE=""
+fi
+EXTERNAL_FILE="$(mktemp)"
+trap 'rm -f "${EXTERNAL_FILE}"' EXIT
+manifest_args=(--public "${PUBLIC_EXTERNAL_FILE}")
+[[ -z "${PRIVATE_EXTERNAL_FILE}" ]] || manifest_args+=(--private "${PRIVATE_EXTERNAL_FILE}")
+python3 "${DOTFILES_DIR}/ai/skills/external_manifest.py" "${manifest_args[@]}" > "${EXTERNAL_FILE}"
 # 指定時は、このJSON（{"skills": ["name", ...]}）に載る skill だけを対象にする。
 # Claude Code のクラウドセッション（docs/cloud-sessions.md）が使う。未指定なら全件。
 SKILL_SELECT_FILE="${SKILL_SELECT_FILE:-}"
@@ -61,7 +71,7 @@ install_external_with_git() {
 
 BACKUP_DIR="${HOME}/.dotfiles-backup/$(date +%Y%m%d%H%M%S)/ai-skills/${AGENT}"
 sources_file="$(mktemp)"
-trap 'rm -f "${sources_file}" "${selected_names_file:-}"' EXIT
+trap 'rm -f "${EXTERNAL_FILE}" "${sources_file}" "${selected_names_file:-}"' EXIT
 changed=0
 
 mkdir -p "${SKILL_HOMES[@]}"

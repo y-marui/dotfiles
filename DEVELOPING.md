@@ -175,3 +175,12 @@ macOSではSSHセッションからログインキーチェーンのトークン
 ## About docs/dev-charter/
 
 `docs/dev-charter/` は [dev-charter](https://github.com/y-marui/dev-charter) を `git subtree` で取り込んだものであり、**直接編集しない**。変更が必要な場合は dev-charter リポジトリに Issue を立て、`git subtree pull` で取り込む。
+
+## External Skills Tests
+
+`ai/skills/{apply,diff,prune}.sh`、`ai/skills/external_manifest.py` または
+`ai/_common.ps1` を変更した場合は、
+`python3 -m unittest discover -s scripts -p test_external_skills.py` を実行する。
+一時HOME・キャッシュでpublic/private宣言の結合、同名拒否、導入・差分・退避、
+未管理skillの保持、クラウド用宣言の単独指定を検証する。
+PowerShell版はWindows環境でも動作確認する。
