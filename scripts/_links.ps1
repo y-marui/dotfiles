@@ -28,6 +28,21 @@ $Links = @(
         Src  = "bin\unix\run-quiet"
         Dest = Join-Path $HOME "bin\run-quiet"
     }
+    # Git Bash には *.cmd/*.ps1 が見えない（拡張子なしの名前では解決されない）ため、AI の
+    # 規約（AI_CONTEXT_CLI.md・skill）が bare 名で呼ぶ bash 版も ~/bin に置く。
+    # いずれも bash 版が Git Bash でそのまま動くことを確認済み。
+    [pscustomobject]@{
+        Src  = "bin\unix\obsidian-project-home"
+        Dest = Join-Path $HOME "bin\obsidian-project-home"
+    }
+    [pscustomobject]@{
+        Src  = "bin\unix\git-sweep"
+        Dest = Join-Path $HOME "bin\git-sweep"
+    }
+    [pscustomobject]@{
+        Src  = "bin\unix\doc-lint"
+        Dest = Join-Path $HOME "bin\doc-lint"
+    }
     [pscustomobject]@{
         Src  = "terminal\powershell\profile.ps1"
         # OneDrive の「ドキュメント」リダイレクトを含む、pwsh が実際に読むパス。
