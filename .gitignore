@@ -11,6 +11,9 @@ scripts/.env
 # uv が作成するプロジェクトローカル仮想環境
 .venv/
 
+# Python が自動で作るバイトコードのキャッシュ（doc-lint の補助スクリプト等を実行すると scripts/ にできる）
+__pycache__/
+
 # Antigravity が生成するプロジェクトローカル MCP 設定
 .agents/mcp_config.json
 
