@@ -5,7 +5,17 @@ set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 AGENT="${1:-}"
-EXTERNAL_FILE="${DOTFILES_DIR}/ai/skills/external.json"
+PUBLIC_EXTERNAL_FILE="${DOTFILES_EXTERNAL_FILE:-${DOTFILES_DIR}/ai/skills/external.json}"
+PRIVATE_EXTERNAL_FILE="${DOTFILES_PRIVATE_EXTERNAL_FILE:-${DOTFILES_DIR}-private/ai/skills/external.json}"
+# An explicit public override retains the isolated/cloud manifest behavior.
+if [[ -n "${DOTFILES_EXTERNAL_FILE:-}" && -z "${DOTFILES_PRIVATE_EXTERNAL_FILE:-}" ]]; then
+  PRIVATE_EXTERNAL_FILE=""
+fi
+EXTERNAL_FILE="$(mktemp)"
+trap 'rm -f "${EXTERNAL_FILE}"' EXIT
+manifest_args=(--public "${PUBLIC_EXTERNAL_FILE}")
+[[ -z "${PRIVATE_EXTERNAL_FILE}" ]] || manifest_args+=(--private "${PRIVATE_EXTERNAL_FILE}")
+python3 "${DOTFILES_DIR}/ai/skills/external_manifest.py" "${manifest_args[@]}" > "${EXTERNAL_FILE}"
 CACHE_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/dotfiles/skills"
 SUMMARY_MODE=0
 [[ "${2:-}" == "--summary" ]] && SUMMARY_MODE=1
@@ -27,7 +37,7 @@ actual_file="$(mktemp)"
 mismatch_file="$(mktemp)"
 codex_installed_file="$(mktemp)"
 source_missing_file="$(mktemp)"
-trap 'rm -f "${sources_file}" "${declared_file}" "${actual_file}" "${mismatch_file}" "${codex_installed_file}" "${source_missing_file}"' EXIT
+trap 'rm -f "${EXTERNAL_FILE}" "${sources_file}" "${declared_file}" "${actual_file}" "${mismatch_file}" "${codex_installed_file}" "${source_missing_file}"' EXIT
 
 "${PYTHON_BIN}" - "${EXTERNAL_FILE}" "${AGENT}" "${CACHE_HOME}" <<'PYEOF' >> "${sources_file}"
 import json
@@ -38,7 +48,7 @@ with open(path, encoding="utf-8") as file:
     entries = json.load(file).get("skills", [])
 for entry in entries:
     if agent in entry.get("targets", ["claude", "codex"]):
-        print(entry["name"], f"{cache_home}/{entry['name']}", sep="\t")
+        print(entry["name"], f"{cache_home}/{entry['name']}", entry["repo"], entry.get("ref", "main"), entry["path"], sep="\t")
 PYEOF
 
 for source_home in "${DOTFILES_DIR}/ai/skills" "${DOTFILES_DIR}/ai/${AGENT}/skills"; do
@@ -57,10 +67,16 @@ if [[ -n "${duplicate_names}" ]]; then
   exit 1
 fi
 
-while IFS=$'\t' read -r name source_dir; do
+while IFS=$'\t' read -r name source_dir source_repo source_ref source_path; do
   [[ -n "${name}" ]] || continue
   printf '%s\n' "${name}" >> "${declared_file}"
   [[ -f "${source_dir}/SKILL.md" ]] || printf '%s\n' "${name}" >> "${source_missing_file}"
+  if [[ -f "${source_dir}/SKILL.md" && -n "${source_repo}" ]]; then
+    wanted_state="${source_repo}"$'\t'"${source_ref}"$'\t'"${source_path}"
+    current_state=""
+    [[ ! -f "${CACHE_HOME}/.sources/${name}" ]] || current_state="$(<"${CACHE_HOME}/.sources/${name}")"
+    [[ "${current_state}" == "${wanted_state}" ]] || printf '%s\n' "${name}" >> "${source_missing_file}"
+  fi
 
   for skill_home in "${SKILL_HOMES[@]}"; do
     destination="${skill_home}/${name}"
@@ -137,7 +153,7 @@ if summary:
     if codex_installed:
         parts.append(f"+{len(codex_installed)} ~/.codex/skills")
     if source_missing:
-        parts.append(f"~{len(source_missing)} source 不足")
+        parts.append(f"~{len(source_missing)} source 不足/更新あり")
     if parts:
         print(" / ".join(parts))
     raise SystemExit(1 if parts else 0)
@@ -168,7 +184,7 @@ if codex_installed:
         print(f"  [+codex]   {name}")
     print()
 if source_missing:
-    print("外部 skill の取得元がありません (~source):")
+    print("外部 skill が未取得、または宣言の取得元・ref と一致しません (~source):")
     for name in sorted(source_missing):
         print(f"  [~source]  {name}")
 

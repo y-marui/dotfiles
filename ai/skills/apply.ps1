@@ -17,13 +17,14 @@ $stateHome = Join-Path $cacheHome '.sources'
 $backupDir = Get-BackupPath -Child "ai-skills\$Agent"
 $changed = $false
 
+$externalSkills = @(Get-ExternalSkills -Agent $Agent)
 New-Item -ItemType Directory -Force -Path $skillHome | Out-Null
 
 $sources = [System.Collections.Generic.List[object]]::new()
 
 # 外部 skill は公式 skill-installer で dotfiles 専用キャッシュへ取得し、
 # Claude Code / Codex から同じ実体を参照する。
-foreach ($entry in (Get-ExternalSkills -Agent $Agent)) {
+foreach ($entry in $externalSkills) {
     $name = $entry['name']
     $skillPath = [string]$entry['path']
     if ($name -ne ($skillPath.TrimEnd('/') -split '/')[-1]) {

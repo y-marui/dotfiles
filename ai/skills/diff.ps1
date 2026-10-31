@@ -19,7 +19,8 @@ $cacheHome = Get-SkillCacheHome
 
 $sources = [System.Collections.Generic.List[object]]::new()
 foreach ($entry in (Get-ExternalSkills -Agent $Agent)) {
-    $sources.Add([pscustomobject]@{ Name = $entry['name']; Dir = (Join-Path $cacheHome $entry['name']) })
+    $wantedState = "$($entry['repo'])`t$(Get-Value $entry 'ref' 'main')`t$($entry['path'])"
+    $sources.Add([pscustomobject]@{ Name = $entry['name']; Dir = (Join-Path $cacheHome $entry['name']); WantedState = $wantedState })
 }
 foreach ($source in (Get-LocalSkillSources -Agent $Agent)) { $sources.Add($source) }
 
@@ -37,6 +38,13 @@ foreach ($source in ($sources | Sort-Object { $_.Name } -CaseSensitive)) {
     $declared.Add($source.Name)
     if (-not (Test-Path -LiteralPath (Join-Path $source.Dir 'SKILL.md') -PathType Leaf)) {
         $sourceMissing.Add($source.Name)
+    } elseif ($source.PSObject.Properties['WantedState']) {
+        $stateFile = Join-Path $cacheHome ".sources\$($source.Name)"
+        $currentState = ''
+        if (Test-Path -LiteralPath $stateFile -PathType Leaf) {
+            $currentState = (Get-Content -LiteralPath $stateFile -Raw).TrimEnd("`r", "`n")
+        }
+        if ($currentState -cne $source.WantedState) { $sourceMissing.Add($source.Name) }
     }
     $destination = Join-Path $skillHome $source.Name
     if (-not (Test-PathOrLink -Path $destination)) {
@@ -82,7 +90,7 @@ if ($Summary) {
     if ($onlyFiles.Count -gt 0) { $parts += "-$($onlyFiles.Count) files のみ" }
     if ($mismatched.Count -gt 0) { $parts += "~$($mismatched.Count) link 不一致" }
     if ($codexInstalled.Count -gt 0) { $parts += "+$($codexInstalled.Count) ~/.codex/skills" }
-    if ($sourceMissingNames.Count -gt 0) { $parts += "~$($sourceMissingNames.Count) source 不足" }
+    if ($sourceMissingNames.Count -gt 0) { $parts += "~$($sourceMissingNames.Count) source 不足/更新あり" }
     if ($parts.Count -gt 0) { Write-Host ($parts -join ' / ') }
     Exit-Diff -Found $found
 }
@@ -115,7 +123,7 @@ if ($codexInstalled.Count -gt 0) {
     Write-Host ''
 }
 if ($sourceMissingNames.Count -gt 0) {
-    Write-Host '外部 skill の取得元がありません (~source):'
+    Write-Host '外部 skill が未取得、または宣言の取得元・ref と一致しません (~source):'
     foreach ($name in $sourceMissingNames) { Write-Host "  [~source]  $name" }
 }
 

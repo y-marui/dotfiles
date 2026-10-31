@@ -94,21 +94,6 @@
     "pptx-proofreading-handoff": {"kind": "generic"},
     "project-update-documentation": {"kind": "generic"},
     "review-dotfiles-backup": {"kind": "generic"},
-    "sendaicmc-add-practices": {
-      "kind": "domain",
-      "skill_name_prefix": "sendaicmc",
-      "display_name_prefix": "仙台室内楽の会"
-    },
-    "sendaicmc-create-chouseisan-page": {
-      "kind": "domain",
-      "skill_name_prefix": "sendaicmc",
-      "display_name_prefix": "仙台室内楽の会"
-    },
-    "sendaicmc-create-jimoty-post": {
-      "kind": "domain",
-      "skill_name_prefix": "sendaicmc",
-      "display_name_prefix": "仙台室内楽の会"
-    },
     "session-finish": {"kind": "generic"},
     "session-handoff": {"kind": "generic"},
     "spotify-distribute-liked-songs": {

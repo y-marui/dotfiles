@@ -226,8 +226,15 @@ function Get-SkillCacheHome {
 function Get-ExternalSkills {
     param([string]$Agent, [switch]$All)
 
-    $file = Join-Path $DotfilesDir 'ai\skills\external.json'
-    $entries = @(Get-Value (Read-JsonFile -Path $file) 'skills' @())
+    $publicFile = if ($env:DOTFILES_EXTERNAL_FILE) { $env:DOTFILES_EXTERNAL_FILE } else { Join-Path $DotfilesDir 'ai\skills\external.json' }
+    $privateFile = if ($env:DOTFILES_PRIVATE_EXTERNAL_FILE) { $env:DOTFILES_PRIVATE_EXTERNAL_FILE } elseif (-not $env:DOTFILES_EXTERNAL_FILE) { Join-Path "${DotfilesDir}-private" 'ai\skills\external.json' }
+    $python = Get-Command python3, python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $python) { throw 'python3 / python が見つかりません' }
+    $manifestArgs = @((Join-Path $DotfilesDir 'ai\skills\external_manifest.py'), '--public', $publicFile)
+    if ($privateFile) { $manifestArgs += @('--private', $privateFile) }
+    $json = & $python.Source @manifestArgs
+    if ($LASTEXITCODE -ne 0) { throw '外部skill宣言の検証に失敗しました' }
+    $entries = @(Get-Value ($json | ConvertFrom-Json -AsHashtable) 'skills' @())
     return @($entries | Where-Object { $All -or ($Agent -in @(Get-Value $_ 'targets' @('claude', 'codex'))) })
 }
 

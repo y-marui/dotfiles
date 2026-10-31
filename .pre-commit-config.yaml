@@ -408,3 +408,12 @@ repos:
         entry: bash scripts/check-charter-doc-links.sh
         pass_filenames: false
         always_run: true
+
+  - repo: local
+    hooks:
+      - id: test-external-skills
+        name: Test external skill declarations and lifecycle
+        language: system
+        entry: python3 -m unittest discover -s scripts -p test_external_skills.py
+        pass_filenames: false
+        files: ^(ai/skills/(apply|diff|prune)\.sh|ai/skills/external_manifest\.py|scripts/test_external_skills\.py)$
