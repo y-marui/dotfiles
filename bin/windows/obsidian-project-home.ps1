@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# obsidian-project-home: Git repositoryに対応するObsidian Project Homeを一意に解決する
+# obsidian-project-home: Git repositoryに対応するObsidian Project HomeまたはArea Homeを一意に解決する
 #
 # Usage:
 #   obsidian-project-home [--repo DIR] [--vault DIR]
@@ -7,8 +7,8 @@
 #   obsidian-project-home check [--vault DIR]
 #
 # The command compares the current repository's origin with the `repositories`
-# frontmatter list in normal-vault `projects/**/*.md` files. GitHub HTTPS, SSH,
-# and github-public:/github-private: origin forms normalize to
+# frontmatter list in normal-vault `projects/**/*.md` and `areas/**/*.md` files.
+# GitHub HTTPS, SSH, and github-public:/github-private: origins normalize to
 # https://github.com/owner/repository. It never searches note bodies or private/
 # paths. Exit status: 0 unique (or check passed), 3 no mapping, 4 duplicates,
 # 5 invalid configuration or frontmatter.
@@ -171,9 +171,10 @@ function Get-AutoCreateOwners {
     return @($raw -split ',' | ForEach-Object { $_.Trim().ToLowerInvariant() } | Where-Object { $_ })
 }
 
-function Get-Mappings([string]$ProjectsDir) {
+function Get-Mappings([string]$VaultDir) {
     $mappings = [System.Collections.Generic.List[object]]::new()
-    foreach ($file in @(Get-ChildItem -LiteralPath $ProjectsDir -File -Filter '*.md' -Recurse | Sort-Object FullName)) {
+    $roots = @('projects', 'areas' | ForEach-Object { Join-Path $VaultDir $_ } | Where-Object { Test-Path -LiteralPath $_ -PathType Container })
+    foreach ($file in @(Get-ChildItem -LiteralPath $roots -File -Filter '*.md' -Recurse | Sort-Object FullName)) {
         foreach ($repository in @(Get-ProjectRepositories $file.FullName)) {
             $mappings.Add([PSCustomObject]@{ Repository = $repository; Path = $file.FullName })
         }
@@ -297,7 +298,7 @@ try {
     if (-not (Test-Path -LiteralPath $projectsDir -PathType Container)) { Fail "vault projects directory is unavailable: $projectsDir" }
     $vaultDir = (Resolve-Path -LiteralPath $vaultDir).Path
 
-    $mappings = Get-Mappings $projectsDir
+    $mappings = Get-Mappings $vaultDir
 } catch {
     Fail $_.Exception.Message 5
 }
@@ -338,7 +339,7 @@ if ($hits.Count -eq 0) {
     $created = New-ProjectHome $vaultDir $normalizedOrigin $description
     # 作った Project Home が、ちょうど自分自身に解決されることを確認してから成功にする。
     try {
-        $after = Get-Mappings $projectsDir
+        $after = Get-Mappings $vaultDir
     } catch {
         Remove-Item -LiteralPath $created -Force
         Fail "the new Project Home could not be verified; it was removed: $($_.Exception.Message)" 5

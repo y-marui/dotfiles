@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# obsidian-project-home: Git repositoryに対応するObsidian Project Homeを一意に解決する
+# obsidian-project-home: Git repositoryに対応するObsidian Project HomeまたはArea Homeを一意に解決する
 #
 # Usage:
 #   obsidian-project-home [--repo DIR] [--vault DIR]
@@ -7,8 +7,8 @@
 #   obsidian-project-home check [--vault DIR]
 #
 # The command compares the current repository's origin with the `repositories`
-# frontmatter list in normal-vault `projects/**/*.md` files. GitHub HTTPS, SSH,
-# and github-public:/github-private: origin forms normalize to
+# frontmatter list in normal-vault `projects/**/*.md` and `areas/**/*.md` files.
+# GitHub HTTPS, SSH, and github-public:/github-private: origins normalize to
 # https://github.com/owner/repository. It never searches note bodies or private/
 # paths. Exit status: 0 unique (or check passed), 3 no mapping, 4 duplicates,
 # 5 invalid configuration or frontmatter.
@@ -188,6 +188,8 @@ load_vault_dir() {
 
 collect_mappings() {
   local file repositories status
+  local roots=("${VAULT_DIR}/projects")
+  [[ ! -d "${VAULT_DIR}/areas" ]] || roots+=("${VAULT_DIR}/areas")
   MAPPING_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home.XXXXXX")"
   trap 'rm -f "${MAPPING_FILE}" "${MATCH_FILE:-}" "${DUPLICATE_FILE:-}"' EXIT
 
@@ -201,7 +203,7 @@ collect_mappings() {
     while IFS= read -r repository; do
       [[ -n "${repository}" ]] && printf '%s\t%s\n' "${repository}" "${file}" >> "${MAPPING_FILE}"
     done <<< "${repositories}"
-  done < <(find "${VAULT_DIR}/projects" -type f -name '*.md' -print0 | LC_ALL=C sort -z)
+  done < <(find "${roots[@]}" -type f -name '*.md' -print0 | LC_ALL=C sort -z)
 }
 
 check_mappings() {

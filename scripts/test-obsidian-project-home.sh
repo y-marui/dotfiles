@@ -77,6 +77,22 @@ result="$("${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}")"
 [[ "${result}" == "${VAULT}/projects/crlf.md" ]] || fail 'CRLF Project Home did not resolve'
 rm -f "${VAULT}/projects/crlf.md"
 
+# A maintenance Area is the sole current entry; archived projects are excluded.
+mkdir -p "${VAULT}/areas/repositories" "${VAULT}/archive/projects"
+command cp "${VAULT}/projects/unique.md" "${VAULT}/areas/repositories/example.md"
+command mv "${VAULT}/projects/unique.md" "${VAULT}/archive/projects/example.md"
+git -C "${REPOSITORY}" remote set-url origin 'https://github.com/y-marui/example.git'
+result="$("${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}")"
+[[ "${result}" == "${VAULT}/areas/repositories/example.md" ]] || fail 'Area Home did not resolve'
+expect_status 0 "${COMMAND}" check --vault "${VAULT}"
+write_project duplicate 'https://github.com/y-marui/example'
+expect_status 4 "${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}"
+rm -f "${VAULT}/projects/duplicate.md"
+BEFORE_AREA="$(shasum "${VAULT}/areas/repositories/example.md")"
+OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS=y-marui "${COMMAND}" ensure --repo "${REPOSITORY}" --vault "${VAULT}" >/dev/null
+[[ "$(shasum "${VAULT}/areas/repositories/example.md")" == "${BEFORE_AREA}" ]] || fail 'ensure changed Area Home'
+[[ ! -d "${VAULT}/projects/repositories" ]] || fail 'ensure duplicated Area as Project'
+
 # ディレクトリのシンボリックリンク経由（~/.local/bin/dotfiles 相当）で呼んでも、
 # 設定ファイルの場所をリンク位置から誤って導出しない。
 mkdir -p "${WORK}/a"
