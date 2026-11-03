@@ -15,7 +15,8 @@
 #
 # `ensure` resolves like the default mode, and when no Project Home maps to the
 # repository it creates one in projects/repositories/ and then re-resolves to
-# confirm exactly one mapping. It creates only for repositories whose GitHub owner
+# confirm that the repository maps to exactly the new note (duplicates of other
+# repositories do not block creation; `check` reports those). It creates only for repositories whose GitHub owner
 # is listed in auto_create_owners (the resolver config, or the
 # OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS environment variable; comma separated),
 # so cloned third-party repositories never get a note. With no owner listed it
@@ -373,16 +374,17 @@ case "${match_count}" in
       exit 3
     fi
     created_file="$(create_project_home)" || exit $?
-    # Confirm the new note resolves to exactly itself before reporting success.
+    # Confirm the repository resolves to exactly the new note before reporting
+    # success. Only this repository's mapping is checked: duplicates of other
+    # repositories are unrelated to the new note and are left to `check`.
     rm -f "${MAPPING_FILE}" "${MATCH_FILE:-}"
     collect_mappings
-    check_mappings || { rm -f "${created_file}"; die 'the new Project Home made the mappings ambiguous; it was removed' 5; }
     MATCH_FILE="$(mktemp "${TMPDIR:-/tmp}/obsidian-project-home-matches.XXXXXX")"
     awk -F '\t' -v repository="${normalized_origin}" '$1 == repository { print $2 }' \
       "${MAPPING_FILE}" > "${MATCH_FILE}"
     if [[ "$(cat "${MATCH_FILE}")" != "${created_file}" ]]; then
       rm -f "${created_file}"
-      die 'the new Project Home did not resolve to itself; it was removed' 5
+      die 'the new Project Home did not resolve uniquely to itself; it was removed' 5
     fi
     printf 'created: %s\n' "${created_file}" >&2
     printf '%s\n' "${created_file}"
