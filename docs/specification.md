@@ -416,7 +416,7 @@ pullの実装を`git-pull-all`だけに置き、`ghq-pull`・`ghq-update`・`git
 - 本文、`External systems`、`private/**`は探索しない。対応付けがない場合はexit `3`、複数ならexit `4`、設定またはfrontmatterが不正ならexit `5`で終了し、既定のモードは推測やProject Home作成を行わない（読み取り専用）
 - コマンド名は互換性のため維持する。保守移行後はArea Homeを返し、Archiveは対象外。関連Projectは`area`リンクを使い、`repositories`を重複させない
 - `check`は全mappingの重複を検出する。成功時だけexit `0`とする
-- `ensure [--description TEXT]`は、既定のモードと同じ解決を行い、対応付けがない場合だけ`projects/repositories/<repository>.md`（名前が衝突すれば`<owner>-<repository>.md`）に雛形を作る。作成してよいのは、GitHub ownerが`auto_create_owners`（private設定`obsidian/project-home-resolver.conf`のカンマ区切り値。環境変数`OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS`が優先）に含まれるリポジトリだけで、未設定なら既定のモードと同じexit `3`になる。既存ファイルは上書きせず、commitもしない。作成後に再解決して自分自身だけに対応付くことを確認し、満たさなければ作成したファイルを削除してexit `5`にする。stdoutは常にProject Homeのパス、作成時はstderrに`created: <path>`を出す
+- `ensure [--description TEXT]`は、既定のモードと同じ解決を行い、対応付けがない場合だけ`projects/repositories/<repository>.md`（名前が衝突すれば`<owner>-<repository>.md`）に雛形を作る。作成してよいのは、GitHub ownerが`auto_create_owners`（private設定`obsidian/project-home-resolver.conf`のカンマ区切り値。環境変数`OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS`が優先）に含まれるリポジトリだけで、未設定なら既定のモードと同じexit `3`になる。既存ファイルは上書きせず、commitもしない。作成後に再解決し、対象リポジトリが作成したファイルだけに対応付くことを確認する（無関係なリポジトリの重複はVault全体の`check`の対象で、作成を妨げない）。満たさなければ作成したファイルを削除してexit `5`にする。stdoutは常にProject Homeのパス、作成時はstderrに`created: <path>`を出す
 - Unix版とPowerShell版は同じ引数・終了コードを提供する。Windowsでは`obsidian-project-home.cmd`がbare command用のshimとなる
 
 Unix版の回帰テストは[scripts/test-obsidian-project-home.sh](../scripts/test-obsidian-project-home.sh)で、GitHub HTTPS/SSH/alias正規化、一意・未登録・重複・不正frontmatter、`ensure`の許可オーナー・冪等性・名前衝突・拒否ケースをネットワークなしで確認する。

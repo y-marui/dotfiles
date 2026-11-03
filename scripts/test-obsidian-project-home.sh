@@ -185,6 +185,33 @@ write_project dup-a 'https://github.com/y-marui/dup'
 write_project dup-b 'https://github.com/y-marui/dup'
 ensure_run 4
 [[ ! -e "${VAULT}/projects/repositories" ]] || fail 'ensure created a note despite duplicates'
+# 対象と無関係なリポジトリの重複があっても、対象のProject Homeは作れる(vault全体のcheckは通らないまま)。
+reset_ensure 'https://github.com/y-marui/target.git'
+export OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS='y-marui'
+write_project other-a 'https://github.com/y-marui/other'
+write_project other-b 'https://github.com/y-marui/other'
+ensure_run 0
+[[ "${ENSURE_OUT}" == "${VAULT}/projects/repositories/target.md" && -f "${ENSURE_OUT}" ]] || fail "ensure was blocked by an unrelated duplicate: ${ENSURE_OUT}"
+result="$("${COMMAND}" --repo "${REPOSITORY}" --vault "${VAULT}")"
+[[ "${result}" == "${VAULT}/projects/repositories/target.md" ]] || fail 'the note created beside an unrelated duplicate does not resolve'
+expect_status 4 "${COMMAND}" check --vault "${VAULT}"
+
+# 作成の途中で別のノートが同じURLを載せた場合(競合)は、作ったファイルを消して失敗する。
+# create_project_homeが呼ぶdateを差し替えて、その瞬間に競合ノートを書き込む。
+reset_ensure 'https://github.com/y-marui/race.git'
+export OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS='y-marui'
+mkdir -p "${WORK}/shim"
+printf '#!/bin/sh\nprintf "%%s\\n" "---" "type: project" "repositories:" "  - \\"https://github.com/y-marui/race\\"" "---" > "%s/projects/racer.md"\nexec /bin/date "$@"\n' "${VAULT}" > "${WORK}/shim/date"
+chmod +x "${WORK}/shim/date"
+set +e
+ENSURE_OUT="$(PATH="${WORK}/shim:${PATH}" "${COMMAND}" ensure --repo "${REPOSITORY}" --vault "${VAULT}" 2>"${ENSURE_ERR}")"
+status=$?
+set -e
+[[ "${status}" -eq 5 ]] || fail "ensure expected exit 5 on a competing mapping, got ${status}"
+[[ ! -e "${VAULT}/projects/repositories/race.md" ]] || fail 'ensure kept the note despite a competing mapping'
+grep -q 'did not resolve uniquely' "${ENSURE_ERR}" || fail 'ensure did not explain the removal'
+rm -rf "${WORK}/shim"
+
 reset_ensure 'https://github.com/y-marui/bad.git'
 export OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS='y-marui'
 printf '%s\n' '---' 'repositories: not-a-list' '---' > "${VAULT}/projects/broken.md"

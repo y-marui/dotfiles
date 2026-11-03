@@ -15,7 +15,8 @@
 #
 # `ensure` resolves like the default mode, and when no Project Home maps to the
 # repository it creates one in projects/repositories/ and then re-resolves to
-# confirm exactly one mapping. It creates only for repositories whose GitHub owner
+# confirm that the repository maps to exactly the new note (duplicates of other
+# repositories do not block creation; `check` reports those). It creates only for repositories whose GitHub owner
 # is listed in auto_create_owners (the resolver config, or the
 # OBSIDIAN_PROJECT_HOME_AUTO_CREATE_OWNERS environment variable; comma separated),
 # so cloned third-party repositories never get a note. With no owner listed it
@@ -337,21 +338,18 @@ if ($hits.Count -eq 0) {
     }
 
     $created = New-ProjectHome $vaultDir $normalizedOrigin $description
-    # 作った Project Home が、ちょうど自分自身に解決されることを確認してから成功にする。
+    # 対象リポジトリが、ちょうど作った Project Home に解決されることを確認してから成功にする。
+    # 無関係なリポジトリの重複は作成を妨げない（check が報告する）。
     try {
         $after = Get-Mappings $vaultDir
     } catch {
         Remove-Item -LiteralPath $created -Force
         Fail "the new Project Home could not be verified; it was removed: $($_.Exception.Message)" 5
     }
-    if (@($after | Group-Object Repository | Where-Object { $_.Count -gt 1 }).Count -gt 0) {
-        Remove-Item -LiteralPath $created -Force
-        Fail 'the new Project Home made the mappings ambiguous; it was removed' 5
-    }
     $afterHits = @($after | Where-Object { $_.Repository -eq $normalizedOrigin })
     if ($afterHits.Count -ne 1 -or $afterHits[0].Path -ne $created) {
         Remove-Item -LiteralPath $created -Force
-        Fail 'the new Project Home did not resolve to itself; it was removed' 5
+        Fail 'the new Project Home did not resolve uniquely to itself; it was removed' 5
     }
     Write-Stderr "created: $created"
     Write-Output $created
