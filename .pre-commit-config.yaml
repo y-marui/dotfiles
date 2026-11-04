@@ -279,6 +279,16 @@ repos:
         pass_filenames: false
         always_run: true
 
+  # [8b] .pre-commit-config.yaml の entry が指すスクリプトの実在・実行可否を検証
+  - repo: local
+    hooks:
+      - id: check-hook-scripts
+        name: "dev-charter: hook スクリプト実在チェック"
+        language: system
+        entry: bash scripts/check-hook-scripts.sh
+        pass_filenames: false
+        always_run: true
+
   # [9] .github/workflows/dev-charter-check.yml が README の CI テンプレートと不一致
   - repo: local
     hooks:
