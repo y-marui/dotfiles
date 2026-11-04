@@ -22,8 +22,8 @@ dev-charter の各ドキュメントへのインデックス。
 | ライセンス選択（MIT・GPL・AGPL・CC）、著作権表記 | `LEGAL_POLICY.md` |
 | 変更設計の原則、YAGNI、DRY、既存パターンの踏襲、TODO管理 | `PRINCIPLES.md` |
 | チーム構成、git ワークフロー、Conventional Commits、ブランチ戦略、epic ブランチ、Draft PR、main の安定性 | `PROJECT_LIFECYCLE.md` |
-| シークレット管理、git フック、pre-commit、セキュリティ設定 | `SECURITY_POLICY.md` |
-| dev-charter の更新手順（subtree pull 後、lite版） | `UPDATE_CHECKLIST.md` |
+| シークレット管理、git フック、pre-commit、pre-push、セキュリティ設定 | `SECURITY_POLICY.md` |
+| dev-charter の更新手順（subtree pull 後、lite版）、Update-Checklist trailer | `UPDATE_CHECKLIST.md` |
 | GitHub Actions、CI ジョブ設計、ステータスチェック、Branch Protection（lite版） | `topics/CI_POLICY.md` |
 | issue/PRテンプレート（lite版）、個人開発、チェックリスト | `topics/GITHUB_ISSUE_PR_TEMPLATES.md` |
 | TODO・バックログ・ロードマップ管理、Issues、Sub-issues、Milestones、Projects (v2) | `topics/GITHUB_PROJECT_MANAGEMENT.md` |
