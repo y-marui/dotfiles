@@ -24,6 +24,16 @@ AI はタスク開始時に以下の順で参照する:
 - Issue/Project運用: [topics/GITHUB_PROJECT_MANAGEMENT.md](docs/dev-charter/topics/GITHUB_PROJECT_MANAGEMENT.md)（→「ドキュメントとタスクの管理」節）
 - セキュリティ・pre-commit: [SECURITY_POLICY.md](docs/dev-charter/SECURITY_POLICY.md)（→ `.pre-commit-config.yaml`）
 
+### Charter Lookup
+
+不明点が憲章に関係する場合は**全ファイルを検索せず**、以下の手順で参照する:
+
+1. `docs/dev-charter/CHARTER_INDEX.md` を読み、該当トピックのファイルを特定する
+2. 特定したファイル（原則 1〜2 件）のみを読む
+3. 参照後にユーザーへ提案・確認を行う
+
+推測で断定せず、憲章を参照してからユーザーに提案・質問する。
+
 ## AI Tool Assignments
 
 - **使用ツール**：Claude Code、Codex、GitHub Copilot
