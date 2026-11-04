@@ -74,7 +74,9 @@ PR・Issue の作成前に `.github/` のテンプレートを確認し、あれ
   実行されない環境（Claude Code デスクトップアプリの Code タブ等）がある。
   フォームが表示されたが実行結果が返らない・ユーザーから見えないと言われた場合は、
   そのツール呼び出しを繰り返さず `gh` CLI に切り替える
-- マージは merge commit を標準とし、squash・rebase は明示された場合のみ
+- マージは merge commit を標準とし、squash・rebase は明示された場合のみ。
+  `git subtree pull --squash` を含む更新 PR（`update-charter` 等）は、`git-subtree-split` の記録が
+  履歴から消えて次回の更新が基点を失うため、squash・rebase にせず必ず merge commit でマージする
 - 関連 issue は PR 本文に `Fixes #123`/`Closes #123`（自動クローズ）か `Refs #123`（関連付けのみ）でリンクする
 - コンフリクト解消は rebase でなく merge を使う。
   rebase は明示指示がある場合のみ
