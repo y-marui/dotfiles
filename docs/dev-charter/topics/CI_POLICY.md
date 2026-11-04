@@ -66,9 +66,14 @@ protection のみ lite 専用の設定に差し替えている。full 側の詳�
 gate:
   name: CI   # ワークフロー自身の name: と同じ値にする
   needs: [security]   # lint/test/build 等があれば追加
-  if: always()
+  if: always()   # draft でも実行する（下の Draft PRs 参照）
   runs-on: ubuntu-latest   # ゲートは判定のみなので常に最安ランナーでよい
   steps:
+    - name: Fail on draft PRs
+      if: github.event_name == 'pull_request' && github.event.pull_request.draft
+      run: |
+        echo "::error::draft PR: tests were not run. Mark the PR ready for review."
+        exit 1
     - name: Verify required jobs succeeded
       run: |
         for result in "${{ needs.security.result }}"; do
@@ -114,13 +119,27 @@ concurrency:
 
 lite は「Require a pull request before merging」を OFF にする運用（[Branch Protection](#branch-protection-ruleset)参照）
 だが、PRを経由する場合は full と同じくdraft PRの扱いに従う：`ready_for_review` を
-`on.pull_request.types` に加えた上で、`security`・`gate` に draft スキップの `if:` を付ける。
+`on.pull_request.types` に加えた上で、`security` に draft スキップの `if:` を付ける。
+**`gate` はスキップせず、draft では実行して失敗させる**（skipped の必須チェックは合格と同じに
+扱われ、draft への push と ready 化が重なると draft 時の skipped が残ってマージ可能に見える
+ため。詳細は full 側の
+[Draft PRs](https://github.com/y-marui/dev-charter/blob/full/topics/CI_POLICY.md#draft-prs)、
+[Issue #209](https://github.com/y-marui/dev-charter/issues/209)）。`gate` の先頭に次の step を置く：
+
+```yaml
+      - name: Fail on draft PRs
+        if: github.event_name == 'pull_request' && github.event.pull_request.draft
+        run: |
+          echo "::error::draft PR: tests were not run. Mark the PR ready for review."
+          exit 1
+```
+
 デフォルトの `pull_request` トリガーは `opened`/`synchronize`/`reopened` のみで
 `ready_for_review` を含まないため、これを忘れると draft 解除時に再実行されず、古い
 （未評価の）ステータスのまま残ってしまう。
 
-`.github/workflows/dev-charter-check.yml` も同様に draft をスキップする（[Version Check
-(CI)](../README.md#version-check-ci) 参照）。`check-charter.yml` が作成する
+`.github/workflows/dev-charter-check.yml` も同様に、`check` は draft でスキップし、`gate`
+は draft で失敗させる（[Version Check (CI)](../README.md#version-check-ci) 参照）。`check-charter.yml` が作成する
 `update-charter` PR も Draft で始まるため、この `ready_for_review` は更新 PR にも必須である。
 
 PR を開いた後に修正が続く場合は、draft に戻して修正をまとめ、ローカルで検証してから ready に
@@ -140,7 +159,66 @@ draft の PR でも自動レビュー（`@codex review`、`@copilot review`）�
 
 ## Dependabot
 
-`.github/dependabot.yml` の導入を検討する。依存パッケージがあるプロジェクトでは自動でアップデートPRを作成し、脆弱性対応を省力化できる。ドキュメントのみのリポジトリや依存パッケージが存在しないプロジェクトでは不要。
+依存マニフェスト・Dockerfile・GitHub Actions の workflow のいずれかを持つリポジトリは、
+`.github/dependabot.yml` を**必須**とする。ドキュメントのみのリポジトリ、および依存を一切持たない
+リポジトリは対象外。
+
+**version updates と security updates は別機能。** セキュリティ更新（Settings → Security &
+analysis の Dependabot security updates）は脆弱性アラートが出たときだけ PR を作る。定期的な
+バージョン更新は `dependabot.yml` がなければ動かないため、security updates を ON にしていても
+`dependabot.yml` の代わりにはならない。
+
+### Ecosystems
+
+| 検出するファイル | `package-ecosystem` |
+|---|---|
+| `.github/workflows/*.yml` | `github-actions` |
+| `uv.lock`（無ければ `pyproject.toml`・`requirements*.txt`） | `uv`（無ければ `pip`） |
+| `Dockerfile` | `docker` |
+| `package.json` | `npm` |
+| `Package.swift` | `swift` |
+| `*.csproj` | `nuget` |
+| `go.mod` | `gomod` |
+
+マニフェストが置かれているディレクトリごとに `directory` を指定する（サブディレクトリにある場合は
+`/` では検出されない）。
+
+### Defaults
+
+- 頻度（`schedule.interval`）は `weekly` を既定とする
+- `open-pull-requests-limit` は ecosystem ごとに 5 前後を目安とする（既定の 5 のままでよい。
+  PR が溜まりやすい ecosystem だけ下げる）
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+```
+
+### Out of Scope for Dependabot
+
+次は Dependabot が上げられないため、運用側が手動で更新する。
+
+- digest 固定のコンテナイメージ（cloudflared、Caddy 等）
+- ホストの OS・Docker・ランタイム本体
+
+### Verification
+
+`check-charter.yml` が、マニフェストがあるのに対応する `package-ecosystem` が
+`dependabot.yml` に無い場合（`dependabot.yml` 自体が無い場合を含む）に警告する。現在は警告のみで、
+既存リポジトリへの影響を確認してから失敗扱いにする。`directory` の過不足は検査しない。
 
 ## Branch Protection (Ruleset)
 
