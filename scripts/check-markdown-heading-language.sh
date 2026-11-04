@@ -29,16 +29,17 @@ for file in "$@"; do
   while IFS= read -r line || [[ -n "$line" ]]; do
     line_number=$((line_number + 1))
 
-    # YAML frontmatter (---\n...\n---\n at the very top of the file): skip
-    # entirely. Without this, the closing "---" is misread by the setext
-    # heading check below as an underline for the last frontmatter field
-    # (e.g. a `description:` line containing Japanese words).
-    if (( line_number == 1 )) && [[ "$line" =~ ^---[[:space:]]*$ ]]; then
+    # Skip YAML frontmatter (a leading --- on line 1 through the closing ---),
+    # otherwise the closing --- reads as a setext underline for the last
+    # frontmatter line.
+    if [[ $line_number -eq 1 && "$line" =~ ^---[[:space:]]*$ ]]; then
       in_frontmatter=1
       continue
     fi
-    if (( in_frontmatter )); then
-      [[ "$line" =~ ^---[[:space:]]*$ ]] && in_frontmatter=0
+    if [[ $in_frontmatter -eq 1 ]]; then
+      if [[ "$line" =~ ^(---|\.\.\.)[[:space:]]*$ ]]; then
+        in_frontmatter=0
+      fi
       continue
     fi
 
