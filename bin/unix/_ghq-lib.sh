@@ -137,18 +137,22 @@ _ghq_upstream_pr_allowed() {
 }
 
 # _ghq_auto_pr_lockfile <repo> <base_branch> <lockfile> <branch> <title> <body>
-# uv sync --upgrade / npm update により <lockfile> のみが dirty な場合、
+# uv sync --upgrade / npm update により <lockfile> と任意の追加対象ファイルだけが dirty な場合、
 # <branch> にコミットして force push し、gh で PR を作成する（既に open な
 # PR があれば push だけでその PR に反映される）。作業ツリーは base_branch
 # に戻した状態で返す。失敗時も呼び出し元の処理は継続できるよう常に 0 を返す。
 _ghq_auto_pr_lockfile() {
   local repo="$1" base_branch="$2" lockfile="$3" branch="$4" title="$5" body="$6" \
-    other pr_count origin_repo upstream_repo target_repo head_ref pr_output commit_err
+    other pr_count origin_repo upstream_repo target_repo head_ref pr_output commit_err file
+  local files=("$lockfile" "${@:7}") excluded=()
+  for file in "${files[@]}"; do
+    excluded+=(":(exclude,literal)$file")
+  done
 
   [[ -z "$(git -C "$repo" status --porcelain -- "$lockfile" 2>/dev/null || true)" ]] && return 0
 
-  other="$(git -C "$repo" status --porcelain 2>/dev/null | grep -v -E " ${lockfile//./\\.}\$" || true)"
-  [[ -n "${other}" ]] && { echo "  [skip auto-pr] (${repo}) ${lockfile} 以外にも dirty な変更があります" >&2; return 0; }
+  other="$(git -C "$repo" status --porcelain --no-renames -- "${excluded[@]}")" || return 0
+  [[ -n "${other}" ]] && { echo "  [skip auto-pr] (${repo}) 自動 PR の対象外にも dirty な変更があります" >&2; return 0; }
 
   if ! command -v gh >/dev/null 2>&1; then
     echo "  [skip auto-pr] (${repo}) 'gh' が見つかりません（${lockfile} の変更はローカルに残しています）" >&2
@@ -185,7 +189,7 @@ _ghq_auto_pr_lockfile() {
     echo "  [skip auto-pr] (${repo}) ブランチ作成に失敗しました" >&2
     return 0
   fi
-  if ! commit_err="$(git -C "$repo" commit -m "$title" -- "$lockfile" 2>&1)"; then
+  if ! commit_err="$(git -C "$repo" commit -m "$title" -- "${files[@]}" 2>&1)"; then
     echo "  [skip auto-pr] (${repo}) commit に失敗しました: $(printf '%s' "${commit_err}" | tr '\n' ' ' | cut -c1-500)" >&2
     git -C "$repo" checkout "$base_branch" >/dev/null 2>&1 || true
     return 0

@@ -197,6 +197,15 @@ foreach ($f in $repos) {
         }
 
         if ($hasNodeModules) {
+            $npmPr = $AUTO_PR
+            $npmPrFiles = @()
+            if ($npmPr -and (Get-GitForkRemoteOwnerRepo $f 'origin') -ceq 'y-marui/chrome-chatgpt-exporter') {
+                $npmPrFiles = @('THIRD_PARTY_NOTICES.txt')
+                if (@(& git -C $f status --porcelain).Count -gt 0 -or $LASTEXITCODE -ne 0) {
+                    Write-GhqStderr "  [skip auto-pr] npm 更新前の作業ツリーに変更があります"
+                    $npmPr = $false
+                }
+            }
             Push-Location $f
             try {
                 $global:LASTEXITCODE = $null
@@ -207,10 +216,10 @@ foreach ($f in $repos) {
             if (-not $npmOk) {
                 Write-GhqStderr "  [failed] npm update / build"
                 $failed++
-            } elseif ($AUTO_PR) {
+            } elseif ($npmPr) {
                 Invoke-GhqAutoPrLockfile $f $baseBranch 'package-lock.json' 'chore/npm-lock-update' `
                     'chore: update package-lock.json' `
-                    'npm update により生成された package-lock.json の更新です（ghq-update の自動 PR 機能）。'
+                    'npm update により生成された 依存関係と関連する生成ファイルの更新です（ghq-update の自動 PR 機能）。' -AdditionalFiles $npmPrFiles
             }
         } else {
             $hasNpmProject = Test-Path -LiteralPath (Join-Path $f 'package.json')
