@@ -28,7 +28,7 @@ description: Save discovered public events or circle candidates to a connected O
 - officialへの変更は主催側のURLと実際の確認日・根拠を確認してから行う。
   スクリプトは公式サイトの正当性を判定しない。
 - 取得不能は候補なしや削除と扱わず、巡回先の確認履歴へ結果を報告する。
-  本skillの保存スクリプトは候補だけを更新する。巡回先・通知履歴の自動更新は未対応。
+  候補保存スクリプトの書き込み先は候補だけ。巡回先・通知履歴は下記の操作を使う。
 
 ## Save with Revision Checks
 
@@ -59,6 +59,16 @@ dry-runで対象と変化を確認し、同じ入力からdry-runを外して保
 同じファイルへの外部編集を止めてから使う。
 `.event-store.lock` と `.event-store-*.tmp` は作業用でGitへ入れない。残ったロックは稼働中writerを確認して手動で扱い、勝手に消さない。
 保存後は返されたパス・record_id・revisionと本文を読み戻し、変更範囲を確認する。
+
+## Save Sources and Notification State
+
+同梱の `operation_store.py` を `uv run --script` で起動する。
+共通引数は `--vault <root> --input <json> [--dry-run]`。続けて次のサブコマンドを指定する。
+
+- `source --collection sendaicmc|personal --evidence <確認範囲と結果>` は、同じURLの巡回先を更新する。入力は `name`、`source_url`、`source_role`、`coverage`、`checked_on`、`check_result`。
+- `notification [--expected <前の状態>]` は、同じ送信キーの履歴を更新する。入力は `task`、`run_date`、`idempotency_key`、`event_versions`、`send_state` と、実際の応答に基づく受理・配信情報。初回の `prepared` では `--expected` を省略する。既存キーを新規送信の根拠にせず、保存済み状態と送信サービスの応答を照合する。
+
+先にdry-runし、保存後は出力されたパスを読み戻す。同ツールはメールを送信しない。
 
 ## Report and Handoff
 
