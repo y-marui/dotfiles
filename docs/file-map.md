@@ -168,3 +168,9 @@ Glance Task の「美術展: 関東」「美術展: 東北」タスクを、AI�
 | --- | --- | --- |
 | `ai/skills/spotify-distribute-liked-songs/SKILL.md` | お気に入り曲の既存プレイリストへの振り分け | vaultの`knowledge/music/spotify-playlists.md`、`spotify-inventory`、`split-playlist` |
 | `ai/skills/spotify-reorder-playlist-by-key/SKILL.md` | ユーザー提供のキー情報で曲順を変更 | `spotify-inventory`、`reorder-by-key`。移動対象ノートへの固定参照なし |
+
+## Event Candidate Store
+
+`ai/skills/obsidian-collect-events/scripts/event_store.py`は、指定された収集領域のcandidates/だけを読み書きする。
+PyYAMLの依存をPEP 723で宣言し、単体導入時はuv run --script、repo内では既存uv環境から実行できる。
+同ディレクトリのtest_event_store.pyが一時データで版競合・再発見・日程変更・保存失敗を検証する。
