@@ -29,7 +29,12 @@ Each Pi keeps its repositories under the ghq root `~/src` so that `my-hosts`
 is the same on every Pi:
 
 - `~/src/github.com/y-marui/dotfiles` and `.../dotfiles-private`, cloned with
-  `ghq get ssh://git@github.com/y-marui/<repo>.git`.
+  `ghq get https://github.com/y-marui/<repo>.git`. Keep `remote.origin.url` in the
+  `https://github.com/` form: the `[url "github-public:"] InsteadOf` rules in
+  `gitconfig.d/public` match only `https://github.com/` and `git@github.com:`, so an
+  `ssh://git@github.com/...` URL bypasses the dedicated key and fails with
+  `Permission denied (publickey)` (#176). Fix an existing checkout with
+  `git remote set-url origin https://github.com/y-marui/<repo>.git`.
 - `~/dotfiles` is a symlink to the ghq path. The home-directory links and
   `DOTFILES_DIR` point at `~/dotfiles`, so moving the checkout does not require
   relinking.
@@ -43,7 +48,8 @@ Setting up a new Pi for `my-hosts`:
 1. Add `Host`/`IdentityFile` for the Pi to `~/.ssh/config` on the Macs
    (`dotfiles-private/ssh/config`) and authorize the key on the Pi.
 2. Install ghq as above. Clone with agent forwarding (`ssh -A <host>`) because the
-   Pi holds no GitHub key; accept the GitHub host key on first connect.
+   Pi holds no GitHub key; accept the GitHub host key on first connect. Use the
+   `https://github.com/` URL form (see above), never `ssh://git@github.com/`.
 3. If `~/dotfiles` already exists as a plain checkout, check `git status`,
    `git stash list` and unpushed commits, move it aside (`mv ~/dotfiles
    ~/dotfiles.old-<date>`), then `ln -s ~/src/github.com/y-marui/dotfiles
