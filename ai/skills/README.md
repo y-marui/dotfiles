@@ -117,3 +117,10 @@ Obsidianの会話Recordは、対象vaultの`docs/conversation-record-format.md`�
 
 `DOTFILES_EXTERNAL_FILE` を指定した場合はその宣言だけを使う（既存のクラウド用途）。
 必要なときだけ `DOTFILES_PRIVATE_EXTERNAL_FILE` も指定して結合する。
+
+## Event Collection
+
+`obsidian-collect-events`は公開イベント・サークルの候補を、接続済みvaultの指定収集領域へ保存する。
+同梱ツールは期待revision・協調ロック・原子的置換で候補を更新し、メール・サイト・Gitを操作しない。
+巡回先・通知履歴の自動更新と、Workクラウドへの接続は別工程。
+実行方法と対象外の範囲は[skill](obsidian-collect-events/SKILL.md)を参照する。
