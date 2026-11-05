@@ -26,7 +26,7 @@ FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 # Sentence ends: after 。！？!? and after "." followed by whitespace.
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[。！？!?])|(?<=\.)(?=\s)")
 
-ALWAYS_NAMES = {"CLAUDE.md", "AGENTS.md", "GEMINI.md", "SKILL.md"}
+ALWAYS_NAMES = {"CLAUDE.md", "AGENTS.md", "SKILL.md"}
 FRONTMATTER_EXEMPT_NAMES = {
     "CHANGELOG.md",
     "CONTRIBUTING.md",

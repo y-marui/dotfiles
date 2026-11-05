@@ -63,8 +63,4 @@ for f in scripts/check-*.sh; do
 done
 ~~~
 
-差分があれば取り込む。意図的な独自差分は、スクリプト内のコメントに理由を残す。現在の独自差分:
-
-- `check-ai-context-reference.sh`: `GEMINI.md` を検査しない（Gemini 設定管理の削除に合わせた除外）
-- `check-markdown-heading-language.sh`: YAML frontmatter を読み飛ばす修正がローカルにだけある
-  （`ai/skills/*/SKILL.md` 対応。dev-charter 側は y-marui/dev-charter#162）
+差分があれば取り込む。意図的な独自差分を置く場合は、スクリプト内のコメントに理由を残す。現在、独自差分はない。
