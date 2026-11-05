@@ -165,6 +165,11 @@ macOSではSSHセッションからログインキーチェーンのトークン
 （globも可）に一致する場合のみ、`upstream`（fork元）へPRを作成する。許可対象は
 今後増える見込みのため、このファイルに追記して管理する。
 
+`y-marui/chrome-chatgpt-exporter` の npm 更新では、更新前の作業ツリーがクリーンで、
+更新とビルドに成功した場合、`package-lock.json` とビルドが再生成する
+`THIRD_PARTY_NOTICES.txt` の差分を同じ自動 PR に含める。ロックファイルの差分は必須で、
+対象外の差分がある場合は自動 PR を作成しない。
+
 手動での`gh pr create`にも同じ許可リストを適用する。`shell/zshrc`の`gh()`
 ラッパー関数（`git()`の`--no-verify`禁止と同じ、うっかり防止のための仕組み）が、
 `upstream` remoteがあり`bin/ghq-upstream-pr-allow`で許可されたリポジトリに対して、

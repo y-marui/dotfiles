@@ -159,13 +159,22 @@ while IFS= read -r f; do
     fi
 
     if [[ "$has_node_modules" == true ]]; then
+      npm_pr="$AUTO_PR"
+      npm_pr_files=()
+      if [[ "$npm_pr" == true && "$(_git_fork_remote_owner_repo "$f" origin)" == y-marui/chrome-chatgpt-exporter ]]; then
+        npm_pr_files+=(THIRD_PARTY_NOTICES.txt)
+        if ! npm_pr_status="$(git -C "$f" status --porcelain)" || [[ -n "$npm_pr_status" ]]; then
+          echo "  [skip auto-pr] npm 更新前の作業ツリーに変更があります" >&2
+          npm_pr=false
+        fi
+      fi
       if ! (cd "$f" && npm update && npm run build --if-present); then
         echo "  [failed] npm update / build" >&2
         FAILED=$((FAILED + 1))
-      elif [[ "$AUTO_PR" == true ]]; then
+      elif [[ "$npm_pr" == true ]]; then
         _ghq_auto_pr_lockfile "$f" "$base_branch" package-lock.json "$_GHQ_NPM_LOCK_PR_BRANCH" \
           "chore: update package-lock.json" \
-          "npm update により生成された package-lock.json の更新です（ghq-update の自動 PR 機能）。"
+          "npm update により生成された 依存関係と関連する生成ファイルの更新です（ghq-update の自動 PR 機能）。" "${npm_pr_files[@]}"
       fi
     else
       has_npm_project=false

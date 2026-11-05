@@ -143,17 +143,18 @@ function Test-GhqUpstreamPrAllowed([string]$Target) {
 # <branch> にコミットして force push し、gh で PR を作成する（既に open な
 # PR があれば push だけでその PR に反映される）。作業ツリーは base_branch
 # に戻した状態で返す。失敗時も呼び出し元の処理は継続できるよう例外は投げない。
-function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$Lockfile, [string]$Branch, [string]$Title, [string]$Body) {
+function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$Lockfile, [string]$Branch, [string]$Title, [string]$Body, [string[]]$AdditionalFiles = @()) {
     $branch = $Branch
-    $escapedLockfile = [regex]::Escape($Lockfile)
+    $files = @($Lockfile) + $AdditionalFiles
+    $excluded = @($files | ForEach-Object { ":(exclude,literal)$_" })
 
     $lockStatus = @(& git -C $Repo status --porcelain -- $Lockfile 2>$null)
     if (-not $lockStatus) { return }
 
-    $allStatus = @(& git -C $Repo status --porcelain 2>$null)
-    $other = @($allStatus | Where-Object { $_ -notmatch " $escapedLockfile$" })
+    $other = @(& git -C $Repo status --porcelain --no-renames -- @excluded 2>$null)
+    if ($LASTEXITCODE -ne 0) { return }
     if ($other.Count -gt 0) {
-        Write-GhqStderr "  [skip auto-pr] (${Repo}) ${Lockfile} 以外にも dirty な変更があります"
+        Write-GhqStderr "  [skip auto-pr] (${Repo}) 自動 PR の対象外にも dirty な変更があります"
         return
     }
 
@@ -202,7 +203,7 @@ function Invoke-GhqAutoPrLockfile([string]$Repo, [string]$BaseBranch, [string]$L
         return
     }
     $global:LASTEXITCODE = $null
-    $commitOutput = (& git -C $Repo commit -m $Title -- $Lockfile 2>&1 | Out-String)
+    $commitOutput = (& git -C $Repo commit -m $Title -- @files 2>&1 | Out-String)
     if ($LASTEXITCODE -ne 0) {
         $commitSummary = ($commitOutput -replace "`r?`n", ' ').Trim()
         if ($commitSummary.Length -gt 500) { $commitSummary = $commitSummary.Substring(0, 500) }
