@@ -61,7 +61,7 @@ brew "uv"
 brew "cmake"
 brew "colormake"
 brew "flyctl"
-brew "ollama", restart_service: :changed
+brew "ollama"
 brew "postgresql@14"
 brew "pre-commit"
 brew "pyright"
@@ -144,7 +144,7 @@ cask "firefox"
 cask "google-chrome"
 
 # ── macOS アプリ（メディア・クリエイティブ） ─────────────────────────────────────
-cask "audius"
+cask "audius", pin: true
 cask "blender"
 cask "burn"
 cask "gimp"
@@ -219,9 +219,11 @@ cask "docker-desktop"
 cask "font-noto-sans-cjk-jp"
 cask "font-noto-serif-cjk-jp"
 cask "macshot"
+cask "musescore"
 cask "pdfcraft"
 cask "photocraft"
 cask "raindropio"
 cask "realvnc-connect-viewer"
 cask "vectorcraft"
+mas "Just Press Record", id: 1033342465
 # Craft apps
