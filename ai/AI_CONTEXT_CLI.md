@@ -82,6 +82,9 @@ PR・Issue の作成前に `.github/` のテンプレートを確認し、あれ
   rebase は明示指示がある場合のみ
 - マージ依頼には統合済みブランチの整理を含める。
   PR が MERGED で未 push の未統合コミットがないことを確認してから整理し、満たせなければ残して別に報告する
+- 複数の PR を順にマージする際、後続の PR が先にマージした PR と同じ定数・fixture・CI 設定等を共有している疑いがあれば、
+  GitHub の `mergeable: MERGEABLE` は three-way merge が可能というだけで動作保証ではない。
+  ブランチを最新の base まで更新し（`gh api .../update-branch` 等）、CI を再実行して確認してからマージする
 - `y-marui/*`・`fukami-lab-sot/*` の Issue は assignee に `y-marui` を設定する。
   自分の PR には付けない
 - 自動レビューは PR コメントで依頼する（`@codex review`、`@copilot review`）。
