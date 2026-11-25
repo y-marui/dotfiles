@@ -34,7 +34,7 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 | コマンド | apply | diff | sync | merge | prune | cache | 説明 |
 |---------|-------|------|------|-------|-------|-------|------|
 | `dots brew` | ◯（既定は差分のみ。`--full`で全件。余分はcleanup。`--no-prune`でcleanupを省略。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（cleanup。`--dry-run`あり） | ◯ | Brewfile / Brewfile.local / Brewfile-pin |
-| `dots dock` | ◯（差分のある側を再構築。`--dry-run`はdiffと同じ表示） | ◯（`--summary`・`--exit-code`あり） | ◯（実機と完全一致。他マシン由来の項目も消えるため、削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（他マシン由来の項目を保持。`--dry-run`あり） | N/A（applyが全体を再構築するため削除だけを分離できない） | ◯ | Dock・Finderサイドバー（dotfiles-private） |
+| `dots dock` | ◯（差分のある側を再構築。`--dry-run`はdiffと同じ表示） | ◯（`--summary`・`--exit-code`あり） | ◯（実機と完全一致。他マシン由来の項目も消えるため、削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（他マシン由来の項目を保持。このマシンにあるのに外した項目は削除。`--dry-run`あり） | N/A（applyが全体を再構築するため削除だけを分離できない） | ◯ | Dock・Finderサイドバー（dotfiles-private） |
 | `dots shortcuts` | ◯（ローカルのみの設定は消える。`--no-prune`で追加・更新のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（ローカルのみの設定を削除。`--dry-run`あり） | ◯ | macOSのアプリケーションショートカット |
 | `dots npm` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | npmグローバルパッケージ |
 | `dots pipx` | ◯（余分はprune。`--no-prune`で追加のみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | ◯（削除を伴う場合は`--yes`。`--dry-run`あり） | ◯（`--dry-run`あり） | ◯（`--dry-run`あり） | ◯ | pipxパッケージ |
@@ -42,7 +42,7 @@ pre-commitで一致を検証する。動詞の意味は [docs/specification.md](
 | `dots ai` / `dots claude` / `dots codex` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯（apply単独の削除部分） | N/A（実状態を直接読む） | MCP・plugin・skill（`--mcp-only`等で対象を絞れる）。`dots ai`はClaude Code・Codexを一括実行 |
 | `dots copilot` | ◯（追加・更新の後にprune。`--no-prune`で追加・更新のみ） | ◯ | N/A（宣言は人が編集する） | N/A（宣言は人が編集する） | ◯ | N/A（実状態を直接読む） | Copilot CLIのuser scope MCPのみ |
 | `dots winget`（Windowsのみ） | ◯（宣言にないpinはunpinして完全一致。`--no-prune`でpinのみ。`--dry-run`あり） | ◯（`--summary`・`--exit-code`あり） | N/A（宣言は理由コメント付きで人が編集する） | N/A（宣言は理由コメント付きで人が編集する） | ◯（未宣言のpinを解除。`--dry-run`あり） | ◯ | `windows/WingetPin`の一時pin宣言 |
-| 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
+| 標準動作 | 管理ファイル → 実状態へ適用 | 差分を表示するだけ | 実状態 → 管理ファイル（完全一致） | 実状態 → 管理ファイル（追加のみ。dockのみ、このマシンで外した項目の削除を含む） | 管理ファイルにない項目を削除・退避 | 実状態のキャッシュを更新 | |
 
 共通オプション（各動詞が受け付けるものはドメインごとに決まっており、受け付けないものはエラー）:
 
