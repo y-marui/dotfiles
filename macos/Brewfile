@@ -227,4 +227,5 @@ cask "raindropio"
 cask "realvnc-connect-viewer"
 cask "vectorcraft"
 mas "Just Press Record", id: 1033342465
+mas "LINE", id: 539883307
 # Craft apps
